@@ -46,13 +46,13 @@ func (r organizations) atomic(ctx context.Context, tid string, fn func(organizat
 	})
 }
 
-const orgCols = `tenant_id, id, name, display_name, branding, metadata, third_party_client_access, created_at, updated_at, is_app_entitlement_active`
+const orgCols = `tenant_id, id, name, display_name, branding, metadata, third_party_client_access, created_at, updated_at, is_app_entitlement_active, token_quota`
 
 func scanOrg(row scanner) (*store.Organization, error) {
 	var o store.Organization
 	var branding, metadata sql.NullString
 	var created, updated int64
-	if err := row.Scan(&o.TenantID, &o.ID, &o.Name, &o.DisplayName, &branding, &metadata, &o.ThirdPartyClientAccess, &created, &updated, &o.IsAppEntitlementActive); err != nil {
+	if err := row.Scan(&o.TenantID, &o.ID, &o.Name, &o.DisplayName, &branding, &metadata, &o.ThirdPartyClientAccess, &created, &updated, &o.IsAppEntitlementActive, jsonColumn{&o.TokenQuota}); err != nil {
 		return nil, err
 	}
 	if branding.Valid {
@@ -87,21 +87,6 @@ func orgJSON(o store.Organization) (branding, metadata any, err error) {
 
 // now is the current time at the precision the database keeps.
 func now() time.Time { return fromMicros(micros(time.Now().UTC())) }
-
-// insertIgnore inserts a membership row unless its key exists. A plain read
-// in a caller's transaction can miss a row that another transaction
-// committed after it (MySQL REPEATABLE READ keeps the first read's view), so
-// the insert itself skips duplicates instead of failing; this keeps adds
-// idempotent under concurrency. into is "table (cols) VALUES (...)".
-func (r organizations) insertIgnore(ctx context.Context, into string, args ...any) error {
-	q := `INSERT INTO ` + into + ` ON CONFLICT DO NOTHING`
-	if r.s.d.name == "mysql" {
-		// Not INSERT IGNORE, which also hides other errors.
-		q = `INSERT INTO ` + into + ` ON DUPLICATE KEY UPDATE tenant_id=tenant_id`
-	}
-	_, err := r.s.exec(ctx, q, args...)
-	return err
-}
 
 func (r organizations) orgExists(ctx context.Context, tid, id string) error {
 	var one int
@@ -214,8 +199,8 @@ func (r organizations) Create(ctx context.Context, o *store.Organization, conns 
 			n.UpdatedAt = n.CreatedAt
 		}
 		n.CreatedAt, n.UpdatedAt = fromMicros(micros(n.CreatedAt)), fromMicros(micros(n.UpdatedAt))
-		if _, err := t.s.exec(ctx, `INSERT INTO organizations (`+orgCols+`) VALUES (?,?,?,?,?,?,?,?,?,?)`,
-			n.TenantID, n.ID, n.Name, n.DisplayName, branding, metadata, n.ThirdPartyClientAccess, micros(n.CreatedAt), micros(n.UpdatedAt), n.IsAppEntitlementActive); err != nil {
+		if _, err := t.s.exec(ctx, `INSERT INTO organizations (`+orgCols+`) VALUES (?,?,?,?,?,?,?,?,?,?,?)`,
+			n.TenantID, n.ID, n.Name, n.DisplayName, branding, metadata, n.ThirdPartyClientAccess, micros(n.CreatedAt), micros(n.UpdatedAt), n.IsAppEntitlementActive, jsonColumn{&n.TokenQuota}); err != nil {
 			return t.s.conflict(err)
 		}
 		for _, c := range conns {
@@ -304,8 +289,8 @@ func (r organizations) Update(ctx context.Context, o *store.Organization) error 
 			return store.ErrConflict
 		}
 		n.CreatedAt, n.UpdatedAt = cur.CreatedAt, now()
-		_, err = t.s.exec(ctx, `UPDATE organizations SET name=?, display_name=?, branding=?, metadata=?, third_party_client_access=?, updated_at=?, is_app_entitlement_active=? WHERE tenant_id=? AND id=?`,
-			n.Name, n.DisplayName, branding, metadata, n.ThirdPartyClientAccess, micros(n.UpdatedAt), n.IsAppEntitlementActive, n.TenantID, n.ID)
+		_, err = t.s.exec(ctx, `UPDATE organizations SET name=?, display_name=?, branding=?, metadata=?, third_party_client_access=?, updated_at=?, is_app_entitlement_active=?, token_quota=? WHERE tenant_id=? AND id=?`,
+			n.Name, n.DisplayName, branding, metadata, n.ThirdPartyClientAccess, micros(n.UpdatedAt), n.IsAppEntitlementActive, jsonColumn{&n.TokenQuota}, n.TenantID, n.ID)
 		return t.s.conflict(err)
 	}); err != nil {
 		return err
@@ -706,7 +691,7 @@ func (r organizations) ChangeMemberRoles(ctx context.Context, tid, orgID, userID
 			return store.ErrPrecondition
 		}
 		for _, id := range missing {
-			if err := t.insertIgnore(ctx, `organization_member_roles (tenant_id,organization_id,user_id,role_id) VALUES (?,?,?,?)`, tid, orgID, userID, id); err != nil {
+			if err := t.s.insertIgnore(ctx, `organization_member_roles (tenant_id,organization_id,user_id,role_id) VALUES (?,?,?,?)`, tid, orgID, userID, id); err != nil {
 				return err
 			}
 		}

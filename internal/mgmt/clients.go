@@ -25,11 +25,14 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/gen/mgmtapi"
 	"github.com/zeroauthy/zeroauthy/internal/identity"
 	"github.com/zeroauthy/zeroauthy/internal/keys"
+	"github.com/zeroauthy/zeroauthy/internal/logout"
 	"github.com/zeroauthy/zeroauthy/internal/logs"
 	"github.com/zeroauthy/zeroauthy/internal/logscrub"
 	"github.com/zeroauthy/zeroauthy/internal/orglogin"
+	"github.com/zeroauthy/zeroauthy/internal/passwordless"
 	"github.com/zeroauthy/zeroauthy/internal/phone"
 	"github.com/zeroauthy/zeroauthy/internal/protection"
+	"github.com/zeroauthy/zeroauthy/internal/quotarules"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/system"
@@ -49,6 +52,7 @@ const (
 
 // Handlers serves the Management API and the system API.
 type Handlers struct {
+	Logout *logout.Service
 	// LogsConfig carries deployment-wide stream transport policy.
 	LogsConfig     logs.Config
 	EventsConfig   events.Config
@@ -81,6 +85,9 @@ type Handlers struct {
 	// sends nothing.
 	Verification VerificationSender
 	EmailService *email.Service
+	Passwordless *passwordless.Service
+	// PhoneDispatcher sends identifier verification texts for user updates.
+	PhoneDispatcher *phone.Dispatcher
 	// PhoneHTTP is the HTTP client of the phone provider try routes; nil uses
 	// phone.NewHTTPClient (SSRF-guarded).
 	PhoneHTTP *http.Client
@@ -261,7 +268,7 @@ func (h *Handlers) CreateClient(w http.ResponseWriter, r *http.Request) {
 		spec.GrantTypes = clientrules.DefaultGrantTypes(method)
 	}
 	tn := resolved(r)
-	if err := normalize(&spec, tn); err != nil {
+	if err := h.normalize(&spec, tn); err != nil {
 		Fail(w, err)
 		return
 	}
@@ -283,7 +290,21 @@ func (h *Handlers) CreateClient(w http.ResponseWriter, r *http.Request) {
 	if pkj {
 		c.TokenEndpointAuthMethod = ""
 	}
+	if err := h.checkIDTokenSigning(c); err != nil {
+		Fail(w, err)
+		return
+	}
 	err = h.Store.WithTx(r.Context(), func(tx store.Store) error {
+		if body["oidc_support"] != nil || body["oidc_logout"] != nil || store.ClientNeedsOIDCLogout(c) {
+			if err := checkOIDCSupportWrite(r.Context(), tx); err != nil {
+				return err
+			}
+		}
+		if in.policiesSet || c.RequireProofOfPossession || c.TokenQuota != nil {
+			if err := checkMRRTSupport(r.Context(), tx); err != nil {
+				return err
+			}
+		}
 		if err := tx.Clients().Create(r.Context(), c); err != nil {
 			return err
 		}
@@ -352,6 +373,16 @@ func (h *Handlers) UpdateClient(w http.ResponseWriter, r *http.Request, id strin
 		if err != nil {
 			return err
 		}
+		if body["token_quota"] != nil || spec.TokenQuota != nil || in.policiesSet || spec.RefreshToken.Policies != nil || spec.RequireProofOfPossession || body["require_proof_of_possession"] != nil {
+			if err := checkMRRTSupport(r.Context(), tx); err != nil {
+				return err
+			}
+		}
+		if body["oidc_support"] != nil || body["oidc_logout"] != nil || spec.OIDCSupport != nil || spec.OIDCLogout != nil || spec.IDTokenAlg != "" && spec.IDTokenAlg != "RS256" {
+			if err := checkOIDCSupportWrite(r.Context(), tx); err != nil {
+				return err
+			}
+		}
 		pkj, err := in.cred.authenticationState(&spec, c.PrivateKeyJWTCredentials != nil)
 		if err != nil {
 			return err
@@ -363,7 +394,7 @@ func (h *Handlers) UpdateClient(w http.ResponseWriter, r *http.Request, id strin
 		if in.securityModeSet && spec.ThirdPartySecurityMode != c.ThirdPartySecurityMode {
 			return badBody("third_party_security_mode cannot change after creation")
 		}
-		if err := normalize(&spec, tn); err != nil {
+		if err := h.normalize(&spec, tn); err != nil {
 			return err
 		}
 		if in.orgUsageSet && !store.OrganizationsSupported(h.Store) {
@@ -383,6 +414,9 @@ func (h *Handlers) UpdateClient(w http.ResponseWriter, r *http.Request, id strin
 			return err
 		}
 		if err := h.setSecret(c, in.secret, in.secretSet, h.now()); err != nil {
+			return err
+		}
+		if err := h.checkIDTokenSigning(c); err != nil {
 			return err
 		}
 		out = c
@@ -503,7 +537,10 @@ func (h *Handlers) setSecret(c *store.Client, secret string, supplied bool, now 
 // normalize applies clientrules.Normalize. Its problems are 400
 // invalid_body, except that a request whose only problems are organization
 // setting conflicts gets the observed 400 without errorCode (D-0055).
-func normalize(s *clientrules.Spec, tn *store.Tenant) error {
+func (h *Handlers) normalize(s *clientrules.Spec, tn *store.Tenant) error {
+	if err := clientrules.CheckMRRTManagementAudience(s.RefreshToken.Policies, tenant.ManagementAPIIdentifier(tn, h.BaseDomain)); err != nil {
+		return badBody("%v", err)
+	}
 	if errs := clientrules.Normalize(s, tn.PushedAuthorizationRequestsSupported); len(errs) > 0 {
 		msgs := make([]string, len(errs))
 		onlyRules := true
@@ -537,7 +574,7 @@ func (h *Handlers) clientView(ctx context.Context, tn *store.Tenant, c *store.Cl
 	if idTTL == 0 {
 		idTTL = clientrules.DefaultIDTTL
 	}
-	alg := mgmtapi.JwtConfigurationAlgRS256
+	alg := mgmtapi.JwtConfigurationAlg(cmp.Or(c.IDTokenAlg, "RS256"))
 	secretEncoded := false
 	spec := clientrules.FromClient(c)
 	rotation := mgmtapi.RefreshTokenSettingsRotationType(spec.RefreshToken.RotationType)
@@ -562,8 +599,33 @@ func (h *Handlers) clientView(ctx context.Context, tn *store.Tenant, c *store.Cl
 			TokenLifetime: &lifetime, IdleTokenLifetime: &idle,
 			InfiniteTokenLifetime: &infinite, InfiniteIdleTokenLifetime: &infinite,
 		},
-		RequirePushedAuthorizationRequests: c.RequirePushedAuthorizationRequests,
-		CreatedAt:                          &created,
+		RequirePushedAuthorizationRequests: c.RequirePushedAuthorizationRequests, RequireProofOfPossession: &c.RequireProofOfPossession,
+		CreatedAt: &created,
+	}
+	if c.OIDCLogout != nil {
+		raw, _ := json.Marshal(clientrules.PublicOIDCLogout(c.OIDCLogout))
+		var logout mgmtapi.ClientOIDCLogout
+		_ = json.Unmarshal(raw, &logout)
+		v.OidcLogout = &logout
+	}
+	if c.OIDCSupport != nil {
+		raw, _ := json.Marshal(c.OIDCSupport)
+		var support mgmtapi.ClientOIDCSupport
+		_ = json.Unmarshal(raw, &support)
+		v.OidcSupport = &support
+	}
+	if c.TokenQuota != nil {
+		raw, _ := json.Marshal(quotarules.PublicTokenQuota(c.TokenQuota))
+		var quota mgmtapi.IITokenQuota
+		_ = json.Unmarshal(raw, &quota)
+		v.TokenQuota = &quota
+	}
+	if c.RefreshToken.Policies != nil {
+		policies := make([]mgmtapi.RefreshTokenPolicy, len(c.RefreshToken.Policies))
+		for i, p := range c.RefreshToken.Policies {
+			policies[i] = mgmtapi.RefreshTokenPolicy(p)
+		}
+		v.RefreshToken.Policies = &policies
 	}
 	if c.ThirdPartySecurityMode != "" {
 		m := mgmtapi.ClientThirdPartySecurityMode(c.ThirdPartySecurityMode)
@@ -688,6 +750,7 @@ var ignoredClientFields = []string{
 
 // clientBody is what readClientBody learned beyond the Spec.
 type clientBody struct {
+	policiesSet     bool
 	secret          string
 	secretSet       bool
 	grantTypesSet   bool
@@ -756,6 +819,8 @@ func readClientBody(body map[string]json.RawMessage, s *clientrules.Spec) (clien
 			err, out.securityModeSet = decodeString(raw, &s.ThirdPartySecurityMode), true
 		case "redirection_policy":
 			err = decodeString(raw, &s.RedirectionPolicy)
+		case "require_proof_of_possession":
+			err = decodeStrict(raw, &s.RequireProofOfPossession)
 		case "require_pushed_authorization_requests":
 			err = decodeStrict(raw, &s.RequirePushedAuthorizationRequests)
 		case "skip_non_verifiable_callback_uri_confirmation_prompt":
@@ -794,10 +859,19 @@ func readClientBody(body map[string]json.RawMessage, s *clientrules.Spec) (clien
 				s.OrganizationDiscoveryMethods = []string{}
 				err = decodeStrict(raw, &s.OrganizationDiscoveryMethods)
 			}
+		case "oidc_logout":
+			s.OIDCLogout, err = clientrules.ParseOIDCLogout(raw)
+		case "oidc_support":
+			s.OIDCSupport, err = clientrules.ParseOIDCSupport(raw)
 		case "jwt_configuration":
 			err = readJWTConfiguration(raw, s)
+		case "token_quota":
+			var value any
+			if err = json.Unmarshal(raw, &value); err == nil {
+				s.TokenQuota, err = quotarules.PatchTokenQuota(s.TokenQuota, value, "token_quota")
+			}
 		case "refresh_token":
-			err = readRefreshToken(raw, &s.RefreshToken)
+			out.policiesSet, err = readRefreshToken(raw, &s.RefreshToken)
 		default:
 			if slices.Contains(ignoredClientFields, k) {
 				continue
@@ -820,8 +894,11 @@ func readJWTConfiguration(raw json.RawMessage, s *clientrules.Spec) error {
 	if err := decodeStrict(raw, &v); err != nil {
 		return err
 	}
-	if v.Alg != nil && *v.Alg != "RS256" {
-		return fmt.Errorf("alg %q is not supported (RS256 only)", *v.Alg)
+	if v.Alg != nil {
+		if !slices.Contains([]string{"RS256", "HS256", "PS256"}, *v.Alg) {
+			return fmt.Errorf("unsupported ID token algorithm %q", *v.Alg)
+		}
+		s.IDTokenAlg = *v.Alg
 	}
 	if v.LifetimeInSeconds != nil {
 		s.IDTokenLifetime = *v.LifetimeInSeconds
@@ -831,18 +908,28 @@ func readJWTConfiguration(raw json.RawMessage, s *clientrules.Spec) error {
 
 // readRefreshToken merges the given members into rt. infinite_token_lifetime
 // sets the expiration type when expiration_type is absent.
-func readRefreshToken(raw json.RawMessage, rt *clientrules.RefreshToken) error {
+func readRefreshToken(raw json.RawMessage, rt *clientrules.RefreshToken) (bool, error) {
 	var v struct {
-		RotationType              *string `json:"rotation_type"`
-		ExpirationType            *string `json:"expiration_type"`
-		Leeway                    *int    `json:"leeway"`
-		TokenLifetime             *int    `json:"token_lifetime"`
-		IdleTokenLifetime         *int    `json:"idle_token_lifetime"`
-		InfiniteTokenLifetime     *bool   `json:"infinite_token_lifetime"`
-		InfiniteIdleTokenLifetime *bool   `json:"infinite_idle_token_lifetime"`
+		Policies                  json.RawMessage `json:"policies"`
+		RotationType              *string         `json:"rotation_type"`
+		ExpirationType            *string         `json:"expiration_type"`
+		Leeway                    *int            `json:"leeway"`
+		TokenLifetime             *int            `json:"token_lifetime"`
+		IdleTokenLifetime         *int            `json:"idle_token_lifetime"`
+		InfiniteTokenLifetime     *bool           `json:"infinite_token_lifetime"`
+		InfiniteIdleTokenLifetime *bool           `json:"infinite_idle_token_lifetime"`
 	}
 	if err := decodeStrict(raw, &v); err != nil {
-		return err
+		return false, err
+	}
+	if v.Policies != nil {
+		var policies []store.MRRTPolicy
+		if !isNull(v.Policies) {
+			if err := decodeStrict(v.Policies, &policies); err != nil {
+				return false, err
+			}
+		}
+		rt.Policies = policies
 	}
 	if v.RotationType != nil {
 		rt.RotationType = *v.RotationType
@@ -864,7 +951,7 @@ func readRefreshToken(raw json.RawMessage, rt *clientrules.RefreshToken) error {
 	if v.IdleTokenLifetime != nil {
 		rt.IdleTokenLifetime = *v.IdleTokenLifetime
 	}
-	return nil
+	return v.Policies != nil, nil
 }
 
 func isNull(raw json.RawMessage) bool { return string(bytes.TrimSpace(raw)) == "null" }
@@ -920,6 +1007,34 @@ func (h *Handlers) filterMobile(ctx context.Context, body map[string]json.RawMes
 	}
 	if !available {
 		delete(body, "mobile")
+	}
+	return nil
+}
+
+func checkMRRTSupport(ctx context.Context, st store.Store) error {
+	err := store.CheckRefreshTokensIISupport(ctx, st)
+	if errors.Is(err, store.ErrRefreshTokensIIUnavailable) && !errors.Is(err, store.ErrRefreshTokensIISupportLost) {
+		return badBody("refresh token policies require storage support")
+	}
+	return err
+}
+
+func checkOIDCSupportWrite(ctx context.Context, st store.Store) error {
+	err := store.CheckOIDCLogoutSupport(ctx, st)
+	if errors.Is(err, store.ErrOIDCLogoutUnavailable) {
+		return badBody("storage plugin lacks oidc_logout.v1")
+	}
+	return err
+}
+
+func (h *Handlers) checkIDTokenSigning(c *store.Client) error {
+	if c.IDTokenAlg != "HS256" {
+		return nil
+	}
+	secret, err := keys.ClientSigningSecret(h.Wrapper, c, h.now())
+	clear(secret)
+	if err != nil {
+		return badBody("HS256 requires a confidential client with a usable client secret")
 	}
 	return nil
 }

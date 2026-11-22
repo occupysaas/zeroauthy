@@ -18,8 +18,10 @@ const (
 	StrategyWindowsLive = rules.WindowsLive
 	StrategyWAAD        = rules.WAAD
 	StrategyGoogle      = rules.Google
+	StrategyGitHub      = rules.GitHub
 	StrategyOAuth2      = rules.OAuth2
 	StrategyOIDC        = rules.OIDC
+	StrategyOkta        = rules.Okta
 )
 
 // Store model aliases used throughout the package.
@@ -41,6 +43,7 @@ type Provider interface {
 
 // StartInput is what an adapter needs to build the authorization redirect.
 type StartInput struct {
+	LoginHint     string
 	Config        Config
 	Endpoints     Endpoints
 	CallbackURL   string
@@ -52,7 +55,10 @@ type StartInput struct {
 // ExchangeInput is what an adapter needs to redeem a code. ClientSecret is
 // the opened credential, held only for the duration of the exchange.
 type ExchangeInput struct {
-	Config Config
+	DecryptIDToken  func(raw string) (string, error)
+	ClientAssertion func(audience string) (string, error) // signs without exposing private key material
+	IDTokenAlg      string                                // validated JWS algorithm for OIDC hash claims
+	Config          Config
 	// Cache scopes cached keys to the connection configuration.
 	Cache        CacheKey
 	Endpoints    Endpoints

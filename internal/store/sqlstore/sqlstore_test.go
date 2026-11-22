@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -44,6 +45,10 @@ func dsnsUnderTest(t *testing.T) map[string]func(t *testing.T) string {
 func dialectsUnderTest(t *testing.T) map[string]func(t *testing.T) *Store {
 	out := map[string]func(t *testing.T) *Store{}
 	for name, mk := range dsnsUnderTest(t) {
+		if name == "sqlite" {
+			out[name] = sqliteFixtureFactory(t)
+			continue
+		}
 		out[name] = func(t *testing.T) *Store { return mustOpen(t, mk(t)) }
 	}
 	return out
@@ -324,5 +329,59 @@ func TestPgCtypeFoldsASCIIOnly(t *testing.T) {
 		if got := pgCtypeFoldsASCIIOnly(ctype); got != want {
 			t.Errorf("pgCtypeFoldsASCIIOnly(%q) = %v, want %v", ctype, got, want)
 		}
+	}
+}
+
+func TestSQLiteFixtureCopiesRemainIndependent(t *testing.T) {
+	fresh := sqliteFixtureFactory(t)
+	a, b := fresh(t), fresh(t)
+	ctx := t.Context()
+	if err := a.Tenants().Create(ctx, &store.Tenant{ID: "fixture-a", Name: "fixture-a"}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := b.Tenants().Get(ctx, "fixture-a"); !errors.Is(err, store.ErrNotFound) {
+		t.Fatal("fixture mutations crossed database files")
+	}
+	if err := b.Migrate(ctx); err != nil {
+		t.Fatalf("copied fixture fails normal migration validation: %v", err)
+	}
+	var integrity string
+	if err := b.db.QueryRowContext(ctx, "PRAGMA integrity_check").Scan(&integrity); err != nil || integrity != "ok" {
+		t.Fatalf("copied fixture is not a complete database: %q %v", integrity, err)
+	}
+	if err := a.Close(); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := b.Tenants().Get(ctx, "fixture-a"); !errors.Is(err, store.ErrNotFound) {
+		t.Fatal("closing one fixture affects another")
+	}
+}
+
+// sqliteFixtureFactory migrates one empty database per parent suite, closes it
+// (checkpointing SQLite), and gives each case an independent byte-for-byte copy.
+// Every copy still takes the normal Open/Migrate path, including checksums.
+// Upgrade tests use dsnsUnderTest/mustOpenRaw and never use this prepared image.
+func sqliteFixtureFactory(parent *testing.T) func(*testing.T) *Store {
+	var once sync.Once
+	var image []byte
+	return func(t *testing.T) *Store {
+		t.Helper()
+		once.Do(func() {
+			path := filepath.Join(parent.TempDir(), "schema.db")
+			seed := mustOpen(parent, "sqlite://"+path)
+			if err := seed.Close(); err != nil {
+				parent.Fatal(err)
+			}
+			var err error
+			image, err = os.ReadFile(path)
+			if err != nil {
+				parent.Fatal(err)
+			}
+		})
+		path := filepath.Join(t.TempDir(), "z.db")
+		if err := os.WriteFile(path, image, 0600); err != nil {
+			t.Fatal(err)
+		}
+		return mustOpen(t, "sqlite://"+path)
 	}
 }

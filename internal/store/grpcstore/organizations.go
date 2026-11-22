@@ -74,7 +74,7 @@ func orgToPB(o *store.Organization) *storev1.OrganizationMsg {
 	if o == nil {
 		return nil
 	}
-	pb := &storev1.OrganizationMsg{TenantId: o.TenantID, Id: o.ID, Name: o.Name, DisplayName: o.DisplayName,
+	pb := &storev1.OrganizationMsg{TokenQuota: quotaToPB(o.TokenQuota), TenantId: o.TenantID, Id: o.ID, Name: o.Name, DisplayName: o.DisplayName,
 		ClientAssociationLoaded: o.ClientAssociationLoaded, IsAppEntitlementActive: o.IsAppEntitlementActive, Metadata: stringMapToPB(o.Metadata), ThirdPartyClientAccess: o.ThirdPartyClientAccess,
 		CreatedAt: tsToPB(o.CreatedAt), UpdatedAt: tsToPB(o.UpdatedAt)}
 	if o.ClientAssociation != nil {
@@ -93,7 +93,7 @@ func orgFromPB(pb *storev1.OrganizationMsg) *store.Organization {
 	if pb == nil {
 		return nil
 	}
-	o := &store.Organization{TenantID: pb.TenantId, ID: pb.Id, Name: pb.Name, DisplayName: pb.DisplayName,
+	o := &store.Organization{TokenQuota: quotaFromPB(pb.TokenQuota), TenantID: pb.TenantId, ID: pb.Id, Name: pb.Name, DisplayName: pb.DisplayName,
 		ClientAssociationLoaded: pb.ClientAssociationLoaded, IsAppEntitlementActive: pb.IsAppEntitlementActive, Metadata: stringMapFromPB(pb.Metadata), ThirdPartyClientAccess: pb.ThirdPartyClientAccess,
 		CreatedAt: tsFromPB(pb.CreatedAt), UpdatedAt: tsFromPB(pb.UpdatedAt)}
 	if pb.ClientAssociation != nil {
@@ -220,6 +220,9 @@ func (o clientOrganizations) Create(ctx context.Context, org *store.Organization
 			return err
 		}
 	}
+	if org != nil && org.TokenQuota != nil {
+		return o.c.writeRefreshII(ctx, &storev1.RefreshIIWrite{Record: &storev1.RefreshIIWrite_Organization{Organization: &storev1.OrganizationsRequest{Organization: orgToPB(org), Connections: orgConnsToPB(conns)}}})
+	}
 	_, err := orgCall(o.c, "Create", &storev1.OrganizationsRequest{Organization: orgToPB(org), Connections: orgConnsToPB(conns)}, o.c.rpc.OrganizationsCreate, ctx)
 	return err
 }
@@ -234,7 +237,7 @@ func (srv *Server) OrganizationsCreate(ctx context.Context, q *storev1.Organizat
 }
 
 func (o clientOrganizations) Get(ctx context.Context, tid, id string) (*store.Organization, error) {
-	v, err := orgCall(o.c, "Get", &storev1.OrganizationsRequest{TenantId: tid, OrganizationId: id}, o.c.rpc.OrganizationsGet, ctx)
+	v, err := orgCall(o.c, "Get", &storev1.OrganizationsRequest{TenantId: tid, OrganizationId: id}, refreshRead(o.c, o.c.rpc.OrganizationsGet, o.c.rpc.RefreshIIOrganizationsGet), ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -250,7 +253,7 @@ func (srv *Server) OrganizationsGet(ctx context.Context, q *storev1.Organization
 }
 
 func (o clientOrganizations) GetByName(ctx context.Context, tid, name string) (*store.Organization, error) {
-	v, err := orgCall(o.c, "GetByName", &storev1.OrganizationsRequest{TenantId: tid, Name: name}, o.c.rpc.OrganizationsGetByName, ctx)
+	v, err := orgCall(o.c, "GetByName", &storev1.OrganizationsRequest{TenantId: tid, Name: name}, refreshRead(o.c, o.c.rpc.OrganizationsGetByName, o.c.rpc.RefreshIIOrganizationsGetByName), ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -279,7 +282,7 @@ func (o clientOrganizations) orgList(ctx context.Context, op string, q *storev1.
 	return out, nil
 }
 func (o clientOrganizations) List(ctx context.Context, tid string, p store.OrgPage) (store.OrgResult[store.Organization], error) {
-	return o.orgList(ctx, "List", &storev1.OrganizationsRequest{TenantId: tid, Page: orgPageToPB(p)}, o.c.rpc.OrganizationsList)
+	return o.orgList(ctx, "List", &storev1.OrganizationsRequest{TenantId: tid, Page: orgPageToPB(p)}, refreshRead(o.c, o.c.rpc.OrganizationsList, o.c.rpc.RefreshIIOrganizationsList))
 }
 func orgsToResponse(out *storev1.OrganizationsResponse) func(store.Organization) {
 	return func(x store.Organization) { out.Organizations = append(out.Organizations, orgToPB(&x)) }
@@ -299,7 +302,14 @@ func (o clientOrganizations) Update(ctx context.Context, org *store.Organization
 			return err
 		}
 	}
-	_, err := orgCall(o.c, "Update", &storev1.OrganizationsRequest{Organization: orgToPB(org)}, o.c.rpc.OrganizationsUpdate, ctx)
+	versioned, err := o.c.useRefreshIIUpdate(ctx, org != nil && org.TokenQuota != nil)
+	if err != nil {
+		return err
+	}
+	if versioned {
+		return o.c.writeRefreshII(ctx, &storev1.RefreshIIWrite{Update: true, Record: &storev1.RefreshIIWrite_Organization{Organization: &storev1.OrganizationsRequest{Organization: orgToPB(org)}}})
+	}
+	_, err = orgCall(o.c, "Update", &storev1.OrganizationsRequest{Organization: orgToPB(org)}, o.c.rpc.OrganizationsUpdate, ctx)
 	return err
 }
 func (srv *Server) OrganizationsUpdate(ctx context.Context, q *storev1.OrganizationsRequest) (*storev1.OrganizationsResponse, error) {
@@ -485,7 +495,7 @@ func (srv *Server) OrganizationsIsMember(ctx context.Context, q *storev1.Organiz
 }
 
 func (o clientOrganizations) UserOrganizations(ctx context.Context, tid, userID string, p store.OrgPage) (store.OrgResult[store.Organization], error) {
-	return o.orgList(ctx, "UserOrganizations", &storev1.OrganizationsRequest{TenantId: tid, UserId: userID, Page: orgPageToPB(p)}, o.c.rpc.OrganizationsUserOrganizations)
+	return o.orgList(ctx, "UserOrganizations", &storev1.OrganizationsRequest{TenantId: tid, UserId: userID, Page: orgPageToPB(p)}, refreshRead(o.c, o.c.rpc.OrganizationsUserOrganizations, o.c.rpc.RefreshIIOrganizationsUserOrganizations))
 }
 func (srv *Server) OrganizationsUserOrganizations(ctx context.Context, q *storev1.OrganizationsRequest) (*storev1.OrganizationsResponse, error) {
 	out := &storev1.OrganizationsResponse{}

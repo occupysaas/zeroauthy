@@ -83,6 +83,7 @@ func TestOrgRules(t *testing.T) {
 	t.Run("defaults and copies", func(t *testing.T) {
 		in := org(func(o *store.Organization) {
 			o.DisplayName = ""
+			o.TokenQuota = &store.TokenQuota{PerDay: 5}
 			o.Metadata = map[string]string{"k": "v"}
 			o.Branding = &store.OrgBranding{LogoURL: ptr("https://x.test/l.png")}
 		})
@@ -93,9 +94,10 @@ func TestOrgRules(t *testing.T) {
 		if out.DisplayName != "acme" || out.ThirdPartyClientAccess != "block" {
 			t.Fatalf("defaults %#v", out)
 		}
+		out.TokenQuota.PerDay = 1
 		out.Metadata["k"] = "changed"
 		*out.Branding.LogoURL = "https://changed.test"
-		if in.Metadata["k"] != "v" || *in.Branding.LogoURL != "https://x.test/l.png" {
+		if in.TokenQuota.PerDay != 5 || in.Metadata["k"] != "v" || *in.Branding.LogoURL != "https://x.test/l.png" {
 			t.Fatal("normalized organization shares memory with input")
 		}
 		empty, err := NormalizeOrganization(org(func(o *store.Organization) {

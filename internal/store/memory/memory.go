@@ -30,6 +30,7 @@ type Store struct {
 // and rollback never undoes a write that is not its own. Ordinary readers share
 // txMu's read lock and mu's read lock, so independent reads can run together.
 type state struct {
+	connectionKeys         map[key]*store.ConnectionKey
 	guardian               map[string]*store.GuardianSettings
 	authenticators         map[key]*store.Authenticator
 	mfaTokens              map[key]*store.MFAToken
@@ -85,6 +86,11 @@ type state struct {
 	proofs                 map[string]time.Time
 	txMu                   sync.RWMutex
 	mu                     sync.RWMutex
+	refreshOrder           map[key]uint64
+	refreshFamilyAliases   map[key]string // retired family ID to its current conversion descendant
+	refreshSequence        uint64
+	dpopProofs             replayIndex
+	quotaCounters          map[quotaKey]quotaCounter
 	tenants                map[string]*store.Tenant               // by ID
 	clients                map[key]*store.Client                  // by (tenant, client ID)
 	resourceServers        map[key]*store.ResourceServer          // by (tenant, ID)
@@ -112,10 +118,11 @@ type state struct {
 	emailProviderRevisions map[string]int64
 	emailTemplates         map[key]*store.EmailTemplate
 	emailNotifications     map[emailClaimKey]store.EmailNotification
-	fedAttempts            map[key]*store.FederationAttempt    // by (tenant, StateHash)
-	fedIdentities          map[fedKey]string                   // owner UserID
-	fedTokens              map[fedKey][]byte                   // sealed token records
-	credentials            map[key]*store.ClientCredential     // by (tenant, ID)
+	fedAttempts            map[key]*store.FederationAttempt // by (tenant, StateHash)
+	fedIdentities          map[fedKey]string                // owner UserID
+	fedTokens              map[fedKey][]byte                // sealed token records
+	credentials            map[key]*store.ClientCredential  // by (tenant, ID)
+	globalRevocationJTIs   map[key]time.Time
 	assertionJTIs          map[key]time.Time                   // by (tenant, client\x00sha256(jti)); expiry
 	exchangeProfiles       map[key]*store.TokenExchangeProfile // by (tenant, ID)
 }
@@ -158,6 +165,7 @@ func New() *Store {
 		signingKeys:            map[key]*store.SigningKey{},
 		customSigningKeys:      map[string]*store.CustomSigningKeySet{},
 		connections:            map[key]*store.Connection{},
+		connectionKeys:         map[key]*store.ConnectionKey{},
 		passwordHistories:      map[key][][]byte{},
 		users:                  map[key]*store.User{},
 		sessions:               map[key]*store.LoginSession{},
@@ -166,8 +174,13 @@ func New() *Store {
 		pushedAuthRequests:     map[key]*store.PushedAuthRequest{},
 		credentials:            map[key]*store.ClientCredential{},
 		assertionJTIs:          map[key]time.Time{},
+		globalRevocationJTIs:   map[key]time.Time{},
 		exchangeProfiles:       map[key]*store.TokenExchangeProfile{},
 		deviceCodes:            map[key]*store.DeviceCode{},
+		refreshOrder:           map[key]uint64{},
+		refreshFamilyAliases:   map[key]string{},
+		dpopProofs:             replayIndex{positions: map[dpopKey]int{}},
+		quotaCounters:          map[quotaKey]quotaCounter{},
 		refreshTokens:          map[key]*store.RefreshToken{},
 		resetTickets:           map[key]*store.PasswordResetTicket{},
 		verifyTickets:          map[key]*store.EmailVerificationTicket{},

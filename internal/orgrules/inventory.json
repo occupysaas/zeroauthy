@@ -157,10 +157,10 @@
       "method": "GET",
       "path": "/api/v2/organizations/{id}/members",
       "required_scopes": [
-        "read:organization_members",
-        "read:organization_member_roles"
+        "read:organization_members"
       ],
-      "scope_match": "any",
+      "scope_match": "all",
+      "scope_evidence": "documented: operation security in the public Management API OpenAPI document (D-0270 LR45b-2)",
       "conditional_scopes": [
         "read:organization_member_roles"
       ],
@@ -629,10 +629,10 @@
       "method": "GET",
       "path": "/api/v2/users/{id}/organizations",
       "required_scopes": [
-        "read:users",
         "read:organizations"
       ],
-      "scope_match": "any",
+      "scope_match": "all",
+      "scope_evidence": "documented: operation security in the public Management API OpenAPI document (D-0270 LR45b-2)",
       "request_shape": "query page,per_page,include_totals,from,take",
       "response_shape": "organizations[] | {organizations,start,limit,total} | {organizations,next?}; item as organization GET",
       "pagination": "offset+checkpoint",

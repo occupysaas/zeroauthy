@@ -78,24 +78,39 @@ test('operator rotates and revokes a tenant signing key and sees custom-key limi
   await page.getByRole('button', { name: 'Replace keys' }).click();
   await confirmModal(page, 'Replace keys', 'Replace the stored custom public keys?');
   await expect(page.locator('#custom-signing-jwks')).toHaveValue(/custom-m20/);
-  await expect.poll(async () => (await management.keys.customSigning.get()).keys[0].kid).toBe('custom-m20');
+  // The textarea already holds what the test typed, so it doesn't prove the
+  // save finished; until the PUT lands the API answers 404, which expect.poll
+  // doesn't retry. Treat 404 as "not stored yet".
+  await expect.poll(async () => {
+    try {
+      return (await management.keys.customSigning.get()).keys[0].kid;
+    } catch (err) {
+      if (err?.statusCode === 404) return null;
+      throw err;
+    }
+  }).toBe('custom-m20');
   await page.getByRole('button', { name: 'Delete keys' }).click();
   await confirmModal(page, 'Delete keys', 'Delete the stored custom public keys?');
   await expect(page.locator('#custom-signing-jwks')).not.toHaveValue(/custom-m20/);
   await page.getByRole('tab', { name: 'Signing keys', exact: true }).click();
-  // Exercise a real read-only scoped credential through the browser request
-  // path, retaining the UI's existing operator session for navigation.
+  // A real read-only credential lacks rotation scope on the public API and
+  // cannot stand in for the operator on the console route.
   const readerToken = await fetch('https://localhost:8443/oauth/token', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ grant_type: 'client_credentials', client_id: 'e2e-m17-admin', client_secret: 'e2e-m17-admin-secret-not-for-production', audience: 'https://localhost:8443/api/v2/', scope: 'read:signing_keys' }) }).then(r => r.json());
+  expect(readerToken.access_token).toBeTruthy();
+  const directDenied = await fetch('https://localhost:8443/api/v2/keys/signing/rotate', { method: 'POST', headers: { authorization: `Bearer ${readerToken.access_token}` } });
+  expect(directDenied.status).toBe(403);
   await page.route('**/api/v2/keys/signing/rotate', route => route.continue({ headers: { ...route.request().headers(), authorization: `Bearer ${readerToken.access_token}` } }));
   const beforeDenied = (await management.keys.signing.list()).find(key => key.current).kid;
+  const deniedResponse = page.waitForResponse(response => response.url() === 'https://system.localhost:8443/api/console/tenants/e2e/api/v2/keys/signing/rotate');
   await page.getByRole('button', { name: 'Rotate keys' }).click();
   await confirmModal(page, 'Rotate keys', /Promote the next signing key/);
-  await expect(page.getByRole('alert')).toContainText(/scope|permission|Forbidden/i);
+  expect((await deniedResponse).status()).toBe(401);
+  await expect(page.getByRole('alert')).toContainText(/Invalid token/i);
   expect((await management.keys.signing.list()).find(key => key.current).kid).toBe(beforeDenied);
   await page.unroute('**/api/v2/keys/signing/rotate');
   let release;
   const gate = new Promise(resolve => { release = resolve; });
-  await page.route('https://localhost:8443/api/v2/keys/signing', async route => { const response = await route.fetch(); await gate; await route.fulfill({ response }); });
+  await page.route('https://system.localhost:8443/api/console/tenants/e2e/api/v2/keys/signing', async route => { const response = await route.fetch(); await gate; await route.fulfill({ response }); });
   await page.getByRole('button', { name: 'Refresh', exact: true }).click();
   await page.getByRole('button', { name: 'Switch tenant' }).click();
   await page.getByRole('menuitem', { name: /^system/ }).click();

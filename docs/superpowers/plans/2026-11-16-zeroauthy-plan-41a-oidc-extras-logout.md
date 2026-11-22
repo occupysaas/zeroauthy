@@ -198,7 +198,9 @@ func (s *Service) Deliver(ctx context.Context, job *store.Job) error            
   `HS256`/`PS256` with the rules of spec §5), `internal/clientrules`,
   `internal/oauth/minter.go`, `internal/keys` (HS256 signer from the
   sealed client secret), `internal/oidc/handlers.go`
-  (`id_token_signing_alg_values_supported`).
+  (`id_token_signing_alg_values_supported`), `internal/apirules/apirules.go`
+  (`MinSigningSecretLength` 16 → 32, spec §11 item 6),
+  `docs/client-authentication.md`.
 
 - [ ] **Step 1: Write the failing tests**
   - `TestJWTAlgRules`: `HS256` on a public client / `none` auth / `private_key_jwt`-only → `400`; `PS256` OK.
@@ -206,6 +208,9 @@ func (s *Service) Deliver(ctx context.Context, job *store.Job) error            
   - `TestIDTokenPS256`: verifies with the tenant JWKS key.
   - `TestHS256SecretRotation` (Review Focus 3).
   - `TestDiscoveryIDTokenAlgs`: `["HS256","RS256","PS256"]`.
+  - `TestAPISigningSecretMinLength`: a supplied `signing_secret` of 31
+    characters → `400` on Management API create/update and a seed error;
+    32 OK; an API whose stored secret is shorter still signs.
   - Logout tokens stay RS256 (asserted in Task 8).
 - [ ] **Step 2–4:** FAIL → implement → PASS.
 - [ ] **Step 5:** Commit `feat(oauth): HS256 and PS256 ID tokens per client`.

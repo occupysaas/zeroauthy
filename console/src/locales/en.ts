@@ -2,6 +2,12 @@ import logInventory from '../../../internal/logrules/inventory.json'
 // The English catalog: every string the console shows. Other languages
 // follow this shape (MessageSchema); vue-i18n checks keys against it.
 const en = {
+ oidc41: {
+  tab: 'OIDC and logout', logout: 'Back-channel logout', receiver: 'Logout receiver URL', receiverHint: 'One HTTPS URL, up to 2,048 bytes. Organization name and ID placeholders are supported. Clear to remove.', invalidURL: 'Enter one HTTPS URL without credentials, spaces or a fragment.',
+  initiators: 'Send logout notifications when', custom: 'Selected events', all: 'All supported events', metadata: 'Include session metadata in logout tokens', tokens: 'OpenID Connect', algorithm: 'ID token signing algorithm', hsHint: 'HS256 requires a confidential application using a retrievable client secret of at least 32 characters. Rotate an unavailable secret in Settings.',
+  configure: 'Configure OIDC restrictions', allowed: 'Allow OpenID Connect', allScopes: 'Allow all OIDC scopes', scopes: 'Allowed OIDC scopes', scopeHint: 'Separate profile, email, address and phone with spaces. Restricting scopes does not grant consent.', invalidScopes: 'Allowed OIDC scopes are profile, email, address and phone.', discovery: 'Advertise the RP logout endpoint', resource: 'Resource parameter profile',
+  initiator: { 'rp-logout': 'Application logout (required)', 'idp-logout': 'Identity provider logout (required)', 'password-changed': 'Password changed', 'session-expired': 'Session expired', 'session-revoked': 'Session revoked', 'account-deleted': 'Account deleted', 'email-identifier-changed': 'Email identifier changed' },
+ },
   passkeys: {
     passwordEnabled: 'Enable password login', yes: 'Yes', no: 'No', title: 'Passkeys', enabled: 'Enable passkey login', challengeUI: 'Passkey authentication UI', both: 'Autofill and button', autofill: 'Autofill', button: 'Button',
     progressive: 'Offer enrollment after login', local: 'Offer a passkey on this device after cross-device login', prerequisites: 'Prerequisites', unchecked: 'Not checked', met: 'Ready', unmet: 'Needs attention',
@@ -25,7 +31,7 @@ const en = {
     reset: 'Reset to default', preview: 'Preview', previewHint: 'Sample substitution for code, application name and tenant name. Liquid conditions and filters are evaluated by the server when sent.', tryTemplate: 'Try saved template', saveBeforeTry: 'Save changes before sending a test.',
     codeLength: 'Code length', lifetime: 'Code lifetime (seconds)', subject: 'Email subject', authParams: 'Link parameters (JSON encoded string)', body: 'Message body', consolidated: 'SMS uses the tenant phone provider and verification template. Connection gateway settings are ignored.',
     gateway: 'SMS gateway', syntax: 'Template syntax', macros: 'Markdown with macros', forward: 'Forward request information', gatewayURL: 'Gateway HTTPS URL', audience: 'Gateway audience', method: 'Gateway authentication method', subjectGateway: 'Gateway subject', secretBase64: 'Gateway secret is base64 encoded', secret: 'Gateway secret',
-    testConnection: 'Try saved connection', client: 'Client ID', clientHint: 'Use a public application enabled for this connection with passwordless grants configured.', sendType: 'Send', code: 'Code', link: 'Magic link',
+    testConnection: 'Try saved connection', client: 'Client ID', clientHint: 'Use an application enabled for this connection with the passwordless OTP grant.', sendType: 'Send', code: 'Code', link: 'Magic link',
     refreshProvider: 'Refresh provider availability',
     mfaSettings: 'Provider, template and phone settings',
     providerRequired: 'Configure an enabled phone provider before enabling SMS or voice.', voiceUnavailable: 'The configured provider does not support voice.', identifier: 'Phone number identifier', identifierHint: 'Enabling validates every existing phone number and refuses invalid or duplicate identifiers. Resolve the listed users and try again.',
@@ -1280,8 +1286,10 @@ const en = {
       'google-oauth2': 'Google',
       oauth2: 'Custom OAuth 2',
       oidc: 'OpenID Connect',
+      okta: 'Okta Workforce',
       windowslive: 'Microsoft personal account',
       apple: 'Apple',
+      github: 'GitHub',
       waad: 'Microsoft work or school account',
     },
     enterpriseLink: 'Set up generic OpenID Connect or Microsoft work and school in Enterprise',
@@ -1294,6 +1302,13 @@ const en = {
     appleIdentifier: 'Enter exactly 10 uppercase letters or digits.',
     applePEM: 'Enter a PKCS#8 PEM EC P-256 private key.',
     appleName: 'Request the user’s name',
+    githubAppNote: 'The scope options below apply to a GitHub OAuth app. A GitHub App gets its permissions from its own registration, so these options only add to sign-in.',
+    githubEmail: 'Request email address (verified primary email required)',
+    githubScopes: 'Additional GitHub scopes',
+    githubScopesHint: 'Each checked option adds that scope to the sign-in request. Changes apply from the next login.',
+    githubEffective: 'Requested scope',
+    githubEffectiveHint: 'Derived from the options above; it cannot be edited directly.',
+    githubCallbacks: 'Register every listed URL exactly as written in your GitHub app, without wildcards. Each login returns to its own origin.',
     nativeApple: 'Native Social Login — Apple',
     microsoftV2: 'Register an application on the Microsoft identity platform v2 in the public cloud. Choose personal accounts for personal sign-in, or organizational accounts for work and school sign-in.',
     microsoftScopes: 'Sign-in always requests openid profile email. These fixed scopes do not grant mailbox, contacts or calendar access.',
@@ -1308,7 +1323,7 @@ const en = {
     microsoftTenantHint: 'Use the directory GUID or a DNS name such as acme.onmicrosoft.com. This selects an authority; it does not restrict email domains.',
     microsoftTenantInvalid: 'Enter a directory GUID or ASCII DNS name without whitespace, a URL or a reserved Microsoft authority.',
     microsoftBindingFixed: 'The directory and authority mode cannot change. Create a new connection to use a different binding.',
-    oidcSubset: 'Enterprise connection, supported subset: back-channel code flow with discovery and RS256 ID tokens only.',
+    oidcSubset: 'Enterprise OIDC supports authorization code and ID token form-post login, claim mapping, and managed connection keys.',
     displayName: 'Button text',
     displayNameHint: 'Shown on the login button as "Continue with …". Empty uses the connection name.',
     showAsButton: 'Show a button on the login page',
@@ -1632,6 +1647,16 @@ const en = {
     undeployed: 'Deploy this Action before adding it to a trigger.', saveBindings: 'Save bindings', bindingsSaved: 'Trigger bindings saved.', reloadBindings: 'Reload bindings',
     executionHint: 'Find an execution by ID. Results are retained for 10 days and secret values are masked.', executionId: 'Execution ID', lookup: 'Look up',
     build: { pending: 'pending', building: 'building', packaged: 'packaged', built: 'built', retrying: 'retrying', failed: 'failed' },
+  },
+
+  rt48: {
+    refresh: 'Refresh tokens', leeway: 'Rotation overlap (seconds)', leewayHint: 'Only the immediately previous token can be retried during this period. Reusing an older token revokes the family.', absolute: 'Absolute token lifetime (seconds)', idle: 'Idle token lifetime (seconds)',
+    mrrt: 'Multi-resource refresh tokens', mrrtHint: 'First-party applications can configure up to 10 API policies. Each API must allow skipping consent. The original refresh-token grant remains unchanged.', api: 'API audience', chooseApi: 'Choose an API', addPolicy: 'Add API policy', removePolicy: 'Remove policy', invalidPolicies: 'Choose a unique API for every policy and keep audience and scope values within their limits.', invalidSeconds: 'Enter a non-negative whole number of seconds.',
+    proof: 'Sender constraining', requireProof: 'Require proof of possession', publicHint: 'Public applications must send DPoP proofs and handle nonce challenges to use online refresh tokens. API access tokens bind only when the API enables DPoP.', mechanism: 'Proof method', noProof: 'None (clear configuration)', dpop: 'DPoP', required: 'Require DPoP', requiredFor: 'Require for', allClients: 'All applications', publicClients: 'Public applications', online: 'Allow online access', ephemeral: 'Allow online access with ephemeral sessions', onlineHint: 'Online refresh tokens end with the login session, do not rotate, and extend only its idle timeout. Do not request online_access and offline_access together.',
+    partialQuota: 'Leaving a limit blank preserves a saved limit. To remove individual tenant defaults or limits, remove all defaults first, then configure the remaining limits.', defaultRemoval: 'Use Remove all tenant defaults to reset saved subjects, then configure the defaults you want to keep.', removeDefaults: 'Remove all tenant defaults', removeDefaultsHint: 'Remove both application and organization default quotas. Application and organization overrides remain configured.',
+    defaultQuotaHint: 'Early Access on Auth0. Limits count successful client-credentials tokens in UTC hour/day windows. Blank limits preserve saved values.', configureDefault: 'Configure a default quota',
+    quotaHint: 'Early Access on Auth0. Limits count successful client-credentials tokens in UTC hour/day windows. Blank limits preserve saved values. Remove the override to reset it and use tenant defaults.', overrideQuota: 'Set a quota override', enforce: 'Enforce limits', hour: 'Tokens per hour', day: 'Tokens per day', appQuota: 'Application token quota', orgQuota: 'Organization token quota', defaults: 'Default token quotas', clientDefaults: 'Default application quota', orgDefaults: 'Default organization quota',
+    metadata: 'Metadata (JSON)', metadataHint: 'Up to 25 string properties. Keys and values may contain up to 255 characters. An empty object clears metadata.', metadataInvalid: 'Enter a JSON object with at most 25 string properties, with keys and values no longer than 255 characters.', editMetadata: 'Edit metadata', sessionRevoke: 'Revoke session and refresh tokens', sessionRevokeBody: 'End this session and revoke all refresh tokens issued in it, including offline refresh tokens. Every application using this session will require sign-in again.', sessionDelete: 'End session only', sessionDeleteHint: 'Ending a session invalidates its online tokens but preserves offline refresh tokens.', tokenDevices: 'Device and exchange history', initialIP: 'Initial IP', lastIP: 'Last IP', initialAgent: 'Initial user agent', lastAgent: 'Last user agent', revokeFlag: 'Refresh Token Revocation Deletes Grant', strictBinding: 'Strict DPoP refresh-token binding',
   },
 
   notFoundTitle: 'Page not found',

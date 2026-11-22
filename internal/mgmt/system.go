@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/zeroauthy/zeroauthy/internal/logout"
 	"net/http"
 	"slices"
 	"strings"
@@ -548,6 +549,9 @@ func (h *Handlers) DeleteOperator(w http.ResponseWriter, r *http.Request, id str
 		}
 		if _, err := tx.RefreshTokens().RevokeByUser(r.Context(), sys.ID, id, now); err != nil {
 			return err
+		}
+		if h.Logout != nil {
+			return h.Logout.WithStore(tx).EndUserSessions(r.Context(), sys.ID, id, logout.SessionRevoked)
 		}
 		_, err := tx.Sessions().DeleteByUser(r.Context(), sys.ID, id)
 		return err

@@ -159,32 +159,40 @@ func organizationDiscoveryDomainFromPB(v *storev1.OrganizationDiscoveryDomainMsg
 	return out, nil
 }
 
-const organizationsIICapability = 1
+const (
+	organizationsIICapability                   = 1
+	organizationsIIVerificationTicketCapability = 2
+)
 
 type clientOrganizationsII struct{ c *Client }
 
 func (c *Client) OrganizationsII() store.OrganizationsII { return clientOrganizationsII{c} }
 func (c *Client) CheckOrganizationsIISupport(ctx context.Context) error {
+	_, err := c.organizationsIIVersion(ctx)
+	return err
+}
+
+func (c *Client) organizationsIIVersion(ctx context.Context) (uint32, error) {
 	v, err := c.rpc.OrganizationsIICapabilities(ctx, &storev1.PingRequest{})
 	if err != nil {
 		err = rpcErr("OrganizationsII capability", capabilityError(err, store.ErrOrganizationsIIUnavailable))
 		if errors.Is(err, store.ErrOrganizationsIIUnavailable) {
 			c.orgIICap.v.Store(2)
 		}
-		return err
+		return 0, err
 	}
 	if err = errFromPB(v.Error); err != nil {
 		if errors.Is(err, store.ErrOrganizationsIIUnavailable) {
 			c.orgIICap.v.Store(2)
 		}
-		return err
+		return 0, err
 	}
 	if v.Version < organizationsIICapability {
 		c.orgIICap.v.Store(2)
-		return store.ErrOrganizationsIIUnavailable
+		return 0, store.ErrOrganizationsIIUnavailable
 	}
 	c.orgIICap.v.Store(1)
-	return nil
+	return v.Version, nil
 }
 func (c *Client) OrganizationsIISupported() bool {
 	switch c.orgIICap.v.Load() {
@@ -204,6 +212,10 @@ func (c *Client) requireOrganizationsII(ctx context.Context) error {
 	return c.CheckOrganizationsIISupport(ctx)
 }
 func (s *Server) OrganizationsIICapabilities(ctx context.Context, _ *storev1.PingRequest) (*storev1.OrganizationsCapabilitiesResult, error) {
+	if c, ok := s.st.(*Client); ok {
+		version, err := c.organizationsIIVersion(ctx)
+		return &storev1.OrganizationsCapabilitiesResult{Version: version, Error: errToPB(err)}, nil
+	}
 	if c, ok := s.st.(store.OrganizationsIISupporter); ok {
 		if err := c.CheckOrganizationsIISupport(ctx); err != nil {
 			return &storev1.OrganizationsCapabilitiesResult{Error: errToPB(err)}, nil
@@ -216,7 +228,7 @@ func (s *Server) OrganizationsIICapabilities(ctx context.Context, _ *storev1.Pin
 	case store.UnimplementedOrganizationsII, *store.UnimplementedOrganizationsII:
 		return &storev1.OrganizationsCapabilitiesResult{Version: 0}, nil
 	}
-	return &storev1.OrganizationsCapabilitiesResult{Version: organizationsIICapability}, nil
+	return &storev1.OrganizationsCapabilitiesResult{Version: organizationsIIVerificationTicketCapability}, nil
 }
 
 func orgIICall(c *Client, ctx context.Context, q *storev1.OrganizationsIIRequest, rpc func(context.Context, *storev1.OrganizationsIIRequest, ...grpc.CallOption) (*storev1.OrganizationsIIResponse, error)) (*storev1.OrganizationsIIResponse, error) {
@@ -565,7 +577,7 @@ func (s *Server) OrganizationsIIListClientGrants(ctx context.Context, q *storev1
 }
 
 func (o clientOrganizationsII) GrantOrganizations(ctx context.Context, tid, grantID string, p store.OrgPage) (store.OrgResult[store.Organization], error) {
-	v, err := orgIICall(o.c, ctx, &storev1.OrganizationsIIRequest{TenantId: tid, GrantId: grantID, Page: orgPageToPB(p)}, o.c.rpc.OrganizationsIIGrantOrganizations)
+	v, err := orgIICall(o.c, ctx, &storev1.OrganizationsIIRequest{TenantId: tid, GrantId: grantID, Page: orgPageToPB(p)}, refreshRead(o.c, o.c.rpc.OrganizationsIIGrantOrganizations, o.c.rpc.RefreshIIOrganizationsIIGrantOrganizations))
 	if err != nil {
 		return store.OrgResult[store.Organization]{}, err
 	}
@@ -729,7 +741,7 @@ func (s *Server) OrganizationsIIDeleteDiscoveryDomain(ctx context.Context, q *st
 }
 
 func (o clientOrganizationsII) DiscoverOrganizations(ctx context.Context, tid, normalizedDomain string) ([]store.Organization, error) {
-	v, err := orgIICall(o.c, ctx, &storev1.OrganizationsIIRequest{TenantId: tid, Domain: normalizedDomain}, o.c.rpc.OrganizationsIIDiscoverOrganizations)
+	v, err := orgIICall(o.c, ctx, &storev1.OrganizationsIIRequest{TenantId: tid, Domain: normalizedDomain}, refreshRead(o.c, o.c.rpc.OrganizationsIIDiscoverOrganizations, o.c.rpc.RefreshIIOrganizationsIIDiscoverOrganizations))
 	if err != nil {
 		return nil, err
 	}

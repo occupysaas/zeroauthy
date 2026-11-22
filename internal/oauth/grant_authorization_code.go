@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/url"
 	"slices"
+	"strings"
 	"time"
 
 	"github.com/zeroauthy/zeroauthy/internal/actions"
@@ -35,9 +36,10 @@ func (h *Handlers) authorizationCode(ctx context.Context, res tenant.Resolved, c
 	}
 	tenantID := res.Tenant.ID
 	now := h.now()
-	// A code is redeemed only on the origin that issued it; another alias
-	// must not consume it (or trigger replay revocation).
-	pre, err := h.Store.AuthCodes().Get(ctx, tenantID, secrets.HashToken(code))
+	// Only the owning client on the issuing origin may consume a code or
+	// trigger replay revocation of its refresh-token family.
+	hash := secrets.HashToken(code)
+	pre, err := h.Store.AuthCodes().Get(ctx, tenantID, hash)
 	if errors.Is(err, store.ErrNotFound) {
 		return nil, invalidGrant("invalid authorization code")
 	}
@@ -45,30 +47,21 @@ func (h *Handlers) authorizationCode(ctx context.Context, res tenant.Resolved, c
 		h.log().ErrorContext(ctx, "load authorization code origin", "tenant", tenantID, "err", err)
 		return nil, serverError()
 	}
-	if res.CheckOrigin(pre.Origin) != nil {
+	if res.CheckOrigin(pre.Origin) != nil || pre.ClientID != c.ClientID {
 		return nil, invalidGrant("invalid authorization code")
 	}
-	ac, err := h.Store.AuthCodes().Consume(ctx, tenantID, secrets.HashToken(code), now)
-	// Also defend token issuance and replay revocation against a stale store read.
-	if ac != nil && res.CheckOrigin(ac.Origin) != nil {
-		return nil, invalidGrant("invalid authorization code")
-	}
-	switch {
-	case errors.Is(err, store.ErrNotFound):
-		return nil, invalidGrant("invalid authorization code")
-	case errors.Is(err, store.ErrAlreadyUsed):
-		// RFC 9700 §4.5: a replayed code may be stolen; revoke what it issued.
-		h.log().WarnContext(ctx, "authorization code reused; revoking its refresh tokens", "tenant", tenantID, "client_id", ac.ClientID, "user_id", ac.UserID)
-		if err := h.Store.RefreshTokens().RevokeFamily(ctx, tenantID, familyForCode(ac.CodeHash), now); err != nil {
-			h.log().ErrorContext(ctx, "revoke refresh tokens of a replayed code", "tenant", tenantID, "err", err)
+	ac, err := h.claimAuthorizationCode(ctx, res, c.ClientID, hash, now)
+	if err != nil {
+		var failure *Error
+		switch {
+		case errors.As(err, &failure):
+			return nil, failure
+		case errors.Is(err, store.ErrNotFound), errors.Is(err, store.ErrAlreadyUsed):
+			return nil, invalidGrant("invalid authorization code")
+		default:
+			h.log().ErrorContext(ctx, "claim authorization code", "tenant", tenantID, "err", err)
+			return nil, serverError()
 		}
-		return nil, invalidGrant("invalid authorization code")
-	case err != nil:
-		h.log().ErrorContext(ctx, "consume authorization code", "tenant", tenantID, "err", err)
-		return nil, serverError()
-	}
-	if ac.ClientID != c.ClientID {
-		return nil, invalidGrant("invalid authorization code")
 	}
 	if !now.Before(ac.ExpiresAt) {
 		return nil, invalidGrant("authorization code expired")
@@ -111,9 +104,29 @@ func (h *Handlers) authorizationCode(ctx context.Context, res tenant.Resolved, c
 		return nil, oerr
 	}
 	scopes := userScopes(ac.Scopes, rs, offlineAllowed(c, rs))
+	var onlineSess *store.LoginSession
+	online := false
+	if slices.Contains(ac.Scopes, "online_access") {
+		if store.CheckRefreshTokensIISupport(ctx, h.Store) != nil {
+			return nil, serverError()
+		}
+		onlineSess, err = onlineSession(ctx, h.Store, res, user.UserID, ac.SessionID, h.now().UTC())
+		if err != nil && !errors.Is(err, errOnlineSession) {
+			return nil, serverError()
+		}
+		online = onlineEligible(c, rs, onlineSess)
+		if online {
+			if failure := onlineProof(ctx, c); failure != nil {
+				return nil, failure
+			}
+		}
+	}
+	if !online {
+		scopes = slices.DeleteFunc(scopes, func(s string) bool { return s == "online_access" })
+	}
 	resp, offline, oerr := h.mintUserTokens(ctx, res, c, userTokens{
-		organization: org, user: user, rs: rs, lifetime: lifetime, scopes: scopes,
-		nonce: ac.Nonce, sessionID: ac.SessionID, authTime: ac.AuthTime, effects: eff,
+		online: online, organization: org, user: user, rs: rs, lifetime: lifetime, scopes: scopes,
+		userInfoClaims: ac.UserInfoClaims, acr: ac.ACR, nonce: ac.Nonce, sessionID: ac.SessionID, authTime: ac.AuthTime, mfaAt: ac.MFAAt, effects: eff,
 	})
 	if oerr != nil {
 		return nil, oerr
@@ -127,53 +140,134 @@ func (h *Handlers) authorizationCode(ctx context.Context, res tenant.Resolved, c
 		if absolute > 0 {
 			expiresAt = now.UTC().Add(absolute)
 		}
-		rt, raw = h.newRefreshToken(c, tenantID, refreshGrant{
+		rt, raw = h.newRefreshToken(ctx, c, tenantID, refreshGrant{
+
 			organizationID: ac.OrganizationID, organizationConnectionID: ac.OrganizationConnectionID,
 			origin:   res.Origin(),
 			familyID: familyForCode(ac.CodeHash), userID: user.UserID, sessionID: ac.SessionID,
-			audience: ac.Audience, scopes: ceiling, authTime: ac.AuthTime, expiresAt: expiresAt,
+			audience: ac.Audience, scopes: ceiling, userInfoClaims: ac.UserInfoClaims, acr: ac.ACR, authTime: ac.AuthTime, expiresAt: expiresAt,
 		})
 	}
-	// The user authenticated at /authorize, possibly long ago, so there is
-	// no Version to compare (D-0043); the user must still exist and not be
-	// blocked when the tokens are minted.
-	err = h.mintCheckedTx(ctx, tenantID, user.UserID, nil, func(tx store.Store) error {
+	if online && resp.Scope != nil && slices.Contains(strings.Fields(*resp.Scope), "online_access") && slices.Contains(ceiling, "online_access") {
+		rt, raw = h.newRefreshToken(ctx, c, tenantID, refreshGrant{origin: res.Origin(), organizationID: ac.OrganizationID, organizationConnectionID: ac.OrganizationConnectionID, familyID: familyForCode(ac.CodeHash), userID: user.UserID, sessionID: ac.SessionID, audience: ac.Audience, scopes: ceiling, userInfoClaims: ac.UserInfoClaims, acr: ac.ACR, authTime: ac.AuthTime})
+		rt.Access = "online"
+		rt.Rotating = false
+		rt.ExpiresAt = onlineSess.ExpiresAt
+		rt.IdleExpiresAt = time.Time{}
+	}
+	// Compare the revision sampled by this redemption, after the earlier
+	// browser authorization or device approval.
+	replayed := false
+	err = h.mintCheckedTx(ctx, tenantID, user.UserID, &user.Version, func(tx store.Store) error {
 		return checkTokenOrganization(ctx, tx, tenantID, user.UserID, ac.OrganizationID, ac.OrganizationConnectionID, c.ClientID)
 	}, func(tx store.Store) error {
+		if rt != nil && rt.Access == "online" {
+			currentClient, e := tx.Clients().Get(ctx, tenantID, c.ClientID)
+			if e != nil {
+				return e
+			}
+			currentAPI, e := tx.ResourceServers().GetByIdentifier(ctx, tenantID, ac.Audience)
+			if e != nil {
+				return e
+			}
+			currentSess, _, e := h.lockedOnlineSession(ctx, tx, res, user.UserID, ac.SessionID)
+			if e != nil {
+				return e
+			}
+			if !onlineEligible(currentClient, currentAPI, currentSess) {
+				return errOnlineSession
+			}
+			if failure := onlineProof(ctx, currentClient); failure != nil {
+				return failure
+			}
+			rt.ExpiresAt = currentSess.ExpiresAt
+		}
+		if rt != nil {
+			if err := createInitialRefresh(ctx, tx, rt); err != nil {
+				return err
+			}
+		}
+		// An authorization-time key is permanent. A key reserved by the
+		// initial claim is released only if this exchange issued no bound RT.
+		if key := proofJKT(ctx); key != "" && ac.DPoPJKT == "" && (rt == nil || rt.DPoPJKT == "") {
+			if err := tx.AuthCodes().SetRedemptionBinding(ctx, tenantID, ac.CodeHash, key, ""); err != nil {
+				return err
+			}
+		}
 		if rt == nil {
 			return nil
 		}
-		return tx.RefreshTokens().Create(ctx, rt)
+		latest, err := tx.AuthCodes().Get(ctx, tenantID, ac.CodeHash)
+		if err != nil {
+			return err
+		}
+		replayed = latest.ReplayedAt != nil
+		if replayed {
+			return tx.RefreshTokens().RevokeFamily(ctx, tenantID, rt.FamilyID, now)
+		}
+		return nil
 	})
 	switch {
 	case errors.Is(err, errOrganizationGrant):
 		return nil, invalidGrant("the organization grant is no longer eligible")
+	case errors.Is(err, errOnlineSession):
+		return nil, invalidGrant("the online session is no longer eligible")
 	case errors.Is(err, errUserChanged):
 		return nil, invalidGrant("the user is not allowed to sign in")
 	case err != nil:
 		h.log().ErrorContext(ctx, "store refresh token", "tenant", tenantID, "err", err)
 		return nil, serverError()
 	}
+	if replayed {
+		return nil, invalidGrant("invalid authorization code")
+	}
 	if rt != nil {
-		// A replay that ran after Consume but before Create found no token
-		// to revoke. Replays record ReplayedAt before revoking, so either it
-		// is visible here or the replay's RevokeFamily saw the stored token.
-		latest, err := h.Store.AuthCodes().Get(ctx, tenantID, ac.CodeHash)
-		if err != nil {
-			h.log().ErrorContext(ctx, "reload authorization code", "tenant", tenantID, "err", err)
-			return nil, serverError()
-		}
-		if latest.ReplayedAt != nil {
-			h.log().WarnContext(ctx, "authorization code replayed during exchange; revoking its refresh tokens", "tenant", tenantID, "client_id", ac.ClientID, "user_id", ac.UserID)
-			if err := h.Store.RefreshTokens().RevokeFamily(ctx, tenantID, familyForCode(ac.CodeHash), now); err != nil {
-				h.log().ErrorContext(ctx, "revoke refresh tokens of a replayed code", "tenant", tenantID, "err", err)
-			}
-			return nil, invalidGrant("invalid authorization code")
-		}
 		resp.RefreshToken = &raw
 	}
 	if user != nil {
 		eventUserID = user.UserID
 	}
 	return resp, nil
+}
+
+// claimAuthorizationCode reserves the verified key before any signing work.
+// A competing claim must prove the key observed under the same lock as the
+// replay marker and revocation. Returning an error rolls back both effects.
+func (h *Handlers) claimAuthorizationCode(ctx context.Context, res tenant.Resolved, clientID, hash string, at time.Time) (*store.AuthCode, error) {
+	tid := res.Tenant.ID
+	var ac *store.AuthCode
+	var replay bool
+	err := h.Store.WithTx(ctx, func(tx store.Store) error {
+		// Policy writers and final mints lock the tenant before code/family rows.
+		if _, err := tx.Tenants().Get(ctx, tid); err != nil {
+			return err
+		}
+		var err error
+		ac, err = tx.AuthCodes().Consume(ctx, tid, hash, at)
+		replay = errors.Is(err, store.ErrAlreadyUsed)
+		if err != nil && !replay {
+			return err
+		}
+		if ac == nil || ac.ClientID != clientID || res.CheckOrigin(ac.Origin) != nil {
+			return store.ErrNotFound
+		}
+		key := proofJKT(ctx)
+		if ac.DPoPJKT != "" && ac.DPoPJKT != key {
+			return &Error{Status: 400, Code: "invalid_dpop_proof", Description: "the proof could not be accepted"}
+		}
+		if replay {
+			return tx.RefreshTokens().RevokeFamily(ctx, tid, familyForCode(hash), at)
+		}
+		if key != "" && ac.DPoPJKT == "" {
+			return tx.AuthCodes().SetRedemptionBinding(ctx, tid, hash, "", key)
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	if replay {
+		return ac, store.ErrAlreadyUsed
+	}
+	return ac, nil
 }

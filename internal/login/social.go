@@ -13,9 +13,9 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/httpx"
 	"github.com/zeroauthy/zeroauthy/internal/i18n"
 	"github.com/zeroauthy/zeroauthy/internal/logs"
+	"github.com/zeroauthy/zeroauthy/internal/logscrub"
 	"github.com/zeroauthy/zeroauthy/internal/protection"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
-	"github.com/zeroauthy/zeroauthy/internal/session"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/tenant"
 	"github.com/zeroauthy/zeroauthy/internal/ui"
@@ -154,6 +154,9 @@ func (h *Handlers) rerenderLogin(w http.ResponseWriter, r *http.Request, f *flow
 // startSocial applies the social-login protection budget and redirects to
 // the provider.
 func (h *Handlers) startSocial(w http.ResponseWriter, r *http.Request, f *flow, conn *store.Connection) {
+	h.startSocialHint(w, r, f, conn, "")
+}
+func (h *Handlers) startSocialHint(w http.ResponseWriter, r *http.Request, f *flow, conn *store.Connection, hint string) {
 	ctx := r.Context()
 	svc := h.protectionService()
 	decision, err := svc.Begin(ctx, protection.Attempt{Tenant: f.res.Tenant, Connection: conn, IP: httpx.ClientIP(r, h.TrustProxyHeaders), Flow: "social-login"})
@@ -179,13 +182,13 @@ func (h *Handlers) startSocial(w http.ResponseWriter, r *http.Request, f *flow, 
 	if origin == "" {
 		origin = tenant.CanonicalOrigin(f.res.Tenant)
 	}
-	begun, err := h.Federation.Begin(ctx, federation.BeginInput{Tenant: f.res.Tenant, Origin: origin, Txn: f.txn, Client: client, Connection: conn})
+	begun, err := h.Federation.Begin(ctx, federation.BeginInput{Tenant: f.res.Tenant, Origin: origin, Txn: f.txn, Client: client, Connection: conn, LoginHint: hint})
 	if err != nil {
 		h.socialFailure(w, r, f, err)
 		return
 	}
 	sameSite := http.SameSiteLaxMode
-	if conn.Strategy == federation.StrategyApple {
+	if conn.Strategy == federation.StrategyApple || conn.Strategy == federation.StrategyOIDC && conn.Extra["type"] != "back_channel" {
 		sameSite = http.SameSiteNoneMode
 	}
 	http.SetCookie(w, &http.Cookie{Name: begun.CookieName, Value: begun.CookieValue, Path: federation.CallbackPath, Expires: begun.ExpiresAt,
@@ -218,6 +221,8 @@ func (h *Handlers) socialFailure(w http.ResponseWriter, r *http.Request, f *flow
 	switch {
 	case errors.Is(err, federation.ErrProviderDenied):
 		ui.RenderError(w, http.StatusUnauthorized, view, view.L.T(i18n.KeyErrSocialDenied))
+	case errors.Is(err, federation.ErrEmailRequired):
+		ui.RenderError(w, http.StatusForbidden, view, view.L.T(i18n.KeyErrSocialEmailRequired))
 	case errors.Is(err, errSocialTooMany):
 		ui.RenderError(w, http.StatusTooManyRequests, view, view.L.T(i18n.KeyTooManyAttempts))
 	case errors.Is(err, federation.ErrUserBlocked):
@@ -287,6 +292,7 @@ func (h *Handlers) SocialCallback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	params, err := federation.ParseCallback(raw)
+	params.FormPost = r.Method == http.MethodPost
 	if err != nil {
 		h.socialFailure(w, r, nil, err)
 		return
@@ -306,6 +312,9 @@ func (h *Handlers) SocialCallback(w http.ResponseWriter, r *http.Request) {
 	http.SetCookie(w, &http.Cookie{Name: cookieName, Value: "", Path: federation.CallbackPath, MaxAge: -1, HttpOnly: true, Secure: true, SameSite: http.SameSiteLaxMode})
 	var sess *store.LoginSession
 	done, err := h.Federation.Complete(ctx, federation.CompleteInput{
+		OnSensitiveValues: func(values ...string) {
+			*r = *r.WithContext(logscrub.WithCredentials(logscrub.WithValues(r.Context(), values...), values...))
+		},
 		OnResolved: func(event logs.Event) { *r = *r.WithContext(logs.WithEvent(r.Context(), event)) },
 		Tenant:     res.Tenant, Origin: res.Origin(), Params: params, CookieValue: c.Value,
 		BeforeProvision: func(ctx context.Context) error {
@@ -333,16 +342,22 @@ func (h *Handlers) SocialCallback(w http.ResponseWriter, r *http.Request) {
 			return nil
 		},
 		Commit: func(tx store.Store, user *store.User, txn *store.AuthTransaction, conn *store.Connection) error {
-			bound := session.Manager{Store: tx, Now: h.Sessions.Now, TrustProxyHeaders: h.Sessions.TrustProxyHeaders}
-			var err error
-			sess, err = bound.Start(ctx, w, r, res.Tenant, user.UserID, conn.Name, h.now(), store.AuthMethod{Name: "federated"})
-			if err != nil {
-				return err
+			bound := *h.Authz
+			bound.Store = tx
+			if bound.Sessions != nil {
+				sm := *bound.Sessions
+				sm.Store = tx
+				bound.Sessions = &sm
 			}
-			return tx.Users().RecordLogin(ctx, res.Tenant.ID, user.UserID, h.now(), httpx.RecordedIP(r, h.TrustProxyHeaders))
+			var err error
+			sess, err = bound.BeginLogin(w, r, res, txn, user, conn.Name, store.AuthMethod{Name: "federated"})
+			return err
 		},
 	})
 	if err != nil {
+		if h.Authz.HandleLoginAdmissionError(w, r, res, err) {
+			return
+		}
 		h.socialFailure(w, r, nil, err)
 		return
 	}

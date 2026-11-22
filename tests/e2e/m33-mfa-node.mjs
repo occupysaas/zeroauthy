@@ -54,7 +54,7 @@ function displayFields(location, value) {
         ? ["recovery_code"]
         : [];
   if (
-    /^console POST \/api\/v2\/users\/[^/]+\/recovery-code-regeneration$/.test(
+    /^console POST (?:\/api\/console\/tenants\/[^/]+)?\/api\/v2\/users\/[^/]+\/recovery-code-regeneration$/.test(
       location,
     ) ||
     location === "console POST recovery-code-regeneration delayed"

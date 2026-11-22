@@ -208,11 +208,14 @@ func (s *Store) migrateTo(ctx context.Context, version int64) error {
 	return nil
 }
 
-// applyMigration runs one migration in a transaction. MySQL commits DDL
-// implicitly, so there the version check is what keeps a re-run safe.
+// applyMigration runs one migration in a transaction. Selected MySQL migrations
+// use the resumable DDL path to recover from implicit commits.
 func (s *Store) applyMigration(ctx context.Context, m migration) error {
-	if s.d.name == "mysql" && (m.version == 20 || m.version == 21 || m.version == 29 || m.version == 30 || m.version == 31 || m.version == 32 || m.version == 33 || m.version == 34 || m.version == 35) {
-		return s.applyResumableMySQL(ctx, m)
+	if s.d.name == "mysql" {
+		switch m.version {
+		case 20, 21, 29, 30, 31, 32, 33, 34, 35, 38, 39, 40, 41:
+			return s.applyResumableMySQL(ctx, m)
+		}
 	}
 	return s.atomic(ctx, nil, func(t *Store) error {
 		var n int
@@ -238,6 +241,8 @@ func (s *Store) applyMigration(ctx context.Context, m migration) error {
 // backfill runs the data step of a migration inside its transaction.
 func (s *Store) backfill(ctx context.Context, version int64) error {
 	switch version {
+	case 41:
+		return s.backfillOIDCChannel(ctx)
 	case 20:
 		return s.migrateLegacyHostClaims(ctx)
 	case 21:
@@ -248,7 +253,7 @@ func (s *Store) backfill(ctx context.Context, version int64) error {
 	return nil
 }
 
-// MySQL commits DDL implicitly. Make migrations with Go backfills resumable,
+// MySQL commits DDL implicitly. Apply the DDL separately,
 // then start a new transaction for the backfilled data and version marker.
 // A process death during DDL leaves the previous version; retry skips objects
 // already created before rerunning the atomic backfill.

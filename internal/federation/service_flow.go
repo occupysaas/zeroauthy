@@ -2,6 +2,7 @@ package federation
 
 import (
 	"context"
+	"crypto"
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
@@ -69,7 +70,8 @@ type FlowService struct {
 
 // BeginInput binds an attempt to the browser transaction.
 type BeginInput struct {
-	Tenant *store.Tenant
+	LoginHint string
+	Tenant    *store.Tenant
 	// Origin is the transaction's active public origin, e.g.
 	// "https://login.example.com"; the callback is Origin + CallbackPath.
 	Origin     string
@@ -87,8 +89,9 @@ type Begun struct {
 }
 
 type proof struct {
-	Verifier string `json:"v"`
-	Nonce    string `json:"n"`
+	Verifier  string     `json:"v"`
+	Nonce     string     `json:"n"`
+	Endpoints *Endpoints `json:"e,omitempty"`
 }
 
 func randomToken() string {
@@ -117,6 +120,9 @@ func (s *FlowService) Begin(ctx context.Context, in BeginInput) (*Begun, error) 
 	if err := RequireMicrosoftConnection(ctx, s.Store, conn); err != nil {
 		return nil, err
 	}
+	if err := RequireGitHubConnection(ctx, s.Store, conn); err != nil {
+		return nil, err
+	}
 	if in.Txn == nil {
 		return nil, ErrConnectionUnusable
 	}
@@ -131,7 +137,7 @@ func (s *FlowService) Begin(ctx context.Context, in BeginInput) (*Begun, error) 
 	}
 	spec := connrules.FromConnection(conn)
 	cfg, err := ParseConfig(*spec)
-	if err != nil || !cfg.AuthenticationActive || len(conn.FederationSecretsSealed) == 0 {
+	if err != nil || !cfg.AuthenticationActive || len(conn.FederationSecretsSealed) == 0 && cfg.Channel != "front_channel" && cfg.TokenAuth != "private_key_jwt" {
 		return nil, ErrConnectionUnusable
 	}
 	if cfg.Strategy == StrategyOAuth2 {
@@ -151,20 +157,22 @@ func (s *FlowService) Begin(ctx context.Context, in BeginInput) (*Begun, error) 
 			return nil, err
 		}
 		issuer, endpoints = meta.Issuer, meta.Endpoints()
+	case StrategyGitHub:
+		endpoints, _ = s.Providers.github() // no issuer: GitHub has no ID token
 	case StrategyOAuth2:
 		endpoints = Endpoints{AuthorizationURL: cfg.AuthorizationURL, TokenURL: cfg.TokenURL, TokenAuthMethod: authPost}
-	case StrategyWindowsLive, StrategyWAAD, StrategyOIDC:
+	case StrategyWindowsLive, StrategyWAAD, StrategyOIDC, StrategyOkta:
 		var meta Metadata
 		var err error
-		if cfg.Strategy == StrategyOIDC {
-			meta, err = s.Providers.Discover(ctx, key, cfg.DiscoveryURL, cfg.Issuer)
+		if cfg.Strategy == StrategyOIDC || cfg.Strategy == StrategyOkta {
+			meta, err = s.Providers.ResolveEnterpriseMetadata(ctx, key, cfg)
 		} else {
 			meta, err = s.Providers.DiscoverMicrosoft(ctx, key, cfg)
 		}
 		if err != nil {
 			return nil, err
 		}
-		if cfg.Issuer == "" && (cfg.Strategy == StrategyOIDC || cfg.Strategy == StrategyWAAD && !cfg.MicrosoftMultiTenant) {
+		if cfg.Issuer == "" && (cfg.Strategy == StrategyOIDC || cfg.Strategy == StrategyOkta || cfg.Strategy == StrategyWAAD && !cfg.MicrosoftMultiTenant) {
 			rev, err := PinIssuer(ctx, s.Store, conn.TenantID, conn.ID, conn.FederationRevision, meta.Issuer)
 			if err != nil {
 				return nil, fmt.Errorf("%w: %w", ErrAttemptStale, err)
@@ -178,7 +186,7 @@ func (s *FlowService) Begin(ctx context.Context, in BeginInput) (*Begun, error) 
 	now := s.now()
 	state, nonce, verifier, cookie := randomToken(), randomToken(), randomToken(), randomToken()
 	stateHash := StateHash(state)
-	sealed, err := s.sealProof(conn.TenantID, stateHash, proof{Verifier: verifier, Nonce: nonce})
+	sealed, err := s.sealProof(conn.TenantID, stateHash, proof{Verifier: verifier, Nonce: nonce, Endpoints: &endpoints})
 	if err != nil {
 		return nil, err
 	}
@@ -201,10 +209,27 @@ func (s *FlowService) Begin(ctx context.Context, in BeginInput) (*Begun, error) 
 		return nil, err
 	}
 	sum := sha256.Sum256([]byte(verifier))
+	challenge := base64.RawURLEncoding.EncodeToString(sum[:])
+	if endpoints.PKCEMethod == "plain" {
+		challenge = verifier
+	}
 	u, err := s.Providers.For(cfg).AuthorizationURL(StartInput{Config: cfg, Endpoints: endpoints, CallbackURL: callback,
-		State: state, Nonce: nonce, CodeChallenge: base64.RawURLEncoding.EncodeToString(sum[:])})
+		State: state, Nonce: nonce, CodeChallenge: challenge, LoginHint: in.LoginHint})
 	if err != nil {
 		return nil, err
+	}
+	if cfg.PAR {
+		var creds Credentials
+		if len(conn.FederationSecretsSealed) > 0 {
+			creds, err = OpenCredentials(s.Wrapper, conn.TenantID, conn.ID, conn.FederationSecretsSealed)
+			if err != nil {
+				return nil, ErrConnectionUnusable
+			}
+		}
+		u, err = s.Providers.PushAuthorization(ctx, u, ExchangeInput{Config: cfg, Endpoints: endpoints, Issuer: issuer, ClientSecret: creds.ClientSecret, ClientAssertion: func(aud string) (string, error) { return ClientAssertion(ctx, s.Store, s.Wrapper, conn, cfg, aud, now) }})
+		if err != nil {
+			return nil, err
+		}
 	}
 	return &Begun{URL: u, CookieName: AttemptCookiePrefix + stateHash[:16], CookieValue: cookie, ExpiresAt: expires}, nil
 }
@@ -226,6 +251,8 @@ func (s *FlowService) openProof(tenantID, stateHash string, sealed []byte) (proo
 // CallbackParams is a parsed provider callback.
 type CallbackParams struct {
 	State, Code, Error string
+	IDToken            string
+	FormPost           bool
 	// User is untrusted, optional Apple first-authorization name JSON.
 	User string
 }
@@ -245,8 +272,14 @@ func ParseCallback(rawQuery string) (CallbackParams, error) {
 			return CallbackParams{}, ErrCallbackRejected
 		}
 	}
-	p := CallbackParams{State: q.Get("state"), Code: q.Get("code"), Error: q.Get("error"), User: q.Get("user")}
-	if p.State == "" || (p.Code == "") == (p.Error == "") {
+	p := CallbackParams{State: q.Get("state"), Code: q.Get("code"), Error: q.Get("error"), User: q.Get("user"), IDToken: q.Get("id_token")}
+	count := 0
+	for _, v := range []string{p.Code, p.Error, p.IDToken} {
+		if v != "" {
+			count++
+		}
+	}
+	if p.State == "" || count != 1 {
 		return CallbackParams{}, ErrCallbackRejected
 	}
 	return p, nil
@@ -254,6 +287,7 @@ func ParseCallback(rawQuery string) (CallbackParams, error) {
 
 // CompleteInput is one callback.
 type CompleteInput struct {
+	OnSensitiveValues func(...string) // register upstream values with request log scrubbing
 	// OnResolved observes only immutable attribution already established by the flow.
 	// It receives no configuration, credentials, transaction or profile objects.
 	OnResolved func(logs.Event)
@@ -287,7 +321,7 @@ type Completion struct {
 // provider identity and commits identity, tokens, attempt and session in one
 // transaction.
 func (s *FlowService) Complete(ctx context.Context, in CompleteInput) (*Completion, error) {
-	ctx = logscrub.WithCredentials(logscrub.WithValues(ctx, in.Params.Code), in.Params.Code)
+	ctx = logscrub.WithCredentials(logscrub.WithValues(ctx, in.Params.Code, in.Params.IDToken), in.Params.Code, in.Params.IDToken)
 	if in.CookieValue == "" || in.Tenant == nil {
 		return nil, ErrCallbackRejected
 	}
@@ -312,21 +346,42 @@ func (s *FlowService) Complete(ctx context.Context, in CompleteInput) (*Completi
 	if in.OnResolved != nil {
 		in.OnResolved(actor)
 	}
-	if in.Params.Error != "" {
-		_ = s.Store.Federation().FinishAttempt(ctx, a.TenantID, a.StateHash)
-		return nil, ErrProviderDenied
-	}
 	cfg, err := ParseConfig(*connrules.FromConnection(conn))
 	if err != nil {
 		return nil, ErrConnectionUnusable
 	}
-	creds, err := OpenCredentials(s.Wrapper, conn.TenantID, conn.ID, conn.FederationSecretsSealed)
-	if err != nil {
-		return nil, fmt.Errorf("%w: credentials", ErrConnectionUnusable)
-	}
 	pr, err := s.openProof(a.TenantID, a.StateHash, a.SealedProof)
 	if err != nil {
 		return nil, ErrAttemptStale
+	}
+	// Older plugin codecs preserve SealedProof but do not know endpoint fields.
+	if pr.Endpoints != nil {
+		a.Endpoints = *pr.Endpoints
+	} else if cfg.Strategy == StrategyOIDC && a.Endpoints.ResponseType == "" {
+		// Pre-enterprise attempts were always code/S256.
+		a.Endpoints.ResponseType = "code"
+		a.Endpoints.PKCEMethod = "S256"
+	}
+	front := cfg.Channel == "front_channel"
+	if front {
+		if !in.Params.FormPost || a.Endpoints.ResponseType != "id_token" || in.Params.Code != "" {
+			return nil, ErrCallbackRejected
+		}
+	} else if in.Params.IDToken != "" || in.Params.FormPost && cfg.Strategy != StrategyApple {
+		return nil, ErrCallbackRejected
+	}
+	if in.Params.Error != "" {
+		_ = s.Store.Federation().FinishAttempt(ctx, a.TenantID, a.StateHash)
+		return nil, ErrProviderDenied
+	}
+	var creds Credentials
+	if len(conn.FederationSecretsSealed) > 0 {
+		creds, err = OpenCredentials(s.Wrapper, conn.TenantID, conn.ID, conn.FederationSecretsSealed)
+		if err != nil {
+			return nil, fmt.Errorf("%w: credentials", ErrConnectionUnusable)
+		}
+	} else if cfg.Channel != "front_channel" && cfg.TokenAuth != "private_key_jwt" {
+		return nil, ErrConnectionUnusable
 	}
 	var appleUser *AppleUser
 	if cfg.Strategy == StrategyApple && slices.Contains(cfg.Scopes, "name") {
@@ -334,13 +389,43 @@ func (s *FlowService) Complete(ctx context.Context, in CompleteInput) (*Completi
 		// Eligibility above ties these scopes to this attempt's revision.
 		appleUser, _ = ParseAppleUser(in.Params.User)
 	}
-	res, err := s.Providers.For(cfg).Exchange(ctx, ExchangeInput{
+	exchange := ExchangeInput{
+		DecryptIDToken: func(raw string) (string, error) {
+			list, e := EnsureKeys(ctx, s.Store, s.Wrapper, conn, "encryption", cfg.EncAlg, in.Tenant.CanonicalHost, s.now())
+			if e != nil {
+				return "", e
+			}
+			return decryptIDToken(raw, list, func(k *store.ConnectionKey) (crypto.Signer, error) { return OpenConnectionKey(s.Wrapper, k) }, cfg.EncAlg, cfg.EncEncs)
+		},
+		ClientAssertion: func(aud string) (string, error) {
+			return ClientAssertion(ctx, s.Store, s.Wrapper, conn, cfg, aud, s.now())
+		},
 		Config: cfg, Cache: CacheKey{TenantID: conn.TenantID, ConnectionID: conn.ID, Revision: a.Revision},
 		Endpoints: a.Endpoints, Issuer: a.Issuer, CallbackURL: a.CallbackURL, Code: in.Params.Code,
 		CodeVerifier: pr.Verifier, Nonce: pr.Nonce, ClientSecret: creds.ClientSecret, Now: s.now(), AppleUser: appleUser,
-	})
+	}
+	var res ProviderResult
+	if front {
+		claims, e := s.Providers.validateIDToken(ctx, exchange, a.Endpoints, TokenSet{IDToken: in.Params.IDToken})
+		if e != nil {
+			return nil, e
+		}
+		sub, _ := claims["sub"].(string)
+		profile, e := mappedProfile(cfg, conn.ID, sub, claims, nil, TokenSet{})
+		if e != nil {
+			return nil, e
+		}
+		res = ProviderResult{Profile: profile}
+	} else {
+		res, err = s.Providers.For(cfg).Exchange(ctx, exchange)
+	}
 	if err != nil {
 		return nil, err // the attempt stays claimed: never retried
+	}
+	values := []string{res.Tokens.AccessToken, res.Tokens.RefreshToken, res.Tokens.IDToken, creds.ClientSecret, in.Params.IDToken}
+	ctx = logscrub.WithCredentials(logscrub.WithValues(ctx, values...), values...)
+	if in.OnSensitiveValues != nil {
+		in.OnSensitiveValues(values...)
 	}
 	if in.BeforeProvision != nil {
 		if _, err := s.Store.Users().FindByIdentity(ctx, conn.TenantID, conn.ID, res.Profile.Subject); errors.Is(err, store.ErrNotFound) {
@@ -413,10 +498,15 @@ func (s *FlowService) Complete(ctx context.Context, in CompleteInput) (*Completi
 				e = orglogin.CheckMemberClient(ctx, tx, a.TenantID, oc.Org.ID, txn.ClientID)
 			}
 			if e == nil && txn.Params[orglogin.InvitationIDParam] == "" {
-				e = orglogin.EnsureMembership(ctx, tx, oc, user.UserID, conn.ID)
+				e = orglogin.CheckMembership(ctx, tx, oc, user.UserID, conn.ID)
 			}
 			if e != nil && !errors.Is(e, orglogin.ErrNotMember) {
 				return e
+			}
+			if front {
+				if err := tx.Federation().DeleteTokens(ctx, store.FederatedIdentityKey{TenantID: conn.TenantID, ConnectionID: conn.ID, Subject: res.Profile.Subject}); err != nil {
+					return err
+				}
 			}
 			if err := tx.Federation().FinishAttempt(ctx, a.TenantID, a.StateHash); err != nil {
 				return ErrAttemptStale
@@ -493,10 +583,14 @@ func (s *FlowService) eligible(ctx context.Context, st store.Store, a *store.Fed
 func SocialChoices(client *store.Client, conns []*store.Connection, includeHidden bool) []*store.Connection {
 	var out []*store.Connection
 	for _, c := range conns {
-		if !IsFederated(c.Strategy) || !access.ConnectionUsable(client, c) || len(c.FederationSecretsSealed) == 0 {
+		if !IsFederated(c.Strategy) || !access.ConnectionUsable(client, c) {
 			continue
 		}
 		spec := connrules.FromConnection(c)
+		cfg, err := ParseConfig(*spec)
+		if err != nil || len(c.FederationSecretsSealed) == 0 && cfg.Channel != "front_channel" && cfg.TokenAuth != "private_key_jwt" {
+			continue
+		}
 		if active, ok := spec.Authentication["active"].(bool); ok && !active {
 			continue
 		}
@@ -521,6 +615,8 @@ func ButtonLabel(c *store.Connection) string {
 		return "Microsoft work or school account"
 	case StrategyGoogle:
 		return "Google"
+	case StrategyGitHub:
+		return "GitHub"
 	}
 	return c.Name
 }
@@ -528,4 +624,13 @@ func ButtonLabel(c *store.Connection) string {
 // IsFederated reports whether strategy is federated.
 func IsFederated(strategy string) bool {
 	return rules.IsFederated(strategy)
+}
+
+// CompleteFrontChannel shares state claiming, nonce validation and atomic
+// identity/session commit with the authorization-code callback.
+type FrontChannelInput struct{ State, IDToken, Error, ErrorDescription string }
+
+func (s *FlowService) CompleteFrontChannel(ctx context.Context, in CompleteInput, fc FrontChannelInput) (*Completion, error) {
+	in.Params = CallbackParams{State: fc.State, IDToken: fc.IDToken, Error: fc.Error, FormPost: true}
+	return s.Complete(ctx, in)
 }

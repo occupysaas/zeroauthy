@@ -71,11 +71,26 @@ func apply(ctx context.Context, st store.Store, f *File, now func() time.Time, w
 			}
 		}
 	}
+	for _, t := range f.Tenants {
+		for _, c := range t.Connections {
+			if c.Options["token_endpoint_auth_method"] == "private_key_jwt" || c.Options["id_token_encrypted_response_alg"] != nil {
+				if supporter, ok := st.(store.ConnectionKeysSupporter); ok && !supporter.ConnectionKeysSupported() {
+					return store.ErrConnectionKeysUnavailable
+				}
+			}
+		}
+	}
+	if err := checkOIDCStorage(ctx, st, f); err != nil {
+		return err
+	}
 	if err := checkWebAuthnStorage(ctx, st, f); err != nil {
 		return err
 	}
 	if err := checkClientCredentialsStorage(ctx, st, f); err != nil {
 		return err
+	}
+	if e := checkDPoPStorage(ctx, st, f); e != nil {
+		return e
 	}
 	return st.WithTx(ctx, func(tx store.Store) error {
 		validateRPIDs := []string{}
@@ -238,6 +253,9 @@ func applyTenant(ctx context.Context, st store.Store, f *File, in Tenant, now ti
 		}
 	}
 	for _, c := range in.Clients {
+		if err := clientrules.CheckMRRTManagementAudience(c.RefreshToken.Policies, tenant.ManagementAPIIdentifier(tn, f.baseDomain)); err != nil {
+			return fmt.Errorf("client %q: %w", c.ClientID, err)
+		}
 		if err := applyClient(ctx, st, tn.ID, c, now, w, createOnly); err != nil {
 			return fmt.Errorf("client %q: %w", c.ClientID, err)
 		}
@@ -368,6 +386,16 @@ func applyClient(ctx context.Context, st store.Store, tenantID string, in Client
 	if in.OrganizationUsage != "" && in.OrganizationUsage != store.OrgUsageDeny && !store.OrganizationsSupported(st) {
 		return store.ErrOrganizationsUnavailable
 	}
+	if in.RefreshToken.Policies != nil || in.TokenQuota != nil {
+		if err := store.CheckRefreshTokensIISupport(ctx, st); err != nil {
+			return err
+		}
+	}
+	if store.ClientNeedsOIDCLogout(c) {
+		if err := store.CheckOIDCLogoutSupport(ctx, st); err != nil {
+			return err
+		}
+	}
 	capable := store.ClientCredentialsAvailable(ctx, st)
 	if err := tenantsetup.UpsertClient(ctx, st, tenantID, in.ClientID, now, func(c *store.Client, create bool) error {
 		if err := setClient(c, create, in, now, w); err != nil {
@@ -420,6 +448,16 @@ func setClient(c *store.Client, create bool, in Client, now time.Time, w keys.Wr
 			return err
 		}
 		c.Secrets = []store.ClientSecret{{Sealed: sealed, CreatedAt: now}}
+	}
+	if c.IDTokenAlg == "HS256" {
+		if in.usesPrivateKeyJWT() {
+			return errors.New("HS256 requires client-secret authentication")
+		}
+		raw, err := keys.ClientSigningSecret(w, c, now)
+		if err != nil {
+			return err
+		}
+		clear(raw)
 	}
 	return nil
 }
@@ -481,6 +519,12 @@ func applyClientGrant(ctx context.Context, st store.Store, tenantID string, in C
 }
 
 func applyConnection(ctx context.Context, st store.Store, tenantID string, in Connection, now time.Time, w keys.Wrapper, createOnly bool) error {
+	if in.Options["token_endpoint_auth_method"] == "private_key_jwt" || in.Options["id_token_encrypted_response_alg"] != nil {
+		if supporter, ok := st.(store.ConnectionKeysSupporter); ok && !supporter.ConnectionKeysSupported() {
+			return store.ErrConnectionKeysUnavailable
+		}
+	}
+
 	if c, err := st.Connections().GetByName(ctx, tenantID, in.Name); err == nil && (createOnly || c.Origin == store.OriginAPI) {
 		// Created through the Management API, or create-only mode: the seed
 		// never touches it.
@@ -517,7 +561,7 @@ func setConnection(c *store.Connection, in Connection, w keys.Wrapper) error {
 		return errors.New("the connection was not validated")
 	}
 	var prev *store.Connection
-	if len(c.FederationSecretsSealed) > 0 {
+	if c.FederationRevision > 0 || len(c.FederationSecretsSealed) > 0 {
 		p := *c
 		prev = &p
 	}

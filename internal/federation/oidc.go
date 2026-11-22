@@ -7,10 +7,12 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
 
+	oidcclaims "github.com/zeroauthy/zeroauthy/internal/claims"
 	"github.com/zeroauthy/zeroauthy/internal/federation/rules"
 )
 
@@ -27,17 +29,44 @@ func authorizationURL(endpoint string, cfg Config, in StartInput, withNonce bool
 	if err != nil || endpoint == "" {
 		return "", fmt.Errorf("%w: authorization endpoint", ErrInvalidConfig)
 	}
-	if in.State == "" || in.CodeChallenge == "" || in.CallbackURL == "" || (withNonce && in.Nonce == "") {
+	enterprise := cfg.Channel != "" && (cfg.Strategy == StrategyOIDC || cfg.Strategy == StrategyOkta)
+	if enterprise {
+		withNonce = cfg.Channel == "front_channel" || cfg.SendNonce
+	}
+	if in.State == "" || (!enterprise && in.CodeChallenge == "") || in.CallbackURL == "" || (withNonce && in.Nonce == "") {
 		return "", fmt.Errorf("federation: incomplete authorization request")
 	}
 	q := u.Query()
 	q.Set("response_type", "code")
 	q.Set("client_id", cfg.ClientID)
 	q.Set("redirect_uri", in.CallbackURL)
-	q.Set("scope", strings.Join(cfg.Scopes, " "))
+	scopes := slices.Clone(cfg.Scopes)
+	if cfg.AttrMap != nil {
+		for _, scope := range strings.Fields(cfg.AttrMap.UserinfoScope) {
+			if !slices.Contains(scopes, scope) {
+				scopes = append(scopes, scope)
+			}
+		}
+	}
+	q.Set("scope", strings.Join(scopes, " "))
 	q.Set("state", in.State)
+	if in.LoginHint != "" {
+		q.Set("login_hint", in.LoginHint)
+	}
 	q.Set("code_challenge", in.CodeChallenge)
 	q.Set("code_challenge_method", "S256")
+	if enterprise {
+		if cfg.Channel == "front_channel" {
+			q.Set("response_type", "id_token")
+			q.Set("response_mode", "form_post")
+		}
+		if in.Endpoints.PKCEMethod == "" {
+			q.Del("code_challenge")
+			q.Del("code_challenge_method")
+		} else {
+			q.Set("code_challenge_method", in.Endpoints.PKCEMethod)
+		}
+	}
 	if withNonce {
 		q.Set("nonce", in.Nonce)
 	}
@@ -54,6 +83,9 @@ func (ps *Providers) exchangeCode(ctx context.Context, tokenURL, method string, 
 		"redirect_uri":  {in.CallbackURL},
 		"code_verifier": {in.CodeVerifier},
 	}
+	if in.Config.Channel != "" && (in.Config.Strategy == StrategyOIDC || in.Config.Strategy == StrategyOkta) && in.Endpoints.PKCEMethod == "" {
+		form.Del("code_verifier")
+	}
 	if in.Config.Strategy == StrategyApple {
 		if in.CodeVerifier == "" {
 			form.Del("code_verifier")
@@ -65,6 +97,21 @@ func (ps *Providers) exchangeCode(ctx context.Context, tokenURL, method string, 
 	if method == authPost {
 		form.Set("client_id", in.Config.ClientID)
 		form.Set("client_secret", in.ClientSecret)
+	} else if method == "private_key_jwt" {
+		if in.ClientAssertion == nil {
+			return TokenSet{}, fmt.Errorf("%w: client assertion unavailable", ErrInvalidConfig)
+		}
+		aud := in.Issuer
+		if in.Config.AssertionAud == "token_endpoint" {
+			aud = tokenURL
+		}
+		assertion, e := in.ClientAssertion(aud)
+		if e != nil {
+			return TokenSet{}, e
+		}
+		form.Set("client_id", in.Config.ClientID)
+		form.Set("client_assertion_type", assertionType)
+		form.Set("client_assertion", assertion)
 	} else if method != authBasic {
 		return TokenSet{}, fmt.Errorf("%w: unsupported client authentication", ErrInvalidConfig)
 	}
@@ -188,7 +235,17 @@ func (p oidcProvider) Exchange(ctx context.Context, in ExchangeInput) (ProviderR
 		return ProviderResult{}, err
 	}
 	sub, _ := claims["sub"].(string)
-	if _, hasEmail := claims["email"]; !hasEmail && e.UserInfoURL != "" {
+	compiled, mapErr := CompileAttrMap(in.Config.AttrMap, in.Config.Strategy, in.Config.Channel)
+	if mapErr != nil {
+		return ProviderResult{}, mapErr
+	}
+	var userinfo map[string]any
+	legacy := in.Config.AttrMap == nil && (in.Config.Channel != "front_channel")
+	_, hasEmail := claims["email"]
+	if compiled.NeedsUserInfo() || legacy && !hasEmail && e.UserInfoURL != "" {
+		if e.UserInfoURL == "" || tokens.AccessToken == "" {
+			return ProviderResult{}, fmt.Errorf("%w: userinfo unavailable", ErrProviderResponse)
+		}
 		var info map[string]any
 		if err := p.ps.getJSON(ctx, e.UserInfoURL, tokens.AccessToken, &info); err != nil {
 			return ProviderResult{}, err
@@ -196,13 +253,14 @@ func (p oidcProvider) Exchange(ctx context.Context, in ExchangeInput) (ProviderR
 		if s, _ := info["sub"].(string); s != sub {
 			return ProviderResult{}, fmt.Errorf("%w: userinfo subject differs from the ID token", ErrProviderResponse)
 		}
+		userinfo = info
 		for k, v := range info {
-			if _, ok := claims[k]; !ok {
+			if _, ok := claims[k]; !ok && legacy {
 				claims[k] = v
 			}
 		}
 	}
-	profile, err := profileFromClaims(sub, claims)
+	profile, err := mappedProfile(in.Config, in.Cache.ConnectionID, sub, claims, userinfo, tokens)
 	if err != nil {
 		return ProviderResult{}, fmt.Errorf("%w: %w", ErrProviderResponse, err)
 	}
@@ -222,7 +280,21 @@ func issuerMatches(cfg Config, expected, got string) bool {
 // JWKS (never one named by the token), issuer, audience/azp, time with
 // skew, nonce, subject and at_hash.
 func (ps *Providers) validateIDToken(ctx context.Context, in ExchangeInput, e Endpoints, tokens TokenSet) (map[string]any, error) {
-	obj, err := parseIDToken(tokens.IDToken)
+	if in.Config.EncAlg != "" {
+		if in.DecryptIDToken == nil {
+			return nil, idTokenError("decryption unavailable")
+		}
+		raw, err := in.DecryptIDToken(tokens.IDToken)
+		if err != nil {
+			return nil, err
+		}
+		tokens.IDToken = raw
+	}
+	allowed := in.Config.IDTokenAlgs
+	if in.Config.Strategy == StrategyGoogle {
+		allowed = []string{"RS256"}
+	}
+	obj, err := parseIDTokenAlgorithms(tokens.IDToken, allowed)
 	if err != nil {
 		return nil, err
 	}
@@ -230,7 +302,7 @@ func (ps *Providers) validateIDToken(ctx context.Context, in ExchangeInput, e En
 	if in.Config.Strategy == StrategyGoogle && issuer == "" {
 		issuer = rules.GoogleIssuer
 	}
-	key, err := ps.keys.key(ctx, in.Cache.with("jwks", issuer, e.JWKSURL), e.JWKSURL, obj.Signatures[0].Header.KeyID)
+	key, err := ps.keys.keyForAlgorithm(ctx, in.Cache.with("jwks", issuer, e.JWKSURL), e.JWKSURL, obj.Signatures[0].Header.KeyID, obj.Signatures[0].Header.Algorithm)
 	if err != nil {
 		return nil, err
 	}
@@ -245,6 +317,7 @@ func (ps *Providers) validateIDToken(ctx context.Context, in ExchangeInput, e En
 	if iss, _ := c["iss"].(string); !issuerMatches(in.Config, issuer, iss) {
 		return nil, idTokenError("issuer mismatch")
 	}
+	in.IDTokenAlg = obj.Signatures[0].Header.Algorithm
 	if err := validateIDTokenClaims(in, tokens, c, ps.exchangeTime(in)); err != nil {
 		return nil, err
 	}
@@ -252,7 +325,7 @@ func (ps *Providers) validateIDToken(ctx context.Context, in ExchangeInput, e En
 }
 
 // profileClaims are the standard claims mapped to root attributes.
-var profileClaims = []string{"email", "email_verified", "name", "nickname", "given_name", "family_name", "picture"}
+var profileClaims = []string{"username", "email", "email_verified", "name", "nickname", "given_name", "family_name", "picture"}
 
 // profileFromClaims maps verified claims to a Profile. An optional claim of
 // the wrong type or shape is dropped rather than failing the login; the
@@ -273,7 +346,15 @@ func profileFromClaims(sub string, claims map[string]any) (Profile, error) {
 	if err != nil {
 		return Profile{}, err
 	}
-	return NormalizeProfile(raw)
+	p, err := NormalizeProfile(raw)
+	if err != nil {
+		return Profile{}, err
+	}
+	extra := oidcclaims.IdentityClaims(claims)
+	if encoded, err := json.Marshal(extra); err == nil && len(encoded) <= maxProfileBytes && len(extra) > 0 {
+		p.ProviderData = extra
+	}
+	return p, nil
 }
 
 // oauth2Provider is the generic OAuth 2 code flow: S256 PKCE, one

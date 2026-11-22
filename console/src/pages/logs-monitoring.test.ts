@@ -271,3 +271,14 @@ it('prevents clearing configured PII and allows saving a new method', async () =
  await w.get('#pii-email').setValue(true); await w.get('#pii-method').setValue('hash'); await w.get('form').trigger('submit'); await flushPromises()
  expect(calls.find(c => c.method === 'PATCH')!.body).toEqual(consolePayloads.configured)
 })
+
+it('renders logout outcome codes and classifies failures from the catalog', async () => {
+ const codes=['oidc_backchannel_logout_succeeded','oidc_backchannel_logout_failed','universal_logout_succeeded','universal_logout_failed']
+ const {wrapper:w}=await setup('logs','/t/acme/logs?failures=1',()=>logs(codes.map(code=>log(code,{type:code}))))
+ const rows=w.findAll('[data-testid=log-row]')
+ expect(rows).toHaveLength(2)
+ expect(rows.map(r=>r.text()).join(' ')).toContain('oidc_backchannel_logout_failed')
+ expect(rows.map(r=>r.text()).join(' ')).toContain('universal_logout_failed')
+ expect(rows.map(r=>r.text()).join(' ')).not.toContain('succeeded')
+ expect(w.text()).toContain('OIDC')
+})

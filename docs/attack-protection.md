@@ -205,12 +205,17 @@ to make those limits shared.
 ## Tenant log evidence
 
 Use the console's **Logs** page to inspect committed protection decisions.
-`limit_wc`, `limit_sul` and `limit_mu` record applicable denied admissions;
+`limit_wc` records the first denied admission for each password brute-force
+block after settled failures reach the threshold. In-flight reservations can
+temporarily deny admission before this threshold. `limit_mu` records
+applicable suspicious-IP denials on each denied admission.
 `pwd_leak`, `signup_pwd_leak` and `reset_pwd_leak` record the corresponding
 confirmed breach outcomes. `ublkdu` records an actual unblock write. Existing
 members/cleared blocks and rolled-back changes do not manufacture events;
 older plugins without optional mutation-outcome reporting omit uncertain
-outcomes. Management 429 responses can emit `api_limit`.
+outcomes. Older plugins without first-denial attribution continue to enforce
+brute-force blocks while omitting `limit_wc`. Management 429 responses can
+emit `api_limit`.
 
 The [logging guide](logs.md) documents privacy, the bounded failure-only
 window, retention and the complete code inventory. Recording is asynchronous

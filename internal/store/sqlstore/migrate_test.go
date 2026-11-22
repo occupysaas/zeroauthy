@@ -173,8 +173,8 @@ func TestSchemaConstraints(t *testing.T) {
 
 func TestLatestVersion(t *testing.T) {
 	for _, d := range []dialect{dSQLite, dPostgres, dMySQL} {
-		if v := (&Store{d: d}).LatestVersion(); v != 37 {
-			t.Errorf("%s LatestVersion = %d, want 37", d.name, v)
+		if v := (&Store{d: d}).LatestVersion(); v != 43 {
+			t.Errorf("%s LatestVersion = %d, want 43", d.name, v)
 		}
 	}
 }
@@ -189,9 +189,12 @@ func TestMigration0019PreservesLegacyHostedData(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			// Version 18 predates canonical_host (0020) and domain_rp_ids (0035).
-			placeholders := strings.TrimSuffix(strings.Repeat("?,", len(args)-2), ",")
-			if _, err := s.exec(ctx, "INSERT INTO tenants ("+strings.TrimSuffix(tenantCols, ", canonical_host, domain_rp_ids")+") VALUES ("+placeholders+")", args[:len(args)-2]...); err != nil {
+			// Version 18 ends at protection_settings. Select its prefix so
+			// appended modern columns never reach this historical schema.
+			cols, _, _ := strings.Cut(tenantCols, ", canonical_host")
+			args = args[:strings.Count(cols, ",")+1]
+			placeholders := strings.TrimSuffix(strings.Repeat("?,", len(args)), ",")
+			if _, err := s.exec(ctx, "INSERT INTO tenants ("+cols+") VALUES ("+placeholders+")", args...); err != nil {
 				t.Fatal(err)
 			}
 			mustExec(t, s, `INSERT INTO auth_transactions (tenant_id,id,cookie_hash,csrf_token,client_id,params,expires_at,created_at) VALUES ('legacy','flow','cookie','csrf','spa','{"scope":"openid"}',9999999999999999,1)`)

@@ -2027,25 +2027,37 @@
       "type": "oidc_backchannel_logout_failed",
       "description": "An OIDC logout notification could not be delivered.",
       "category": "auth.logout.fail",
-      "emitted": false,
+      "emitted": true,
       "plan": 41,
       "stats_kind": "",
       "source": "https://auth0.com/docs/tenant-logs/auth-logout-fail/oidc-backchannel-logout-failed",
       "origin": "public-catalog",
-      "note": "No corresponding runtime subsystem; deferred owner must recheck public semantics before enabling.",
-      "triggers": []
+      "note": "D-0080: public schema rechecked 2026-11-20; Plan 41a emits this after a durable delivery completes. No sslo/fslo aliases.",
+      "triggers": [
+        {
+          "file": "internal/logout/deliver.go",
+          "function": "Finished",
+          "when": "After the durable logout job's fenced terminal outcome is committed."
+        }
+      ]
     },
     {
       "type": "oidc_backchannel_logout_succeeded",
       "description": "An OIDC logout notification was delivered.",
       "category": "auth.logout.success",
-      "emitted": false,
+      "emitted": true,
       "plan": 41,
       "stats_kind": "",
       "source": "https://auth0.com/docs/tenant-logs/auth-logout-success/oidc-backchannel-logout-succeeded",
       "origin": "public-catalog",
-      "note": "No corresponding runtime subsystem; deferred owner must recheck public semantics before enabling.",
-      "triggers": []
+      "note": "D-0080: public schema rechecked 2026-11-20; Plan 41a emits this after a durable delivery completes. No sslo/fslo aliases.",
+      "triggers": [
+        {
+          "file": "internal/logout/deliver.go",
+          "function": "Finished",
+          "when": "After the durable logout job's fenced terminal outcome is committed."
+        }
+      ]
     },
     {
       "type": "organization_access_denied",
@@ -3003,25 +3015,37 @@
       "type": "universal_logout_failed",
       "description": "A universal sign-out operation could not complete.",
       "category": "auth.logout.fail",
-      "emitted": false,
+      "emitted": true,
       "plan": 41,
       "stats_kind": "",
       "source": "https://auth0.com/docs/tenant-logs/auth-logout-fail/universal-logout-failed",
       "origin": "public-catalog",
-      "note": "No corresponding runtime subsystem; deferred owner must recheck public semantics before enabling.",
-      "triggers": []
+      "note": "D-0080: public schema rechecked 2026-11-20; Plan 41a delivery/revocation tasks enable this code with its real trigger. No sslo/fslo aliases.",
+      "triggers": [
+        {
+          "file": "internal/oauth/global_revocation.go",
+          "function": "GlobalTokenRevocation",
+          "when": "After an authenticated revocation commits, or revocation authentication or commit fails."
+        }
+      ]
     },
     {
       "type": "universal_logout_succeeded",
       "description": "A universal sign-out operation completed.",
       "category": "auth.logout.success",
-      "emitted": false,
+      "emitted": true,
       "plan": 41,
       "stats_kind": "",
       "source": "https://auth0.com/docs/tenant-logs/auth-logout-success/universal-logout-succeeded",
       "origin": "public-catalog",
-      "note": "No corresponding runtime subsystem; deferred owner must recheck public semantics before enabling.",
-      "triggers": []
+      "note": "D-0080: public schema rechecked 2026-11-20; Plan 41a delivery/revocation tasks enable this code with its real trigger. No sslo/fslo aliases.",
+      "triggers": [
+        {
+          "file": "internal/oauth/global_revocation.go",
+          "function": "GlobalTokenRevocation",
+          "when": "After an authenticated revocation commits, or revocation authentication or commit fails."
+        }
+      ]
     },
     {
       "type": "w",
@@ -3058,6 +3082,24 @@
       "origin": "public-catalog",
       "note": "No corresponding runtime subsystem; deferred owner must recheck public semantics before enabling.",
       "triggers": []
+    },
+    {
+      "type": "token_quota_consumption_warning",
+      "description": "A client-credentials quota reached a consumption warning threshold.",
+      "category": "system.notification",
+      "emitted": true,
+      "plan": 48,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/fine-grained-m2m-token-quotas",
+      "origin": "public-catalog",
+      "note": "Emitted once per subject, bucket, UTC window and threshold after successful quota commit.",
+      "triggers": [
+        {
+          "file": "internal/oauth/quota.go",
+          "function": "finishClientCredentials",
+          "when": "An accepted token crosses 60, 80 or 100 percent of a configured bucket."
+        }
+      ]
     }
   ],
   "fields": [

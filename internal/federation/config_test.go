@@ -20,7 +20,7 @@ func configSpec(t *testing.T, strategy string, options string) connrules.Spec {
 func TestFederationConfig(t *testing.T) {
 	const google = `{"client_id":"client","client_secret":"do-not-log"}`
 	const oauth = `{"client_id":"client","client_secret":"do-not-log","authorizationURL":"https://provider.example/authorize","tokenURL":"https://provider.example/token","scope":"read profile","scripts":{"fetchUserProfile":"function fetchUserProfile() {}"}}`
-	const oidc = `{"client_id":"client","client_secret":"do-not-log","discovery_url":"https://provider.example/.well-known/openid-configuration","scopes":"openid profile"}`
+	const oidc = `{"type":"back_channel","client_id":"client","client_secret":"do-not-log","discovery_url":"https://provider.example/.well-known/openid-configuration","scopes":"openid profile"}`
 	for _, tc := range []struct {
 		name, strategy, options string
 		bad                     bool
@@ -38,7 +38,7 @@ func TestFederationConfig(t *testing.T) {
 		{"reserved endpoint query", "oauth2", strings.Replace(oauth, "/authorize", "/authorize?prompt=login", 1), true},
 		{"scope array", "oauth2", strings.Replace(oauth, `"read profile"`, `["read"]`, 1), true},
 		{"PKCE disabled", "google-oauth2", strings.TrimSuffix(google, "}") + `,"pkce_enabled":false}`, true},
-		{"nonce disabled", "oidc", strings.TrimSuffix(oidc, "}") + `,"send_back_channel_nonce":false}`, true},
+		{"nonce disabled", "oidc", strings.TrimSuffix(oidc, "}") + `,"send_back_channel_nonce":false}`, false},
 		{"google flags", "google-oauth2", strings.TrimSuffix(google, "}") + `,"email":false,"profile":false,"scope":["openid"]}`, false},
 		{"google mismatch", "google-oauth2", strings.TrimSuffix(google, "}") + `,"email":false,"scope":["openid","email","profile"]}`, true},
 		{"domain policy", "google-oauth2", strings.TrimSuffix(google, "}") + `,"allowed_domains":[]}`, true},

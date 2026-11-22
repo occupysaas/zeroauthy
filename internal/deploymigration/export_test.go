@@ -332,3 +332,37 @@ func TestDirectoryOrganizations(t *testing.T) {
 		t.Fatal("organization treated as opaque file")
 	}
 }
+
+func TestResourceParameterProfileIsInlineConfiguration(t *testing.T) {
+	for _, format := range []string{"yaml", "directory"} {
+		for _, profile := range []string{"audience", "compatibility"} {
+			t.Run(format+"/"+profile, func(t *testing.T) {
+				dir := t.TempDir()
+				input := dir
+				if format == "yaml" {
+					input = filepath.Join(dir, "tenant.yaml")
+					if err := os.WriteFile(input, []byte("tenant:\n  resource_parameter_profile: "+profile+"\n"), 0600); err != nil {
+						t.Fatal(err)
+					}
+				} else {
+					if err := os.WriteFile(filepath.Join(dir, "tenant.json"), []byte(`{"resource_parameter_profile":"`+profile+`"}`), 0600); err != nil {
+						t.Fatal(err)
+					}
+				}
+				if _, err := LoadExport(input, format); err != nil {
+					t.Fatalf("inline resource profile treated as a file: %v", err)
+				}
+			})
+		}
+	}
+	t.Run("explicit file references remain guarded", func(t *testing.T) {
+		dir := t.TempDir()
+		input := filepath.Join(dir, "tenant.yaml")
+		if err := os.WriteFile(input, []byte("tenant:\n  resource_parameter_profile: file://../outside\n"), 0600); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := LoadExport(input, "yaml"); err == nil {
+			t.Fatal("explicit traversal reference bypassed the file guard")
+		}
+	})
+}

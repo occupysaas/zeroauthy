@@ -164,6 +164,7 @@ func (r tenants) Delete(_ context.Context, id string) error {
 	purge(s.emailTemplates, id)
 	purgeEmailClaims(s.emailNotifications, id)
 	purge(s.connections, id)
+	purge(s.connectionKeys, id)
 	purge(s.passwordHistories, id)
 	purge(s.users, id)
 	purge(s.sessions, id)
@@ -172,9 +173,18 @@ func (r tenants) Delete(_ context.Context, id string) error {
 	purge(s.pushedAuthRequests, id)
 	purge(s.credentials, id)
 	purge(s.assertionJTIs, id)
+	purge(s.globalRevocationJTIs, id)
 	purge(s.exchangeProfiles, id)
 	purge(s.deviceCodes, id)
 	purge(s.refreshTokens, id)
+	purge(s.refreshOrder, id)
+	purge(s.refreshFamilyAliases, id)
+	s.dpopProofs.deleteTenant(id)
+	for k := range s.quotaCounters {
+		if k.tenant == id {
+			delete(s.quotaCounters, k)
+		}
+	}
 	purge(s.resetTickets, id)
 	purge(s.verifyTickets, id)
 	purge(s.operators, id)

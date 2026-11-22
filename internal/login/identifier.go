@@ -7,6 +7,8 @@ import (
 	"strings"
 	"unicode/utf8"
 
+	"github.com/zeroauthy/zeroauthy/internal/connrules"
+	"github.com/zeroauthy/zeroauthy/internal/federation"
 	"github.com/zeroauthy/zeroauthy/internal/i18n"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/ui"
@@ -49,6 +51,31 @@ func (h *Handlers) identifierPost(w http.ResponseWriter, r *http.Request, f *flo
 	if !utf8.ValidString(identifier) || len(identifier) > 320 || identifier == "" {
 		d := h.stageData(f, identifier)
 		d.Error = f.view.L.T(i18n.KeyInvalidIdentifier)
+		h.renderIdentifier(w, r, http.StatusBadRequest, f, d)
+		return
+	}
+	if h.Federation != nil && f.txn.Params["connection"] == "" {
+		conns, e := h.socialConnections(r.Context(), f, true)
+		if e != nil {
+			h.fail(w, r, e, f)
+			return
+		}
+		if conn := federation.MatchHomeRealm(identifier, conns); conn != nil {
+			next := f.txn.HostedState.Clone()
+			next.Step = "authenticating"
+			next.Identifier = identifier
+			next.ConnectionID = conn.ID
+			if e := h.transitionHosted(r, f, next); e != nil {
+				h.fail(w, r, errTxn, f)
+				return
+			}
+			h.startSocialHint(w, r, f, conn, identifier)
+			return
+		}
+	}
+	if f.conn == nil {
+		d := h.stageData(f, identifier)
+		d.Error = f.view.L.T(i18n.KeyErrNoConnection)
 		h.renderIdentifier(w, r, http.StatusBadRequest, f, d)
 		return
 	}
@@ -149,4 +176,23 @@ func (h *Handlers) renderLoginStage(w http.ResponseWriter, r *http.Request, stat
 	}
 	data.HostedRevision = hostedRevision(f)
 	ui.RenderLogin(w, status, f.view, data)
+}
+
+// homeRealmAvailable allows an enterprise-only application to show the identifier
+// prompt without choosing a password database as a prerequisite.
+func (h *Handlers) homeRealmAvailable(r *http.Request, f *flow) bool {
+	if f.txn.Params["connection"] != "" || f.txn.HostedState.Step != "identifier" {
+		return false
+	}
+	conns, e := h.socialConnections(r.Context(), f, true)
+	if e != nil {
+		return false
+	}
+	for _, c := range conns {
+		cfg, e := federation.ParseConfig(*connrules.FromConnection(c))
+		if e == nil && len(cfg.DomainAliases) > 0 {
+			return true
+		}
+	}
+	return false
 }

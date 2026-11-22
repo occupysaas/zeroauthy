@@ -106,6 +106,12 @@ type EmailInput struct {
 
 // PostLoginInput is everything a post-login flow sees.
 type PostLoginInput struct {
+	// PendingMembership is a validated auto-enrollment intent: until committed,
+	// the event includes tenant roles only and token permissions stay personal.
+	PendingMembership bool
+	// PendingInvitationRoleIDs is a server-validated, prospective invitation
+	// event view. It grants no persisted membership or token permissions.
+	PendingInvitationRoleIDs []string
 	// OrganizationID is the bound organization used by the permission snapshot.
 	OrganizationID string
 	// Organization is frozen before external code and sealed with continuations.
@@ -116,6 +122,7 @@ type PostLoginInput struct {
 	Connection      *store.Connection
 	EnrolledFactors []map[string]any
 	Session         *store.LoginSession
+	RefreshToken    *store.RefreshToken
 	Request         RequestInfo
 	Transaction     TransactionInfo
 	Protocol        string
@@ -279,9 +286,13 @@ func sessionEvent(s *store.LoginSession) map[string]any {
 	if s == nil {
 		return nil
 	}
+	md := maps.Clone(s.Metadata)
+	if md == nil {
+		md = map[string]string{}
+	}
 	return map[string]any{"id": s.ID, "created_at": rfc3339(s.CreatedAt), "updated_at": rfc3339(s.UpdatedAt),
 		"authenticated_at": rfc3339(s.AuthenticatedAt), "last_interacted_at": rfc3339(s.LastInteractedAt),
-		"expires_at": rfc3339(s.ExpiresAt), "idle_expires_at": rfc3339(s.IdleExpiresAt)}
+		"expires_at": rfc3339(s.ExpiresAt), "idle_expires_at": rfc3339(s.IdleExpiresAt), "metadata": md}
 }
 
 func organizationEvent(o *store.Organization) map[string]any {
@@ -295,9 +306,17 @@ func organizationEvent(o *store.Organization) map[string]any {
 // postLoginEvent builds event for the next Action from the input, the roles
 // snapshot and the effects accumulated so far.
 func postLoginEvent(in *PostLoginInput, roleNames []string, a *accum) map[string]any {
+	client := clientEvent(in.Client)
+	if in.Client != nil && in.Client.RefreshToken.Policies != nil {
+		policies := make([]map[string]any, 0, len(in.Client.RefreshToken.Policies))
+		for _, p := range in.Client.RefreshToken.Policies {
+			policies = append(policies, map[string]any{"audience": p.Audience, "scope": strs(p.Scope)})
+		}
+		client["refresh_token"] = map[string]any{"policies": policies}
+	}
 	ev := map[string]any{
 		"user":          userEvent(in.User, &a.eff),
-		"client":        clientEvent(in.Client),
+		"client":        client,
 		"request":       requestEvent(in.Request, in.Tenant.Host, true),
 		"tenant":        tenantEvent(in.Tenant),
 		"authorization": map[string]any{"roles": strs(roleNames)},
@@ -338,6 +357,17 @@ func postLoginEvent(in *PostLoginInput, roleNames []string, a *accum) map[string
 	}
 	if rs := resourceServerEvent(in.ResourceServer); rs != nil {
 		ev["resource_server"] = rs
+	}
+	if rt := in.RefreshToken; rt != nil {
+		access := rt.Access
+		if access == "" {
+			access = "offline"
+		}
+		md := maps.Clone(rt.Metadata)
+		if md == nil {
+			md = map[string]string{}
+		}
+		ev["refresh_token"] = map[string]any{"id": rt.ID, "access": access, "metadata": md, "created_at": rfc3339(rt.CreatedAt)}
 	}
 	if s := sessionEvent(in.Session); s != nil {
 		ev["session"] = s

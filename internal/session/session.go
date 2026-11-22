@@ -23,6 +23,8 @@ const (
 )
 
 type Manager struct {
+	// OnEnd enqueues notifications inside the same transaction as local deletion.
+	OnEnd func(context.Context, store.Store, *store.LoginSession) error
 	Store store.Store
 	Now   func() time.Time
 	// TrustProxyHeaders reads the client address from X-Forwarded-For, as
@@ -83,6 +85,10 @@ func (m *Manager) Current(ctx context.Context, r *http.Request, t *store.Tenant)
 	}
 	now := m.now()
 	if !now.Before(s.ExpiresAt) || !now.Before(s.IdleExpiresAt) {
+		// The expiry sweeper owns the transactional notification snapshot.
+		if m.OnEnd != nil {
+			return nil, nil
+		}
 		if err := m.Store.Sessions().Delete(ctx, t.ID, s.ID); err != nil && !errors.Is(err, store.ErrNotFound) {
 			return nil, err
 		}
@@ -107,11 +113,18 @@ func (m *Manager) Current(ctx context.Context, r *http.Request, t *store.Tenant)
 // cookie. Any session the request already carries is deleted first, so a
 // login always gets a new session identifier.
 func (m *Manager) Start(ctx context.Context, w http.ResponseWriter, r *http.Request, t *store.Tenant, userID, connection string, authTime time.Time, methods ...store.AuthMethod) (*store.LoginSession, error) {
-	if old, err := r.Cookie(CookieName); err == nil && old.Value != "" {
-		if s, err := m.Store.Sessions().GetByTokenHash(ctx, t.ID, secrets.HashToken(old.Value)); err == nil {
-			_ = m.Store.Sessions().Delete(ctx, t.ID, s.ID)
-		}
+	s, token, err := m.Prepare(ctx, r, t, userID, connection, authTime, methods...)
+	if err != nil {
+		return nil, err
 	}
+	if err = m.Commit(ctx, w, r, t, s, token); err != nil {
+		return nil, err
+	}
+	return s, nil
+}
+
+// Prepare builds first-factor evidence without creating a session or cookie.
+func (m *Manager) Prepare(ctx context.Context, r *http.Request, t *store.Tenant, userID, connection string, authTime time.Time, methods ...store.AuthMethod) (*store.LoginSession, string, error) {
 	now := m.now()
 	ip, ua := httpx.RecordedIP(r, m.TrustProxyHeaders), r.UserAgent()
 	mode := t.SessionCookieMode
@@ -124,7 +137,7 @@ func (m *Manager) Start(ctx context.Context, w http.ResponseWriter, r *http.Requ
 		if cap, ok := m.Store.(store.WebAuthnSupporter); ok {
 			if err := cap.CheckWebAuthnSupport(ctx); err != nil {
 				if !errors.Is(err, store.ErrWebAuthnUnavailable) {
-					return nil, err
+					return nil, "", err
 				}
 				methods = nil
 			} else if !cap.WebAuthnSupported() {
@@ -154,8 +167,35 @@ func (m *Manager) Start(ctx context.Context, w http.ResponseWriter, r *http.Requ
 		UpdatedAt:       now, LastInteractedAt: now,
 		InitialIP: ip, InitialUserAgent: ua, LastIP: ip, LastUserAgent: ua,
 	}
+	return s, token, nil
+}
+
+// Commit persists prepared evidence. The caller owns the transaction and must
+// buffer the response cookie until that transaction has committed.
+func (m *Manager) Commit(ctx context.Context, w http.ResponseWriter, r *http.Request, t *store.Tenant, s *store.LoginSession, token string) error {
+	// The SSO lifetime starts when the session is created. Authentication evidence
+	// retains the original first-factor time and methods across slow MFA/consent.
+	now := m.now()
+	absolute, idle := lifetimes(t, s.CookieMode)
+	s.ExpiresAt = expiry(now, absolute)
+	s.IdleExpiresAt = minTime(expiry(now, idle), s.ExpiresAt)
+	s.CreatedAt = now
+	s.UpdatedAt = now
+	s.LastInteractedAt = now
+
+	if old, err := r.Cookie(CookieName); err == nil && old.Value != "" {
+		previous, err := m.Store.Sessions().GetByTokenHash(ctx, t.ID, secrets.HashToken(old.Value))
+		if err != nil && !errors.Is(err, store.ErrNotFound) {
+			return err
+		}
+		if err == nil {
+			if err = m.Store.Sessions().Delete(ctx, t.ID, previous.ID); err != nil {
+				return err
+			}
+		}
+	}
 	if err := m.Store.Sessions().Create(ctx, s); err != nil {
-		return nil, err
+		return err
 	}
 	cookie := &http.Cookie{
 		Name:     CookieName,
@@ -168,11 +208,11 @@ func (m *Manager) Start(ctx context.Context, w http.ResponseWriter, r *http.Requ
 		// authentication (response_mode=web_message).
 		SameSite: http.SameSiteNoneMode,
 	}
-	if mode == "non-persistent" {
+	if s.CookieMode == "non-persistent" {
 		cookie.Expires = time.Time{}
 	}
 	http.SetCookie(w, cookie)
-	return s, nil
+	return nil
 }
 
 // AddClient records that clientID received tokens through s.
@@ -197,6 +237,10 @@ func minTime(a, b time.Time) time.Time {
 // End deletes the request's session, if any, and clears the cookie. It
 // returns the ended session, or nil if there was none.
 func (m *Manager) End(ctx context.Context, w http.ResponseWriter, r *http.Request, t *store.Tenant) (*store.LoginSession, error) {
+	if err := m.EndPending(ctx, w, r, t); err != nil {
+		return nil, err
+	}
+
 	http.SetCookie(w, &http.Cookie{
 		Name: CookieName, Value: "", Path: "/", MaxAge: -1,
 		HttpOnly: true, Secure: true, SameSite: http.SameSiteNoneMode,
@@ -214,8 +258,39 @@ func (m *Manager) End(ctx context.Context, w http.ResponseWriter, r *http.Reques
 	if err != nil {
 		return nil, err
 	}
-	if err := m.Store.Sessions().Delete(ctx, t.ID, s.ID); err != nil && !errors.Is(err, store.ErrNotFound) {
+	ended := false
+	err = m.Store.WithTx(ctx, func(tx store.Store) error {
+		if m.OnEnd != nil {
+			if _, err := tx.Tenants().Get(ctx, t.ID); err != nil {
+				return err
+			}
+		}
+		current, err := tx.Sessions().GetForUpdate(ctx, t.ID, s.ID)
+		if errors.Is(err, store.ErrNotFound) {
+			return nil
+		}
+		if err != nil {
+			return err
+		}
+		if err := tx.Sessions().Delete(ctx, t.ID, s.ID); err != nil {
+			if errors.Is(err, store.ErrNotFound) {
+				return nil
+			}
+			return err
+		}
+		if m.OnEnd != nil {
+			if err := m.OnEnd(ctx, tx, current); err != nil {
+				return err
+			}
+		}
+		ended = true
+		return nil
+	})
+	if err != nil {
 		return nil, err
+	}
+	if !ended {
+		return nil, nil
 	}
 	return s, nil
 }
@@ -282,5 +357,32 @@ func (m *Manager) AddMethod(ctx context.Context, s *store.LoginSession, method s
 		return err
 	}
 	s.AuthMethods = append(s.AuthMethods, method)
+	return nil
+}
+
+// AddClientOrganization binds the latest validated authorization context. Old
+// plugins may retain legacy participation only when no logout template needs it.
+func (m *Manager) AddClientOrganization(ctx context.Context, s *store.LoginSession, client *store.Client, orgID string) error {
+	repo, ok := m.Store.Sessions().(store.SessionOrganizationRecorder)
+	if !ok {
+		if client.OIDCLogout != nil {
+			return store.ErrOIDCLogoutUnavailable
+		}
+		return m.AddClient(ctx, s, client.ClientID)
+	}
+	err := repo.RecordClientOrganization(ctx, s.TenantID, s.ID, client.ClientID, orgID)
+	if errors.Is(err, store.ErrOIDCLogoutUnavailable) && client.OIDCLogout == nil {
+		return m.AddClient(ctx, s, client.ClientID)
+	}
+	if err != nil {
+		return err
+	}
+	if !slices.Contains(s.ClientIDs, client.ClientID) {
+		s.ClientIDs = append(s.ClientIDs, client.ClientID)
+	}
+	if s.ClientOrganizations == nil {
+		s.ClientOrganizations = map[string]string{}
+	}
+	s.ClientOrganizations[client.ClientID] = orgID
 	return nil
 }

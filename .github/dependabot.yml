@@ -40,6 +40,14 @@ updates:
     groups:
       npm-packages:
         update-types: [minor, patch]
+    # The E2E suites test pinned releases of the Auth0 clients they act as
+    # (tests/e2e asserts the exact versions), so moving a pin is a deliberate
+    # change with its own test run, not a weekly bump. Only /tests/e2e uses
+    # these packages.
+    ignore:
+      - dependency-name: "auth0"
+      - dependency-name: "@auth0/*"
+      - dependency-name: "auth0-deploy-cli"
 
   # The OpenID conformance runner's hash-pinned requirements.
   - package-ecosystem: pip
@@ -59,6 +67,9 @@ updates:
       interval: weekly
     cooldown:
       default-days: 7
+    # Pinned Auth0.NET client under test; see the npm entry above.
+    ignore:
+      - dependency-name: "Auth0.*"
 
   # Base images of the release container (Dockerfile) and of the
   # ClusterFuzzLite builder (.clusterfuzzlite/Dockerfile).

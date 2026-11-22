@@ -25,27 +25,7 @@ var (
 // ResetPassword renders the password-reset email in l's language. The
 // caller sets To.
 func ResetPassword(l *i18n.Localizer, link string, organizations ...*store.Organization) Message {
-	var org *store.Organization
-	if len(organizations) > 0 {
-		org = organizations[0]
-	}
-	logo, displayName, primary := "", "", "#3355cc"
-	if org != nil {
-		displayName = org.DisplayName
-		if org.Branding != nil {
-			if org.Branding.LogoURL != nil {
-				logo = *org.Branding.LogoURL
-			}
-			if org.Branding.Colors != nil {
-				primary = org.Branding.Colors.Primary
-			}
-		}
-	}
-	data := struct {
-		L                          *i18n.Localizer
-		Link                       string
-		Logo, DisplayName, Primary string
-	}{l, link, logo, displayName, primary}
+	data := linkTemplateData(l, link, organizations)
 	var txt, htm bytes.Buffer
 	// The templates are embedded and the data is plain strings, so
 	// execution cannot fail.
@@ -55,9 +35,29 @@ func ResetPassword(l *i18n.Localizer, link string, organizations ...*store.Organ
 	if err := resetHTML.Execute(&htm, data); err != nil {
 		panic(err)
 	}
-	organizationID := ""
-	if org != nil {
-		organizationID = org.ID
+	return Message{OrganizationID: data.OrganizationID, Type: "reset_email", Locale: l.Lang(), Subject: l.T(i18n.KeyEmailResetSubject), Text: txt.String(), HTML: htm.String()}
+}
+
+type linkTemplateContext struct {
+	L                          *i18n.Localizer
+	Link, OrganizationID       string
+	Logo, DisplayName, Primary string
+}
+
+func linkTemplateData(l *i18n.Localizer, link string, organizations []*store.Organization) linkTemplateContext {
+	data := linkTemplateContext{L: l, Link: link, Primary: "#3355cc"}
+	if len(organizations) == 0 || organizations[0] == nil {
+		return data
 	}
-	return Message{OrganizationID: organizationID, Type: "reset_email", Locale: l.Lang(), Subject: l.T(i18n.KeyEmailResetSubject), Text: txt.String(), HTML: htm.String()}
+	org := organizations[0]
+	data.OrganizationID, data.DisplayName = org.ID, org.DisplayName
+	if org.Branding != nil {
+		if org.Branding.LogoURL != nil {
+			data.Logo = *org.Branding.LogoURL
+		}
+		if org.Branding.Colors != nil {
+			data.Primary = org.Branding.Colors.Primary
+		}
+	}
+	return data
 }

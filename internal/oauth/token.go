@@ -15,6 +15,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/logs"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/tenant"
+	"github.com/zeroauthy/zeroauthy/internal/tenantrules"
 )
 
 type grantHandler func(h *Handlers, ctx context.Context, res tenant.Resolved, c *store.Client, form url.Values) (*authapi.TokenResponse, *Error)
@@ -79,28 +80,29 @@ func (h *Handlers) token(w http.ResponseWriter, r *http.Request, res tenant.Reso
 	if oerr != nil {
 		return nil, oerr
 	}
+	audience, resourceError := tenantrules.ResourceAudience(res.Tenant, form.Get("audience"), form["resource"])
+	if resourceError != "" {
+		return nil, &Error{Status: 400, Code: resourceError, Description: "invalid resource parameters"}
+	}
+	if audience != "" {
+		form.Set("audience", audience)
+	}
 	// Exchange is allowed by the client's token_exchange or native_social_login
 	// setting, which the selected path checks, rather than grant_types.
 	if grantType != GrantTokenExchange && !slices.Contains(client.GrantTypes, grantType) {
 		return nil, unauthorizedClient(fmt.Sprintf("grant type %q is not allowed for this client", grantType))
 	}
+	if e := h.verifyDPoP(w, r, res, client, form); e != nil {
+		return nil, e
+	}
 	// A require client cannot hold these grants (D-0055); this guards
 	// clients stored before that rule.
 	if client.OrganizationUsage == store.OrgUsageRequire && slices.Contains(orgLessGrants, grantType) {
-		var pending *pendingMFARequest
-		switch grantType {
-		case clientrules.GrantMFAOTP, clientrules.GrantMFAOOB, clientrules.GrantMFARecoveryCode:
-			t, p, err := h.pendingMFAToken(r.Context(), res, form.Get("mfa_token"), client.ClientID)
-			if err == nil && (p.Passkey || p.Native != nil) && p.OrganizationID != "" && p.ConnectionID == t.Connection {
-				pending = &pendingMFARequest{token: t, request: p}
-			}
-		}
-		if pending == nil {
+		pending, _ := r.Context().Value(pendingMFARequestKey{}).(*pendingMFARequest)
+		if pending == nil || pending.failure != nil || (!pending.request.Passkey && pending.request.Native == nil) ||
+			pending.request.OrganizationID == "" || pending.request.ConnectionID != pending.token.Connection {
 			return nil, unauthorizedClient(fmt.Sprintf("grant type %q is not allowed for an application that requires an organization", grantType))
 		}
-		// Reuse this request's trusted peek; only the grant's proof transaction
-		// consumes the token and authoritatively rechecks live organization policy.
-		*r = *r.WithContext(context.WithValue(r.Context(), pendingMFARequestKey{}, pending))
 	}
 	// Grants that throttle by end user see the IP through the context.
 	ip := h.endUserIP(r, client)
@@ -113,5 +115,9 @@ func (h *Handlers) token(w http.ResponseWriter, r *http.Request, res tenant.Reso
 	e.Audience = form.Get("audience")
 	e.Scope = form.Get("scope")
 	ctx = logs.WithEvent(ctx, e)
-	return grant(h, ctx, res, client, form)
+	quota := &quotaResponse{}
+	ctx = context.WithValue(ctx, quotaResponseKey{}, quota)
+	response, failure := grant(h, ctx, res, client, form)
+	quota.apply(w)
+	return response, failure
 }

@@ -382,6 +382,13 @@ func TestNativeAppleMFAOrganizationContinuation(t *testing.T) {
 			if s != 403 || b["error"] != "mfa_required" {
 				t.Fatalf("%d %v", s, b)
 			}
+			member, err := f.st.Organizations().IsMember(context.Background(), f.tid, org.ID, "apple|mfa-user")
+			if err != nil || member {
+				t.Errorf("membership before MFA: %v %v", member, err)
+			}
+			if u := f.user(t, "apple|mfa-user"); u.LoginsCount != 0 {
+				t.Errorf("counter before MFA: %d", u.LoginsCount)
+			}
 			tok := b["mfa_token"].(string)
 			secret, _ := f.associateOTP(t, tok)
 			out := f.proveOTP(t, tok, secret)

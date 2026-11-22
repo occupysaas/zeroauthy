@@ -52,7 +52,10 @@ type mfaFixture struct {
 
 func newMFAFixture(t *testing.T) *mfaFixture {
 	t.Helper()
-	e := newEnv(t)
+	return newMFAFixtureForEnv(t, newEnv(t))
+}
+func newMFAFixtureForEnv(t *testing.T, e *env) *mfaFixture {
+	t.Helper()
 	ctx := context.Background()
 	tn := mustTenant(t, e, "acme")
 	u, err := e.st.Users().FindByLogin(ctx, tn.ID, "Username-Password-Authentication", aliceLogin)
@@ -197,14 +200,12 @@ func TestMFAOTPEnrollFlow(t *testing.T) {
 	if recovery == nil {
 		t.Fatalf("missing one-time recovery %d %s", r.Code, r.Body)
 	}
-	if c := f.b.cookies[session.CookieName]; c == nil {
-		t.Fatal("missing first-factor session")
+	if c := f.b.cookies[session.CookieName]; c != nil {
+		t.Fatal("SSO created before acknowledgement")
 	}
-	req := httptest.NewRequest("GET", "https://"+f.b.host+"/", nil)
-	req.AddCookie(f.b.cookies[session.CookieName])
-	sess, _ := f.h.Sessions.Lookup(context.Background(), req, f.tn)
-	if !sess.MFAAt.IsZero() {
-		t.Fatal("marked before acknowledgement")
+	rows, err := f.st.Sessions().ListByUser(context.Background(), f.tn.ID, f.uid)
+	if err != nil || len(rows) != 0 {
+		t.Fatal("session before acknowledgement", rows, err)
 	}
 	p = f.page(t, "/u/mfa-recovery-code-enrollment")
 	if strings.Contains(p.Body.String(), recovery[1]) {
@@ -427,7 +428,7 @@ func (f *mfaFixture) setRemember(t *testing.T, allow bool) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	r := httptest.NewRequest("GET", "https://"+f.b.host+"/", nil)
+	r := httptest.NewRequest("GET", "https://"+f.b.host+"/u/mfa?state="+f.state, nil)
 	for _, c := range f.b.cookies {
 		r.AddCookie(c)
 	}
@@ -435,7 +436,7 @@ func (f *mfaFixture) setRemember(t *testing.T, allow bool) {
 	var pending []byte
 	handler := tenant.NewResolver(f.st.Tenants(), "", false).Middleware(http.HandlerFunc(func(_ http.ResponseWriter, r *http.Request) {
 		res, _ = tenant.FromContext(r.Context())
-		sess, e := f.h.Authz.ActiveSession(ctx, r, res)
+		sess, e := f.h.Authz.FlowSession(ctx, r, res)
 		if e != nil {
 			t.Fatal(e)
 		}

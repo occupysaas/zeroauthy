@@ -14,7 +14,7 @@ type authCodes struct{ s *Store }
 func (s *Store) AuthCodes() store.AuthCodes { return authCodes{s} }
 
 const authCodeCols = `tenant_id, code_hash, client_id, redirect_uri, user_id, session_id, scopes, audience, nonce,
- code_challenge, code_challenge_method, auth_time, expires_at, created_at, used_at, replayed_at, origin, action_effects, organization_id, organization_connection_id`
+ code_challenge, code_challenge_method, auth_time, expires_at, created_at, used_at, replayed_at, origin, action_effects, organization_id, organization_connection_id, mfa_at, dpop_jkt, acr, user_info_claims`
 
 func (r authCodes) Create(ctx context.Context, c *store.AuthCode) error {
 	scopes, err := toJSON(c.Scopes)
@@ -24,10 +24,10 @@ func (r authCodes) Create(ctx context.Context, c *store.AuthCode) error {
 	// Retried on deadlock: on MySQL an INSERT can be the victim of a cycle
 	// with DeleteExpired's range DELETE (gap locks).
 	return r.s.atomicRetry(ctx, nil, func(tx *Store) error {
-		_, err := tx.exec(ctx, `INSERT INTO auth_codes (`+authCodeCols+`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+		_, err := tx.exec(ctx, `INSERT INTO auth_codes (`+authCodeCols+`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
 			c.TenantID, c.CodeHash, c.ClientID, c.RedirectURI, c.UserID, c.SessionID, scopes, c.Audience, c.Nonce,
 			c.CodeChallenge, c.CodeChallengeMethod, micros(c.AuthTime), micros(c.ExpiresAt), micros(c.CreatedAt),
-			nullMicros(c.UsedAt), nullMicros(c.ReplayedAt), c.Origin, nullBytes(c.ActionEffects), c.OrganizationID, c.OrganizationConnectionID)
+			nullMicros(c.UsedAt), nullMicros(c.ReplayedAt), c.Origin, nullBytes(c.ActionEffects), c.OrganizationID, c.OrganizationConnectionID, optionalMFATime(c.MFAAt), c.DPoPJKT, c.ACR, c.UserInfoClaims)
 		return tx.conflict(err)
 	})
 }
@@ -84,6 +84,14 @@ func (r authCodes) Get(ctx context.Context, tenantID, codeHash string) (*store.A
 	return c, err
 }
 
+func (r authCodes) SetRedemptionBinding(ctx context.Context, tid, hash, expected, binding string) error {
+	res, err := r.s.write(ctx, nil, "UPDATE auth_codes SET dpop_jkt=? WHERE tenant_id=? AND code_hash=? AND used_at IS NOT NULL AND dpop_jkt=?", binding, tid, hash, expected)
+	if err != nil {
+		return err
+	}
+	return expectRow(res)
+}
+
 func (r authCodes) DeleteExpired(ctx context.Context, before time.Time) (int, error) {
 	var n int
 	err := r.s.atomicRetry(ctx, r.s.sweep(), func(tx *Store) (err error) {
@@ -97,15 +105,18 @@ func scanAuthCode(row scanner) (*store.AuthCode, error) {
 	var c store.AuthCode
 	var scopes string
 	var authAt, exp, created int64
-	var used, replayed sql.NullInt64
+	var used, replayed, mfaAt sql.NullInt64
 	if err := row.Scan(&c.TenantID, &c.CodeHash, &c.ClientID, &c.RedirectURI, &c.UserID, &c.SessionID, &scopes,
-		&c.Audience, &c.Nonce, &c.CodeChallenge, &c.CodeChallengeMethod, &authAt, &exp, &created, &used, &replayed, &c.Origin, &c.ActionEffects, &c.OrganizationID, &c.OrganizationConnectionID); err != nil {
+		&c.Audience, &c.Nonce, &c.CodeChallenge, &c.CodeChallengeMethod, &authAt, &exp, &created, &used, &replayed, &c.Origin, &c.ActionEffects, &c.OrganizationID, &c.OrganizationConnectionID, &mfaAt, &c.DPoPJKT, &c.ACR, &c.UserInfoClaims); err != nil {
 		return nil, err
 	}
 	if err := fromJSON(scopes, &c.Scopes); err != nil {
 		return nil, err
 	}
 	c.AuthTime, c.ExpiresAt, c.CreatedAt = fromMicros(authAt), fromMicros(exp), fromMicros(created)
+	if mfaAt.Valid {
+		c.MFAAt = fromMicros(mfaAt.Int64)
+	}
 	c.UsedAt, c.ReplayedAt = fromNullMicros(used), fromNullMicros(replayed)
 	if len(c.ActionEffects) == 0 {
 		c.ActionEffects = nil

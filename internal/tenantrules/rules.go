@@ -6,6 +6,7 @@ import (
 	"reflect"
 	"strings"
 
+	"github.com/zeroauthy/zeroauthy/internal/quotarules"
 	"github.com/zeroauthy/zeroauthy/internal/settingsrules"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 )
@@ -37,6 +38,13 @@ func Apply(current *store.Tenant, patch map[string]any) (*store.Tenant, error) {
 		}
 	}
 	out := current.Clone()
+	if _, supplied := patch["default_token_quota"]; !supplied {
+		q, err := quotarules.DefaultsOf(current)
+		if err != nil {
+			return nil, err
+		}
+		out.DefaultTokenQuota = q
+	}
 	v := reflect.ValueOf(out).Elem()
 	extra := store.CloneSettings(patch)
 	for key, field := range stringFields {
@@ -106,7 +114,27 @@ func Apply(current *store.Tenant, patch map[string]any) (*store.Tenant, error) {
 		}
 		delete(extra, "session_cookie")
 	}
+	if raw, ok := patch["default_token_quota"]; ok {
+		var prior *store.DefaultTokenQuota
+		if raw != nil {
+			var err error
+			prior, err = quotarules.DefaultsOf(current)
+			if err != nil {
+				return nil, err
+			}
+		}
+		q, err := quotarules.PatchDefaultTokenQuota(prior, raw)
+		if err != nil {
+			return nil, err
+		}
+		out.DefaultTokenQuota = q
+		delete(extra, "default_token_quota")
+	}
 	out.SettingsExtra = settingsrules.Merge(out.SettingsExtra, extra)
+	delete(out.SettingsExtra, "default_token_quota")
+	if v, ok := patch["dpop_strict_refresh_token_binding"]; ok && v == nil {
+		out.SettingsExtra["dpop_strict_refresh_token_binding"] = true
+	}
 	// Remove any shadowed legacy/foreign Extra fields, even if this patch did not
 	// mention them. Typed runtime settings are the single source of truth.
 	for key := range stringFields {
@@ -157,6 +185,9 @@ func Public(t *store.Tenant) map[string]any {
 			delete(out, key)
 		}
 	}
+	out["acr_values_supported"] = ACRValuesSupported(t)
+	out["resource_parameter_profile"] = ResourceParameterProfile(t)
+	out["oidc_logout"] = map[string]any{"rp_logout_end_session_endpoint_discovery": RPLogoutDiscovery(t)}
 	v := reflect.ValueOf(t).Elem()
 	for key, field := range stringFields {
 		out[key] = v.FieldByName(field).String()
@@ -171,6 +202,12 @@ func Public(t *store.Tenant) map[string]any {
 		}
 		out[key] = float64(seconds) / 3600
 	}
+	if quota, err := quotarules.DefaultsOf(t); err == nil && quota != nil {
+		out["default_token_quota"] = quotarules.PublicDefaultTokenQuota(quota)
+	} else {
+		delete(out, "default_token_quota")
+	}
+	out["dpop_strict_refresh_token_binding"] = StrictRefreshBinding(t)
 	// Enforced phone settings read explicit values (see PhoneSettingsOf).
 	ps := PhoneSettingsOf(t)
 	out["phone_consolidated_experience"] = ps.Consolidated
@@ -202,4 +239,11 @@ func Public(t *store.Tenant) map[string]any {
 	}
 	out["session_cookie"] = map[string]any{"mode": mode}
 	return out
+}
+
+// StrictRefreshBinding defaults to strict binding for all tenants. Only a
+// stored boolean false selects per-API binding for a new offline credential.
+func StrictRefreshBinding(t *store.Tenant) bool {
+	v, present := t.SettingsExtra["dpop_strict_refresh_token_binding"].(bool)
+	return !present || v
 }

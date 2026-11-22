@@ -175,14 +175,14 @@ An API's `signing_alg` is `RS256` (the default), `HS256` or `PS256`.
   Configure such a verifier for a PS256 API with `issuer`, `jwksUri` and
   `tokenSigningAlg: 'PS256'`. Given only `issuerBaseURL`,
   `express-oauth2-jwt-bearer` also limits algorithms to discovery's
-  `id_token_signing_alg_values_supported`, which lists only `RS256` because ID
-  tokens are always RS256, and it refuses the PS256 token.
+  `id_token_signing_alg_values_supported`, which lists HS256, RS256 and PS256
+  with Plan 41a. Explicitly configure the algorithm expected by your API.
 - `HS256` signs with the API's `signing_secret`: generated when absent (32
-  random bytes, 43 base64url characters) or supplied with at least 16
-  characters. The secret is sealed at rest and returned when the API is read
+  random bytes, 43 base64url characters) or supplied with at least 32
+  characters on new writes (D-0080). The secret is sealed at rest and returned when the API is read
   (C16). The HS256 token is built inside zeroauthy because the JOSE library
-  refuses keys under 32 bytes; a strict verifier may therefore reject a
-  short secret (LR35-13). A token for an HS256 API has no `{issuer}userinfo`
+  refuses keys under 32 bytes; existing stored shorter secrets keep signing,
+  and a strict verifier may reject those legacy tokens (LR35-13). A token for an HS256 API has no `{issuer}userinfo`
   audience, so it cannot call `/userinfo` (LR35-9). HS256 needs the store
   capability (`501` without it).
 - The algorithm may be changed by a patch (LR35-8, C17): tokens are signed
@@ -243,3 +243,34 @@ tenants:
 - A store without `client_credentials.v1` refuses a seed that uses
   credentials, the three settings, token exchange profiles or an HS256 API,
   with an error at startup, before anything is applied.
+
+
+## Client ID-token signing algorithms
+
+`jwt_configuration.alg` selects RS256 (default), PS256 or HS256 for ID
+tokens. PS256 and RS256 use the tenant signing key and the same published
+JWKS; its optional alg property remains absent. API access tokens retain
+the API's independent signing algorithm.
+
+HS256 requires a confidential application using client-secret authentication
+and a usable sealed secret. Public and private_key_jwt-only clients cannot
+select it. Its signing key is the client secret's UTF-8 bytes;
+secret_encoded is a legacy ignored option. The token has no kid. Rotation
+replaces that signing key for subsequent issuance. RP-initiated logout can
+validate an HS256 ID-token hint against that client's selected algorithm
+and current secret, including an expired hint as the logout specification
+allows. A hint cannot select HMAC for an asymmetric client.
+
+## ID token signing algorithms
+
+Application `jwt_configuration.alg` selects RS256 (default), PS256 or HS256
+for ID tokens. RS256 and PS256 use the tenant's managed signing key and JWKS.
+HS256 uses the application's newest active retrievable sealed client secret,
+with no `kid`; it requires confidential client-secret authentication and a
+secret of at least 32 characters. Public/native/SPA, hash-only and
+private-key-only applications cannot select it. Rotating the secret changes
+subsequent ID token signatures; verifiers must use the matching client
+secret. Logout notifications always use tenant RS256. The application
+console, seed and Deploy CLI preserve the choice. New API HS256 signing
+secret writes also require at least 32 characters; existing stored values
+retain their previous behavior. See [logout](logout.md).

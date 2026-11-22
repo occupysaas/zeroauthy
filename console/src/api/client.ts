@@ -2,8 +2,7 @@ import type { components } from './schema'
 import type { Role, RolePage, PermissionKey, PermissionPage, RoleUserPage, OffsetPage } from './rbac'
 export type { Role, RolePage, PermissionKey, Permission, PermissionSource, PermissionPage, RoleUser, RoleUserPage } from './rbac'
 
-// A thin, typed wrapper over fetch for the Management API (on each
-// tenant's own host) and the system API (on the system host).
+// A thin, typed wrapper over fetch for the Management and system APIs.
 
 export type EventStream = components['schemas']['EventsEventStreamResponseContent']
 export type EventStreamCreate = components['schemas']['EventsCreateEventStreamWebHookRequestContent'] | components['schemas']['EventsCreateEventStreamActionRequestContent'] | components['schemas']['EventsCreateEventStreamEventBridgeRequestContent']
@@ -43,6 +42,7 @@ export type ClientGrantPage = components['schemas']['ClientGrantPage']
 export type Operator = components['schemas']['Operator']
 export type OperatorInvite = components['schemas']['OperatorInvite']
 export type Connection = components['schemas']['Connection']
+export type ConnectionKey = components['schemas']['ConnectionKey']
 export type ConnectionCreate = components['schemas']['ConnectionCreate']
 export type ConnectionUpdate = components['schemas']['ConnectionUpdate']
 export type ConnectionPage = components['schemas']['ConnectionPage']
@@ -55,8 +55,11 @@ export type UserUpdate = components['schemas']['UserProfileSettings']
 export type UserIdentity = components['schemas']['UserIdentity']
 export type UserSession = components['schemas']['UserSession']
 export type UserSessionPage = components['schemas']['UserSessionPage']
-export type UserRefreshToken = components['schemas']['UserRefreshToken']
-export type UserRefreshTokenPage = components['schemas']['UserRefreshTokenPage']
+// openapi-typescript renders the required-only allOf branch as Record<string, never>.
+// Keep the wire schema's required properties while deriving their types from the generated base.
+type RefreshTokenView = components['schemas']['RefreshToken']
+export type UserRefreshToken = RefreshTokenView & Required<Pick<RefreshTokenView, 'id' | 'user_id' | 'created_at' | 'idle_expires_at' | 'expires_at' | 'client_id' | 'session_id' | 'rotating' | 'resource_servers' | 'last_exchanged_at'>>
+export type UserRefreshTokenPage = Omit<components['schemas']['UserRefreshTokenPage'], 'tokens'> & { tokens: UserRefreshToken[] }
 export type UserGrant = components['schemas']['UserGrant']
 export type Job = components['schemas']['Job']
 export type JobPage = components['schemas']['JobPage']
@@ -183,6 +186,7 @@ export class ApiError extends Error {
 }
 
 type Query = Record<string, string | number | boolean | undefined>
+type RequestOptions = { query?: Query; body?: unknown }
 
 export type BrandingPreview = { html: string; warnings: string[] }
 export type BrandingObject = Record<string, unknown>
@@ -200,10 +204,11 @@ export class Api {
     private systemOrigin: string,
     private token: () => Promise<string>,
     private fetchFn: typeof fetch = (...a) => window.fetch(...a),
+    private baseDomain = '',
   ) {}
 
   // body is JSON, or a FormData sent as multipart (its boundary is the browser's).
-  async request<T>(origin: string, method: string, path: string, opts: { query?: Query; body?: unknown } = {}): Promise<T> {
+  private async request<T>(origin: string, method: string, path: string, opts: RequestOptions = {}): Promise<T> {
     const url = new URL(path, origin)
     for (const [k, v] of Object.entries(opts.query ?? {})) {
       if (v !== undefined && v !== '') url.searchParams.set(k, String(v))
@@ -230,38 +235,41 @@ export class Api {
     return body as T
   }
 
-  // tenantOrigin is where a tenant's Management API answers.
-  static tenantOrigin(t: Pick<SystemTenant, 'host'>): string {
-    return 'https://' + t.host
+  private tenantRequest<T>(t: SystemTenant, method: string, path: string, opts?: RequestOptions): Promise<T> {
+    const origin = 'https://' + t.host
+    if (origin === this.systemOrigin || (this.baseDomain && t.host === `${t.name}.${this.baseDomain}`)) {
+      return this.request(origin, method, path, opts)
+    }
+    return this.request(this.systemOrigin, method, `/api/console/tenants/${encodeURIComponent(t.name)}${path}`, opts)
   }
 
   getBrandingResource<T = BrandingObject>(t: SystemTenant, resource: string): Promise<T> {
-    return this.request(Api.tenantOrigin(t), 'GET', '/api/v2/' + resource)
+    return this.tenantRequest(t, 'GET', '/api/v2/' + resource)
   }
   writeBrandingResource<T = BrandingObject>(t: SystemTenant, method: 'PATCH' | 'PUT' | 'POST' | 'DELETE', resource: string, body?: unknown): Promise<T> {
-    return this.request(Api.tenantOrigin(t), method, '/api/v2/' + resource, { body })
+    return this.tenantRequest(t, method, '/api/v2/' + resource, { body })
   }
   previewTenantBranding(t: SystemTenant, body: { screen: string; language: string; overrides?: BrandingObject }): Promise<BrandingPreview> {
     return this.request(this.systemOrigin, 'POST', '/api/system/tenants/' + encodeURIComponent(t.name) + '/branding/preview', { body })
   }
 
   getGuardianFactors(t: SystemTenant): Promise<GuardianFactors> {
-    return this.request(Api.tenantOrigin(t), 'GET', '/api/v2/guardian/factors')
+    return this.tenantRequest(t, 'GET', '/api/v2/guardian/factors')
   }
   setGuardianFactor(t: SystemTenant, name: NonNullable<GuardianFactors[number]['name']>, enabled: boolean): Promise<components['schemas']['MFASetGuardianFactorResponse']> {
-    return this.request(Api.tenantOrigin(t), 'PUT', '/api/v2/guardian/factors/' + encodeURIComponent(name), { body: { enabled } })
+    return this.tenantRequest(t, 'PUT', '/api/v2/guardian/factors/' + encodeURIComponent(name), { body: { enabled } })
   }
   getGuardianPolicies(t: SystemTenant): Promise<GuardianPolicies> {
-    return this.request(Api.tenantOrigin(t), 'GET', '/api/v2/guardian/policies')
+    return this.tenantRequest(t, 'GET', '/api/v2/guardian/policies')
   }
   setGuardianPolicies(t: SystemTenant, body: GuardianPolicies): Promise<GuardianPolicies> {
-    return this.request(Api.tenantOrigin(t), 'PUT', '/api/v2/guardian/policies', { body })
+    return this.tenantRequest(t, 'PUT', '/api/v2/guardian/policies', { body })
   }
   getGuardianConfiguration(t: SystemTenant, route: GuardianConfigurationRoute): Promise<GuardianConfiguration> {
-    return this.request(Api.tenantOrigin(t), 'GET', '/api/v2/guardian/factors/' + route)
+    return this.tenantRequest(t, 'GET', '/api/v2/guardian/factors/' + route)
   }
   setGuardianConfiguration(t: SystemTenant, route: GuardianConfigurationRoute, body: GuardianConfiguration): Promise<GuardianConfiguration> {
-    return this.request(Api.tenantOrigin(t), 'PUT', '/api/v2/guardian/factors/' + route, { body })
+    return this.tenantRequest(t, 'PUT', '/api/v2/guardian/factors/' + route, { body })
   }
   getAuthenticationMethods(t: SystemTenant, id: string, page: number): Promise<ConsoleAuthenticationMethod[] | { authenticators?: ConsoleAuthenticationMethod[]; total?: number }> {
     return this.request(this.systemOrigin, 'GET', `/api/system/tenants/${encodeURIComponent(t.name)}/users/${encodeURIComponent(id)}/authentication-methods`, { query: { page, per_page: 100, include_totals: true } })
@@ -282,282 +290,282 @@ export class Api {
     return this.request(this.systemOrigin, 'PUT', `/api/system/tenants/${encodeURIComponent(t.name)}/guardian/factors/webauthn-roaming/settings`, { body: { user_verification } })
   }
   deleteAuthenticationMethod(t: SystemTenant, id: string, method?: string): Promise<void> {
-    return this.request(Api.tenantOrigin(t), 'DELETE', userPath(id) + '/authentication-methods' + (method ? '/' + encodeURIComponent(method) : ''))
+    return this.tenantRequest(t, 'DELETE', userPath(id) + '/authentication-methods' + (method ? '/' + encodeURIComponent(method) : ''))
   }
   regenerateRecoveryCode(t: SystemTenant, id: string): Promise<components['schemas']['MFACreateUserRecoveryCodeResponse']> {
-    return this.request(Api.tenantOrigin(t), 'POST', userPath(id) + '/recovery-code-regeneration')
+    return this.tenantRequest(t, 'POST', userPath(id) + '/recovery-code-regeneration')
   }
   invalidateRememberBrowser(t: SystemTenant, id: string): Promise<void> {
-    return this.request(Api.tenantOrigin(t), 'POST', userPath(id) + '/multifactor/actions/invalidate-remember-browser')
+    return this.tenantRequest(t, 'POST', userPath(id) + '/multifactor/actions/invalidate-remember-browser')
   }
   inviteMfa(t: SystemTenant, body: components['schemas']['MFACreateGuardianEnrollmentTicketRequest']): Promise<components['schemas']['MFACreateGuardianEnrollmentTicketResponse']> {
-    return this.request(Api.tenantOrigin(t), 'POST', '/api/v2/guardian/enrollments/ticket', { body })
+    return this.tenantRequest(t, 'POST', '/api/v2/guardian/enrollments/ticket', { body })
   }
 
   getTenantSettings(t: SystemTenant): Promise<TenantSettings> {
-    return this.request(Api.tenantOrigin(t), 'GET', '/api/v2/tenants/settings')
+    return this.tenantRequest(t, 'GET', '/api/v2/tenants/settings')
   }
   updateTenantSettings(t: SystemTenant, body: TenantSettingsPatch): Promise<TenantSettings> {
-    return this.request(Api.tenantOrigin(t), 'PATCH', '/api/v2/tenants/settings', { body })
+    return this.tenantRequest(t, 'PATCH', '/api/v2/tenants/settings', { body })
   }
   listCustomDomains(t: SystemTenant): Promise<CustomDomain[]> {
-    return this.request(Api.tenantOrigin(t), 'GET', '/api/v2/custom-domains')
+    return this.tenantRequest(t, 'GET', '/api/v2/custom-domains')
   }
   createCustomDomain(t: SystemTenant, body: CustomDomainCreate): Promise<CustomDomain> {
-    return this.request(Api.tenantOrigin(t), 'POST', '/api/v2/custom-domains', { body })
+    return this.tenantRequest(t, 'POST', '/api/v2/custom-domains', { body })
   }
   getCustomDomain(t: SystemTenant, id: string): Promise<CustomDomain> {
-    return this.request(Api.tenantOrigin(t), 'GET', '/api/v2/custom-domains/' + encodeURIComponent(id))
+    return this.tenantRequest(t, 'GET', '/api/v2/custom-domains/' + encodeURIComponent(id))
   }
   updateCustomDomain(t: SystemTenant, id: string, body: CustomDomainUpdate): Promise<CustomDomain> {
-    return this.request(Api.tenantOrigin(t), 'PATCH', '/api/v2/custom-domains/' + encodeURIComponent(id), { body })
+    return this.tenantRequest(t, 'PATCH', '/api/v2/custom-domains/' + encodeURIComponent(id), { body })
   }
   deleteCustomDomain(t: SystemTenant, id: string): Promise<void> {
-    return this.request(Api.tenantOrigin(t), 'DELETE', '/api/v2/custom-domains/' + encodeURIComponent(id))
+    return this.tenantRequest(t, 'DELETE', '/api/v2/custom-domains/' + encodeURIComponent(id))
   }
   // verifyCustomDomain is never retried: only its first successful reply can
   // carry the one-time proxy key.
   verifyCustomDomain(t: SystemTenant, id: string): Promise<CustomDomainVerified> {
-    return this.request(Api.tenantOrigin(t), 'POST', '/api/v2/custom-domains/' + encodeURIComponent(id) + '/verify')
+    return this.tenantRequest(t, 'POST', '/api/v2/custom-domains/' + encodeURIComponent(id) + '/verify')
   }
   testCustomDomain(t: SystemTenant, id: string): Promise<CustomDomainTest> {
-    return this.request(Api.tenantOrigin(t), 'POST', '/api/v2/custom-domains/' + encodeURIComponent(id) + '/test')
+    return this.tenantRequest(t, 'POST', '/api/v2/custom-domains/' + encodeURIComponent(id) + '/test')
   }
   getDefaultCustomDomain(t: SystemTenant): Promise<CustomDomain> {
-    return this.request(Api.tenantOrigin(t), 'GET', '/api/v2/custom-domains/default')
+    return this.tenantRequest(t, 'GET', '/api/v2/custom-domains/default')
   }
   setDefaultCustomDomain(t: SystemTenant, domain: string): Promise<CustomDomain> {
-    return this.request(Api.tenantOrigin(t), 'PATCH', '/api/v2/custom-domains/default', { body: { domain } })
+    return this.tenantRequest(t, 'PATCH', '/api/v2/custom-domains/default', { body: { domain } })
   }
   listSigningKeys(t: SystemTenant): Promise<ManagedSigningKey[]> {
-    return this.request(Api.tenantOrigin(t), 'GET', '/api/v2/keys/signing')
+    return this.tenantRequest(t, 'GET', '/api/v2/keys/signing')
   }
   getSigningKey(t: SystemTenant, kid: string): Promise<ManagedSigningKey> {
-    return this.request(Api.tenantOrigin(t), 'GET', '/api/v2/keys/signing/' + encodeURIComponent(kid))
+    return this.tenantRequest(t, 'GET', '/api/v2/keys/signing/' + encodeURIComponent(kid))
   }
   rotateSigningKeys(t: SystemTenant): Promise<ManagedSigningKey> {
-    return this.request(Api.tenantOrigin(t), 'POST', '/api/v2/keys/signing/rotate')
+    return this.tenantRequest(t, 'POST', '/api/v2/keys/signing/rotate')
   }
   revokeSigningKey(t: SystemTenant, kid: string): Promise<ManagedSigningKey> {
-    return this.request(Api.tenantOrigin(t), 'PUT', '/api/v2/keys/signing/' + encodeURIComponent(kid) + '/revoke')
+    return this.tenantRequest(t, 'PUT', '/api/v2/keys/signing/' + encodeURIComponent(kid) + '/revoke')
   }
   getCustomSigningKeys(t: SystemTenant): Promise<CustomSigningJWKS> {
-    return this.request(Api.tenantOrigin(t), 'GET', '/api/v2/keys/custom-signing')
+    return this.tenantRequest(t, 'GET', '/api/v2/keys/custom-signing')
   }
   putCustomSigningKeys(t: SystemTenant, body: CustomSigningJWKS): Promise<CustomSigningJWKS> {
-    return this.request(Api.tenantOrigin(t), 'PUT', '/api/v2/keys/custom-signing', { body })
+    return this.tenantRequest(t, 'PUT', '/api/v2/keys/custom-signing', { body })
   }
   deleteCustomSigningKeys(t: SystemTenant): Promise<void> {
-    return this.request(Api.tenantOrigin(t), 'DELETE', '/api/v2/keys/custom-signing')
+    return this.tenantRequest(t, 'DELETE', '/api/v2/keys/custom-signing')
   }
   getUserBlocks(t: SystemTenant, id: string): Promise<UserBlocks> {
-    return this.request(Api.tenantOrigin(t), 'GET', '/api/v2/user-blocks/' + encodeURIComponent(id))
+    return this.tenantRequest(t, 'GET', '/api/v2/user-blocks/' + encodeURIComponent(id))
   }
   deleteUserBlocks(t: SystemTenant, id: string): Promise<void> {
-    return this.request(Api.tenantOrigin(t), 'DELETE', '/api/v2/user-blocks/' + encodeURIComponent(id))
+    return this.tenantRequest(t, 'DELETE', '/api/v2/user-blocks/' + encodeURIComponent(id))
   }
   getIPBlock(t: SystemTenant, ip: string): Promise<void> {
-    return this.request(Api.tenantOrigin(t), 'GET', '/api/v2/anomaly/blocks/ips/' + encodeURIComponent(ip))
+    return this.tenantRequest(t, 'GET', '/api/v2/anomaly/blocks/ips/' + encodeURIComponent(ip))
   }
   deleteIPBlock(t: SystemTenant, ip: string): Promise<void> {
-    return this.request(Api.tenantOrigin(t), 'DELETE', '/api/v2/anomaly/blocks/ips/' + encodeURIComponent(ip))
+    return this.tenantRequest(t, 'DELETE', '/api/v2/anomaly/blocks/ips/' + encodeURIComponent(ip))
   }
   getBruteForceProtection(t: SystemTenant): Promise<BruteForceProtection> {
-    return this.request(Api.tenantOrigin(t), 'GET', '/api/v2/attack-protection/brute-force-protection')
+    return this.tenantRequest(t, 'GET', '/api/v2/attack-protection/brute-force-protection')
   }
   updateBruteForceProtection(t: SystemTenant, body: BruteForceProtectionUpdate): Promise<BruteForceProtection> {
-    return this.request(Api.tenantOrigin(t), 'PATCH', '/api/v2/attack-protection/brute-force-protection', { body })
+    return this.tenantRequest(t, 'PATCH', '/api/v2/attack-protection/brute-force-protection', { body })
   }
   getSuspiciousIpThrottling(t: SystemTenant): Promise<SuspiciousIpThrottling> {
-    return this.request(Api.tenantOrigin(t), 'GET', '/api/v2/attack-protection/suspicious-ip-throttling')
+    return this.tenantRequest(t, 'GET', '/api/v2/attack-protection/suspicious-ip-throttling')
   }
   updateSuspiciousIpThrottling(t: SystemTenant, body: SuspiciousIpThrottlingUpdate): Promise<SuspiciousIpThrottling> {
-    return this.request(Api.tenantOrigin(t), 'PATCH', '/api/v2/attack-protection/suspicious-ip-throttling', { body })
+    return this.tenantRequest(t, 'PATCH', '/api/v2/attack-protection/suspicious-ip-throttling', { body })
   }
   getBreachedPasswordDetection(t: SystemTenant): Promise<BreachedPasswordDetection> {
-    return this.request(Api.tenantOrigin(t), 'GET', '/api/v2/attack-protection/breached-password-detection')
+    return this.tenantRequest(t, 'GET', '/api/v2/attack-protection/breached-password-detection')
   }
   updateBreachedPasswordDetection(t: SystemTenant, body: BreachedPasswordDetectionUpdate): Promise<BreachedPasswordDetection> {
-    return this.request(Api.tenantOrigin(t), 'PATCH', '/api/v2/attack-protection/breached-password-detection', { body })
+    return this.tenantRequest(t, 'PATCH', '/api/v2/attack-protection/breached-password-detection', { body })
   }
   getBotDetection(t: SystemTenant): Promise<BotDetection> {
-    return this.request(Api.tenantOrigin(t), 'GET', '/api/v2/attack-protection/bot-detection')
+    return this.tenantRequest(t, 'GET', '/api/v2/attack-protection/bot-detection')
   }
   updateBotDetection(t: SystemTenant, body: BotDetectionUpdate): Promise<BotDetection> {
-    return this.request(Api.tenantOrigin(t), 'PATCH', '/api/v2/attack-protection/bot-detection', { body })
+    return this.tenantRequest(t, 'PATCH', '/api/v2/attack-protection/bot-detection', { body })
   }
   getCaptcha(t: SystemTenant): Promise<Captcha> {
-    return this.request(Api.tenantOrigin(t), 'GET', '/api/v2/attack-protection/captcha')
+    return this.tenantRequest(t, 'GET', '/api/v2/attack-protection/captcha')
   }
   updateCaptcha(t: SystemTenant, body: CaptchaUpdate): Promise<Captcha> {
-    return this.request(Api.tenantOrigin(t), 'PATCH', '/api/v2/attack-protection/captcha', { body })
+    return this.tenantRequest(t, 'PATCH', '/api/v2/attack-protection/captcha', { body })
   }
 
   listOrganizations(t: SystemTenant, page: number, userId?: string): Promise<OrganizationsPage> {
     const path = userId === undefined ? '/api/v2/organizations' : userPath(userId) + '/organizations'
-    return this.request(Api.tenantOrigin(t), 'GET', path, { query: { page, per_page: 20, include_totals: true } })
+    return this.tenantRequest(t, 'GET', path, { query: { page, per_page: 20, include_totals: true } })
   }
   searchOrganizations(t: SystemTenant, q: string, parser: 'lucene' | 'scim', from?: string): Promise<components['schemas']['IISearchOrganizationsPaginatedResponseContent']> {
-    return this.request(Api.tenantOrigin(t), 'GET', '/api/v2/organizations/search', { query: { q, parser, from, take: 20 } })
+    return this.tenantRequest(t, 'GET', '/api/v2/organizations/search', { query: { q, parser, from, take: 20 } })
   }
   organizationPath(id: string, resource: string): string { return '/api/v2/organizations/' + encodeURIComponent(id) + '/' + resource }
   listOrganizationInvitations(t: SystemTenant, id: string, page: number): Promise<components['schemas']['IIListOrganizationInvitationsOffsetPaginatedResponseContent']> {
-    return this.request(Api.tenantOrigin(t), 'GET', this.organizationPath(id, 'invitations'), { query: { page, per_page: 20, include_totals: true } })
+    return this.tenantRequest(t, 'GET', this.organizationPath(id, 'invitations'), { query: { page, per_page: 20, include_totals: true } })
   }
   createOrganizationInvitation(t: SystemTenant, id: string, body: OrganizationInvitationCreate): Promise<OrganizationInvitation> {
-    return this.request(Api.tenantOrigin(t), 'POST', this.organizationPath(id, 'invitations'), { body })
+    return this.tenantRequest(t, 'POST', this.organizationPath(id, 'invitations'), { body })
   }
   deleteOrganizationInvitation(t: SystemTenant, id: string, invitationId: string): Promise<void> {
-    return this.request(Api.tenantOrigin(t), 'DELETE', this.organizationPath(id, 'invitations/' + encodeURIComponent(invitationId)))
+    return this.tenantRequest(t, 'DELETE', this.organizationPath(id, 'invitations/' + encodeURIComponent(invitationId)))
   }
   listOrganizationClients(t: SystemTenant, id: string, from?: string): Promise<components['schemas']['IIListOrganizationClientsResponseContent']> {
-    return this.request(Api.tenantOrigin(t), 'GET', this.organizationPath(id, 'clients'), { query: { take: 20, from } })
+    return this.tenantRequest(t, 'GET', this.organizationPath(id, 'clients'), { query: { take: 20, from } })
   }
   associateOrganizationClient(t: SystemTenant, id: string, clientId: string, memberAccess: boolean): Promise<unknown> {
-    return this.request(Api.tenantOrigin(t), 'POST', this.organizationPath(id, 'clients'), { body: { clients: [{ client_id: clientId, use_for_member_access: memberAccess }] } })
+    return this.tenantRequest(t, 'POST', this.organizationPath(id, 'clients'), { body: { clients: [{ client_id: clientId, use_for_member_access: memberAccess }] } })
   }
   updateOrganizationClient(t: SystemTenant, id: string, clientId: string, memberAccess: boolean): Promise<unknown> {
-    return this.request(Api.tenantOrigin(t), 'PATCH', this.organizationPath(id, 'clients/' + encodeURIComponent(clientId)), { body: { use_for_member_access: memberAccess } })
+    return this.tenantRequest(t, 'PATCH', this.organizationPath(id, 'clients/' + encodeURIComponent(clientId)), { body: { use_for_member_access: memberAccess } })
   }
   deleteOrganizationClient(t: SystemTenant, id: string, clientId: string): Promise<void> {
-    return this.request(Api.tenantOrigin(t), 'DELETE', this.organizationPath(id, 'clients'), { body: { clients: [clientId] } })
+    return this.tenantRequest(t, 'DELETE', this.organizationPath(id, 'clients'), { body: { clients: [clientId] } })
   }
   listOrganizationGrants(t: SystemTenant, id: string, page: number): Promise<components['schemas']['OrganizationClientGrantsPage']> {
-    return this.request(Api.tenantOrigin(t), 'GET', this.organizationPath(id, 'client-grants'), { query: { page, per_page: 20, include_totals: true } })
+    return this.tenantRequest(t, 'GET', this.organizationPath(id, 'client-grants'), { query: { page, per_page: 20, include_totals: true } })
   }
   changeOrganizationGrant(t: SystemTenant, id: string, grantId: string, method: 'POST' | 'DELETE'): Promise<unknown> {
-    return this.request(Api.tenantOrigin(t), method, this.organizationPath(id, 'client-grants' + (method === 'DELETE' ? '/' + encodeURIComponent(grantId) : '')), { body: method === 'POST' ? { grant_id: grantId } : undefined })
+    return this.tenantRequest(t, method, this.organizationPath(id, 'client-grants' + (method === 'DELETE' ? '/' + encodeURIComponent(grantId) : '')), { body: method === 'POST' ? { grant_id: grantId } : undefined })
   }
   listOrganizationDomains(t: SystemTenant, id: string, from?: string): Promise<components['schemas']['IIListOrganizationDiscoveryDomainsResponseContent']> {
-    return this.request(Api.tenantOrigin(t), 'GET', this.organizationPath(id, 'discovery-domains'), { query: { take: 20, from } })
+    return this.tenantRequest(t, 'GET', this.organizationPath(id, 'discovery-domains'), { query: { take: 20, from } })
   }
   createOrganizationDomain(t: SystemTenant, id: string, body: components['schemas']['IICreateOrganizationDiscoveryDomainRequestContent']): Promise<OrganizationDiscoveryDomain> {
-    return this.request(Api.tenantOrigin(t), 'POST', this.organizationPath(id, 'discovery-domains'), { body })
+    return this.tenantRequest(t, 'POST', this.organizationPath(id, 'discovery-domains'), { body })
   }
   updateOrganizationDomain(t: SystemTenant, id: string, domainId: string, body: components['schemas']['IIUpdateOrganizationDiscoveryDomainRequestContent']): Promise<OrganizationDiscoveryDomain> {
-    return this.request(Api.tenantOrigin(t), 'PATCH', this.organizationPath(id, 'discovery-domains/' + encodeURIComponent(domainId)), { body })
+    return this.tenantRequest(t, 'PATCH', this.organizationPath(id, 'discovery-domains/' + encodeURIComponent(domainId)), { body })
   }
   deleteOrganizationDomain(t: SystemTenant, id: string, domainId: string): Promise<void> {
-    return this.request(Api.tenantOrigin(t), 'DELETE', this.organizationPath(id, 'discovery-domains/' + encodeURIComponent(domainId)))
+    return this.tenantRequest(t, 'DELETE', this.organizationPath(id, 'discovery-domains/' + encodeURIComponent(domainId)))
   }
   listAllOrganizationConnections(t: SystemTenant, id: string): Promise<components['schemas']['OrganizationConnectionsPage']> {
-    return this.request(Api.tenantOrigin(t), 'GET', this.organizationPath(id, 'connections'), { query: { page: 0, per_page: 50, include_totals: true } })
+    return this.tenantRequest(t, 'GET', this.organizationPath(id, 'connections'), { query: { page: 0, per_page: 50, include_totals: true } })
   }
   changeAllOrganizationConnection(t: SystemTenant, id: string, connectionId: string, method: 'POST' | 'PATCH' | 'DELETE', body?: OrganizationConnectionUpdate): Promise<unknown> {
-    return this.request(Api.tenantOrigin(t), method, this.organizationPath(id, 'connections' + (method === 'POST' ? '' : '/' + encodeURIComponent(connectionId))), { body: method === 'POST' ? { connection_id: connectionId, ...body } : body })
+    return this.tenantRequest(t, method, this.organizationPath(id, 'connections' + (method === 'POST' ? '' : '/' + encodeURIComponent(connectionId))), { body: method === 'POST' ? { connection_id: connectionId, ...body } : body })
   }
   getOrganization(t: SystemTenant, id: string): Promise<Organization> {
-    return this.request(Api.tenantOrigin(t), 'GET', '/api/v2/organizations/' + encodeURIComponent(id))
+    return this.tenantRequest(t, 'GET', '/api/v2/organizations/' + encodeURIComponent(id))
   }
   createOrganization(t: SystemTenant, body: OrganizationCreate): Promise<Organization> {
-    return this.request(Api.tenantOrigin(t), 'POST', '/api/v2/organizations', { body })
+    return this.tenantRequest(t, 'POST', '/api/v2/organizations', { body })
   }
   updateOrganization(t: SystemTenant, id: string, body: OrganizationUpdate): Promise<Organization> {
-    return this.request(Api.tenantOrigin(t), 'PATCH', '/api/v2/organizations/' + encodeURIComponent(id), { body })
+    return this.tenantRequest(t, 'PATCH', '/api/v2/organizations/' + encodeURIComponent(id), { body })
   }
   deleteOrganization(t: SystemTenant, id: string): Promise<void> {
-    return this.request(Api.tenantOrigin(t), 'DELETE', '/api/v2/organizations/' + encodeURIComponent(id))
+    return this.tenantRequest(t, 'DELETE', '/api/v2/organizations/' + encodeURIComponent(id))
   }
   listOrganizationConnections(t: SystemTenant, id: string, page: number, per_page = 20): Promise<OrganizationEnabledConnectionsPage> {
-    return this.request(Api.tenantOrigin(t), 'GET', '/api/v2/organizations/' + encodeURIComponent(id) + '/enabled_connections', { query: { page, per_page, include_totals: true } })
+    return this.tenantRequest(t, 'GET', '/api/v2/organizations/' + encodeURIComponent(id) + '/enabled_connections', { query: { page, per_page, include_totals: true } })
   }
   changeOrganizationConnection(t: SystemTenant, id: string, method: 'POST' | 'PATCH' | 'DELETE', connectionId: string, body?: OrganizationEnabledConnectionUpdate): Promise<void> {
     const path = '/api/v2/organizations/' + encodeURIComponent(id) + '/enabled_connections'
-    return this.request(Api.tenantOrigin(t), method, path + (method === 'POST' ? '' : '/' + encodeURIComponent(connectionId)), { body: method === 'POST' ? { ...body, connection_id: connectionId } : body })
+    return this.tenantRequest(t, method, path + (method === 'POST' ? '' : '/' + encodeURIComponent(connectionId)), { body: method === 'POST' ? { ...body, connection_id: connectionId } : body })
   }
   listOrganizationMembers(t: SystemTenant, id: string, page: number): Promise<OrganizationMembersPage> {
-    return this.request(Api.tenantOrigin(t), 'GET', '/api/v2/organizations/' + encodeURIComponent(id) + '/members', { query: { page, per_page: 20, include_totals: true } })
+    return this.tenantRequest(t, 'GET', '/api/v2/organizations/' + encodeURIComponent(id) + '/members', { query: { page, per_page: 20, include_totals: true } })
   }
   changeOrganizationMembers(t: SystemTenant, id: string, method: 'POST' | 'DELETE', members: string[]): Promise<void> {
-    return this.request(Api.tenantOrigin(t), method, '/api/v2/organizations/' + encodeURIComponent(id) + '/members', { body: { members } })
+    return this.tenantRequest(t, method, '/api/v2/organizations/' + encodeURIComponent(id) + '/members', { body: { members } })
   }
   listOrganizationMemberRoles(t: SystemTenant, id: string, userId: string, page: number): Promise<RolePage> {
-    return this.request(Api.tenantOrigin(t), 'GET', '/api/v2/organizations/' + encodeURIComponent(id) + '/members/' + encodeURIComponent(userId) + '/roles', { query: { page, per_page: 20, include_totals: true } })
+    return this.tenantRequest(t, 'GET', '/api/v2/organizations/' + encodeURIComponent(id) + '/members/' + encodeURIComponent(userId) + '/roles', { query: { page, per_page: 20, include_totals: true } })
   }
   changeOrganizationMemberRoles(t: SystemTenant, id: string, userId: string, method: 'POST' | 'DELETE', roles: string[]): Promise<void> {
-    return this.request(Api.tenantOrigin(t), method, '/api/v2/organizations/' + encodeURIComponent(id) + '/members/' + encodeURIComponent(userId) + '/roles', { body: { roles } })
+    return this.tenantRequest(t, method, '/api/v2/organizations/' + encodeURIComponent(id) + '/members/' + encodeURIComponent(userId) + '/roles', { body: { roles } })
   }
 
   listRoles(t: SystemTenant, q: OffsetPage & { name_filter?: string }): Promise<RolePage> {
-    return this.request(Api.tenantOrigin(t), 'GET', '/api/v2/roles', { query: { ...q, include_totals: true } })
+    return this.tenantRequest(t, 'GET', '/api/v2/roles', { query: { ...q, include_totals: true } })
   }
   getRole(t: SystemTenant, id: string): Promise<Role> {
-    return this.request(Api.tenantOrigin(t), 'GET', '/api/v2/roles/' + encodeURIComponent(id))
+    return this.tenantRequest(t, 'GET', '/api/v2/roles/' + encodeURIComponent(id))
   }
   createRole(t: SystemTenant, body: { name: string; description: string }): Promise<Role> {
-    return this.request(Api.tenantOrigin(t), 'POST', '/api/v2/roles', { body })
+    return this.tenantRequest(t, 'POST', '/api/v2/roles', { body })
   }
   updateRole(t: SystemTenant, id: string, body: { name?: string; description?: string }): Promise<Role> {
-    return this.request(Api.tenantOrigin(t), 'PATCH', '/api/v2/roles/' + encodeURIComponent(id), { body })
+    return this.tenantRequest(t, 'PATCH', '/api/v2/roles/' + encodeURIComponent(id), { body })
   }
   deleteRole(t: SystemTenant, id: string): Promise<void> {
-    return this.request(Api.tenantOrigin(t), 'DELETE', '/api/v2/roles/' + encodeURIComponent(id))
+    return this.tenantRequest(t, 'DELETE', '/api/v2/roles/' + encodeURIComponent(id))
   }
   listRoleUsers(t: SystemTenant, id: string, q: OffsetPage): Promise<RoleUserPage> {
-    return this.request(Api.tenantOrigin(t), 'GET', '/api/v2/roles/' + encodeURIComponent(id) + '/users', { query: { ...q, include_totals: true } })
+    return this.tenantRequest(t, 'GET', '/api/v2/roles/' + encodeURIComponent(id) + '/users', { query: { ...q, include_totals: true } })
   }
   assignRoleUsers(t: SystemTenant, id: string, users: string[]): Promise<void> {
-    return this.request(Api.tenantOrigin(t), 'POST', '/api/v2/roles/' + encodeURIComponent(id) + '/users', { body: { users } })
+    return this.tenantRequest(t, 'POST', '/api/v2/roles/' + encodeURIComponent(id) + '/users', { body: { users } })
   }
   listUserRoles(t: SystemTenant, id: string, q: OffsetPage): Promise<RolePage> {
-    return this.request(Api.tenantOrigin(t), 'GET', userPath(id) + '/roles', { query: { ...q, include_totals: true } })
+    return this.tenantRequest(t, 'GET', userPath(id) + '/roles', { query: { ...q, include_totals: true } })
   }
   changeUserRoles(t: SystemTenant, id: string, method: 'POST' | 'DELETE', roles: string[]): Promise<void> {
-    return this.request(Api.tenantOrigin(t), method, userPath(id) + '/roles', { body: { roles } })
+    return this.tenantRequest(t, method, userPath(id) + '/roles', { body: { roles } })
   }
   listPermissions(t: SystemTenant, kind: 'roles' | 'users', id: string, q: OffsetPage): Promise<PermissionPage> {
-    return this.request(Api.tenantOrigin(t), 'GET', '/api/v2/' + kind + '/' + encodeURIComponent(id) + '/permissions', { query: { ...q, include_totals: true } })
+    return this.tenantRequest(t, 'GET', '/api/v2/' + kind + '/' + encodeURIComponent(id) + '/permissions', { query: { ...q, include_totals: true } })
   }
   changePermissions(t: SystemTenant, kind: 'roles' | 'users', id: string, method: 'POST' | 'DELETE', permissions: PermissionKey[]): Promise<void> {
-    return this.request(Api.tenantOrigin(t), method, '/api/v2/' + kind + '/' + encodeURIComponent(id) + '/permissions', { body: { permissions } })
+    return this.tenantRequest(t, method, '/api/v2/' + kind + '/' + encodeURIComponent(id) + '/permissions', { body: { permissions } })
   }
 
   listClients(t: SystemTenant, q: { page: number; per_page: number; app_type?: string }): Promise<ClientPage> {
-    return this.request(Api.tenantOrigin(t), 'GET', '/api/v2/clients', { query: { ...q, include_totals: true, fields: 'client_secret', include_fields: false } })
+    return this.tenantRequest(t, 'GET', '/api/v2/clients', { query: { ...q, include_totals: true, fields: 'client_secret', include_fields: false } })
   }
 
   getClient(t: SystemTenant, id: string): Promise<Client> {
-    return this.request(Api.tenantOrigin(t), 'GET', '/api/v2/clients/' + encodeURIComponent(id))
+    return this.tenantRequest(t, 'GET', '/api/v2/clients/' + encodeURIComponent(id))
   }
 
   createClient(t: SystemTenant, body: ClientCreate): Promise<Client> {
-    return this.request(Api.tenantOrigin(t), 'POST', '/api/v2/clients', { body })
+    return this.tenantRequest(t, 'POST', '/api/v2/clients', { body })
   }
 
   updateClient(t: SystemTenant, id: string, body: ClientUpdate): Promise<Client> {
-    return this.request(Api.tenantOrigin(t), 'PATCH', '/api/v2/clients/' + encodeURIComponent(id), { body })
+    return this.tenantRequest(t, 'PATCH', '/api/v2/clients/' + encodeURIComponent(id), { body })
   }
 
   listClientCredentials(t: SystemTenant, id: string): Promise<ClientCredential[]> {
-    return this.request(Api.tenantOrigin(t), 'GET', credentialsPath(id))
+    return this.tenantRequest(t, 'GET', credentialsPath(id))
   }
 
   createClientCredential(t: SystemTenant, id: string, body: ClientCredentialCreate): Promise<ClientCredential> {
-    return this.request(Api.tenantOrigin(t), 'POST', credentialsPath(id), { body })
+    return this.tenantRequest(t, 'POST', credentialsPath(id), { body })
   }
 
   updateClientCredential(t: SystemTenant, id: string, credentialId: string, body: ClientCredentialUpdate): Promise<ClientCredential> {
-    return this.request(Api.tenantOrigin(t), 'PATCH', credentialsPath(id) + '/' + encodeURIComponent(credentialId), { body })
+    return this.tenantRequest(t, 'PATCH', credentialsPath(id) + '/' + encodeURIComponent(credentialId), { body })
   }
 
   deleteClientCredential(t: SystemTenant, id: string, credentialId: string): Promise<void> {
-    return this.request(Api.tenantOrigin(t), 'DELETE', credentialsPath(id) + '/' + encodeURIComponent(credentialId))
+    return this.tenantRequest(t, 'DELETE', credentialsPath(id) + '/' + encodeURIComponent(credentialId))
   }
 
   listTokenExchangeProfiles(t: SystemTenant, q: { from?: string; take: number }): Promise<TokenExchangeProfilePage> {
-    return this.request(Api.tenantOrigin(t), 'GET', '/api/v2/token-exchange-profiles', { query: q })
+    return this.tenantRequest(t, 'GET', '/api/v2/token-exchange-profiles', { query: q })
   }
 
   createTokenExchangeProfile(t: SystemTenant, body: TokenExchangeProfileCreate): Promise<TokenExchangeProfile> {
-    return this.request(Api.tenantOrigin(t), 'POST', '/api/v2/token-exchange-profiles', { body })
+    return this.tenantRequest(t, 'POST', '/api/v2/token-exchange-profiles', { body })
   }
 
   updateTokenExchangeProfile(t: SystemTenant, id: string, body: TokenExchangeProfileUpdate): Promise<TokenExchangeProfile> {
-    return this.request(Api.tenantOrigin(t), 'PATCH', '/api/v2/token-exchange-profiles/' + encodeURIComponent(id), { body })
+    return this.tenantRequest(t, 'PATCH', '/api/v2/token-exchange-profiles/' + encodeURIComponent(id), { body })
   }
 
   deleteTokenExchangeProfile(t: SystemTenant, id: string): Promise<void> {
-    return this.request(Api.tenantOrigin(t), 'DELETE', '/api/v2/token-exchange-profiles/' + encodeURIComponent(id))
+    return this.tenantRequest(t, 'DELETE', '/api/v2/token-exchange-profiles/' + encodeURIComponent(id))
   }
 
   async allTokenExchangeProfiles(t: SystemTenant): Promise<TokenExchangeProfile[]> {
@@ -572,126 +580,139 @@ export class Api {
   }
 
   deleteClient(t: SystemTenant, id: string): Promise<void> {
-    return this.request(Api.tenantOrigin(t), 'DELETE', '/api/v2/clients/' + encodeURIComponent(id))
+    return this.tenantRequest(t, 'DELETE', '/api/v2/clients/' + encodeURIComponent(id))
   }
 
   rotateSecret(t: SystemTenant, id: string): Promise<Client> {
-    return this.request(Api.tenantOrigin(t), 'POST', '/api/v2/clients/' + encodeURIComponent(id) + '/rotate-secret')
+    return this.tenantRequest(t, 'POST', '/api/v2/clients/' + encodeURIComponent(id) + '/rotate-secret')
   }
 
   listResourceServers(t: SystemTenant, q: { page: number; per_page: number }): Promise<ResourceServerPage> {
-    return this.request(Api.tenantOrigin(t), 'GET', '/api/v2/resource-servers', { query: { ...q, include_totals: true } })
+    return this.tenantRequest(t, 'GET', '/api/v2/resource-servers', { query: { ...q, include_totals: true } })
   }
 
   getResourceServer(t: SystemTenant, id: string): Promise<ResourceServer> {
-    return this.request(Api.tenantOrigin(t), 'GET', '/api/v2/resource-servers/' + encodeURIComponent(id))
+    return this.tenantRequest(t, 'GET', '/api/v2/resource-servers/' + encodeURIComponent(id))
   }
 
   createResourceServer(t: SystemTenant, body: ResourceServerCreate): Promise<ResourceServer> {
-    return this.request(Api.tenantOrigin(t), 'POST', '/api/v2/resource-servers', { body })
+    return this.tenantRequest(t, 'POST', '/api/v2/resource-servers', { body })
   }
 
   updateResourceServer(t: SystemTenant, id: string, body: ResourceServerUpdate): Promise<ResourceServer> {
-    return this.request(Api.tenantOrigin(t), 'PATCH', '/api/v2/resource-servers/' + encodeURIComponent(id), { body })
+    return this.tenantRequest(t, 'PATCH', '/api/v2/resource-servers/' + encodeURIComponent(id), { body })
   }
 
   deleteResourceServer(t: SystemTenant, id: string): Promise<void> {
-    return this.request(Api.tenantOrigin(t), 'DELETE', '/api/v2/resource-servers/' + encodeURIComponent(id))
+    return this.tenantRequest(t, 'DELETE', '/api/v2/resource-servers/' + encodeURIComponent(id))
   }
 
   listClientGrants(t: SystemTenant, q: { page: number; per_page: number; client_id?: string; audience?: string }): Promise<ClientGrantPage> {
-    return this.request(Api.tenantOrigin(t), 'GET', '/api/v2/client-grants', { query: { ...q, include_totals: true } })
+    return this.tenantRequest(t, 'GET', '/api/v2/client-grants', { query: { ...q, include_totals: true } })
   }
 
   createClientGrant(t: SystemTenant, body: ClientGrantCreate): Promise<ClientGrant> {
-    return this.request(Api.tenantOrigin(t), 'POST', '/api/v2/client-grants', { body })
+    return this.tenantRequest(t, 'POST', '/api/v2/client-grants', { body })
   }
 
   updateClientGrant(t: SystemTenant, id: string, body: ClientGrantUpdate): Promise<ClientGrant> {
-    return this.request(Api.tenantOrigin(t), 'PATCH', '/api/v2/client-grants/' + encodeURIComponent(id), { body })
+    return this.tenantRequest(t, 'PATCH', '/api/v2/client-grants/' + encodeURIComponent(id), { body })
   }
 
   deleteClientGrant(t: SystemTenant, id: string): Promise<void> {
-    return this.request(Api.tenantOrigin(t), 'DELETE', '/api/v2/client-grants/' + encodeURIComponent(id))
+    return this.tenantRequest(t, 'DELETE', '/api/v2/client-grants/' + encodeURIComponent(id))
   }
 
   listConnections(t: SystemTenant, q: { page: number; per_page: number; strategy?: string; fields?: string }): Promise<ConnectionPage> {
-    return this.request(Api.tenantOrigin(t), 'GET', '/api/v2/connections', { query: { fields: 'id,name,strategy,is_domain_connection', ...q, include_fields: true, include_totals: true } })
+    return this.tenantRequest(t, 'GET', '/api/v2/connections', { query: { fields: 'id,name,strategy,is_domain_connection', ...q, include_fields: true, include_totals: true } })
   }
 
-  // listUsers searches with Auth0's v3 query syntax; q goes out as typed.
-  listUsers(t: SystemTenant, q: { q?: string; page: number; per_page: number; sort?: string; connection?: string }): Promise<UserPage> {
-    return this.request(Api.tenantOrigin(t), 'GET', '/api/v2/users', { query: { ...q, search_engine: 'v3', include_totals: true } })
+  // The console's connection filter is separate from the user's v3 query text.
+  listUsers(t: SystemTenant, params: { q?: string; page: number; per_page: number; sort?: string; connection?: string }): Promise<UserPage> {
+    const { connection, ...query } = params
+    return this.tenantRequest(t, 'GET', '/api/v2/users', { query: { ...query, console_connection: connection, search_engine: 'v3', include_totals: true } })
   }
 
   createUser(t: SystemTenant, body: UserCreate): Promise<User> {
-    return this.request(Api.tenantOrigin(t), 'POST', '/api/v2/users', { body })
+    return this.tenantRequest(t, 'POST', '/api/v2/users', { body })
   }
 
   getUser(t: SystemTenant, id: string): Promise<User> {
-    return this.request(Api.tenantOrigin(t), 'GET', userPath(id))
+    return this.tenantRequest(t, 'GET', userPath(id))
   }
 
   // updateUser sends only what changes. Metadata merges at the top level:
   // a key set to null is removed.
   updateUser(t: SystemTenant, id: string, body: UserUpdate): Promise<User> {
-    return this.request(Api.tenantOrigin(t), 'PATCH', userPath(id), { body })
+    return this.tenantRequest(t, 'PATCH', userPath(id), { body })
   }
 
   deleteUser(t: SystemTenant, id: string): Promise<void> {
-    return this.request(Api.tenantOrigin(t), 'DELETE', userPath(id))
+    return this.tenantRequest(t, 'DELETE', userPath(id))
   }
 
   // linkUser merges another database user into this one; userId is the
   // secondary's ID without its auth0| prefix.
   linkUser(t: SystemTenant, id: string, userId: string): Promise<UserIdentity[]> {
-    return this.request(Api.tenantOrigin(t), 'POST', userPath(id) + '/identities', { body: { provider: 'auth0', user_id: userId } })
+    return this.tenantRequest(t, 'POST', userPath(id) + '/identities', { body: { provider: 'auth0', user_id: userId } })
   }
 
   unlinkUser(t: SystemTenant, id: string, provider: string, userId: string): Promise<UserIdentity[]> {
-    return this.request(Api.tenantOrigin(t), 'DELETE', userPath(id) + '/identities/' + encodeURIComponent(provider) + '/' + encodeURIComponent(userId))
+    return this.tenantRequest(t, 'DELETE', userPath(id) + '/identities/' + encodeURIComponent(provider) + '/' + encodeURIComponent(userId))
   }
 
   listUserSessions(t: SystemTenant, id: string, q: { take: number; from?: string }): Promise<UserSessionPage> {
-    return this.request(Api.tenantOrigin(t), 'GET', userPath(id) + '/sessions', { query: q })
+    return this.tenantRequest(t, 'GET', userPath(id) + '/sessions', { query: q })
   }
 
   deleteUserSessions(t: SystemTenant, id: string): Promise<void> {
-    return this.request(Api.tenantOrigin(t), 'DELETE', userPath(id) + '/sessions')
+    return this.tenantRequest(t, 'DELETE', userPath(id) + '/sessions')
   }
 
   deleteSession(t: SystemTenant, id: string): Promise<void> {
-    return this.request(Api.tenantOrigin(t), 'DELETE', '/api/v2/sessions/' + encodeURIComponent(id))
+    return this.tenantRequest(t, 'DELETE', '/api/v2/sessions/' + encodeURIComponent(id))
+  }
+
+  revokeSession(t: SystemTenant, id: string): Promise<void> {
+    return this.tenantRequest(t, 'POST', '/api/v2/sessions/' + encodeURIComponent(id) + '/revoke')
+  }
+
+  updateSessionMetadata(t: SystemTenant, id: string, metadata: Record<string, string> | null): Promise<UserSession> {
+    return this.tenantRequest(t, 'PATCH', '/api/v2/sessions/' + encodeURIComponent(id), { body: { session_metadata: metadata } })
+  }
+
+  updateRefreshTokenMetadata(t: SystemTenant, id: string, metadata: Record<string, string> | null): Promise<UserRefreshToken> {
+    return this.tenantRequest(t, 'PATCH', '/api/v2/refresh-tokens/' + encodeURIComponent(id), { body: { refresh_token_metadata: metadata } })
   }
 
   listUserRefreshTokens(t: SystemTenant, id: string, q: { take: number; from?: string }): Promise<UserRefreshTokenPage> {
-    return this.request(Api.tenantOrigin(t), 'GET', userPath(id) + '/refresh-tokens', { query: q })
+    return this.tenantRequest(t, 'GET', userPath(id) + '/refresh-tokens', { query: q })
   }
 
   deleteUserRefreshTokens(t: SystemTenant, id: string): Promise<void> {
-    return this.request(Api.tenantOrigin(t), 'DELETE', userPath(id) + '/refresh-tokens')
+    return this.tenantRequest(t, 'DELETE', userPath(id) + '/refresh-tokens')
   }
 
   deleteRefreshToken(t: SystemTenant, id: string): Promise<void> {
-    return this.request(Api.tenantOrigin(t), 'DELETE', '/api/v2/refresh-tokens/' + encodeURIComponent(id))
+    return this.tenantRequest(t, 'DELETE', '/api/v2/refresh-tokens/' + encodeURIComponent(id))
   }
 
   listUserGrants(t: SystemTenant, userId: string): Promise<UserGrant[]> {
-    return this.request(Api.tenantOrigin(t), 'GET', '/api/v2/grants', { query: { user_id: userId } })
+    return this.tenantRequest(t, 'GET', '/api/v2/grants', { query: { user_id: userId } })
   }
 
   deleteGrant(t: SystemTenant, id: string): Promise<void> {
-    return this.request(Api.tenantOrigin(t), 'DELETE', '/api/v2/grants/' + encodeURIComponent(id))
+    return this.tenantRequest(t, 'DELETE', '/api/v2/grants/' + encodeURIComponent(id))
   }
 
   // The ticket functions return a single-use URL. Callers show it once and
   // must not keep it anywhere but the component that shows it.
   createPasswordChangeTicket(t: SystemTenant, userId: string): Promise<{ ticket: string }> {
-    return this.request(Api.tenantOrigin(t), 'POST', '/api/v2/tickets/password-change', { body: { user_id: userId } })
+    return this.tenantRequest(t, 'POST', '/api/v2/tickets/password-change', { body: { user_id: userId } })
   }
 
   createVerificationTicket(t: SystemTenant, userId: string): Promise<{ ticket: string }> {
-    return this.request(Api.tenantOrigin(t), 'POST', '/api/v2/tickets/email-verification', { body: { user_id: userId } })
+    return this.tenantRequest(t, 'POST', '/api/v2/tickets/email-verification', { body: { user_id: userId } })
   }
 
   // The jobs. The list is the system API's (Auth0 has none); the rest are
@@ -701,55 +722,55 @@ export class Api {
   }
 
   createImportJob(t: SystemTenant, form: FormData): Promise<Job> {
-    return this.request(Api.tenantOrigin(t), 'POST', '/api/v2/jobs/users-imports', { body: form })
+    return this.tenantRequest(t, 'POST', '/api/v2/jobs/users-imports', { body: form })
   }
 
   createExportJob(t: SystemTenant, body: UsersExportJobCreate): Promise<Job> {
-    return this.request(Api.tenantOrigin(t), 'POST', '/api/v2/jobs/users-exports', { body })
+    return this.tenantRequest(t, 'POST', '/api/v2/jobs/users-exports', { body })
   }
 
   // getJob reads the job; a completed export carries a new 60-second
   // location on every read, so callers read again for each download.
   getJob(t: SystemTenant, id: string): Promise<Job> {
-    return this.request(Api.tenantOrigin(t), 'GET', '/api/v2/jobs/' + encodeURIComponent(id))
+    return this.tenantRequest(t, 'GET', '/api/v2/jobs/' + encodeURIComponent(id))
   }
 
   // getJobErrors: the import's failed records (secrets masked by the
   // server), undefined for an export (204), or the job itself when it failed.
   getJobErrors(t: SystemTenant, id: string): Promise<JobError[] | Job | undefined> {
-    return this.request(Api.tenantOrigin(t), 'GET', '/api/v2/jobs/' + encodeURIComponent(id) + '/errors')
+    return this.tenantRequest(t, 'GET', '/api/v2/jobs/' + encodeURIComponent(id) + '/errors')
   }
 
   createVerificationEmailJob(t: SystemTenant, userId: string): Promise<Job> {
-    return this.request(Api.tenantOrigin(t), 'POST', '/api/v2/jobs/verification-email', { body: { user_id: userId } })
+    return this.tenantRequest(t, 'POST', '/api/v2/jobs/verification-email', { body: { user_id: userId } })
   }
 
   getEmailProvider(t: SystemTenant): Promise<EmailProvider> {
-    return this.request(Api.tenantOrigin(t), 'GET', '/api/v2/emails/provider')
+    return this.tenantRequest(t, 'GET', '/api/v2/emails/provider')
   }
 
   createEmailProvider(t: SystemTenant, body: EmailProviderWrite): Promise<EmailProvider> {
-    return this.request(Api.tenantOrigin(t), 'POST', '/api/v2/emails/provider', { body })
+    return this.tenantRequest(t, 'POST', '/api/v2/emails/provider', { body })
   }
 
   updateEmailProvider(t: SystemTenant, body: EmailProviderWrite): Promise<EmailProvider> {
-    return this.request(Api.tenantOrigin(t), 'PATCH', '/api/v2/emails/provider', { body })
+    return this.tenantRequest(t, 'PATCH', '/api/v2/emails/provider', { body })
   }
 
   deleteEmailProvider(t: SystemTenant): Promise<void> {
-    return this.request(Api.tenantOrigin(t), 'DELETE', '/api/v2/emails/provider')
+    return this.tenantRequest(t, 'DELETE', '/api/v2/emails/provider')
   }
 
   getEmailTemplate(t: SystemTenant, name: EmailTemplateName): Promise<EmailTemplate> {
-    return this.request(Api.tenantOrigin(t), 'GET', '/api/v2/email-templates/' + encodeURIComponent(name))
+    return this.tenantRequest(t, 'GET', '/api/v2/email-templates/' + encodeURIComponent(name))
   }
 
   createEmailTemplate(t: SystemTenant, body: EmailTemplate): Promise<EmailTemplate> {
-    return this.request(Api.tenantOrigin(t), 'POST', '/api/v2/email-templates', { body })
+    return this.tenantRequest(t, 'POST', '/api/v2/email-templates', { body })
   }
 
   putEmailTemplate(t: SystemTenant, name: EmailTemplateName, body: EmailTemplate): Promise<EmailTemplate> {
-    return this.request(Api.tenantOrigin(t), 'PUT', '/api/v2/email-templates/' + encodeURIComponent(name), { body })
+    return this.tenantRequest(t, 'PUT', '/api/v2/email-templates/' + encodeURIComponent(name), { body })
   }
 
   previewTenantEmail(t: Pick<SystemTenant, 'name'>, body: { template: EmailTemplateName; overrides?: Record<string, unknown> }): Promise<EmailPreview> {
@@ -761,29 +782,39 @@ export class Api {
   }
 
   getConnection(t: SystemTenant, id: string): Promise<Connection> {
-    return this.request(Api.tenantOrigin(t), 'GET', '/api/v2/connections/' + encodeURIComponent(id))
+    return this.tenantRequest(t, 'GET', '/api/v2/connections/' + encodeURIComponent(id))
+  }
+
+  getConnectionKeys(t: SystemTenant, id: string): Promise<ConnectionKey[]> {
+    return this.tenantRequest(t, 'GET', '/api/v2/connections/' + encodeURIComponent(id) + '/keys')
+  }
+  createConnectionKeys(t: SystemTenant, id: string, body: Record<string, unknown>): Promise<ConnectionKey[]> {
+    return this.tenantRequest(t, 'POST', '/api/v2/connections/' + encodeURIComponent(id) + '/keys', { body })
+  }
+  rotateConnectionKeys(t: SystemTenant, id: string, body: Record<string, unknown>): Promise<ConnectionKey> {
+    return this.tenantRequest(t, 'POST', '/api/v2/connections/' + encodeURIComponent(id) + '/keys/rotate', { body })
   }
 
   createConnection(t: SystemTenant, body: ConnectionCreate): Promise<Connection> {
-    return this.request(Api.tenantOrigin(t), 'POST', '/api/v2/connections', { body })
+    return this.tenantRequest(t, 'POST', '/api/v2/connections', { body })
   }
 
   updateConnection(t: SystemTenant, id: string, body: ConnectionUpdate): Promise<Connection> {
-    return this.request(Api.tenantOrigin(t), 'PATCH', '/api/v2/connections/' + encodeURIComponent(id), { body })
+    return this.tenantRequest(t, 'PATCH', '/api/v2/connections/' + encodeURIComponent(id), { body })
   }
 
   deleteConnection(t: SystemTenant, id: string): Promise<void> {
-    return this.request(Api.tenantOrigin(t), 'DELETE', '/api/v2/connections/' + encodeURIComponent(id))
+    return this.tenantRequest(t, 'DELETE', '/api/v2/connections/' + encodeURIComponent(id))
   }
 
   // Enabled applications are read and changed only through the clients
   // endpoint, never through enabled_clients on PATCH.
   getConnectionClients(t: SystemTenant, id: string, q: { take: number; from?: string }): Promise<{ clients: { client_id: string }[]; next?: string }> {
-    return this.request(Api.tenantOrigin(t), 'GET', '/api/v2/connections/' + encodeURIComponent(id) + '/clients', { query: q })
+    return this.tenantRequest(t, 'GET', '/api/v2/connections/' + encodeURIComponent(id) + '/clients', { query: q })
   }
 
   updateConnectionClients(t: SystemTenant, id: string, body: ConnectionClientStatus[]): Promise<void> {
-    return this.request(Api.tenantOrigin(t), 'PATCH', '/api/v2/connections/' + encodeURIComponent(id) + '/clients', { body })
+    return this.tenantRequest(t, 'PATCH', '/api/v2/connections/' + encodeURIComponent(id) + '/clients', { body })
   }
 
   // tryScript runs one custom database script with test arguments (system
@@ -791,6 +822,11 @@ export class Api {
   tryScript(t: Pick<SystemTenant, 'name'>, id: string, script: string, args: unknown[]): Promise<ScriptTryResult> {
     const path = `/api/system/tenants/${encodeURIComponent(t.name)}/connections/${encodeURIComponent(id)}/scripts/${encodeURIComponent(script)}/try`
     return this.request(this.systemOrigin, 'POST', path, { body: { args } })
+  }
+
+  tryConnectionPasswordless(t: Pick<SystemTenant, 'name'>, id: string, body: components['schemas']['PasswordlessTryRequest']): Promise<void> {
+    const path = `/api/system/tenants/${encodeURIComponent(t.name)}/connections/${encodeURIComponent(id)}/passwordless/try`
+    return this.request(this.systemOrigin, 'POST', path, { body })
   }
 
   // The *All methods read every page (100 at a time) of a listing that the
@@ -829,95 +865,95 @@ export class Api {
   }
 
   listActionModules(t: SystemTenant, q: { page: number; per_page: number }): Promise<ActionModulesPage> {
-    return this.request(Api.tenantOrigin(t), 'GET', '/api/v2/actions/modules', { query: q })
+    return this.tenantRequest(t, 'GET', '/api/v2/actions/modules', { query: q })
   }
 
   createActionModule(t: SystemTenant, body: ActionModuleCreate): Promise<ActionModule> {
-    return this.request(Api.tenantOrigin(t), 'POST', '/api/v2/actions/modules', { body })
+    return this.tenantRequest(t, 'POST', '/api/v2/actions/modules', { body })
   }
 
   getActionModule(t: SystemTenant, id: string): Promise<ActionModule> {
-    return this.request(Api.tenantOrigin(t), 'GET', '/api/v2/actions/modules/' + encodeURIComponent(id))
+    return this.tenantRequest(t, 'GET', '/api/v2/actions/modules/' + encodeURIComponent(id))
   }
 
   updateActionModule(t: SystemTenant, id: string, body: ActionModuleUpdate): Promise<ActionModule> {
-    return this.request(Api.tenantOrigin(t), 'PATCH', '/api/v2/actions/modules/' + encodeURIComponent(id), { body })
+    return this.tenantRequest(t, 'PATCH', '/api/v2/actions/modules/' + encodeURIComponent(id), { body })
   }
 
   deleteActionModule(t: SystemTenant, id: string): Promise<void> {
-    return this.request(Api.tenantOrigin(t), 'DELETE', '/api/v2/actions/modules/' + encodeURIComponent(id))
+    return this.tenantRequest(t, 'DELETE', '/api/v2/actions/modules/' + encodeURIComponent(id))
   }
 
   listActionModuleVersions(t: SystemTenant, id: string, q: { page: number; per_page: number }): Promise<ActionModuleVersionsPage> {
-    return this.request(Api.tenantOrigin(t), 'GET', '/api/v2/actions/modules/' + encodeURIComponent(id) + '/versions', { query: q })
+    return this.tenantRequest(t, 'GET', '/api/v2/actions/modules/' + encodeURIComponent(id) + '/versions', { query: q })
   }
 
   getActionModuleVersion(t: SystemTenant, id: string, versionId: string): Promise<ActionModuleVersion> {
-    return this.request(Api.tenantOrigin(t), 'GET', '/api/v2/actions/modules/' + encodeURIComponent(id) + '/versions/' + encodeURIComponent(versionId))
+    return this.tenantRequest(t, 'GET', '/api/v2/actions/modules/' + encodeURIComponent(id) + '/versions/' + encodeURIComponent(versionId))
   }
 
   publishActionModule(t: SystemTenant, id: string): Promise<ActionModuleVersion> {
-    return this.request(Api.tenantOrigin(t), 'POST', '/api/v2/actions/modules/' + encodeURIComponent(id) + '/versions')
+    return this.tenantRequest(t, 'POST', '/api/v2/actions/modules/' + encodeURIComponent(id) + '/versions')
   }
 
   rollbackActionModule(t: SystemTenant, id: string, body: { module_version_id: string }): Promise<ActionModule> {
-    return this.request(Api.tenantOrigin(t), 'POST', '/api/v2/actions/modules/' + encodeURIComponent(id) + '/rollback', { body })
+    return this.tenantRequest(t, 'POST', '/api/v2/actions/modules/' + encodeURIComponent(id) + '/rollback', { body })
   }
 
   listActionModuleActions(t: SystemTenant, id: string, q: { page: number; per_page: number }): Promise<ActionModuleActionsPage> {
-    return this.request(Api.tenantOrigin(t), 'GET', '/api/v2/actions/modules/' + encodeURIComponent(id) + '/actions', { query: q })
+    return this.tenantRequest(t, 'GET', '/api/v2/actions/modules/' + encodeURIComponent(id) + '/actions', { query: q })
   }
 
   listActions(t: SystemTenant, q: { page: number; per_page: number; triggerId?: string; actionName?: string; deployed?: boolean }): Promise<ActionsPage> {
-    return this.request(Api.tenantOrigin(t), 'GET', '/api/v2/actions/actions', { query: q })
+    return this.tenantRequest(t, 'GET', '/api/v2/actions/actions', { query: q })
   }
 
   createAction(t: SystemTenant, body: ActionCreate): Promise<Action> {
-    return this.request(Api.tenantOrigin(t), 'POST', '/api/v2/actions/actions', { body })
+    return this.tenantRequest(t, 'POST', '/api/v2/actions/actions', { body })
   }
 
   getAction(t: SystemTenant, id: string): Promise<Action> {
-    return this.request(Api.tenantOrigin(t), 'GET', actionPath(id))
+    return this.tenantRequest(t, 'GET', actionPath(id))
   }
 
   updateAction(t: SystemTenant, id: string, body: ActionUpdate): Promise<Action> {
-    return this.request(Api.tenantOrigin(t), 'PATCH', actionPath(id), { body })
+    return this.tenantRequest(t, 'PATCH', actionPath(id), { body })
   }
 
   deleteAction(t: SystemTenant, id: string, force = false): Promise<void> {
-    return this.request(Api.tenantOrigin(t), 'DELETE', actionPath(id), { query: { force } })
+    return this.tenantRequest(t, 'DELETE', actionPath(id), { query: { force } })
   }
 
   deployAction(t: SystemTenant, id: string): Promise<ActionVersion> {
-    return this.request(Api.tenantOrigin(t), 'POST', actionPath(id) + '/deploy')
+    return this.tenantRequest(t, 'POST', actionPath(id) + '/deploy')
   }
 
   listActionVersions(t: SystemTenant, id: string, q: { page: number; per_page: number }): Promise<ActionVersionsPage> {
-    return this.request(Api.tenantOrigin(t), 'GET', actionPath(id) + '/versions', { query: q })
+    return this.tenantRequest(t, 'GET', actionPath(id) + '/versions', { query: q })
   }
 
   getActionVersion(t: SystemTenant, id: string, versionId: string): Promise<ActionVersion> {
-    return this.request(Api.tenantOrigin(t), 'GET', actionPath(id) + '/versions/' + encodeURIComponent(versionId))
+    return this.tenantRequest(t, 'GET', actionPath(id) + '/versions/' + encodeURIComponent(versionId))
   }
 
   deployActionVersion(t: SystemTenant, id: string, versionId: string): Promise<ActionVersion> {
-    return this.request(Api.tenantOrigin(t), 'POST', actionPath(id) + '/versions/' + encodeURIComponent(versionId) + '/deploy', { body: { update_draft: false } })
+    return this.tenantRequest(t, 'POST', actionPath(id) + '/versions/' + encodeURIComponent(versionId) + '/deploy', { body: { update_draft: false } })
   }
 
   testAction(t: SystemTenant, id: string, body: ActionTestRequest): Promise<ActionTestResponse> {
-    return this.request(Api.tenantOrigin(t), 'POST', actionPath(id) + '/test', { body })
+    return this.tenantRequest(t, 'POST', actionPath(id) + '/test', { body })
   }
 
   listActionTriggers(t: SystemTenant): Promise<ActionTriggers> {
-    return this.request(Api.tenantOrigin(t), 'GET', '/api/v2/actions/triggers')
+    return this.tenantRequest(t, 'GET', '/api/v2/actions/triggers')
   }
 
   listActionBindings(t: SystemTenant, trigger: string, q: { page: number; per_page: number }): Promise<ActionBindingsPage> {
-    return this.request(Api.tenantOrigin(t), 'GET', triggerPath(trigger), { query: q })
+    return this.tenantRequest(t, 'GET', triggerPath(trigger), { query: q })
   }
 
   updateActionBindings(t: SystemTenant, trigger: string, bindings: ActionBindingInput[]): Promise<ActionBindings> {
-    return this.request(Api.tenantOrigin(t), 'PATCH', triggerPath(trigger), { body: { bindings } })
+    return this.tenantRequest(t, 'PATCH', triggerPath(trigger), { body: { bindings } })
   }
 
   getActionExecutionAttempt(t: SystemTenant, id: string): Promise<void | { job_id: string; attempt: number }> {
@@ -925,7 +961,7 @@ export class Api {
   }
 
   getActionExecution(t: SystemTenant, id: string): Promise<ActionExecution> {
-    return this.request(Api.tenantOrigin(t), 'GET', '/api/v2/actions/executions/' + encodeURIComponent(id))
+    return this.tenantRequest(t, 'GET', '/api/v2/actions/executions/' + encodeURIComponent(id))
   }
 
   async allActions(t: SystemTenant, triggerId?: string): Promise<Action[]> {
@@ -937,46 +973,46 @@ export class Api {
   }
 
   listEventStreams(t: SystemTenant, q: { from?: string; take: number }): Promise<components['schemas']['EventsListEventStreamsResponseContent']> {
-    return this.request(Api.tenantOrigin(t), 'GET', '/api/v2/event-streams', { query: q })
+    return this.tenantRequest(t, 'GET', '/api/v2/event-streams', { query: q })
   }
   getEventStream(t: SystemTenant, id: string): Promise<EventStream> {
-    return this.request(Api.tenantOrigin(t), 'GET', eventStreamPath(id))
+    return this.tenantRequest(t, 'GET', eventStreamPath(id))
   }
   createEventStream(t: SystemTenant, body: EventStreamCreate): Promise<EventStream> {
-    return this.request(Api.tenantOrigin(t), 'POST', '/api/v2/event-streams', { body })
+    return this.tenantRequest(t, 'POST', '/api/v2/event-streams', { body })
   }
   updateEventStream(t: SystemTenant, id: string, body: EventStreamPatch): Promise<EventStream> {
-    return this.request(Api.tenantOrigin(t), 'PATCH', eventStreamPath(id), { body })
+    return this.tenantRequest(t, 'PATCH', eventStreamPath(id), { body })
   }
   deleteEventStream(t: SystemTenant, id: string): Promise<void> {
-    return this.request(Api.tenantOrigin(t), 'DELETE', eventStreamPath(id))
+    return this.tenantRequest(t, 'DELETE', eventStreamPath(id))
   }
   testEventStream(t: SystemTenant, id: string, body: EventTestRequest): Promise<EventTestResult> {
-    return this.request(Api.tenantOrigin(t), 'POST', eventStreamPath(id) + '/test', { body })
+    return this.tenantRequest(t, 'POST', eventStreamPath(id) + '/test', { body })
   }
   listEventDeliveries(t: SystemTenant, id: string, q: EventDeliveryQuery): Promise<components['schemas']['EventsListEventStreamDeliveriesResponseContent']> {
-    return this.request(Api.tenantOrigin(t), 'GET', eventStreamPath(id) + '/deliveries', { query: q })
+    return this.tenantRequest(t, 'GET', eventStreamPath(id) + '/deliveries', { query: q })
   }
   getEventDelivery(t: SystemTenant, id: string, event: string): Promise<EventDelivery> {
-    return this.request(Api.tenantOrigin(t), 'GET', eventStreamPath(id) + '/deliveries/' + encodeURIComponent(event))
+    return this.tenantRequest(t, 'GET', eventStreamPath(id) + '/deliveries/' + encodeURIComponent(event))
   }
   redeliverEvent(t: SystemTenant, id: string, event: string): Promise<void> {
-    return this.request(Api.tenantOrigin(t), 'POST', eventStreamPath(id) + '/redeliver/' + encodeURIComponent(event))
+    return this.tenantRequest(t, 'POST', eventStreamPath(id) + '/redeliver/' + encodeURIComponent(event))
   }
   redeliverEvents(t: SystemTenant, id: string, body: EventRedelivery): Promise<EventRedelivery> {
-    return this.request(Api.tenantOrigin(t), 'POST', eventStreamPath(id) + '/redeliver', { body })
+    return this.tenantRequest(t, 'POST', eventStreamPath(id) + '/redeliver', { body })
   }
 
   listLogs(t: SystemTenant, q: { page: number; per_page: number; q?: string }): Promise<LogPage> {
-    return this.request(Api.tenantOrigin(t), 'GET', '/api/v2/logs', { query: { ...q, include_totals: true, sort: 'date:-1' } })
+    return this.tenantRequest(t, 'GET', '/api/v2/logs', { query: { ...q, include_totals: true, sort: 'date:-1' } })
   }
 
   tailLogs(t: SystemTenant, from?: string): Promise<LogItem[]> {
-    return this.request(Api.tenantOrigin(t), 'GET', '/api/v2/logs', { query: { from, take: 100 } })
+    return this.tenantRequest(t, 'GET', '/api/v2/logs', { query: { from, take: 100 } })
   }
 
   getLog(t: SystemTenant, id: string): Promise<LogEvent> {
-    return this.request(Api.tenantOrigin(t), 'GET', '/api/v2/logs/' + encodeURIComponent(id))
+    return this.tenantRequest(t, 'GET', '/api/v2/logs/' + encodeURIComponent(id))
   }
 
   logStreamStatus(t: SystemTenant): Promise<StreamStatus[]> {
@@ -984,23 +1020,23 @@ export class Api {
   }
 
   listLogStreams(t: SystemTenant): Promise<LogStream[]> {
-    return this.request(Api.tenantOrigin(t), 'GET', '/api/v2/log-streams')
+    return this.tenantRequest(t, 'GET', '/api/v2/log-streams')
   }
 
   getLogStream(t: SystemTenant, id: string): Promise<LogStream> {
-    return this.request(Api.tenantOrigin(t), 'GET', '/api/v2/log-streams/' + encodeURIComponent(id))
+    return this.tenantRequest(t, 'GET', '/api/v2/log-streams/' + encodeURIComponent(id))
   }
 
   createLogStream(t: SystemTenant, body: LogStreamCreate): Promise<LogStream> {
-    return this.request(Api.tenantOrigin(t), 'POST', '/api/v2/log-streams', { body })
+    return this.tenantRequest(t, 'POST', '/api/v2/log-streams', { body })
   }
 
   updateLogStream(t: SystemTenant, id: string, body: LogStreamPatch): Promise<LogStream> {
-    return this.request(Api.tenantOrigin(t), 'PATCH', '/api/v2/log-streams/' + encodeURIComponent(id), { body })
+    return this.tenantRequest(t, 'PATCH', '/api/v2/log-streams/' + encodeURIComponent(id), { body })
   }
 
   deleteLogStream(t: SystemTenant, id: string): Promise<void> {
-    return this.request(Api.tenantOrigin(t), 'DELETE', '/api/v2/log-streams/' + encodeURIComponent(id))
+    return this.tenantRequest(t, 'DELETE', '/api/v2/log-streams/' + encodeURIComponent(id))
   }
 
   listExecutions(t: SystemTenant, q: { trigger?: string; action?: string; after?: string; take: number }): Promise<SystemExecution[]> {
@@ -1012,11 +1048,11 @@ export class Api {
   }
 
   dailyStats(t: SystemTenant, q: { from: string; to: string }): Promise<LogStat[]> {
-    return this.request(Api.tenantOrigin(t), 'GET', '/api/v2/stats/daily', { query: q })
+    return this.tenantRequest(t, 'GET', '/api/v2/stats/daily', { query: q })
   }
 
   activeUsers(t: SystemTenant): Promise<number> {
-    return this.request(Api.tenantOrigin(t), 'GET', '/api/v2/stats/active-users')
+    return this.tenantRequest(t, 'GET', '/api/v2/stats/active-users')
   }
 
   listTenants(): Promise<SystemTenant[]> {

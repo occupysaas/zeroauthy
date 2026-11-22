@@ -14,6 +14,7 @@ import (
 
 	"github.com/zeroauthy/zeroauthy/internal/identity"
 	"github.com/zeroauthy/zeroauthy/internal/jobs"
+	"github.com/zeroauthy/zeroauthy/internal/orgrules"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/tenant"
@@ -193,8 +194,8 @@ func (h *Handlers) GetJobErrors(w http.ResponseWriter, r *http.Request, id strin
 
 // verificationEmailBody is a POST /jobs/verification-email body.
 type verificationEmailBody struct {
-	userID, clientID string
-	identity         *struct{ userID, provider, connectionID string }
+	userID, clientID, organizationID string
+	identity                         *struct{ userID, provider, connectionID string }
 }
 
 func readVerificationEmailBody(body map[string]json.RawMessage) (*verificationEmailBody, error) {
@@ -210,10 +211,14 @@ func readVerificationEmailBody(body map[string]json.RawMessage) (*verificationEm
 			in.userID, err = b.str(k)
 		case "client_id":
 			in.clientID, err = b.str(k)
+		case "organization_id":
+			in.organizationID, err = b.str(k)
+			if err == nil && !orgrules.ValidID(in.organizationID) {
+				err = badBodyRaw("Invalid organization_id.")
+			}
 		case "identity":
 			in.identity, err = readVerificationIdentity(body[k])
 		default:
-			// organization_id included: there are no organizations.
 			err = badBodyRaw(fmt.Sprintf("Payload validation error: 'Additional properties not allowed: %s'.", k))
 		}
 		if err != nil {
@@ -323,6 +328,13 @@ func (h *Handlers) CreateVerificationEmailJob(w http.ResponseWriter, r *http.Req
 	if u.Email == "" {
 		Fail(w, errTicketNoEmail)
 		return
+	}
+	if err := h.checkVerificationOrganization(r, in.organizationID, u); err != nil {
+		Fail(w, err)
+		return
+	}
+	if in.organizationID != "" {
+		params["organization_id"] = in.organizationID
 	}
 	// The link's domain is chosen now and kept: a later default change does
 	// not retarget the queued job.

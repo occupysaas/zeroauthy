@@ -69,12 +69,12 @@ func (f *Factory) New(ctx context.Context, tenantID string, revision int64, cfg 
 		}
 		if ok {
 			var valid bool
-			port, valid = integerExact(raw)
+			port, valid = SMTPPort(raw)
 			if !valid {
 				return nil, errors.New("email provider: invalid SMTP port")
 			}
 		}
-		if host == "" || port < 1 || port > 65535 {
+		if host == "" {
 			return nil, errors.New("email provider: invalid SMTP settings")
 		}
 		headers, err := normalizeSMTPHeaders(cfg.Settings["headers"])
@@ -308,6 +308,14 @@ func readBoundedResponse(resp *http.Response) ([]byte, error) {
 	return body, nil
 }
 func str(m map[string]any, k string) string { v, _ := m[k].(string); return v }
+
+// SMTPPort accepts the numeric and decimal-string forms in persisted provider
+// configs. New Management API requests validate the JSON integer separately.
+func SMTPPort(v any) (int, bool) {
+	port, ok := integerExact(v)
+	return port, ok && port >= 1 && port <= 65535
+}
+
 func integerExact(v any) (int, bool) {
 	switch n := v.(type) {
 	case int:

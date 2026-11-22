@@ -109,19 +109,19 @@ func (h *Handlers) deviceCodeGrant(ctx context.Context, res tenant.Resolved, c *
 		if absolute > 0 {
 			expiresAt = now.UTC().Add(absolute)
 		}
-		rt, raw = h.newRefreshToken(c, tenantID, refreshGrant{
+		rt, raw = h.newRefreshToken(ctx, c, tenantID, refreshGrant{
+
 			origin:   res.Origin(),
 			familyID: familyForDevice(hash), userID: user.UserID, audience: dc.Audience, scopes: ceiling, expiresAt: expiresAt,
 		})
 	}
-	// The user approved at /activate, possibly long ago, so there is no
-	// Version to compare (D-0043); the user must still exist and not be
-	// blocked when the tokens are minted.
-	err = h.mintTx(ctx, tenantID, user.UserID, nil, func(tx store.Store) error {
+	// Compare the revision sampled by this redemption, after the earlier
+	// browser authorization or device approval.
+	err = h.mintTx(ctx, tenantID, user.UserID, &user.Version, func(tx store.Store) error {
 		if rt == nil {
 			return nil
 		}
-		return tx.RefreshTokens().Create(ctx, rt)
+		return createInitialRefresh(ctx, tx, rt)
 	})
 	switch {
 	case errors.Is(err, errUserChanged):

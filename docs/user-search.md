@@ -10,6 +10,11 @@ decision D-0043 of [compat/decisions.md](compat/decisions.md).
 refused with `400 operation_not_supported`; any other value is
 `400 invalid_query_string`.
 
+The `connection` query parameter is an Auth0 v1-only filter. The supported
+engines ignore it after checking that it contains valid UTF-8 without NUL
+characters. Invalid text returns `400 invalid_query_string`. To find users
+with an identity on a connection, use `q=identities.connection:"connection_name"`.
+
 ```bash
 curl -G "https://login.acme.example/api/v2/users" \
   -H "Authorization: Bearer $TOKEN" \

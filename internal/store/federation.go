@@ -24,6 +24,12 @@ type MicrosoftFederationSupporter interface {
 	MicrosoftFederationSupported(context.Context) error
 }
 
+// GitHubFederationSupporter is an optional read-only capability probe. A
+// driver must index github identities by their canonical numeric subject.
+type GitHubFederationSupporter interface {
+	GitHubFederationSupported(context.Context) error
+}
+
 var canonicalMicrosoftGUID = regexp.MustCompile(`^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$`)
 
 // Federation attempt states.
@@ -44,10 +50,11 @@ type FederatedIdentityKey struct {
 // FederationEndpoints is the provider endpoint snapshot pinned when an
 // attempt starts; the callback never rediscovers them.
 type FederationEndpoints struct {
-	AuthorizationURL string
-	TokenURL         string
-	JWKSURL          string
-	UserInfoURL      string
+	PKCEMethod, ResponseType, PAREndpoint string
+	AuthorizationURL                      string
+	TokenURL                              string
+	JWKSURL                               string
+	UserInfoURL                           string
 	// TokenAuthMethod is client_secret_basic or client_secret_post.
 	TokenAuthMethod string
 	// PKCES256 records explicit metadata support (Apple auto policy).
@@ -178,8 +185,8 @@ func (UnimplementedFederation) DeleteExpired(context.Context, time.Time) (int, e
 func IsFederatedProvider(provider string) bool { return rules.IsFederated(provider) }
 
 // FederatedSubject returns the upstream subject of a federated identity and
-// true, or ("", false, nil) for any other identity. Apple, Google and personal
-// Microsoft identities carry the raw subject in UserID; OAuth2, OIDC and Entra carry
+// true, or ("", false, nil) for any other identity. Apple, GitHub, Google and
+// personal Microsoft identities carry the raw subject in UserID; OAuth2, OIDC and Entra carry
 // "<connection-name>|<subject>", and only that fixed prefix is stripped, so
 // the subject may itself contain "|". A malformed identity is ErrInvalid.
 func (id *Identity) FederatedSubject() (string, bool, error) {
@@ -187,7 +194,7 @@ func (id *Identity) FederatedSubject() (string, bool, error) {
 		return "", false, nil
 	}
 	sub := id.UserID
-	if id.Provider != rules.Google && id.Provider != rules.WindowsLive && id.Provider != rules.Apple {
+	if !rawSubjectProvider(id.Provider) {
 		rest, ok := strings.CutPrefix(id.UserID, id.Connection+"|")
 		if !ok || id.Connection == "" {
 			return "", true, fmt.Errorf("%w: %s identity user_id must start with %q", ErrInvalid, id.Provider, id.Connection+"|")
@@ -200,11 +207,17 @@ func (id *Identity) FederatedSubject() (string, bool, error) {
 	return sub, true, nil
 }
 
+// rawSubjectProvider reports whether a provider's identity user_id is the bare
+// upstream subject rather than "<connection>|<subject>".
+func rawSubjectProvider(provider string) bool {
+	return provider == rules.Google || provider == rules.WindowsLive || provider == rules.Apple || provider == rules.GitHub
+}
+
 // FederatedPublicID returns the local public user ID of a federated identity:
-// "apple|<sub>", "google-oauth2|<sub>", "oauth2|<connection>|<sub>" or
+// "apple|<sub>", "github|<id>", "google-oauth2|<sub>", "oauth2|<connection>|<sub>" or
 // "oidc|<connection>|<sub>", "windowslive|<sub>" or "waad|<connection>|<subject>".
 func FederatedPublicID(provider, connection, subject string) string {
-	if provider == rules.Google || provider == rules.WindowsLive || provider == rules.Apple {
+	if rawSubjectProvider(provider) {
 		return provider + "|" + subject
 	}
 	return provider + "|" + connection + "|" + subject
@@ -252,6 +265,9 @@ func ResolveFederatedKeys(u *User, byName func(name string) (*Connection, error)
 			if !canonicalMicrosoftGUID.MatchString(oid) {
 				return nil, fmt.Errorf("%w: invalid Microsoft identity object", ErrInvalid)
 			}
+		}
+		if c.Strategy == rules.GitHub && !rules.ValidGitHubSubject(sub) {
+			return nil, fmt.Errorf("%w: github identity user_id must be a canonical positive decimal integer", ErrInvalid)
 		}
 		out = append(out, FederatedIdentityKey{TenantID: u.TenantID, ConnectionID: c.ID, Subject: sub})
 	}

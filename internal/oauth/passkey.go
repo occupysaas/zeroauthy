@@ -430,3 +430,35 @@ func (h *Handlers) nativeFailureBudget(ctx context.Context, res tenant.Resolved,
 	}
 	return nil
 }
+
+// Revalidate the exact first-factor RP/client/realm binding in the transaction
+// granting membership and consuming MFA proof. A legacy passkey continuation
+// without this evidence must restart authentication rather than infer a binding.
+func (h *Handlers) checkPasskeyCompletion(ctx context.Context, tx store.Store, res tenant.Resolved, clientID, connectionID string, binding *passkey.Binding) error {
+	if binding == nil {
+		return errUserChanged
+	}
+	c, err := tx.Clients().Get(ctx, res.Tenant.ID, clientID)
+	if err != nil {
+		return err
+	}
+	if !c.IsFirstParty || !slices.Contains(c.GrantTypes, clientrules.GrantPasskey) {
+		return errUserChanged
+	}
+	tn, err := tx.Tenants().Get(ctx, res.Tenant.ID)
+	if err != nil {
+		return err
+	}
+	res.Tenant = tn
+	local := *h
+	local.Store = tx
+	conn, rp, org, e := local.nativeSetup(ctx, res, c, url.Values{"realm": {binding.Realm}, "organization": {binding.Organization}})
+	if e != nil || conn.ID != connectionID {
+		return errUserChanged
+	}
+	current := nativeBinding(conn, rp, c, org)
+	if current.RPID != binding.RPID || current.Realm != binding.Realm || current.ClientID != binding.ClientID || current.Organization != binding.Organization || !slices.Equal(current.Origins, binding.Origins) {
+		return errUserChanged
+	}
+	return nil
+}

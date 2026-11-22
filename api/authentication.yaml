@@ -95,6 +95,11 @@ paths:
         If the browser has a valid session, the authorization code is returned
         immediately. Otherwise the user is sent to the hosted login page.
 
+        Use `online_access` to request a refresh token bound to the login
+        session for an API that enables online access. A request for both
+        `online_access` and `offline_access` returns `invalid_request` before
+        a login transaction is created (D-0070).
+
         Responses are delivered according to `response_mode`: `query`
         (default), `fragment`, `form_post` (an auto-submitting form), or
         `web_message` (a page that posts the response to the application's
@@ -117,6 +122,7 @@ paths:
         - https://openid.net/specs/oauth-v2-form-post-response-mode-1_0.html
         - https://datatracker.ietf.org/doc/html/draft-sakimura-oauth-wmrm-00
         - https://auth0.com/docs/api/authentication
+        - https://auth0.com/docs/secure/tokens/refresh-tokens/online-refresh-tokens/online-refresh-tokens
       parameters:
         - {name: client_id, in: query, schema: {type: string}, description: The application's client ID.}
         - {name: redirect_uri, in: query, schema: {type: string}, description: A callback URL registered for the application.}
@@ -125,6 +131,9 @@ paths:
         - {name: scope, in: query, schema: {type: string}, description: "Space-separated scopes, e.g. `openid profile email`."}
         - {name: state, in: query, schema: {type: string}, description: Opaque value returned unchanged.}
         - {name: nonce, in: query, schema: {type: string}, description: Value copied into the ID token.}
+        - {name: claims, in: query, schema: {type: string, maxLength: 4096, x-max-bytes: 4096}, description: 'JSON OIDC claims request; never widens scope consent (D-0080).'}
+        - {name: acr_values, in: query, schema: {type: string}, description: Space-separated authentication context values. The multi-factor policy value requests MFA step-up.}
+        - {name: resource, in: query, schema: {type: array, items: {type: string}}, description: 'Audience alias under the tenant compatibility resource profile; multiple values fail with invalid_target (D-0080).'}
         - {name: audience, in: query, schema: {type: string}, description: Identifier of the API to issue an access token for.}
         - {name: prompt, in: query, schema: {type: string}, description: "`none` (fail instead of showing login) or `login` (force login)."}
         - {name: max_age, in: query, schema: {type: string}, description: Maximum authentication age in seconds.}
@@ -134,6 +143,7 @@ paths:
         - {name: login_hint, in: query, schema: {type: string}, description: Prefills the login identifier.}
         - {name: screen_hint, in: query, schema: {type: string}, description: "`signup` opens the signup page."}
         - {name: ui_locales, in: query, schema: {type: string}, description: "Space-separated preferred languages; the first entry selects the hosted page language if the tenant enables it."}
+        - {name: dpop_jkt, in: query, schema: {type: string, minLength: 43, maxLength: 43}, description: RFC 9449 authorization-code key thumbprint.}
         - {name: request_uri, in: query, schema: {type: string}, description: "A `urn:ietf:params:oauth:request_uri:` value from `/oauth/par`. The pushed request replaces every other parameter except `client_id`, which must match."}
         - {name: request, in: query, schema: {type: string}, description: "A signed request object (JAR, RFC 9101): a JWS signed with RS256, RS384 or PS256 by a credential of the application's `signed_request_object`. Its parameters win over the query; `client_id` in the query must equal its `iss`. A bad signature or claim is `invalid_request_object`; an unsigned object (`alg` none) is refused with `request_not_supported` (LR35-4, D-0063). An application whose `signed_request_object.required` is true must send one (`invalid_request`)."}
         - {name: organization, in: query, schema: {type: string}, description: "An organization ID, or its name while the tenant's `allow_organization_name_in_authentication_api` is on (the ID is matched first). An empty value counts as absent. Refused with `invalid_request` when the application's `organization_usage` is `deny`, when the organization is unknown, or when a name is sent while names are off; a third-party application facing an organization that blocks third-party access gets `access_denied`. An application with `organization_usage` `require` and `no_prompt` must send one. With `request_uri`, only the pushed value counts (D-0055)."}
@@ -176,6 +186,7 @@ paths:
         repeated parameter is a JSON `invalid_request`, as for GET.
       x-source:
         - https://openid.net/specs/openid-connect-core-1_0.html#AuthorizationEndpoint
+        - https://auth0.com/docs/secure/tokens/refresh-tokens/online-refresh-tokens/online-refresh-tokens
       requestBody:
         required: true
         content:
@@ -216,6 +227,46 @@ paths:
                 $ref: "#/components/schemas/OAuthError"
         default:
           $ref: "#/components/responses/ServerError"
+  /oauth/global-token-revocation/connection/{connectionName}:
+    post:
+      operationId: globalTokenRevocation
+      tags: [Tokens]
+      summary: End a federated user's sessions and revoke refresh tokens
+      description: Authenticates a short-lived, single-use upstream issuer JWT. Subject resolution is restricted to the named enterprise OIDC connection. Unknown subjects succeed without revealing their existence (D-0080).
+      x-source:
+        - https://auth0.com/docs/authenticate/login/logout/universal-logout
+        - https://datatracker.ietf.org/doc/html/draft-parecki-oauth-global-token-revocation
+      security: [{globalRevocationJWT: []}]
+      parameters:
+        - name: connectionName
+          in: path
+          required: true
+          schema: {type: string}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [sub_id]
+              properties:
+                sub_id:
+                  type: object
+                  additionalProperties: false
+                  required: [format]
+                  description: iss_sub requires iss and sub; email requires email. Only identities belonging to this connection are considered.
+                  properties:
+                    format: {type: string, enum: [iss_sub, email]}
+                    iss: {type: string}
+                    sub: {type: string}
+                    email: {type: string}
+      responses:
+        "204": {description: Revoked or unknown subject.}
+        "400": {description: Malformed request.}
+        "401": {description: Invalid or replayed upstream revocation JWT.}
+        "404": {description: Unknown or unsupported connection.}
+        "500": {description: Revocation could not commit; no partial revocation was applied.}
   /oauth/token:
     post:
       x-mfa-grants:
@@ -229,6 +280,10 @@ paths:
       summary: Get a token
       description: |
         Exchanges a grant for tokens. The body may be form-encoded or JSON.
+        RFC 9449 DPoP proofs use the DPoP header. Public clients receive a
+        use_dpop_nonce challenge with DPoP-Nonce before grant consumption.
+        Bound access tokens report token_type DPoP and cnf.jkt; refresh
+        key binding is enforced independently of the API access policy.
 
         **Supported grant types**
 
@@ -236,7 +291,7 @@ paths:
         |---|---|
         | `authorization_code` | Exchange a code from `/authorize` (with `code_verifier` when PKCE was used) for an access token and, with scope `openid`, an ID token |
         | `client_credentials` | Machine-to-machine access token for `audience` |
-        | `refresh_token` | Exchange a refresh token (from a request with scope `offline_access`) for new tokens. Rotating refresh tokens return a new `refresh_token`; reusing a rotated token revokes all tokens derived from the same login. `scope` may narrow the original scopes. |
+        | `refresh_token` | Exchange a refresh token for new tokens. Rotation returns a new `refresh_token`. Only the immediately previous rotating token may be reused within the configured overlap period. An eligible first-party client can request an API and scopes allowed by its refresh token policies. |
         | `password` | Resource owner password: exchange `username` and `password` for tokens. When `realm` is given, the user is looked up in that database connection (which must be enabled for the client), as with the password-realm grant. Otherwise the tenant's default directory (`default_directory`) is used, and a tenant without one rejects the request with `invalid_request`. |
         | `http://auth0.com/oauth/grant-type/password-realm` | As `password`, but `realm` names the database connection to use. The connection must be enabled for the client. |
         | `http://auth0.com/oauth/grant-type/passwordless/otp` | Exchange a passwordless code: `realm` (`email` or `sms`), `username` (the email or E.164 number) and `otp`. The client must have the grant enabled. Same MFA decision as password grants. `redirect_uri` is validated when sent (D-0060 P11). |
@@ -273,6 +328,17 @@ paths:
         secret, and only when it is an IP address; otherwise the request's
         own address is used.
 
+        **Online refresh tokens (D-0070).** Public clients must present a
+        valid DPoP proof when redeeming the authorization code for an online
+        refresh token and on each refresh exchange. Each exchange reuses
+        the token and resets the session idle timeout up to its absolute
+        expiry.
+
+        **Client-credentials quotas (D-0070).** A successful exchange or
+        quota refusal includes headers for the quotas that apply to the
+        authenticated client and its organization. Exceeding an enforced
+        limit returns `429` with `too_many_requests` and the reset time.
+
         **Client authentication.** Confidential clients authenticate with
         the method they are registered with: `client_secret_post`
         (`client_id` and `client_secret` in the body) or
@@ -302,12 +368,19 @@ paths:
         - https://www.rfc-editor.org/rfc/rfc6749#section-6
         - https://auth0.com/docs/secure/tokens/refresh-tokens/use-refresh-tokens
         - https://auth0.com/docs/secure/tokens/refresh-tokens/refresh-token-rotation
+        - https://auth0.com/docs/secure/tokens/refresh-tokens/configure-refresh-token-rotation
+        - https://auth0.com/docs/secure/tokens/refresh-tokens/multi-resource-refresh-token/configure-and-implement-multi-resource-refresh-token
+        - https://auth0.com/docs/secure/tokens/refresh-tokens/online-refresh-tokens/online-refresh-tokens
+        - https://www.rfc-editor.org/rfc/rfc9449
+        - https://auth0.com/docs/fine-grained-m2m-token-quotas
         - https://www.rfc-editor.org/rfc/rfc6749#section-4.3
         - https://auth0.com/docs/api/authentication/resource-owner-password-flow/get-token
         - https://auth0.com/docs/api/authentication/passwordless/authenticate-user
       security:
         - clientSecretBasic: []
         - {}
+      parameters:
+        - {name: DPoP, in: header, schema: {type: string, maxLength: 16384}, description: RFC 9449 compact proof JWT.}
       requestBody:
         required: true
         content:
@@ -323,6 +396,10 @@ paths:
           headers:
             Cache-Control:
               schema: {type: string, const: no-store}
+            Auth0-Client-Quota-Limit:
+              $ref: "#/components/headers/ClientQuotaLimit"
+            Auth0-Organization-Quota-Limit:
+              $ref: "#/components/headers/OrganizationQuotaLimit"
           content:
             application/json:
               schema:
@@ -342,7 +419,30 @@ paths:
         "404":
           $ref: "#/components/responses/UnknownTenant"
         "429":
-          $ref: "#/components/responses/OAuthErrorResponse"
+          description: |
+            A request rate limit or enforced client-credentials quota was
+            exceeded. A quota refusal uses `too_many_requests` and describes
+            which subject exceeded its quota.
+          headers:
+            Auth0-Client-Quota-Limit:
+              $ref: "#/components/headers/ClientQuotaLimit"
+            Auth0-Organization-Quota-Limit:
+              $ref: "#/components/headers/OrganizationQuotaLimit"
+            X-RateLimit-Limit:
+              description: The exhausted bucket's configured limit.
+              schema: {type: integer}
+            X-RateLimit-Remaining:
+              description: Remaining capacity in the exhausted bucket, zero on quota refusal.
+              schema: {type: integer}
+            X-RateLimit-Reset:
+              description: The earliest exhausted bucket's reset as Unix time in seconds.
+              schema: {type: integer, format: int64}
+            Retry-After:
+              description: Seconds until the exhausted quota resets.
+              schema: {type: integer}
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/OAuthError"}
         default:
           $ref: "#/components/responses/ServerError"
   /oauth/revoke:
@@ -352,14 +452,19 @@ paths:
       summary: Revoke a refresh token
       description: |
         Revokes a refresh token together with every refresh token derived
-        from the same login (its rotation family). The client authenticates
-        as at `/oauth/token`. An unknown token is not an error (RFC 7009),
-        so the response does not reveal whether a token existed. Access
-        tokens are self-contained JWTs and cannot be revoked; they expire.
+        from the same login (its rotation family). If the tenant enables
+        `flags.revoke_refresh_token_grant`, it also deletes the associated
+        user grant and revokes the refresh tokens issued under that grant.
+        Revoking an online refresh token ends its login session and
+        invalidates every online refresh token associated with it.
+        The client authenticates as at `/oauth/token`. Unknown tokens get
+        the same success response (RFC 7009). The self-contained JWT access
+        tokens remain valid until they expire.
       x-source:
         - https://www.rfc-editor.org/rfc/rfc7009
         - https://auth0.com/docs/api/authentication
         - https://auth0.com/docs/secure/tokens/refresh-tokens/revoke-refresh-tokens
+        - https://auth0.com/docs/secure/tokens/refresh-tokens/online-refresh-tokens/configure-online-refresh-tokens
       security:
         - clientSecretBasic: []
         - {}
@@ -402,6 +507,7 @@ paths:
         push satisfies `signed_request_object.required`.
         Invitation and organization are bound exactly as at authorize; resume or request_uri parameters cannot replace the original ticket binding (D-0056).
       x-source:
+        - https://www.rfc-editor.org/rfc/rfc9449
         - https://www.rfc-editor.org/rfc/rfc9126
         - https://auth0.com/docs/get-started/authentication-and-authorization-flow/authorization-code-flow/authorization-code-flow-with-par
         - https://auth0.com/docs/get-started/applications/configure-par
@@ -410,6 +516,8 @@ paths:
       security:
         - clientSecretBasic: []
         - {}
+      parameters:
+        - {name: DPoP, in: header, schema: {type: string, maxLength: 16384}, description: Optional RFC 9449 PAR key binding.}
       requestBody:
         required: true
         content:
@@ -503,11 +611,13 @@ paths:
         nickname and updated_at always); `email` adds email and
         email_verified.
       x-source:
+        - https://www.rfc-editor.org/rfc/rfc9449
         - https://openid.net/specs/openid-connect-core-1_0.html#UserInfo
         - https://www.rfc-editor.org/rfc/rfc6750#section-2.1
         - https://auth0.com/docs/api/authentication
       security:
         - bearerAuth: []
+        - dpopAuth: []
       responses:
         "200":
           description: The user's claims.
@@ -541,10 +651,12 @@ paths:
         Sending it both ways, or more than once, is an `invalid_request`
         (400).
       x-source:
+        - https://www.rfc-editor.org/rfc/rfc9449
         - https://openid.net/specs/openid-connect-core-1_0.html#UserInfo
         - https://www.rfc-editor.org/rfc/rfc6750#section-2.2
       security:
         - bearerAuth: []
+        - dpopAuth: []
         - {}
       requestBody:
         required: false
@@ -1282,11 +1394,31 @@ paths:
         is not planned.
 
 components:
+  headers:
+    ClientQuotaLimit:
+      description: |
+        Applying client quota buckets for the client-credentials grant.
+        Each entry gives the bucket (b), quota (q), remaining tokens (r)
+        and seconds until reset (t). Hourly entries precede daily entries.
+      schema: {type: string}
+    OrganizationQuotaLimit:
+      description: |
+        Applying organization quota buckets for the client-credentials grant,
+        in the same format as the client quota header.
+      schema: {type: string}
   securitySchemes:
+    globalRevocationJWT:
+      type: http
+      scheme: bearer
+      bearerFormat: global-token-revocation+jwt
+      description: Signed by the connection issuer with pinned JWKS; tenant issuer audience; exp required and at most five minutes ahead; single-use jti.
     clientSecretBasic:
       type: http
       scheme: basic
       description: Client ID and secret, each form-urlencoded, as HTTP Basic credentials.
+    dpopAuth:
+      type: http
+      scheme: DPoP
     bearerAuth:
       type: http
       scheme: bearer
@@ -1497,9 +1629,13 @@ components:
         scope: {type: string}
         state: {type: string}
         nonce: {type: string}
+        claims: {type: string, maxLength: 4096, x-max-bytes: 4096, description: JSON OIDC claims request (Core section 5.5).}
+        acr_values: {type: string}
+        resource: {type: string}
         audience: {type: string}
         prompt: {type: string}
         max_age: {type: string}
+        dpop_jkt: {type: string, minLength: 43, maxLength: 43}
         code_challenge: {type: string}
         code_challenge_method: {type: string}
         connection: {type: string}
@@ -1699,7 +1835,7 @@ components:
           type: string
     PushedAuthorizationRequest:
       type: object
-      description: The `/authorize` parameters, plus client authentication (`client_id`, `client_secret`) and up to 10 `ext-` parameters.
+      description: The `/authorize` parameters (including dpop_jkt), plus client authentication (`client_id`, `client_secret`) and up to 10 `ext-` parameters.
       properties:
         client_id: {type: string}
         client_secret: {type: string}
@@ -1710,6 +1846,9 @@ components:
         redirect_uri: {type: string}
         scope: {type: string}
         state: {type: string}
+        claims: {type: string, maxLength: 4096, x-max-bytes: 4096, description: JSON OIDC claims request (Core section 5.5).}
+        acr_values: {type: string}
+        resource: {type: string}
         audience: {type: string}
       additionalProperties: {type: string}
     DeviceCodeRequest:
@@ -1824,12 +1963,26 @@ components:
         requested_token_type:
           type: string
           description: Optional RFC 8693 token type to issue (token-exchange grant). The Action sees it as `event.transaction.requested_token_type`.
+        resource:
+          oneOf:
+            - {type: string}
+            - {type: array, items: {type: string}}
+          description: Under resource_parameter_profile compatibility, aliases audience when absent; conflicting audience is invalid_request and multiple resources are invalid_target (D-0080).
         audience:
           type: string
-          description: Identifier of the API the token is for. Defaults to the tenant's default audience.
+          description: |
+            Identifier of the API the token is for. On the refresh grant it
+            defaults to the refresh token's original audience. A different
+            audience must be allowed by the client's refresh token policies
+            (D-0070). Other grants use the tenant's default audience when
+            applicable.
         scope:
           type: string
-          description: Space-separated scopes to request. Defaults to all scopes granted to the client.
+          description: |
+            Space-separated scopes to request. On the refresh grant the
+            original scopes and any applicable refresh token policy determine
+            the scopes that can be issued. On the client-credentials grant the
+            default is all scopes granted to the client.
         code:
           type: string
           description: Authorization code (grant_type=authorization_code).
@@ -1873,7 +2026,7 @@ components:
           type: string
         token_type:
           type: string
-          examples: [Bearer]
+          examples: [Bearer, DPoP]
         expires_in:
           type: integer
           minimum: 0
@@ -1897,6 +2050,7 @@ components:
         - subject_types_supported
         - id_token_signing_alg_values_supported
       properties:
+        dpop_signing_alg_values_supported: {type: array, items: {type: string, enum: [ES256, RS256]}}
         issuer: {type: string, format: uri}
         authorization_endpoint: {type: string, format: uri}
         token_endpoint: {type: string, format: uri}
@@ -1908,7 +2062,11 @@ components:
         request_object_signing_alg_values_supported: {type: array, items: {type: string, enum: [RS256, RS384, PS256]}, description: Algorithms accepted for request objects; present when the store supports client credentials.}
         token_endpoint_auth_signing_alg_values_supported: {type: array, items: {type: string, enum: [RS256, RS384, PS256]}, description: Algorithms accepted for client assertions; present when the store supports client credentials.}
         jwks_uri: {type: string, format: uri}
-        end_session_endpoint: {type: string, format: uri}
+        global_token_revocation_endpoint: {type: string, description: "Connection-specific endpoint template with literal {connectionName}."}
+        global_token_revocation_endpoint_auth_methods_supported: {type: array, items: {type: string, enum: [global-token-revocation+jwt]}}
+        backchannel_logout_supported: {type: boolean, description: Advertised when oidc_logout.v1 client settings are available.}
+        backchannel_logout_session_supported: {type: boolean}
+        end_session_endpoint: {type: string, format: uri, description: Omitted when the tenant disables RP logout discovery; the endpoint remains available.}
         response_types_supported: {type: array, items: {type: string}}
         subject_types_supported: {type: array, items: {type: string}}
         id_token_signing_alg_values_supported: {type: array, items: {type: string}}
@@ -1918,6 +2076,8 @@ components:
         response_modes_supported: {type: array, items: {type: string}}
         code_challenge_methods_supported: {type: array, items: {type: string}}
         scopes_supported: {type: array, items: {type: string}}
+        acr_values_supported: {type: array, items: {type: string}, description: Effective supported authentication contexts; defaults to the multi-factor PAPE policy value.}
+        claims_parameter_supported: {type: boolean, description: Present and true unless the claims-parameter compatibility switch is enabled (D-0080).}
         claims_supported: {type: array, items: {type: string}}
     JWKS:
       type: object

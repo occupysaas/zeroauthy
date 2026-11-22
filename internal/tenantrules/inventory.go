@@ -92,6 +92,7 @@ const inventory = `{
       }
     },
     "default_token_quota": {
+      "description": "Fallback client-credentials quotas enforced by Plan 48 when a client or organization has no override.",
       "type": [
         "object",
         "null"
@@ -221,7 +222,9 @@ const inventory = `{
           "type": "boolean"
         },
         "revoke_refresh_token_grant": {
-          "type": "boolean"
+          "type": "boolean",
+          "default": false,
+          "description": "When enabled, OAuth refresh token revocation also deletes the associated user grant."
         },
         "dashboard_log_streams_next": {
           "type": "boolean"
@@ -655,6 +658,7 @@ const inventory = `{
       }
     },
     "oidc_logout": {
+ "description": "D-0080: active RP-initiated logout endpoint discovery control.",
       "type": "object",
       "additionalProperties": false,
       "properties": {
@@ -679,6 +683,7 @@ const inventory = `{
       "default": false
     },
     "acr_values_supported": {
+ "description": "D-0080: active; intersected with supported authentication contexts for discovery and step-up.",
       "type": [
         "array",
         "null"
@@ -721,7 +726,7 @@ const inventory = `{
         "boolean",
         "null"
       ],
-      "default": false
+      "default": true
     },
     "skip_non_verifiable_callback_uri_confirmation_prompt": {
       "type": [
@@ -730,6 +735,7 @@ const inventory = `{
       ]
     },
     "resource_parameter_profile": {
+ "description": "D-0080: active resource/audience normalization at authorize, PAR and token endpoints.",
       "type": "string",
       "default": "audience",
       "enum": [

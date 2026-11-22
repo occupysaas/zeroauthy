@@ -18,6 +18,12 @@ them. Each entry: context, sources consulted, decision, rationale.
 - **Decision:** Implement the eight documented Management operations and nine executable provider names, while keeping `custom` disabled until Actions exists. Keep credentials write-only and envelope-encrypted. Store all fourteen SDK template names; only `reset_email` drives reset-link delivery, with legacy names separate. Treat absent live evidence as unavailable and use the inventory's explicitly labeled local fallbacks.
 - **Rationale:** This follows documented routes and resource shape without claiming that local security and lifecycle choices were observed upstream.
 
+- **Plan 45b amendment (LR45b-3):** The provider read returns configured
+  `api_user`, `region`, `smtp_host`, `smtp_port`, and `smtp_user` in
+  `credentials`. It supports top-level `fields` and `include_fields`. The
+  existing write allowlists still apply. Other credential members remain
+  sealed and excluded from the credential projection.
+
 - **D-0047 implementation addendum (2026-10-25):** The nine named providers
   use local protocol adapters; `custom` remains stored-only. The bounded
   renderer is an original restricted evaluator, so no Liquid dependency or
@@ -133,11 +139,13 @@ them. Each entry: context, sources consulted, decision, rationale.
 - **Context:** Public docs describe refresh token rotation, reuse detection and expiration settings. They do not pin down every condition for issuing a token or every default.
 - **Sources:** RFC 6749 §6; OAuth 2.0 Security BCP (RFC 9700) §4.14 (refresh token protection) and §4.5 (code replay); https://auth0.com/docs/secure/tokens/refresh-tokens/refresh-token-rotation; https://auth0.com/docs/secure/tokens/refresh-tokens/configure-refresh-token-expiration.
 - **Decision:**
-  - **Issuance:** a refresh token is issued only when all of these hold:
+  - **Offline issuance:** an offline refresh token is issued only when all of these hold:
     - `offline_access` is requested;
     - the client's `grant_types` include `refresh_token`;
     - either no API is the audience, or the API allows offline access.
     The response's `scope` then includes `offline_access`.
+  - **Online issuance:** D-0070 defines the session-bound token requested by
+    `online_access`.
   - **Policy:**
     - `rotation_type` defaults to `rotating` for SPAs and `non-rotating` otherwise.
     - Rotating tokens must expire.
@@ -145,7 +153,10 @@ them. Each entry: context, sources consulted, decision, rationale.
     - Expiring tokens default to an absolute lifetime of 31557600 s (the documented maximum, since no default is documented) and an idle lifetime of 2592000 s (the documented default).
   - **Rotation:**
     - Each exchange returns a new token in the same family. It inherits the absolute expiry and starts a new idle period.
-    - Presenting a rotated token again after the `leeway` (default 0 s) revokes the whole family and returns `invalid_grant`.
+    - Within the `leeway` (default 0 s), only the parent of the family's
+      newest live token may be exchanged again. Reusing an older rotated
+      token or reusing one after its leeway revokes the whole family and
+      returns `invalid_grant` (D-0070).
   - **Code replay:** a replayed authorization code revokes the family started from it.
 - **Rationale:** These follow the documented settings and the security BCP. Rotation and reuse detection are a single atomic store operation, so concurrent requests cannot fork a family.
 
@@ -574,6 +585,8 @@ them. Each entry: context, sources consulted, decision, rationale.
   - Expected-skip entries cannot pin a reason: the suite's skip format has no condition field, so an entry matches the module whatever caused the skip.
 - **Rationale:** each item is either Auth0 parity (rows 3, 4), a choice following D-0013 (row 9), or a feature that does not block certification, so it becomes a follow-up rather than a compatibility switch.
 
+- **Plan 41a contract amendment (D-0080):** claims, MFA step-up, phone/address and present profile attributes are implementation targets. Expected-warning/skip entries remain in place until Task 13 demonstrates the changed module results. Profile attributes absent on a database user remain omitted. Implicit/Hybrid eligibility is checked separately; no profile is claimed from source inspection alone.
+
 ## D-0037: Additive spec behaviours: POST /authorize and form-encoded access token at /userinfo
 
 - **Context:** The spec allows two request shapes that zeroauthy did not accept. The maintainer's rule: support both where Auth0 clients are unaffected.
@@ -744,19 +757,31 @@ them. Each entry: context, sources consulted, decision, rationale.
   - **User shape:** as U1. `name` defaults to the email, `nickname` to its local part; `blocked`, names and metadata are absent until set; login fields appear after the first login. New user IDs are `auth0|` and 24 lowercase hex characters. A supplied `user_id` (`^\S*$`, at most 255) is always prefixed with `auth0|`.
   - **Errors:** duplicate user `409 auth0_idp_error`; weak password `400` without `errorCode` (`PasswordStrengthError: …`); username or phone on a connection without them, and email with password in one `PATCH`, `400 operation_not_supported`; malformed user ID (not `provider|id`) `400 invalid_uri`; unknown user `404 inexistent_user`; unknown session or refresh token `404` without `errorCode`.
   - **Update:** top-level metadata merge, `null` deletes a key, nested objects replaced, `{}` empties; an email change clears `email_verified` unless the body sets it. Neither a password change nor `blocked: true` revokes sessions or refresh tokens; a blocked user's refresh and password grants answer `invalid_grant` "user is blocked".
+  - **Nullable updates (Plan 45b, D-0270 B2/B3):** `null` clears `email`, `phone_number`, `username`, `given_name`, `family_name`, `name`, `nickname` or `picture` on the root profile. Clearing email or phone also clears its verification flag. Required identifiers and the last active login identifier return `400 invalid_body`. `verify_phone_number: true` sends a Plan 34 verification code after the profile commit. `false` does not send. Delivery leaves `phone_verified` unchanged, and a delivery error leaves the committed update in place.
   - **Delete:** `204`, also for an unknown well-formed ID; the cascade of users design §4.
   - **Search:** the U4 semantics, including: case-insensitive exact match on root fields, case-sensitive on metadata; bare terms over `name`, `given_name`, `family_name`, `nickname` and the email's local part and domain; juxtaposition is `OR`; `NOT` on a root string field excludes users without the field, elsewhere absent counts as not matching; leading, trailing and bare wildcards on root fields, none on metadata; ranges on `logins_count` and the dates only; `search_engine` absent, `v2` or `v3` all mean v3, `v1` is `400 operation_not_supported`; search errors `400` without `errorCode` and with Auth0's `invalid query: …` messages; sort pattern `field:1|-1`, unknown sort fields ignored; default order `last_login` descending, never-logged-in last; the 1000-record paging limit (`400 invalid_paging`).
   - **users-by-email:** case-sensitive match on the stored (lowercase) email.
+  - **Connection search (Plan 45b, D-0270):** Auth0's `connection` parameter applies only to v1, which zeroauthy rejects. The default engine, `v2` and `v3` ignore `connection` after validating its text. Use `q=identities.connection:"connection_name"` to match any identity on the named connection.
   - **Linking:** the secondary record is removed and its identity moves to the primary with `profileData` `{email, email_verified}`; logins through it resolve to the primary. **Unlink recreates the secondary from `profileData` only**, with a new `created_at` and no names, picture or metadata, as Auth0 does. Unlinking an identity that is not linked is `200`. `link_with` needs `aud` = the calling client's ID.
-  - **Sessions and refresh tokens:** the U8 objects; newest first; checkpoint paging only (`take` 1–100, default 50; `next` on every non-empty page); every delete is `202 {}`; deleting sessions leaves refresh tokens alone.
+  - **Sessions and refresh tokens:** the U8 objects. The user routes list newest
+    first using checkpoint paging (`take` 1–100, default 50, with `next` on every
+    non-empty page). Deletes return `202 {}`. Session deletion preserves offline
+    refresh tokens and invalidates online refresh tokens bound to the session.
+    Explicit session revocation invalidates both kinds issued in the session.
+    Refresh-token Management routes expose offline tokens and administrators
+    manage online tokens through their sessions (D-0070).
   - **Grants:** objects with `clientID` (sic) and a sorted `scope` array.
   - **Tickets:** `/u/reset-verify?ticket=…#` and `/u/email-verification?ticket=…#`; `result_url` with `client_id` is `400 invalid_body`; default TTL 432000 s. Verification consumes on open and redirects with the U6 parameters (`success`, `code`, `message`, `email` only with `includeEmailInRedirect`, `supportSignUp`, `supportForgotPassword`). The password-change success page does not redirect to `result_url` (as observed on Auth0's current hosted pages); the value is stored.
   - **Ticket choices not observed:** an expired verification ticket shows the error page (no redirect); `result_url` with `client_id` is refused on both ticket kinds; an unknown `client_id` is `404 inexistent_client` and an unknown `connection_id` `400 inexistent_connection`; `ttl_sec` above 2^31−1 is clamped; `organization_id` is an unknown property (zeroauthy has no organizations). On a custom database connection not in import mode a missing or failing `verify` script leaves `email_verified` false. A verification ticket is bound to the email it was issued for: once the user's email changes (Management API, custom database profile sync), opening it shows the error page and verifies nothing. Changing a user's email through the Management API also deletes their open verification and unused password reset tickets. Signup sends the verification email whenever the new user has an unverified email (zeroauthy has no email template switches yet).
   - **Search choices not observed:** `identities.*` matching is case-insensitive; a `YYYY-MM-DD` date term means the whole UTC day; metadata paths do not step through arrays. `_exists_` on a root boolean, number or date field (`blocked`, `email_verified`, `logins_count`, `created_at`, …) is always true. A bare term containing an unescaped `*` is a wildcard in all six bare-term alternatives. A dangling `AND` anywhere gives "'AND' requires at least one operand on each side", other dangling operators "undefined"; a range on a root field that has none gives "operator 'greater or equal' is not supported". Guide: `docs/user-search.md`.
   - **Create and update choices not observed:** `POST /users` with an unknown connection is `400 inexistent_connection`; `create:users_app_metadata` is accepted on create. Custom database script failures are `400 auth0_idp_error`, `409 user_exists` and `503 script_runtime_unavailable`. A legacy (custom database) create ignores a caller-supplied `user_id`. Password reset by a linked secondary's email finds no user.
   - **Linking choices not observed:** `profileData` also keeps `username` (restored on unlink). The wordings for a missing `provider`, `link_with` mixed with `provider`/`user_id`/`connection_id`, and linking a user that already has linked accounts were not observed; a bad signature, `iss` or `exp` on `link_with` reuses "Invalid token (link_with).". Deleting a connection that holds only a linked identity of a user removes that identity (the user's `Version` is bumped) and keeps the user.
-  - **Refresh tokens:** zeroauthy's own ID formats (no `dcr_` prefix; 24-character session IDs); deleting one refresh token revokes its rotation family; a token with only the userinfo audience lists `resource_servers` `[{audience: https://{host}/userinfo}]`; `device` comes from the token's session and is omitted for password-grant tokens; the messages for `take` below 1 or not a number are zeroauthy's.
-  - **Races:** the user version closes only the window between loading the user and minting; the authorization-code and device-code grants check only that the user exists and is not blocked, and the hosted login does not check the version (plan-1-followups). A password grant that loses that race to a block answers `invalid_grant` "user is blocked"; one that loses it to a reset, a session revocation or a deletion answers `invalid_grant` "the user is not allowed to sign in", as the refresh grant does. A legacy (custom database) reset link is spent when `change_password` fails (the D-0023 reversal, recorded there).
+  - **Refresh tokens:** zeroauthy uses its own identifiers and revokes the
+    entire rotation family when one token is deleted. A token with only the
+    userinfo audience lists `resource_servers` `[{audience: https://{host}/userinfo}]`.
+    D-0070 records device details from issuance and exchange. The messages for
+    `take` below 1 or outside the numeric format use local wording.
+  - **Races:** the user version closes the window between loading the user and minting. Authorization-code and device-code grants sample the version during redemption, so earlier browser authorization and device approval can still be redeemed after a prior version change (Plan 48). Hosted login retains its existing behavior (plan-1-followups). A password grant that loses that race to a block answers `invalid_grant` "user is blocked"; one that loses it to a reset, a session revocation or a deletion answers `invalid_grant` "the user is not allowed to sign in", as the refresh grant does. A legacy (custom database) reset link is spent when `change_password` fails (the D-0023 reversal, recorded there).
   - **Last operator (zeroauthy only):** on the reserved `system` tenant the Users API reaches operators too, so `DELETE /users/{id}`, `PATCH` with `blocked: true` and linking the user as a secondary account are `409 last_operator` when the user is the last operator, as the system API's operator removal is.
   - **Unstorable input:** a query parameter that is not valid UTF-8 or contains NUL (`connection`, `email`, the grants filters) is `400 invalid_query_string`; such a session, refresh token or grant ID is unknown (`404` without `errorCode` on read, the endpoint's success on delete). A password-change ticket never targets a linked identity: a user whose only database identity is linked is `400 operation_not_supported`, as a user without one. Sessions' IPs and a user's `last_ip` are stored only when the client IP is an IP address (canonical form, no zone), and are empty otherwise.
   - **Hosted pages:** the password-change success page does not redirect; the generic reset error screen (forged CSRF token, blocked or deleted user) shows "Link Expired". Link scanners in email clients consume verification tickets on `GET`, as on Auth0.
@@ -765,7 +790,7 @@ them. Each entry: context, sources consulted, decision, rationale.
   - **Default picture:** the same Gravatar URL shape (`s=480&r=pg`), but `d=mp` (Gravatar's built-in placeholder) instead of an initials image on Auth0's CDN, so no zeroauthy page depends on Auth0's hosts.
   - **`blocked: false`:** never returned, because the store cannot tell "set to false" from "never set"; Auth0 shows `blocked: false` once it was set.
   - **PostgreSQL locale:** Unicode case folding in user search needs a UTF-8 `LC_CTYPE`; with another one zeroauthy folds ASCII letters only and logs a warning at startup.
-  - **`device.*_asn`:** not returned (zeroauthy has no ASN database); IPs and user agents are.
+  - **Session ASNs:** session device objects contain IPs and user agents. Refresh token device objects use empty ASN strings (D-0070).
   - **`app_metadata` scope split:** not observed (the observer could not narrow its token); zeroauthy follows the reference: writing `app_metadata` needs `update:users_app_metadata` and reading it needs `read:users` or `read:users_app_metadata`.
     *Correction 2026-11-04:* the user reads require `read:users` and always include `app_metadata`; `read:users_app_metadata` is not used (the OAS lists it on no user read).
 - **Rationale:** observed values are matched; the differences avoid depending on Auth0's infrastructure or data zeroauthy does not have.
@@ -1416,9 +1441,8 @@ corrected.
 roles; effective roles; role members; enabled connections;
 `GET /users/{id}/organizations`. Scopes follow the public reference:
 
-- the member list accepts either `read:organization_members` or
-  `read:organization_member_roles`, and `fields=roles` needs
-  `read:organization_member_roles`;
+- the member list requires `read:organization_members`. Including roles via
+  `fields` additionally requires `read:organization_member_roles`;
 - effective roles need `read:organization_member_effective_roles`, not
   `read:organization_member_roles`;
 - role members need both `read:organization_members` and `read:roles`
@@ -1427,9 +1451,12 @@ roles; effective roles; role members; enabled connections;
   fine-grained scope since the 2026-11-04 addendum; this all-of rule stands on
   its own because no Auth0 guide names an alternative pair). This operation is Early Access upstream and is
   kept in Plan 29 as the spec chose;
-- user organizations accept either `read:users` or `read:organizations`;
+- user organizations require `read:organizations`;
 - `POST /organizations` also needs `create:organization_connections` when it
   carries `enabled_connections`.
+
+Plan 45b Task 9 aligned the member-list and user-organization scopes with the
+public Management API OpenAPI document (D-0270 LR45b-2).
 
 **Spec §2 items.** Status is from the observer notes. Unavailable or
 unobserved parts keep the spec default as a local decision.
@@ -3405,11 +3432,276 @@ are recorded in the design; none is claimed observed.
 
 **Authority:** [Plan 45b design](../superpowers/specs/2026-11-16-zeroauthy-flow-api-fixes-design.md), the cited pre-1.0 review findings, and their public documentation/OpenAPI evidence. No live Auth0 tenant observation was performed.
 
-- **LR45b-1:** Admin CSP uses the base-domain wildcard and system host. Custom-domain Management calls go through the system host; the unauthenticated admin page must not enumerate tenant domains (Task 6 pending).
-- **LR45b-2:** Organization reads require `read:organizations` for a user's organizations and `read:organization_members` for organization members, retaining the extra roles check (Task 9 pending; amends D-0055 when implemented).
-- **LR45b-3:** Email provider `api_user`, `region`, `smtp_host`, `smtp_port` and `smtp_user` are public configuration. Secret credentials remain sealed. Field projection applies to reads (Task 11 pending; amends D-0047 when implemented).
+- **LR45b-1 (implemented):** The admin CSP derives `connect-src` from `'self'`, the configured HTTPS base-domain wildcard when present, and the canonical system host. It is independent of tenant data. Console Management calls for custom hosts use the internal `/api/console/tenants/{name}/api/v2/*` route on the canonical system host. The route dispatches to the existing Management handlers after checking the operator token and current grant for the named tenant. Direct tenant Management API URLs and M2M token audiences are unchanged.
+- **LR45b-2 (implemented):** Organization reads require `read:organizations` for a user's organizations and `read:organization_members` for organization members. Including roles in the member list also requires `read:organization_member_roles` (Task 9, amends D-0055).
+- **LR45b-3:** Email provider `api_user`, `region`, `smtp_host`, `smtp_port` and `smtp_user` are public configuration. Secret credentials remain sealed. Field projection applies to reads (amends D-0047).
 - **LR45b-4:** Keep post-login Actions in their current position relative to MFA (maintainer ruling, 2026-11-08). Move non-Action invitation, membership, session, login-counter and consent side effects after MFA (Task 2 pending).
 
-**Amendments tracked here:** D-0043 nullable user attributes, verification organization context and v1-only connection filtering await Tasks 7, 8 and 10; D-0047 public provider configuration awaits Task 11; D-0055 organization scope tightening awaits Task 9. D-0060 signup-code enforcement is Task 3: use the frozen 900-second lifetime for signup and scope send admission by tenant, normalized identifier, connection and purpose. Other identifier-code lifetimes and the shared per-IP budget retain their existing behavior.
+**Amendments tracked here:** D-0043 verification organization context is tracked in Task 8. D-0043 records the v1-only connection filter implemented in Task 10. D-0047 records the public provider credentials and field projection implemented in Task 11. D-0060 signup-code enforcement is Task 3: use the frozen 900-second lifetime for signup and scope send admission by tenant, normalized identifier, connection and purpose. Other identifier-code lifetimes and the shared per-IP budget retain their existing behavior.
 
-**Observation gaps (optional, not implementation blockers):** B1 whether upstream emits `limit_wc` once per block or for every denial (local: once; no `limit_sul` for password brute force); B2 upstream clearing of a required identifier with `null` (local: reject); B3 what `verify_phone_number` triggers (local: Plan 34 verification code); B4 the login count seen by post-login Actions (local: preserve their existing position and increment semantics). These remain unobserved; see the follow-ups.
+**B1 local implementation (Task 4):** Once settled failures reach the brute-force threshold, the store atomically claims the first denied admission for `limit_wc`. Password brute-force uses `limit_wc` exclusively. The SQL migration initializes the claim as unset, so an existing block can report one denial after upgrade. An older store plugin without this claim continues to enforce its admission decision and omits `limit_wc`.
+
+**B2 and B3 local implementation (Task 7):** D-0043 records the supported
+nullable fields. The selected database connection's required identifiers and
+the last active login cannot be cleared. For the delivery trigger, the shared
+Plan 34 service uses the tenant's country policy, send budgets and phone
+provider. The six-digit code is stored as a hash for five minutes in a
+verification-only scope distinct from signup, password reset and passwordless
+login. Task 7 adds delivery through the existing Management PATCH and leaves
+user confirmation outside its scope. Auth0's behavior for required-identifier
+clears and phone delivery remains unobserved.
+
+Task 5 implements the console's passwordless test send at
+`POST /api/system/tenants/{tenant}/connections/{id}/passwordless/try` on
+the system host. Signed and current operator grants must cover the
+non-reserved target tenant. The operator selects an email address or
+phone number and an application enabled on that connection with the
+passwordless OTP grant. Operator authority covers this extension for
+public and confidential applications. The Authentication API keeps its
+client authentication policy. The server uses the saved provider,
+connection options and normal passwordless send budgets. An accepted
+send returns `204` with an empty body. It replaces the outstanding
+credential as in a regular start.
+
+**Observation gaps (optional, not implementation blockers):** B1 whether upstream emits `limit_wc` once per block or for every denial; B2 upstream clearing of a required identifier with `null` (local: reject); B3 what `verify_phone_number` triggers (local: Plan 34 verification code); B4 the login count seen by post-login Actions (local: preserve their existing position and increment semantics). These remain unobserved; see the follow-ups.
+
+## D-0120 — Enterprise OIDC and connection keys (Plan 36)
+
+Date: 2026-11-18. Contract frozen; runtime implementation in progress.
+Sources: Plan 36 spec §2; public Auth0 Management OAS and OIDC/PKCE/claim mapping pages, checked 2026-11-18.
+
+
+| ID | Ruling |
+|---|---|
+| LR36-1 | Omitted `type` on `oidc` means `front_channel` (OpenAPI default). Existing Plan 24 connections were all stored with `back_channel`, so no stored connection changes meaning; the migration writes `type: back_channel` explicitly into any stored `oidc` options that lack it. |
+| LR36-2 | `client_secret` on a front-channel connection is refused with `400`, so an unused secret is never stored. |
+| LR36-3 | `oidc_metadata` and discovery documents are capped at 128 KiB (documented discovery limit). |
+| LR36-4 | PKCE `auto` without `code_challenge_methods_supported` sends no PKCE. |
+| LR36-5 | Upstream PAR is back channel only. |
+| LR36-6 | `dpop_signing_alg` non-null → `400` (DPoP not planned, roadmap §5). |
+| LR36-7 | `tenant_domain` (oidc/okta), `useOauthSpecScope`, `non_persistent_attrs` are stored, not enforced, marked in the console. |
+| LR36-8 | Missing claims in `use_map`: whole-value reference omits the attribute; inside a concatenation it becomes empty. |
+| LR36-9 | `GET /connections/{id}/status` for a non-AD connection answers `404` with the "connection not found or offline" shape of the OpenAPI 404, until F5. |
+| LR36-10 | HRD forwards the email as `login_hint`. |
+| LR36-11 | Several HRD matches: the client's enabled-connection order wins. |
+| LR36-12 | Key types per algorithm as in §6.1; RSA 2048. |
+| LR36-13 | No JWKS URL is published for connection keys; operators register the `cert`. |
+| LR36-14 | With encryption configured, an unencrypted ID token is refused. |
+| LR36-15 | Front-channel attempt cookies use `SameSite=None; Secure`. |
+| LR36-16 | Userinfo references are refused on front-channel connections. |
+| LR36-17 | Connection keys are never seeded or exported. |
+
+Observe later (copied into `docs/superpowers/plan-1-followups.md`):
+
+- **V1** Okta custom authorization servers through `domain`.
+- **V2** `okta` identity `user_id` format.
+- **V3** Whether `scopes` is still accepted by Auth0 as an alias of `scope`.
+- **V4** PKCE `auto` when metadata omits `code_challenge_methods_supported`.
+- **V5** Default `token_endpoint_auth_signing_alg`.
+- **V6** Where `bind_all` non-root claims appear on the user.
+- **V7** The exact restricted-claims list for mapping.
+- **V8** Claim names containing dots in templates.
+- **V9** HRD subdomain matching and multiple matches.
+- **V10** Keys API message for unsupported strategies.
+- **V11** `subject_dn` format.
+- **V12** Lazy key creation when `private_key_jwt` is set first.
+- **V13** Delete-by-email when several users of one connection share the
+  email (local: all are deleted) and the answer for an unknown email
+  (local: `204`).
+
+
+## D-0070 — Refresh tokens II and client-credentials quotas (Plan 48)
+
+The [Plan 48 design](../superpowers/specs/2026-11-16-zeroauthy-refresh-tokens-ii-design.md)
+records the scope and evidence, including the DPoP extension authorized on
+2026-11-18.
+
+- Rotation converts the token on its next eligible exchange after an application
+  changes its configuration. Inside the overlap period only the immediately
+  previous token can be reused. Reuse beyond that point revokes the family.
+  [Configure Refresh Token Rotation](https://auth0.com/docs/secure/tokens/refresh-tokens/configure-refresh-token-rotation).
+- Grant deletion revokes the refresh tokens the grant authorized. Setting
+  `flags.revoke_refresh_token_grant` extends `/oauth/revoke` to the
+  associated grant and its tokens. The flag defaults to false. Unlinking an
+  individual device keeps the grant. [Revoke Refresh Tokens](https://auth0.com/docs/secure/tokens/refresh-tokens/revoke-refresh-tokens).
+- First-party clients can configure up to 10 MRRT policies. Each policy names
+  one API and its scopes. The Management API is excluded and target APIs must
+  allow skipping consent for eligible first-party clients. Exchanges keep the
+  original family audience and scope ceiling and filter the issued scopes
+  against the target API and applicable authorization rules. The original
+  audience is used if omitted. [Configure MRRT](https://auth0.com/docs/secure/tokens/refresh-tokens/multi-resource-refresh-token/configure-and-implement-multi-resource-refresh-token).
+- The `online_access` scope requests a refresh token tied to the
+  authorization-code flow's login session for an API with online access
+  enabled. Public clients must prove possession of the same DPoP key when
+  redeeming the code and on every exchange. A successful exchange reuses
+  the token and resets session idleness within the absolute lifetime.
+  Revoking the token through `/oauth/revoke` or `api.refreshToken.revoke()`
+  ends the session. Post-login Actions receive `event.refresh_token.access`
+  and can read `event.session` during online exchanges.
+  [Online Refresh Tokens](https://auth0.com/docs/secure/tokens/refresh-tokens/online-refresh-tokens/online-refresh-tokens)
+  [Configure and use online refresh tokens](https://auth0.com/docs/secure/tokens/refresh-tokens/online-refresh-tokens/configure-online-refresh-tokens).
+- The Management API lists `refresh_tokens` in ID order on
+  `GET /refresh-tokens`. The existing user route retains its `tokens`
+  field and newest-first order. Metadata patches replace the map, with
+  `null` and `{}` clearing it. Post-login Actions can read session and
+  refresh token metadata. Refresh-token routes expose offline tokens.
+  Online tokens are managed through their sessions. Refresh token objects
+  contain IDs and public attributes. Raw tokens and hashes stay private.
+  [Management API OpenAPI](https://auth0.com/docs/oas/management/v2/management-api-oas.json).
+- Client and organization quotas override the corresponding tenant defaults.
+  Applying quotas count issued client-credentials tokens in UTC hour and day
+  windows. Quota headers describe only an authenticated client's applicable
+  limits. With enforcement enabled (the default), a refusal returns
+  `429 too_many_requests` and reset headers. Threshold warnings appear at
+  60%, 80%, and 100% once per bucket window.
+  [Fine-Grained M2M Token Quotas](https://auth0.com/docs/fine-grained-m2m-token-quotas).
+
+| ID | Ruling |
+|---|---|
+| LR48-1 | Session revoke is in Plan 48. Device credentials and user-wide revoke access remain in Plan 38d. |
+| LR48-2 | The absolute lifetime of a new rotating family starts when the token is converted. |
+| LR48-3 | Conversion to a non-rotating token revokes all rotating families matching its tenant, client, user and audience. |
+| LR48-4 | An offline refresh against an API that no longer allows offline access returns `invalid_grant` with local wording. |
+| LR48-5 | The documented cap is 10 MRRT policies per client. The Auth0 configuration guide checked on 2026-11-18 provides this limit. |
+| LR48-6 | An audience unavailable under the client's refresh token policies returns `invalid_request`. |
+| LR48-7 | Authorization rejects combined `online_access` and `offline_access` as `invalid_request` before creating a login transaction. |
+| LR48-8 | Online refresh tokens come from the authorization-code flow. Public clients must use DPoP. Management of these tokens goes through the session. |
+| LR48-9 | Bulk revocation completes synchronously and returns `202`. |
+| LR48-10 | `last_exchanged_at` records the last successful exchange. |
+| LR48-11 | A refused request consumes no quota. |
+| LR48-12 | Storage plugins without `refresh_tokens_ii.v1` retain Plan 17 rotation semantics and refuse writes for unsupported Plan 48 features. |
+| LR48-13 | Plan 48 design §5.1 defines the DPoP algorithm, proof, nonce and replay policy. See [RFC 9449](https://www.rfc-editor.org/rfc/rfc9449). |
+
+| Observation | Local policy or open point |
+|---|---|
+| R1 | The former family head stays valid as a sibling after a successful overlap exchange until it is rotated or revoked. |
+| R2 | A user grant without a recorded audience revokes the user's tokens for the client across audiences. |
+| R3 | If an ephemeral session is used and the API's ephemeral-session flag is disabled, the response omits the online token and the `online_access` scope. |
+| R4 | Resolved on 2026-11-18 from the public documentation. Requesting both offline and online access returns `invalid_request`. |
+| R5 | Refresh token ASN fields are empty because zeroauthy has no ASN database. |
+| R6 | Plan 48 exposes metadata for reading in Actions. Metadata writes use the Management API. |
+| R7 | The local organization quota refusal description is `Organization quota exceeded`. |
+| R8 | Quota warning descriptions use local wording. |
+
+## D-0181 — Plan 39c GitHub social connection (2026-11-18)
+
+**Status:** implemented on `plan-39-github-social`; final review done, plan-branch CI pending.
+The GitHub connection strategy and web login flow are implemented.
+Plan-wide verification and CI status are tracked separately in the
+[implementation record](../superpowers/2026-11-18-plan-39c-implementation-record.md).
+
+**Authority:** [Plan 39c design](../superpowers/specs/2026-11-16-zeroauthy-github-connection-design.md),
+Auth0's [GitHub connection page](https://auth0.com/docs/authenticate/identity-providers/social-identity-providers/github),
+and GitHub's public documentation listed in the
+[observation note](observations/github-connection.md). Only public documentation
+was read; no live Auth0 or GitHub call was made. Auth0 documents none of the
+email handling, `email_verified`, `scope` semantics or user ID format for GitHub
+(read 2026-11-18); these are recorded as unavailable, not as confirmed.
+
+| Ruling | Contract |
+|---|---|
+| Email required | Auth0 documents nothing, so when the connection's `email` option is on, a login is accepted only with a verified primary email from `/user/emails`, on first and on every later login. The public `/user` email is never used. With `email` off, no `/user/emails` call is made and users are created without an email. If Auth0 is later found to accept such users, this becomes a recorded deviation. |
+| Imported `scope` | The flags are the only source of the requested scope. `scope` is returned on read as the effective scope, and an input `scope` is accepted only when it equals it as a set; anything else is a 400. Same rule as Google. |
+| `profile: false` | Stored and round-tripped only. It adds no scope and does not stop profile attributes from syncing, because `GET /user` needs none and the subject comes from it. A local difference, listed in `docs/compat/matrix.md`. |
+| No refresh | zeroauthy never requests `offline_access`. Expiring tokens are stored with `ExpiresAt` and are not refreshed (Plan 43). A token response without `refresh_token` clears the stored one. |
+| OAuth app vs GitHub App | OAuth apps are the supported setup, and the scope flags apply to them. A GitHub App works for sign-in only (its `scope` carries no permissions, and `/user/emails` needs the app's Email addresses read permission). No new option. |
+| GitHub Enterprise | Unsupported; endpoint and host overrides are rejected. Left for later. |
+| Adapter, not descriptor | Plan 39c ships a dedicated Go adapter. Plan 39b decides on a port to its descriptor framework once that exists. |
+
+The frozen contract is in `internal/federation/inventory.json`
+(`strategies.github`, `provider_protocol.github`, `github_profile`): the
+flag-to-scope table, the pinned `X-GitHub-Api-Version` (`2026-03-10`), the
+rate-limit signals and the extra profile fields.
+
+## D-0080: OIDC extras, back-channel logout and global revocation (Plan 41a)
+
+**Contract frozen 2026-11-20; implementation in progress.** This entry records
+intended behavior, not a passing certification or completed runtime. The
+[spec](../superpowers/specs/2026-11-16-zeroauthy-oidc-extras-logout-design.md)
+and [plan](../superpowers/plans/2026-11-16-zeroauthy-plan-41a-oidc-extras-logout.md)
+reserve D-0080–0089. No live Auth0 tenant was observed by the implementer.
+
+Sources rechecked: [OIDC Core](https://openid.net/specs/openid-connect-core-1_0.html),
+[back-channel logout](https://auth0.com/docs/authenticate/login/logout/back-channel-logout),
+[Universal Logout](https://auth0.com/docs/authenticate/login/logout/universal-logout),
+[Management OpenAPI](https://auth0.com/docs/oas/management/v2/management-api-oas.json),
+[back-channel success schema](https://auth0.com/docs/tenant-logs/auth-logout-success/oidc-backchannel-logout-succeeded),
+[Universal Logout success schema](https://auth0.com/docs/tenant-logs/auth-logout-success/universal-logout-succeeded).
+The remaining protocol sources and observation gaps are enumerated in the spec.
+
+| Local ruling | Contract |
+|---|---|
+| LR41a-1 | Front-channel logout is outside scope; confirmed by the maintainer. |
+| LR41a-2 | Track Session Transfer Tokens separately; do not implement them here. |
+| LR41a-3 | Emit profile claims only when the user or federated identity has the attribute. |
+| LR41a-4 | Bound claims request JSON to 4096 UTF-8 bytes before decoding. |
+| LR41a-5 | Process claims by default without widening consent. An explicit compatibility switch ignores it. |
+| LR41a-6 | Support the multi-factor PAPE policy value; requesting it forces MFA, including inside SSO. |
+| LR41a-7 | HS256 uses the client secret's UTF-8 bytes; secret_encoded remains ignored. Public and private-key-only clients cannot select it. |
+| LR41a-8 | Compatibility resource profile aliases audience; conflicting values fail invalid_request, multiple resources fail invalid_target. |
+| LR41a-9 | Guard logout delivery with the public HTTPS outbound policy, reject tenant hosts, never follow redirects. |
+| LR41a-10 | Require redirect_uri by default. Opt-in fallback requires exactly one registered non-wildcard callback. |
+| LR41a-11 | Accept undocumented initiators in configuration without emitting them. |
+| LR41a-12 | Logout tokens carry sub and sid, with RS256 and logout+jwt by default. |
+| LR41a-13 | Retry transient delivery failures for at most ten minutes, minting a fresh 120-second token for each attempt; no retries for 4xx or redirects. |
+| LR41a-14 | Global revocation returns 204 for unknown subjects; resolve through the named connection identity index only. |
+| LR41a-15 | Gate new client fields and non-RS256 ID token settings on oidc_logout.v1 for plugins. |
+| LR41a-16 | Use the already pinned express-openid-connect test client; add no dependency. |
+
+The three new server-wide switches default off and warn individually when on:
+`ZEROAUTHY_COMPAT__NONCOMPLIANT_IGNORE_CLAIMS_PARAMETER`,
+`ZEROAUTHY_COMPAT__NONCOMPLIANT_OPTIONAL_REDIRECT_URI`, and
+`ZEROAUTHY_COMPAT__NONCOMPLIANT_LOGOUT_TOKEN_TYP_JWT`.
+Invalid nonempty boolean values cause a startup configuration error.
+
+**D-0063 amendment (maintainer ruling, 2026-11-19):** ID-token discovery will
+list HS256, RS256 and PS256. Tenant JWKS still omit alg, so RS256 and PS256
+use the same key. Supplied API signing secrets need at least 32 characters
+on Management API and seed writes; existing shorter secrets keep signing.
+These checks belong to Task 5; this contract does not claim they already run.
+
+**Builder rulings:**
+
+- The installed base has merged Plan 48, so logout metadata uses the actual
+  session metadata rather than the spec's temporary empty-object fallback.
+- The public log catalog uses `oidc_backchannel_logout_succeeded` and
+  `oidc_backchannel_logout_failed`, plus `universal_logout_succeeded` and
+  `universal_logout_failed`. Use those catalog names rather than inventing
+  `sslo`/`fslo` aliases from the older plan. This preserves public Auth0
+  schema parity; consumers expecting the plan's short names must use the
+  catalog names. Enable their inventory entries when real emitters exist.
+- Existing tenant setting schemas already accept oidc_logout,
+  acr_values_supported and resource_parameter_profile. Keep stored-only
+  descriptions until their runtime tasks land, then update them alongside
+  the implementation. Marking them active at contract freeze would claim
+  behavior before it exists.
+- Preserve the repository's Go 1.26.11 minimum rather than downgrading to
+  the plan's historical 1.26.10. Local verification toolchain is recorded
+  in the implementation record.
+
+L1–L14 are tracked in [the follow-ups](../superpowers/plan-1-followups.md).
+The [conformance inventory](../superpowers/2026-11-16-plan-41a-conformance-check.md)
+records the actual Implicit/Hybrid check. No new warning or skip is approved
+by this contract.
+
+
+Plan 41a implementation evidence for D-0080 / L13 (2026-11-20):
+[Auth0 Universal Logout](https://auth0.com/docs/authenticate/login/logout/universal-logout)
+links the [Okta endpoint authentication profile](https://developer.okta.com/docs/guides/oin-universal-logout-overview/).
+That profile and [draft revision 06 §3.5](https://www.ietf.org/archive/id/draft-parecki-oauth-global-token-revocation-06.html#section-3.5)
+require the exact revocation endpoint URL as the JWT audience, without query
+or fragment. This corrects the design's tenant-issuer audience assumption.
+The implementation accepts the connection endpoint only, checks the caller
+subject against the configured upstream client ID, and keeps the specified
+explicit token type and five-minute bound. It does not accept ordinary ID
+tokens. The draft remains work in progress. Tenant-issuer audiences are
+rejected; callers following the earlier design must update.
+
+Review follow-up (2026-11-21, maintainer): an upstream clock up to 60 seconds
+ahead is tolerated for `iat`, `nbf` and the lifetime ceiling, so a fresh token
+is not refused for minor skew; `exp` stays strict because the replay table
+keeps each `jti` only until `exp`. `aud` may also be a one-element array
+(RFC 7519 §4.1.3 allows arrays); arrays naming any other audience are refused
+because such a token is also valid at another recipient. The Management API
+refuses changing email and password in one update (as Auth0 does), so each
+credential change notifies with exactly one initiator.

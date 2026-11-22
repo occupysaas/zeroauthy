@@ -2,6 +2,7 @@ package mgmt
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"log/slog"
 	"net/http"
@@ -93,6 +94,8 @@ const leeway = time.Minute
 //     resolved tenant.
 //
 // Anything else is 401 (403 for an operator outside its tenants).
+// The console's Management proxy accepts only an operator token for the
+// path tenant and passes that tenant to the existing Management handlers.
 func Auth(cfg Config) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -101,12 +104,16 @@ func Auth(cfg Config) func(http.Handler) http.Handler {
 				WriteError(w, http.StatusInternalServerError, "internal_error", "Internal error")
 				return
 			}
+			if path, ok := strings.CutPrefix(r.URL.EscapedPath(), consoleManagementPrefix); ok {
+				cfg.consoleManagement(w, r, next, res, path)
+				return
+			}
 			authRes, err := cfg.operatorTarget(r.Context(), r, res)
 			if err != nil {
 				Fail(w, err)
 				return
 			}
-			c, err := cfg.authenticate(r, authRes)
+			c, err := cfg.authenticate(r, authRes, "")
 			if err != nil {
 				Fail(w, err)
 				return
@@ -116,7 +123,7 @@ func Auth(cfg Config) func(http.Handler) http.Handler {
 	}
 }
 
-// operatorTarget binds system presentation extension routes to the path
+// operatorTarget binds tenant-scoped system extension routes to the path
 // tenant for both token and persisted operator grant checks. The request's
 // resolved system tenant remains in context for system-host routing.
 func (cfg Config) operatorTarget(ctx context.Context, r *http.Request, base tenant.Resolved) (tenant.Resolved, error) {
@@ -127,9 +134,10 @@ func (cfg Config) operatorTarget(ctx context.Context, r *http.Request, base tena
 	executions := (len(parts) == 6 || len(parts) == 7) && parts[4] == "actions" && parts[5] == "executions"
 	roamingSettings := len(parts) == 8 && parts[4] == "guardian" && parts[5] == "factors" && parts[6] == "webauthn-roaming" && parts[7] == "settings"
 	passkeyPrerequisites := len(parts) == 7 && parts[4] == "connections" && parts[6] == "passkey-prerequisites"
+	passwordlessTry := len(parts) == 8 && parts[4] == "connections" && parts[6] == "passwordless" && parts[7] == "try"
 	consoleMethods := (len(parts) == 7 || len(parts) == 8) && parts[4] == "users" && parts[6] == "authentication-methods"
 	rpStatus := len(parts) == 5 && parts[4] == "relying-party-ids"
-	if len(parts) < 4 || parts[0] != "api" || parts[1] != "system" || parts[2] != "tenants" || !(presentation || attempt || executions || streamStatus || passkeyPrerequisites || roamingSettings || consoleMethods || rpStatus) {
+	if len(parts) < 4 || parts[0] != "api" || parts[1] != "system" || parts[2] != "tenants" || !(presentation || attempt || executions || streamStatus || passkeyPrerequisites || passwordlessTry || roamingSettings || consoleMethods || rpStatus) {
 		return base, nil
 	}
 	t, err := cfg.Store.Tenants().GetByName(ctx, parts[3])
@@ -149,10 +157,11 @@ func invalidToken(message string) *Error {
 
 // tokenClaims are the claims Auth reads beyond the registered ones.
 type tokenClaims struct {
-	Scope     string    `json:"scope"`
-	AZP       string    `json:"azp"`
-	GrantType string    `json:"gty"`
-	Operator  *[]string `json:"https://zeroauthy.dev/operator"`
+	Confirmation json.RawMessage `json:"cnf"`
+	Scope        string          `json:"scope"`
+	AZP          string          `json:"azp"`
+	GrantType    string          `json:"gty"`
+	Operator     *[]string       `json:"https://zeroauthy.dev/operator"`
 }
 
 func (cfg Config) now() time.Time {
@@ -169,7 +178,7 @@ func (cfg Config) log() *slog.Logger {
 	return slog.Default()
 }
 
-func (cfg Config) authenticate(r *http.Request, res tenant.Resolved) (Caller, error) {
+func (cfg Config) authenticate(r *http.Request, res tenant.Resolved, consoleTarget string) (Caller, error) {
 	scheme, raw, ok := strings.Cut(r.Header.Get("Authorization"), " ")
 	if r.Header.Get("Authorization") == "" {
 		return Caller{}, invalidToken("Missing authentication")
@@ -184,12 +193,15 @@ func (cfg Config) authenticate(r *http.Request, res tenant.Resolved) (Caller, er
 	if err != nil {
 		return Caller{}, invalidToken("Invalid token")
 	}
+	if consoleTarget != "" {
+		return cfg.operator(r.Context(), consoleTarget, raw, false)
+	}
 	var peek jwt.Claims
 	if err := tok.UnsafeClaimsWithoutVerification(&peek); err != nil {
 		return Caller{}, invalidToken("Invalid token")
 	}
 	if peek.Audience.Contains(tenant.OperatorAudience) {
-		return cfg.operator(r.Context(), res, raw, r.Method == http.MethodGet && r.URL.Path == "/api/console/tenants" && res.Tenant.Reserved && res.Tenant.Name == tenant.SystemName)
+		return cfg.operator(r.Context(), res.Tenant.Name, raw, r.Method == http.MethodGet && r.URL.Path == "/api/console/tenants" && res.Tenant.Reserved && res.Tenant.Name == tenant.SystemName)
 	}
 	return cfg.m2m(r.Context(), res, raw)
 }
@@ -205,6 +217,9 @@ func (cfg Config) verify(ctx context.Context, tenantID, raw, aud string, issuers
 		}
 		cfg.log().ErrorContext(ctx, "management API: load keys", "tenant", tenantID, "err", err)
 		return std, extra, &Error{Status: http.StatusInternalServerError, Code: "internal_error", Message: "Internal error"}
+	}
+	if len(extra.Confirmation) > 0 {
+		return std, extra, invalidToken("Invalid token")
 	}
 	if std.Expiry == nil {
 		return std, extra, invalidToken("Invalid token: no expiry")
@@ -247,7 +262,7 @@ func (cfg Config) m2m(ctx context.Context, res tenant.Resolved, raw string) (Cal
 	return Caller{Kind: M2M, ClientID: extra.AZP, Scopes: strings.Fields(extra.Scope)}, nil
 }
 
-func (cfg Config) operator(ctx context.Context, res tenant.Resolved, raw string, discovery bool) (Caller, error) {
+func (cfg Config) operator(ctx context.Context, targetName, raw string, discovery bool) (Caller, error) {
 	sys, err := cfg.Store.Tenants().GetByName(ctx, tenant.SystemName)
 	if errors.Is(err, store.ErrNotFound) || (err == nil && !sys.Reserved) || cfg.SystemHost == "" {
 		return Caller{}, invalidToken("Invalid token")
@@ -279,7 +294,7 @@ func (cfg Config) operator(ctx context.Context, res tenant.Resolved, raw string,
 		return Caller{}, &Error{Status: http.StatusInternalServerError, Code: "internal_error", Message: "Internal error"}
 	}
 	// Both the token and the stored operator must allow the tenant.
-	if !discovery && (!manages(*extra.Operator, res.Tenant.Name) || !manages(op.Tenants, res.Tenant.Name)) {
+	if !discovery && (!manages(*extra.Operator, targetName) || !manages(op.Tenants, targetName)) {
 		return Caller{}, &Error{Status: http.StatusForbidden, Code: "insufficient_scope", Message: "The operator does not manage this tenant"}
 	}
 	scopes := make([]string, len(tenantsetup.ManagementAPIScopes))

@@ -76,7 +76,7 @@ tags:
   - name: sessions
     description: Login sessions (Auth0's `/api/v2/sessions`).
   - name: refresh-tokens
-    description: Refresh tokens (Auth0's `/api/v2/refresh-tokens`).
+    description: Offline refresh tokens. Online refresh tokens are managed through their login sessions.
   - name: grants
     description: Users' consents (Auth0's `/api/v2/grants`).
   - name: tickets
@@ -4328,6 +4328,7 @@ paths:
         described in `ResourceServerCreate`.
       x-source:
         - https://auth0.com/docs/api/management/v2/resource-servers/post-resource-servers
+        - https://auth0.com/docs/oas/management/v2/management-api-oas.json
       requestBody:
         required: true
         content:
@@ -4357,6 +4358,7 @@ paths:
       description: Requires `read:resource_servers`.
       x-source:
         - https://auth0.com/docs/api/management/v2/resource-servers/get-resource-servers-by-id
+        - https://auth0.com/docs/secure/tokens/refresh-tokens/online-refresh-tokens/configure-online-refresh-tokens
       parameters:
         - name: fields
           in: query
@@ -4387,6 +4389,7 @@ paths:
         current value is accepted.
       x-source:
         - https://auth0.com/docs/api/management/v2/resource-servers/patch-resource-servers-by-id
+        - https://auth0.com/docs/secure/tokens/refresh-tokens/online-refresh-tokens/configure-online-refresh-tokens
       requestBody:
         required: true
         content:
@@ -4671,8 +4674,11 @@ paths:
         operator credentials are required on create, `client_id` is immutable,
         and `app_secret` is sealed and never returned. Apple web and native
         authorization-code login are active (D-0170).
+        Plan 39c implements `github` options in `ConnectionOptionsGitHub`:
+        `client_secret` is sealed and write-only and `scope` follows the flags.
       x-source:
         - https://auth0.com/docs/api/management/v2/connections/post-connections
+        - https://auth0.com/docs/authenticate/identity-providers/social-identity-providers/github
         - https://auth0.com/docs/oas/management/v2/management-api-oas.json
         - https://auth0.com/docs/authenticate/passwordless
         - https://auth0.com/docs/authenticate/identity-providers/social-identity-providers/apple-native
@@ -4776,6 +4782,112 @@ paths:
         "400": {$ref: "#/components/responses/BadRequest"}
         "401": {$ref: "#/components/responses/Unauthorized"}
         "403": {$ref: "#/components/responses/Forbidden"}
+  /api/v2/connections/{id}/keys:
+    parameters:
+      - {name: id, in: path, required: true, schema: {type: string}}
+    get:
+      operationId: getConnectionKeys
+      tags: [connections]
+      summary: getConnectionKeys
+      description: List public signing and encryption certificates. Requires read:connections_keys.
+      x-source:
+        - https://auth0.com/docs/oas/management/v2/management-api-oas.json
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema: {"type":"array","items":{"$ref":"#/components/schemas/ConnectionKey"}}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
+        "409": {$ref: "#/components/responses/Conflict"}
+    post:
+      operationId: postConnectionKeys
+      tags: [connections]
+      summary: postConnectionKeys
+      description: Create current and next keys. Requires create:connections_keys. Existing keys of the same use return 409.
+      x-source:
+        - https://auth0.com/docs/oas/management/v2/management-api-oas.json
+      requestBody:
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/PostConnectionKeysRequestContent"}
+      responses:
+        "201":
+          description: Success.
+          content:
+            application/json:
+              schema: {"type":"array","items":{"$ref":"#/components/schemas/ConnectionKey"}}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
+        "409": {$ref: "#/components/responses/Conflict"}
+  /api/v2/connections/{id}/keys/rotate:
+    parameters:
+      - {name: id, in: path, required: true, schema: {type: string}}
+    post:
+      operationId: postConnectionKeysRotate
+      tags: [connections]
+      summary: postConnectionKeysRotate
+      description: Promote the next key and retain the previous key. Requires create:connections_keys and update:connections_keys.
+      x-source:
+        - https://auth0.com/docs/oas/management/v2/management-api-oas.json
+      requestBody:
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/PostConnectionKeysRequestContent"}
+      responses:
+        "201":
+          description: Success.
+          content:
+            application/json:
+              schema: {"$ref":"#/components/schemas/ConnectionKey"}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
+        "409": {$ref: "#/components/responses/Conflict"}
+  /api/v2/connections/{id}/status:
+    parameters:
+      - {name: id, in: path, required: true, schema: {type: string}}
+    get:
+      operationId: getConnectionStatus
+      tags: [connections]
+      summary: getConnectionStatus
+      description: Check AD connector availability. Other strategies return 404. Requires read:connections.
+      x-source:
+        - https://auth0.com/docs/oas/management/v2/management-api-oas.json
+      responses:
+        "200":
+          description: Success.
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
+        "409": {$ref: "#/components/responses/Conflict"}
+  /api/v2/connections/{id}/users:
+    parameters:
+      - {name: id, in: path, required: true, schema: {type: string}}
+    delete:
+      operationId: deleteConnectionUsersByEmail
+      tags: [connections]
+      summary: deleteConnectionUsersByEmail
+      description: Delete database users of this connection with the specified email, including their sessions and grants. Requires delete:users. An unknown email returns 204.
+      x-source:
+        - https://auth0.com/docs/oas/management/v2/management-api-oas.json
+      parameters:
+        - {name: email, in: query, required: true, schema: {type: string}}
+      responses:
+        "204":
+          description: Success.
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
+        "409": {$ref: "#/components/responses/Conflict"}
   /api/v2/connections/{id}/clients:
     parameters:
       - name: id
@@ -4853,7 +4965,7 @@ paths:
         `sort` is `field:1` or `field:-1` (`400 invalid_query_string`
         otherwise); unknown and metadata fields are ignored. Without `sort`,
         users are ordered by `last_login` descending, those who never logged
-        in last. `connection` keeps users with an identity on that connection.
+        in last. To filter by connection, use `q=identities.connection:"connection_name"`.
 
         Offset paging (`page`, `per_page` 1 to 100, 50 by default). Only the
         first 1000 results can be reached: `(page + 1) × per_page` above 1000
@@ -4872,7 +4984,9 @@ paths:
           schema: {type: string}
         - name: connection
           in: query
-          description: Only users with an identity on this connection.
+          description: |
+            This Auth0 v1-only parameter is ignored by zeroauthy. It must be
+            valid UTF-8 without NUL characters. Use `q` to filter by connection.
           schema: {type: string}
         - name: fields
           in: query
@@ -4986,6 +5100,13 @@ paths:
         and nothing changes. Neither a password change nor `blocked: true`
         revokes sessions or refresh tokens.
 
+        Send null for `email`, `phone_number`, `given_name`, `family_name`,
+        `name`, `nickname`, `picture`, or `username` to remove its value.
+        Required identifiers and the last active login identifier cannot
+        be removed. `verify_phone_number: true` sends a text verification
+        code to the resulting phone number without setting `phone_verified`.
+        Delivery is attempted after the profile update commits.
+
         On a custom database connection that is not in import mode, an email
         change runs `change_email` and a password change `change_password`
         before anything is stored.
@@ -5007,7 +5128,21 @@ paths:
         "403": {$ref: "#/components/responses/Forbidden"}
         "404": {$ref: "#/components/responses/NotFound"}
         "409": {$ref: "#/components/responses/Conflict"}
-        "503": {$ref: "#/components/responses/ScriptRuntimeUnavailable"}
+        "429":
+          description: The phone verification send limit was reached.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/ManagementError"}
+        "501":
+          description: The storage plugin does not support phone messaging (`phone_unavailable`).
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/ManagementError"}
+        "503":
+          description: A custom database script could not run or phone verification delivery is unavailable.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/ManagementError"}
     delete:
       operationId: deleteUser
       tags: [users]
@@ -5165,11 +5300,13 @@ paths:
       summary: Delete a user's sessions
       description: |
         Requires `delete:sessions`. Deletes every session of the user, which
-        ends their single sign-on, and bumps the user's version. Refresh
-        tokens are not revoked. Answers `202 {}`, also when there were none;
-        an unknown user is `404 inexistent_user`.
+        ends their single sign-on, invalidates online refresh tokens bound
+        to those sessions, and bumps the user's version. Offline refresh
+        tokens remain valid. Answers `202 {}`, also when there were none.
+        An unknown user is `404 inexistent_user`.
       x-source:
         - https://auth0.com/docs/api/management/v2/users/delete-sessions-for-user
+        - https://auth0.com/docs/secure/tokens/refresh-tokens/online-refresh-tokens/online-refresh-tokens
       responses:
         "202": {$ref: "#/components/responses/Accepted"}
         "400": {$ref: "#/components/responses/BadRequest"}
@@ -5188,12 +5325,13 @@ paths:
       tags: [users]
       summary: List a user's refresh tokens
       description: |
-        Requires `read:refresh_tokens`. The user's live refresh tokens (not
-        revoked, rotated or expired), newest first, by checkpoint paging only
+        Requires `read:refresh_tokens`. The user's live offline refresh
+        tokens, newest first, by checkpoint paging only
         as for sessions: `take`, `from`, and `next` on every non-empty page.
         An unknown user is `404 inexistent_user`.
       x-source:
         - https://auth0.com/docs/api/management/v2/users/get-refresh-tokens-for-user
+        - https://auth0.com/docs/secure/tokens/refresh-tokens/online-refresh-tokens/online-refresh-tokens
       parameters:
         - name: take
           in: query
@@ -5218,12 +5356,13 @@ paths:
       tags: [users]
       summary: Delete a user's refresh tokens
       description: |
-        Requires `delete:refresh_tokens`. Revokes every refresh token of the
-        user; a refresh grant with one answers `invalid_grant`. Answers
-        `202 {}`, also when there were none; an unknown user is
+        Requires `delete:refresh_tokens`. Revokes the user's offline refresh
+        tokens. A refresh grant with a revoked token answers `invalid_grant`.
+        Answers `202 {}`, also when there were none. An unknown user is
         `404 inexistent_user`.
       x-source:
         - https://auth0.com/docs/api/management/v2/users/delete-refresh-tokens-for-user
+        - https://auth0.com/docs/secure/tokens/refresh-tokens/online-refresh-tokens/online-refresh-tokens
       responses:
         "202": {$ref: "#/components/responses/Accepted"}
         "400": {$ref: "#/components/responses/BadRequest"}
@@ -5261,20 +5400,139 @@ paths:
       summary: Delete a session
       description: |
         Requires `delete:sessions`. Ends the session, so the next
-        `/authorize?prompt=none` answers `login_required`. Answers `202 {}`,
+        `/authorize?prompt=none` answers `login_required`, and invalidates its
+        online refresh tokens. Offline refresh tokens remain valid. Answers `202 {}`,
         also when there was no such session.
       x-source:
         - https://auth0.com/docs/api/management/v2/sessions/delete-session
+        - https://auth0.com/docs/secure/tokens/refresh-tokens/online-refresh-tokens/online-refresh-tokens
       responses:
         "202": {$ref: "#/components/responses/Accepted"}
         "401": {$ref: "#/components/responses/Unauthorized"}
         "403": {$ref: "#/components/responses/Forbidden"}
+    patch:
+      operationId: updateSession
+      tags: [sessions]
+      summary: Update session metadata
+      description: Requires `update:sessions`. Replaces the metadata. Use `null` or `{}` to clear it.
+      x-source:
+        - https://auth0.com/docs/api/management/v2/sessions/patch-sessions-by-id
+        - https://auth0.com/docs/oas/management/v2/management-api-oas.json
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/SessionMetadataUpdate"}
+      responses:
+        "200":
+          description: The updated session.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/UserSession"}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
+        "501": {$ref: "#/components/responses/RefreshTokensUnavailable"}
+  /api/v2/sessions/{id}/revoke:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        description: The session's ID.
+        schema: {type: string}
+    post:
+      operationId: revokeSession
+      tags: [sessions]
+      summary: Revoke a session and its refresh tokens
+      description: |
+        Requires both `delete:sessions` and `delete:refresh_tokens`. Ends the
+        session and revokes all refresh tokens issued in it.
+      x-source:
+        - https://auth0.com/docs/api/management/v2/sessions/revoke-session
+        - https://auth0.com/docs/oas/management/v2/management-api-oas.json
+      responses:
+        "202": {$ref: "#/components/responses/Accepted"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "501": {$ref: "#/components/responses/RefreshTokensUnavailable"}
+  /api/v2/refresh-tokens:
+    get:
+      operationId: getRefreshTokens
+      tags: [refresh-tokens]
+      summary: List refresh tokens by user
+      description: |
+        Requires `read:refresh_tokens`. Lists the user's live offline tokens in
+        ascending ID order. Pass `client_id` to filter by application. An
+        unknown user is `404 inexistent_user`.
+      x-source:
+        - https://auth0.com/docs/api/management/v2/refresh-tokens/get-refresh-tokens
+        - https://auth0.com/docs/oas/management/v2/management-api-oas.json
+        - https://auth0.com/docs/secure/tokens/refresh-tokens/online-refresh-tokens/online-refresh-tokens
+      parameters:
+        - name: user_id
+          in: query
+          required: true
+          description: The user whose refresh tokens to list.
+          schema: {type: string, minLength: 1}
+        - name: client_id
+          in: query
+          description: Only return refresh tokens issued to this application.
+          schema: {type: string}
+        - name: from
+          in: query
+          description: The `next` cursor from the previous page.
+          schema: {type: string}
+        - name: take
+          in: query
+          description: Page size.
+          schema: {type: integer, minimum: 1, maximum: 100, default: 50}
+        - name: fields
+          in: query
+          description: Comma-separated fields to include or exclude from each refresh token.
+          schema: {type: string}
+        - $ref: "#/components/parameters/include_fields"
+      responses:
+        "200":
+          description: A checkpoint page of refresh tokens.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/RefreshTokenPage"}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
+        "501": {$ref: "#/components/responses/RefreshTokensUnavailable"}
+  /api/v2/refresh-tokens/revoke:
+    post:
+      operationId: revokeRefreshTokens
+      tags: [refresh-tokens]
+      summary: Revoke refresh tokens in bulk
+      description: |
+        Requires `delete:refresh_tokens`. Select offline tokens by up to 100 IDs or
+        by user, optionally narrowed by client and then by audience. Revocation
+        completes before the server returns `202` (D-0070 LR48-9).
+      x-source:
+        - https://auth0.com/docs/api/management/v2/refresh-tokens/revoke-refresh-tokens
+        - https://auth0.com/docs/oas/management/v2/management-api-oas.json
+        - https://auth0.com/docs/secure/tokens/refresh-tokens/online-refresh-tokens/online-refresh-tokens
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/RefreshTokenRevocation"}
+      responses:
+        "202": {$ref: "#/components/responses/Accepted"}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "501": {$ref: "#/components/responses/RefreshTokensUnavailable"}
   /api/v2/refresh-tokens/{id}:
     parameters:
       - name: id
         in: path
         required: true
-        description: The refresh token's ID (not the token).
+        description: The Management API identifier of an offline refresh token.
         schema: {type: string}
     get:
       operationId: getRefreshToken
@@ -5286,6 +5544,7 @@ paths:
         not exist.").
       x-source:
         - https://auth0.com/docs/api/management/v2/refresh-tokens/get-refresh-token
+        - https://auth0.com/docs/oas/management/v2/management-api-oas.json
       responses:
         "200":
           description: The refresh token.
@@ -5309,6 +5568,30 @@ paths:
         "202": {$ref: "#/components/responses/Accepted"}
         "401": {$ref: "#/components/responses/Unauthorized"}
         "403": {$ref: "#/components/responses/Forbidden"}
+    patch:
+      operationId: updateRefreshToken
+      tags: [refresh-tokens]
+      summary: Update refresh token metadata
+      description: Requires `update:refresh_tokens`. Replaces the metadata. Use `null` or `{}` to clear it.
+      x-source:
+        - https://auth0.com/docs/api/management/v2/refresh-tokens/patch-refresh-tokens-by-id
+        - https://auth0.com/docs/oas/management/v2/management-api-oas.json
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/RefreshTokenMetadataUpdate"}
+      responses:
+        "200":
+          description: The updated refresh token.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/UserRefreshToken"}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
+        "501": {$ref: "#/components/responses/RefreshTokensUnavailable"}
   /api/v2/grants:
     get:
       operationId: getGrants
@@ -5437,10 +5720,13 @@ paths:
         the page redirects there, appending `success`, `message`, `code`,
         `supportSignUp`, `supportForgotPassword` and, with
         `includeEmailInRedirect`, `email` to its query.
+        With `organization_id`, the user must be a member of the organization
+        and the result page uses that organization's branding.
 
         A missing `user_id`, a negative `ttl_sec`, `result_url` together with
-        `client_id` and an unknown property are `400 invalid_body`; an unknown
-        user is `404 inexistent_user`.
+        `client_id` or `organization_id`, invalid organization membership and
+        an unknown property are `400 invalid_body`. An unknown user is
+        `404 inexistent_user`.
       x-source:
         - https://auth0.com/docs/api/management/v2/tickets/post-email-verification
       requestBody:
@@ -5819,12 +6105,12 @@ paths:
         and answers `201` with the job, `status: pending`, whether or not the
         user is already verified. Without an email provider the job still
         completes. `identity` names one of the user's identities and
-        `client_id` the application the email is for.
+        `client_id` the application the email is for. `organization_id` adds
+        the organization and its branding to the email and the result page.
 
-        A missing or empty `user_id`, a wrong type and an unknown property
-        (`organization_id` too: zeroauthy has no organizations) are
-        `400 invalid_body`; as on Auth0 every other error is a `400` too: an
-        unknown user is `inexistent_user`; an identity the user does not have
+        A missing or empty `user_id`, a wrong type, an unknown property and
+        invalid organization membership are `400 invalid_body`. An unknown
+        user is `inexistent_user`; an identity the user does not have
         is `inexistent_identity`; an unknown `client_id` is
         `inexistent_client`; a user without an email address, or an identity
         that is not in a database connection, is `operation_not_supported`.
@@ -6564,6 +6850,77 @@ paths:
         "404": {$ref: "#/components/responses/NotFound"}
         "429": {$ref: "#/components/responses/TooManyRequests"}
         "502": {description: The provider did not accept the message.}
+  /api/system/tenants/{tenant}/connections/{id}/passwordless/try:
+    parameters:
+      - name: tenant
+        in: path
+        required: true
+        description: The tenant's name.
+        schema: {type: string}
+      - name: id
+        in: path
+        required: true
+        description: The saved passwordless connection ID.
+        schema: {type: string, pattern: '^con_[A-Za-z0-9]{1,64}$'}
+    post:
+      x-source:
+        - https://auth0.com/docs/api/authentication/passwordless/get-code-or-link
+      operationId: tryConnectionPasswordless
+      tags: [system]
+      summary: Send a test code or magic link through a saved passwordless connection.
+      description: |
+        A zeroauthy extension on the system host (D-0270). Requires signed
+        and current operator grants for the target tenant. The application
+        must be enabled for the connection and have the passwordless OTP
+        grant. The operator authorizes this call without a client credential.
+        The send uses the saved delivery configuration and the same policies,
+        budgets and outstanding-credential replacement as a regular start.
+        Magic links use the target tenant's canonical origin and saved
+        authorization parameters.
+      security: [{operatorToken: []}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/PasswordlessTryRequest"}
+      responses:
+        "204": {description: Delivery accepted. The response has no body.}
+        "400":
+          description: Invalid request or SMS delivery was refused.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/ManagementError"}
+        "401":
+          description: Operator authentication failed or the application does not exist in the tenant.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/ManagementError"}
+        "403":
+          description: Tenant, application, connection or user policy refused the attempt.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/ManagementError"}
+        "404": {$ref: "#/components/responses/NotFound"}
+        "429":
+          description: A passwordless start budget was exhausted.
+          headers:
+            Retry-After:
+              description: Seconds until another send is allowed.
+              schema: {type: integer}
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/ManagementError"}
+        "500":
+          description: Email delivery failed or an internal error occurred.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/ManagementError"}
+        "501":
+          description: The storage plugin lacks the Phone capability.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/ManagementError"}
+        "503": {$ref: "#/components/responses/ServiceUnavailable"}
   /api/system/tenants/{tenant}/connections/{id}/scripts/{name}/try:
     parameters:
       - name: tenant
@@ -6813,11 +7170,18 @@ paths:
     get:
       operationId: GetEmailProvider
       tags: [emails]
-      summary: Get the tenant email provider without credentials.
+      summary: Get the tenant email provider and its public credentials.
       x-source: [https://auth0.com/docs/api/management/v2/emails/get-provider]
       security: [{managementToken: []}, {operatorToken: []}]
+      parameters:
+        - name: fields
+          in: query
+          description: Comma-separated public fields to select. An empty list returns all public fields.
+          schema: {type: string}
+        - $ref: "#/components/parameters/include_fields"
       responses:
         "200": {description: Redacted provider configuration., content: {application/json: {schema: {$ref: "#/components/schemas/EmailProvider"}}}}
+        "400": {$ref: "#/components/responses/BadRequest"}
         "401": {$ref: "#/components/responses/Unauthorized"}
         "403": {$ref: "#/components/responses/Forbidden"}
         "404": {$ref: "#/components/responses/NotFound"}
@@ -8574,9 +8938,8 @@ paths:
       operationId: ListOrganizationMembers
       summary: List an organization's members, ordered by user ID
       description: |
-        Needs `read:organization_members` or `read:organization_member_roles`;
-        `fields` naming `roles` (included) also needs
-        `read:organization_member_roles`.
+        Requires `read:organization_members`. Including `roles` via `fields`
+        also requires `read:organization_member_roles`.
       tags:
       - organizations
       x-source:
@@ -8584,8 +8947,6 @@ paths:
       security:
       - managementToken:
         - read:organization_members
-      - managementToken:
-        - read:organization_member_roles
       - operatorToken: []
       parameters:
       - $ref: '#/components/parameters/organizationId'
@@ -8933,8 +9294,6 @@ paths:
       x-source:
       - https://auth0.com/docs/api/management/v2/users/get-user-organizations
       security:
-      - managementToken:
-        - read:users
       - managementToken:
         - read:organizations
       - operatorToken: []
@@ -13841,6 +14200,10 @@ components:
       properties:
         length: {type: integer, minimum: 4, maximum: 40, default: 6}
         time_step: {type: integer, minimum: 60, default: 180, description: Code and link lifetime in seconds.}
+    ConnectionKey: {"type": "object", "properties": {"kid": {"type": "string"}, "cert": {"type": "string"}, "pkcs": {"type": "string"}, "fingerprint": {"type": "string"}, "thumbprint": {"type": "string"}, "algorithm": {"type": "string"}, "subject_dn": {"type": "string"}, "key_use": {"type": "string", "enum": ["signing", "encryption"]}, "current": {"type": "boolean"}, "next": {"type": "boolean"}, "previous": {"type": "boolean"}, "current_since": {"type": "string", "format": "date-time"}}, "required": ["kid", "cert", "fingerprint", "thumbprint"]}
+    PostConnectionKeysRequestContent: {"type": "object", "properties": {"key_use": {"type": "string", "enum": ["signing", "encryption"], "default": "signing"}, "signing_alg": {"type": "string", "enum": ["RS256", "RS384", "RS512", "PS256", "PS384", "ES256", "ES384"], "default": "RS256"}, "encryption_alg": {"type": "string", "enum": ["RSA-OAEP-256", "RSA-OAEP-384", "RSA-OAEP-512", "ECDH-ES", "ECDH-ES+A128KW", "ECDH-ES+A192KW", "ECDH-ES+A256KW"]}}, "additionalProperties": false}
+    ConnectionOptionsOIDC: {"type": "object", "properties": {"client_id": {"type": "string"}, "client_secret": {"type": "string", "writeOnly": true}, "discovery_url": {"type": "string"}, "issuer": {"type": "string"}, "authorization_endpoint": {"type": "string"}, "token_endpoint": {"type": "string"}, "jwks_uri": {"type": "string"}, "userinfo_endpoint": {"type": "string"}, "scope": {"type": "string"}, "scopes": {"type": "string"}, "tenant_domain": {"type": "string"}, "icon_url": {"type": "string"}, "pushed_authorization_request_endpoint": {"type": "string"}, "type": {"type": "string", "enum": ["back_channel", "front_channel"], "default": "front_channel"}, "oidc_metadata": {"type": "object", "additionalProperties": true}, "connection_settings": {"type": "object", "properties": {"pkce": {"type": "string", "enum": ["auto", "S256", "s256", "plain", "disabled"], "default": "auto"}}}, "send_back_channel_nonce": {"type": "boolean", "default": true}, "token_endpoint_auth_method": {"type": "string", "enum": ["client_secret_post", "private_key_jwt"], "nullable": true}, "token_endpoint_auth_signing_alg": {"type": "string", "enum": ["RS256", "RS384", "RS512", "PS256", "PS384", "ES256", "ES384"]}, "token_endpoint_jwtca_aud_format": {"type": "string", "enum": ["issuer", "token_endpoint"]}, "id_token_signed_response_algs": {"type": "array", "items": {"type": "string"}}, "id_token_encrypted_response_alg": {"type": "string", "enum": ["RSA-OAEP-256", "RSA-OAEP-384", "RSA-OAEP-512", "ECDH-ES", "ECDH-ES+A128KW", "ECDH-ES+A192KW", "ECDH-ES+A256KW"]}, "id_token_encrypted_response_encs": {"type": "array", "items": {"type": "string"}}, "domain_aliases": {"type": "array", "items": {"type": "string"}, "maxItems": 1000}, "non_persistent_attrs": {"type": "array", "items": {"type": "string"}}, "enable_pushed_authorization_requests": {"type": "boolean"}, "id_token_session_expiry_supported": {"type": "boolean"}, "useOauthSpecScope": {"type": "boolean"}, "set_user_root_attributes": {"type": "string"}, "dpop_signing_alg": {"type": "string", "nullable": true}, "attribute_map": {"type": "object", "properties": {"mapping_mode": {"type": "string", "enum": ["bind_all", "use_map"]}, "attributes": {"type": "object", "maxProperties": 100, "additionalProperties": {"type": "string", "maxLength": 1024}}, "userinfo_scope": {"type": "string"}}}}, "required": ["client_id"]}
+    ConnectionOptionsOkta: {"type": "object", "properties": {"client_id": {"type": "string"}, "client_secret": {"type": "string", "writeOnly": true}, "issuer": {"type": "string"}, "authorization_endpoint": {"type": "string"}, "token_endpoint": {"type": "string"}, "jwks_uri": {"type": "string"}, "userinfo_endpoint": {"type": "string"}, "scope": {"type": "string"}, "scopes": {"type": "string"}, "tenant_domain": {"type": "string"}, "icon_url": {"type": "string"}, "pushed_authorization_request_endpoint": {"type": "string"}, "type": {"type": "string", "enum": ["back_channel"]}, "oidc_metadata": {"type": "object", "additionalProperties": true}, "connection_settings": {"type": "object", "properties": {"pkce": {"type": "string", "enum": ["auto", "S256", "s256", "plain", "disabled"], "default": "auto"}}}, "send_back_channel_nonce": {"type": "boolean", "default": true}, "token_endpoint_auth_method": {"type": "string", "enum": ["client_secret_post", "private_key_jwt"], "nullable": true}, "token_endpoint_auth_signing_alg": {"type": "string", "enum": ["RS256", "RS384", "RS512", "PS256", "PS384", "ES256", "ES384"]}, "token_endpoint_jwtca_aud_format": {"type": "string", "enum": ["issuer", "token_endpoint"]}, "id_token_signed_response_algs": {"type": "array", "items": {"type": "string"}}, "id_token_encrypted_response_alg": {"type": "string", "enum": ["RSA-OAEP-256", "RSA-OAEP-384", "RSA-OAEP-512", "ECDH-ES", "ECDH-ES+A128KW", "ECDH-ES+A192KW", "ECDH-ES+A256KW"]}, "id_token_encrypted_response_encs": {"type": "array", "items": {"type": "string"}}, "domain_aliases": {"type": "array", "items": {"type": "string"}, "maxItems": 1000}, "non_persistent_attrs": {"type": "array", "items": {"type": "string"}}, "enable_pushed_authorization_requests": {"type": "boolean"}, "id_token_session_expiry_supported": {"type": "boolean"}, "useOauthSpecScope": {"type": "boolean"}, "set_user_root_attributes": {"type": "string"}, "dpop_signing_alg": {"type": "string", "nullable": true}, "attribute_map": {"type": "object", "properties": {"mapping_mode": {"type": "string", "enum": ["basic_profile", "use_map"]}, "attributes": {"type": "object", "maxProperties": 100, "additionalProperties": {"type": "string", "maxLength": 1024}}, "userinfo_scope": {"type": "string"}}}, "domain": {"type": "string", "maxLength": 253}}, "required": ["client_id", "domain"]}
     ConnectionOptionsApple:
       type: object
       description: |
@@ -13882,6 +14245,76 @@ components:
           enum: [on_each_login, on_first_login, never_on_login]
           default: on_each_login
           description: Apple names are preserved after the first login regardless of this setting (LR39a-10).
+        upstream_params:
+          type: object
+          additionalProperties: true
+          description: Stored only; reserved protocol and security overrides are refused (Plan 24 policy).
+        non_persistent_attrs:
+          type: array
+          maxItems: 96
+          items: {type: string, maxLength: 255}
+          description: Stored only.
+    ConnectionOptionsGitHub:
+      type: object
+      description: |
+        GitHub connection contract (Plan 39c, D-0181). Create requires client_id and
+        client_secret of a GitHub OAuth App; the secret is sealed and never
+        returned. PATCH omitting client_secret preserves it; empty or null is
+        refused. client_id is immutable. The endpoints are fixed to github.com
+        and api.github.com: GitHub Enterprise hosts, endpoint overrides, the
+        device flow and connected_accounts.active are rejected.
+        The requested scope is computed from the flags: user:email when
+        `email` is on (the default), then each true scope flag. `scope` is
+        returned on read as that effective array. An input `scope` is accepted
+        only when it equals the effective scope as a set; otherwise the request
+        is `400` naming the expected scope. `profile` is stored and returned
+        only: login always reads the GitHub user for the subject.
+        Rotating client_secret or changing the scope increments FederationRevision.
+      x-source:
+        - https://auth0.com/docs/authenticate/identity-providers/social-identity-providers/github
+        - https://github.com/auth0/node-auth0/blob/v7.4.0/src/management/api/types/types.ts
+      additionalProperties: true
+      properties:
+        client_id: {type: string, minLength: 1, maxLength: 255, description: GitHub OAuth App client ID; immutable after creation.}
+        client_secret:
+          type: string
+          minLength: 1
+          maxLength: 5120
+          writeOnly: true
+          description: Sealed at write and never returned, logged or exported.
+        profile: {type: boolean, default: true, description: Stored and returned only; login always maps the GitHub user profile.}
+        email: {type: boolean, default: true, description: Requests user:email and reads the verified primary email; false creates users without an email.}
+        admin_org: {type: boolean, default: false, description: "Requests the GitHub `admin:org` scope."}
+        admin_public_key: {type: boolean, default: false, description: "Requests the GitHub `admin:public_key` scope."}
+        admin_repo_hook: {type: boolean, default: false, description: "Requests the GitHub `admin:repo_hook` scope."}
+        delete_repo: {type: boolean, default: false, description: "Requests the GitHub `delete_repo` scope."}
+        follow: {type: boolean, default: false, description: "Requests the GitHub `user:follow` scope."}
+        gist: {type: boolean, default: false, description: "Requests the GitHub `gist` scope."}
+        notifications: {type: boolean, default: false, description: "Requests the GitHub `notifications` scope."}
+        public_repo: {type: boolean, default: false, description: "Requests the GitHub `public_repo` scope."}
+        read_org: {type: boolean, default: false, description: "Requests the GitHub `read:org` scope."}
+        read_public_key: {type: boolean, default: false, description: "Requests the GitHub `read:public_key` scope."}
+        read_repo_hook: {type: boolean, default: false, description: "Requests the GitHub `read:repo_hook` scope."}
+        read_user: {type: boolean, default: false, description: "Requests the GitHub `read:user` scope."}
+        repo: {type: boolean, default: false, description: "Requests the GitHub `repo` scope."}
+        repo_deployment: {type: boolean, default: false, description: "Requests the GitHub `repo_deployment` scope."}
+        repo_status: {type: boolean, default: false, description: "Requests the GitHub `repo:status` scope."}
+        write_org: {type: boolean, default: false, description: "Requests the GitHub `write:org` scope."}
+        write_public_key: {type: boolean, default: false, description: "Requests the GitHub `write:public_key` scope."}
+        write_repo_hook: {type: boolean, default: false, description: "Requests the GitHub `write:repo_hook` scope."}
+        scope:
+          type: array
+          items: {type: string}
+          description: Effective scope computed from the flags. Input must equal it as a set.
+        freeform_scopes:
+          type: array
+          maxItems: 0
+          items: {type: string}
+          description: Only absent or empty is accepted.
+        set_user_root_attributes:
+          type: string
+          enum: [on_each_login, on_first_login, never_on_login]
+          default: on_each_login
         upstream_params:
           type: object
           additionalProperties: true
@@ -18070,7 +18503,9 @@ components:
         page_background:
           type: string
     IITokenQuota:
-      type: object
+      type: [object, "null"]
+      description: Application or organization quota for the client-credentials grant. Null removes the override.
+      x-source: [https://auth0.com/docs/fine-grained-m2m-token-quotas]
       additionalProperties: false
       required:
       - client_credentials
@@ -18084,6 +18519,7 @@ components:
       properties:
         enforce:
           type: boolean
+          default: true
         per_day:
           type: integer
           minimum: 1
@@ -18092,6 +18528,21 @@ components:
           type: integer
           minimum: 1
           maximum: 2147483647
+    DefaultTokenQuota:
+      type: [object, "null"]
+      additionalProperties: false
+      minProperties: 1
+      description: Fallback quotas for clients and organizations that have no override. Null removes the defaults.
+      x-source: [https://auth0.com/docs/fine-grained-m2m-token-quotas]
+      properties:
+        clients: {$ref: "#/components/schemas/DefaultTokenQuotaSubject"}
+        organizations: {$ref: "#/components/schemas/DefaultTokenQuotaSubject"}
+    DefaultTokenQuotaSubject:
+      type: object
+      additionalProperties: true
+      required: [client_credentials]
+      properties:
+        client_credentials: {$ref: "#/components/schemas/IITokenQuotaClientCredentials"}
     IIOrganizationThirdPartyClientAccessEnum:
       type: string
       enum:
@@ -18922,6 +19373,8 @@ components:
           $ref: '#/components/schemas/OrganizationBranding'
         metadata:
           $ref: '#/components/schemas/OrganizationMetadata'
+        token_quota:
+          $ref: '#/components/schemas/IITokenQuota'
         third_party_client_access:
           type: string
           description: '`block` (default) or `allow`.'
@@ -18957,6 +19410,8 @@ components:
           $ref: '#/components/schemas/OrganizationBranding'
         metadata:
           $ref: '#/components/schemas/OrganizationMetadata'
+        token_quota:
+          $ref: '#/components/schemas/IITokenQuota'
         third_party_client_access:
           type: string
           description: '`block` (default) or `allow`.'
@@ -19035,6 +19490,8 @@ components:
           $ref: '#/components/schemas/OrganizationBrandingWrite'
         metadata:
           $ref: '#/components/schemas/OrganizationMetadataWrite'
+        token_quota:
+          $ref: '#/components/schemas/IITokenQuota'
         third_party_client_access:
           type: string
           description: '`block` (default) or `allow`.'
@@ -19069,6 +19526,8 @@ components:
           $ref: '#/components/schemas/OrganizationBrandingWrite'
         metadata:
           $ref: '#/components/schemas/OrganizationMetadataWrite'
+        token_quota:
+          $ref: '#/components/schemas/IITokenQuota'
         third_party_client_access:
           type: string
           description: '`block` (default) or `allow`.'
@@ -20002,11 +20461,19 @@ components:
       - users
     EmailProvider:
       type: object
-      required: [name, enabled]
       properties:
         name: {type: string}
         enabled: {type: boolean}
         default_from_address: {type: string}
+        credentials:
+          type: object
+          additionalProperties: false
+          properties:
+            api_user: {type: string}
+            region: {type: string}
+            smtp_host: {type: string}
+            smtp_port: {type: integer, minimum: 1, maximum: 65535}
+            smtp_user: {type: string}
         settings: {type: object, additionalProperties: true}
     EmailProviderWrite:
       type: object
@@ -20058,6 +20525,15 @@ components:
             subject: {type: string}
             from: {type: string}
             variables: {type: object, additionalProperties: true}
+    PasswordlessTryRequest:
+      type: object
+      additionalProperties: false
+      required: [client_id]
+      properties:
+        client_id: {type: string, minLength: 1}
+        email: {type: string, format: email, description: Required for an email connection.}
+        phone_number: {type: string, description: E.164 number required for an SMS connection.}
+        send: {type: string, enum: [code, link], description: Defaults to code for SMS and link for email.}
     EmailTestRequest:
       type: object
       additionalProperties: false
@@ -20800,56 +21276,7 @@ components:
           description: Validated and stored only; not enforced in this milestone. See the tenant settings compatibility
             inventory for the follow-up owner.
           nullable: true
-        default_token_quota:
-          type: object
-          additionalProperties: false
-          minProperties: 1
-          properties:
-            clients:
-              type: object
-              additionalProperties: true
-              required:
-              - client_credentials
-              properties:
-                client_credentials:
-                  type: object
-                  additionalProperties: false
-                  minProperties: 1
-                  properties:
-                    enforce:
-                      type: boolean
-                    per_day:
-                      type: integer
-                      minimum: 1
-                      maximum: 2147483647
-                    per_hour:
-                      type: integer
-                      minimum: 1
-                      maximum: 2147483647
-            organizations:
-              type: object
-              additionalProperties: true
-              required:
-              - client_credentials
-              properties:
-                client_credentials:
-                  type: object
-                  additionalProperties: false
-                  minProperties: 1
-                  properties:
-                    enforce:
-                      type: boolean
-                    per_day:
-                      type: integer
-                      minimum: 1
-                      maximum: 2147483647
-                    per_hour:
-                      type: integer
-                      minimum: 1
-                      maximum: 2147483647
-          description: Validated and stored only; not enforced in this milestone. See the tenant settings compatibility
-            inventory for the follow-up owner.
-          nullable: true
+        default_token_quota: {$ref: "#/components/schemas/DefaultTokenQuota"}
         flags:
           type: object
           additionalProperties: false
@@ -20896,6 +21323,8 @@ components:
               type: boolean
             revoke_refresh_token_grant:
               type: boolean
+              default: false
+              description: Whether OAuth refresh token revocation also deletes the associated user grant.
             dashboard_log_streams_next:
               type: boolean
             dashboard_insights_view:
@@ -21227,8 +21656,7 @@ components:
             rp_logout_end_session_endpoint_discovery:
               type: boolean
               default: true
-          description: Validated and stored only; not enforced in this milestone. See the tenant settings compatibility
-            inventory for the follow-up owner.
+          description: Controls RP-initiated logout endpoint discovery. False hides its metadata entry without disabling the endpoint (D-0080).
         customize_mfa_in_postlogin_action:
           type: boolean
           default: false
@@ -21247,8 +21675,7 @@ components:
           items:
             type: string
             format: acr
-          description: Validated and stored only; not enforced in this milestone. See the tenant settings compatibility
-            inventory for the follow-up owner.
+          description: Effective discovery values are intersected with the supported multi-factor context. Absent or null uses the supported default; an empty list disables it (D-0080).
           nullable: true
         mtls:
           type: object
@@ -21271,9 +21698,8 @@ components:
           nullable: true
         dpop_strict_refresh_token_binding:
           type: boolean
-          default: false
-          description: Validated and stored only; not enforced in this milestone. See the tenant settings compatibility
-            inventory for the follow-up owner.
+          default: true
+          description: Bind refresh tokens to any supplied DPoP proof independently of API access-token settings. New tenants default to true; explicit false retains legacy per-API binding.
           nullable: true
         skip_non_verifiable_callback_uri_confirmation_prompt:
           type: boolean
@@ -21283,8 +21709,7 @@ components:
           enum:
           - audience
           - compatibility
-          description: Validated and stored only; not enforced in this milestone. See the tenant settings compatibility
-            inventory for the follow-up owner.
+          description: Audience profile ignores resource; compatibility uses one resource as an audience alias and rejects conflicting or multiple values (D-0080).
         client_id_metadata_document_supported:
           type: boolean
           default: false
@@ -21410,56 +21835,7 @@ components:
           description: Validated and stored only; not enforced in this milestone. See the tenant settings compatibility
             inventory for the follow-up owner.
           nullable: true
-        default_token_quota:
-          type: object
-          additionalProperties: false
-          minProperties: 1
-          properties:
-            clients:
-              type: object
-              additionalProperties: true
-              required:
-              - client_credentials
-              properties:
-                client_credentials:
-                  type: object
-                  additionalProperties: false
-                  minProperties: 1
-                  properties:
-                    enforce:
-                      type: boolean
-                    per_day:
-                      type: integer
-                      minimum: 1
-                      maximum: 2147483647
-                    per_hour:
-                      type: integer
-                      minimum: 1
-                      maximum: 2147483647
-            organizations:
-              type: object
-              additionalProperties: true
-              required:
-              - client_credentials
-              properties:
-                client_credentials:
-                  type: object
-                  additionalProperties: false
-                  minProperties: 1
-                  properties:
-                    enforce:
-                      type: boolean
-                    per_day:
-                      type: integer
-                      minimum: 1
-                      maximum: 2147483647
-                    per_hour:
-                      type: integer
-                      minimum: 1
-                      maximum: 2147483647
-          description: Validated and stored only; not enforced in this milestone. See the tenant settings compatibility
-            inventory for the follow-up owner.
-          nullable: true
+        default_token_quota: {$ref: "#/components/schemas/DefaultTokenQuota"}
         flags:
           type: object
           additionalProperties: false
@@ -21506,6 +21882,8 @@ components:
               type: boolean
             revoke_refresh_token_grant:
               type: boolean
+              default: false
+              description: Whether OAuth refresh token revocation also deletes the associated user grant.
             dashboard_log_streams_next:
               type: boolean
             dashboard_insights_view:
@@ -21861,8 +22239,7 @@ components:
             rp_logout_end_session_endpoint_discovery:
               type: boolean
               default: true
-          description: Validated and stored only; not enforced in this milestone. See the tenant settings compatibility
-            inventory for the follow-up owner.
+          description: Controls RP-initiated logout endpoint discovery. False hides its metadata entry without disabling the endpoint (D-0080).
         customize_mfa_in_postlogin_action:
           type: boolean
           default: false
@@ -21881,8 +22258,7 @@ components:
           items:
             type: string
             format: acr
-          description: Validated and stored only; not enforced in this milestone. See the tenant settings compatibility
-            inventory for the follow-up owner.
+          description: Effective discovery values are intersected with the supported multi-factor context. Absent or null uses the supported default; an empty list disables it (D-0080).
           nullable: true
         mtls:
           type: object
@@ -21906,9 +22282,8 @@ components:
           nullable: true
         dpop_strict_refresh_token_binding:
           type: boolean
-          default: false
-          description: Validated and stored only; not enforced in this milestone. See the tenant settings compatibility
-            inventory for the follow-up owner.
+          default: true
+          description: Bind refresh tokens to any supplied DPoP proof independently of API access-token settings. New tenants default to true; explicit false retains legacy per-API binding.
           nullable: true
         skip_non_verifiable_callback_uri_confirmation_prompt:
           type: boolean
@@ -21919,8 +22294,7 @@ components:
           enum:
           - audience
           - compatibility
-          description: Validated and stored only; not enforced in this milestone. See the tenant settings compatibility
-            inventory for the follow-up owner.
+          description: Audience profile ignores resource; compatibility uses one resource as an audience alias and rejects conflicting or multiple values (D-0080).
         client_id_metadata_document_supported:
           type: boolean
           default: false
@@ -21981,21 +22355,78 @@ components:
       type: string
       enum: [none, client_secret_post, client_secret_basic]
       description: How the application authenticates at `/oauth/token`; `none` for public clients.
+    ClientOIDCSupport:
+      type: [object, "null"]
+      additionalProperties: false
+      required: [is_allowed]
+      x-source: [https://auth0.com/docs/oas/management/v2/management-api-oas.json]
+      description: OIDC and scope restrictions. Null restores OIDC with all scopes. allow_all_scopes and allowed_scopes cannot both be supplied (D-0080).
+      not:
+        type: object
+        required: [allow_all_scopes, allowed_scopes]
+      properties:
+        is_allowed: {type: boolean}
+        allow_all_scopes: {type: boolean}
+        allowed_scopes:
+          type: array
+          uniqueItems: true
+          items: {type: string, enum: [profile, email, address, phone]}
+    ClientOIDCLogout:
+      type: [object, "null"]
+      additionalProperties: false
+      x-source:
+        - https://auth0.com/docs/oas/management/v2/management-api-oas.json
+        - https://auth0.com/docs/authenticate/login/logout/back-channel-logout
+      properties:
+        backchannel_logout_urls:
+          type: array
+          maxItems: 1
+          description: Public HTTPS receiver. Organization ID and name placeholders are supported (D-0080).
+          items: {type: string, maxLength: 2048, x-max-bytes: 2048}
+        backchannel_logout_initiators:
+          type: object
+          additionalProperties: false
+          required: [mode]
+          description: Custom mode requires selected_initiators including rp-logout and idp-logout. Absent defaults to those two initiators.
+          properties:
+            mode: {type: string, enum: [custom, all], default: custom}
+            selected_initiators:
+              type: array
+              uniqueItems: true
+              items:
+                type: string
+                enum: [rp-logout, idp-logout, password-changed, session-expired, session-revoked, account-deleted, email-identifier-changed, mfa-phone-unenrolled, account-deactivated, profile-changed]
+        backchannel_logout_session_metadata:
+          type: object
+          additionalProperties: false
+          properties:
+            include: {type: boolean, default: false}
     JwtConfiguration:
       type: object
       description: ID token settings.
       properties:
         alg:
           type: string
-          enum: [RS256]
-          description: The signing algorithm; zeroauthy signs with RS256 only.
+          enum: [HS256, RS256, PS256]
+          default: RS256
+          description: ID token algorithm. HS256 requires a confidential client with a usable client secret (D-0080).
         lifetime_in_seconds:
           type: integer
           minimum: 0
           description: ID token lifetime; 36000 by default.
         secret_encoded:
           type: boolean
-          description: Accepted and ignored (HS256 is not offered).
+          description: Legacy setting, accepted and ignored. HS256 uses the client secret UTF-8 bytes (D-0080).
+    DPoPPolicy:
+      type: object
+      nullable: true
+      additionalProperties: false
+      required: [mechanism, required]
+      x-source: [https://auth0.com/docs/secure/sender-constraining/configure-sender-constraining]
+      properties:
+        mechanism: {type: string, enum: [none, dpop]}
+        required: {type: boolean}
+        required_for: {type: string, enum: [all_clients, public_clients], default: all_clients}
     RefreshTokenSettings:
       type: object
       description: The refresh tokens the application receives.
@@ -22009,7 +22440,7 @@ components:
         leeway:
           type: integer
           minimum: 0
-          description: Seconds a rotated token may still be used.
+          description: Seconds during which only the immediately previous rotating token may be exchanged again.
         token_lifetime:
           type: integer
           minimum: 0
@@ -22024,6 +22455,27 @@ components:
         infinite_idle_token_lifetime:
           type: boolean
           description: True for non-expiring tokens; derived from `expiration_type`.
+        policies:
+          type: [array, "null"]
+          description: |
+            API audiences and scopes available to this first-party application
+            during refresh token exchange. Audience identifiers must be unique.
+            The Management API is excluded. Null clears the policies.
+          minItems: 1
+          maxItems: 10
+          items: {$ref: "#/components/schemas/RefreshTokenPolicy"}
+    RefreshTokenPolicy:
+      type: object
+      additionalProperties: false
+      required: [audience, scope]
+      x-source:
+        - https://auth0.com/docs/secure/tokens/refresh-tokens/multi-resource-refresh-token/configure-and-implement-multi-resource-refresh-token
+        - https://auth0.com/docs/oas/management/v2/management-api-oas.json
+      properties:
+        audience: {type: string, minLength: 1, maxLength: 600}
+        scope:
+          type: array
+          items: {type: string, minLength: 1, maxLength: 280}
     RoamingUVSettings:
       type: object
       additionalProperties: false
@@ -22119,8 +22571,11 @@ components:
         allowed_logout_urls: {type: array, items: {type: string}, description: Where logout may return to.}
         web_origins: {type: array, items: {type: string}, description: Origins allowed for web message and silent authentication.}
         allowed_origins: {type: array, items: {type: string}, description: Origins allowed for cross-origin requests.}
+        oidc_logout: {$ref: "#/components/schemas/ClientOIDCLogout"}
+        oidc_support: {$ref: "#/components/schemas/ClientOIDCSupport"}
         jwt_configuration: {$ref: "#/components/schemas/JwtConfiguration"}
         refresh_token: {$ref: "#/components/schemas/RefreshTokenSettings"}
+        token_quota: {$ref: "#/components/schemas/IITokenQuota"}
         oidc_conformant:
           type: boolean
           description: zeroauthy is always OIDC-conformant; `false` is refused.
@@ -22130,6 +22585,7 @@ components:
         skip_non_verifiable_callback_uri_confirmation_prompt:
           type: [boolean, "null"]
           description: Overrides the tenant's setting; null inherits it.
+        require_proof_of_possession: {type: boolean, default: false}
         require_pushed_authorization_requests:
           type: boolean
           description: Refuse authorization requests that were not pushed (confidential first-party applications of a tenant that allows PAR).
@@ -22249,10 +22705,14 @@ components:
         client_authentication_methods: {$ref: "#/components/schemas/ClientAuthenticationMethods"}
         signed_request_object: {$ref: "#/components/schemas/SignedRequestObject"}
         token_exchange: {$ref: "#/components/schemas/ClientTokenExchange"}
+        oidc_logout: {$ref: "#/components/schemas/ClientOIDCLogout"}
+        oidc_support: {$ref: "#/components/schemas/ClientOIDCSupport"}
         jwt_configuration: {$ref: "#/components/schemas/JwtConfiguration"}
         refresh_token: {$ref: "#/components/schemas/RefreshTokenSettings"}
+        token_quota: {$ref: "#/components/schemas/IITokenQuota"}
         redirection_policy: {type: string, enum: [open_redirect_protection, allow_always]}
         skip_non_verifiable_callback_uri_confirmation_prompt: {type: boolean}
+        require_proof_of_possession: {type: boolean, default: false}
         require_pushed_authorization_requests: {type: boolean}
         organization_usage: {type: string, enum: [deny, allow, require], description: Left out when unset (deny).}
         organization_require_behavior: {type: string, enum: [no_prompt, pre_login_prompt, post_login_prompt], description: Left out when unset (no_prompt).}
@@ -22435,9 +22895,9 @@ components:
             (D-0063).
         signing_secret:
           type: string
-          minLength: 16
+          minLength: 32
           description: |
-            HS256 only: at least 16 characters (C15). Generated (32 random
+            HS256 only: at least 32 characters on new writes (D-0080). Generated (32 random
             bytes, base64url) when an HS256 API is created without one; sent
             with `signing_alg` RS256 or PS256 it is refused (`invalid_body`).
         token_lifetime: {type: integer, minimum: 1, maximum: 2592000, description: "Access token lifetime in seconds; 86400 by default."}
@@ -22450,6 +22910,14 @@ components:
             hybrid flow, so nothing uses it. When sent, it must not exceed
             `token_lifetime`.
         allow_offline_access: {type: boolean, description: Whether clients may get refresh tokens for the API.}
+        allow_online_access:
+          type: boolean
+          default: false
+          description: Allow clients to obtain session-bound refresh tokens for this API.
+        allow_online_access_with_ephemeral_sessions:
+          type: boolean
+          default: false
+          description: Allow online refresh token issuance for ephemeral sessions when online access is enabled.
         skip_consent_for_verifiable_first_party_clients: {type: boolean}
         subject_type_authorization: {$ref: "#/components/schemas/SubjectTypeAuthorization"}
         enforce_policies:
@@ -22460,7 +22928,7 @@ components:
           enum: [access_token, access_token_authz, rfc9068_profile, rfc9068_profile_authz]
           description: Access-token profile; defaults to access_token.
         consent_policy: {description: "Only null is accepted (transactional authorization is not supported)."}
-        proof_of_possession: {description: "Only null is accepted (mTLS and DPoP are not supported)."}
+        proof_of_possession: {$ref: "#/components/schemas/DPoPPolicy"}
         authorization_details: {description: "Only null or an empty list is accepted (rich authorization requests are not supported)."}
         token_encryption: {description: "Only null is accepted (token encryption is not supported)."}
     ResourceServerCreate:
@@ -22507,7 +22975,10 @@ components:
         signing_secret: {type: string, description: "HS256 only; returned on read (C16)."}
         token_lifetime: {type: integer}
         token_lifetime_for_web: {type: integer}
+        proof_of_possession: {$ref: "#/components/schemas/DPoPPolicy"}
         allow_offline_access: {type: boolean}
+        allow_online_access: {type: boolean}
+        allow_online_access_with_ephemeral_sessions: {type: boolean}
         skip_consent_for_verifiable_first_party_clients: {type: boolean}
         subject_type_authorization:
           type: object
@@ -22663,7 +23134,7 @@ components:
           required: [name, strategy]
           properties:
             name: {type: string, minLength: 1, maxLength: 128, description: "Letters and digits with single hyphens between them."}
-            strategy: {type: string, enum: [auth0, google-oauth2, oauth2, oidc, windowslive, waad, email, sms, apple], description: "`email` and `sms` are passwordless connections whose name must equal the strategy; options follow ConnectionOptionsEmail and ConnectionOptionsSMS (Plan 34). `apple` follows ConnectionOptionsApple; web/native login is active (D-0170)."}
+            strategy: {type: string, enum: [auth0, google-oauth2, oauth2, oidc, windowslive, waad, email, sms, apple, github, okta], description: "`email` and `sms` are passwordless connections whose name must equal the strategy; options follow ConnectionOptionsEmail and ConnectionOptionsSMS (Plan 34). `apple` follows ConnectionOptionsApple; web/native login is active (D-0170). `github` follows ConnectionOptionsGitHub (Plan 39c)."}
             enabled_clients:
               type: array
               items: {type: string}
@@ -22680,7 +23151,7 @@ components:
         A connection. `options.configuration` values are opaque blobs, never
         plaintext. `enabled_clients` is returned by create only. `fields`
         can leave out any property but `id` and `is_domain_connection`.
-        For `google-oauth2`, `oauth2`, `oidc`, `windowslive` and `waad` connections
+        For `google-oauth2`, `github`, `oauth2`, `oidc`, `windowslive` and `waad` connections
         `options.client_secret` is write-only: it is sealed when written and
         never returned.
         Microsoft connections require GUID client IDs and request exactly
@@ -22794,7 +23265,7 @@ components:
         domains: {type: array, items: {type: string}, description: Custom domains the tenant answers on.}
         host:
           type: string
-          description: The tenant's canonical host, where the console calls its Management API.
+          description: The tenant's canonical host. It serves the tenant's public Management API.
         management_api_identifier:
           type: string
           description: The audience of the tenant's machine-to-machine Management API tokens.
@@ -22889,6 +23360,17 @@ components:
         initial_ip: {type: string}
         last_user_agent: {type: string}
         last_ip: {type: string}
+    SessionMetadata:
+      type: [object, "null"]
+      maxProperties: 25
+      propertyNames: {type: string, maxLength: 255}
+      additionalProperties: {type: string, maxLength: 255}
+    SessionMetadataUpdate:
+      type: object
+      additionalProperties: false
+      required: [session_metadata]
+      properties:
+        session_metadata: {$ref: "#/components/schemas/SessionMetadata"}
     UserSession:
       type: object
       required: [id, user_id, created_at, updated_at, authenticated_at, authentication, idle_expires_at, expires_at, device, clients, last_interacted_at, cookie]
@@ -22922,6 +23404,7 @@ components:
             properties:
               client_id: {type: string}
         last_interacted_at: {type: string, format: date-time}
+        session_metadata: {$ref: "#/components/schemas/SessionMetadata"}
         cookie:
           type: object
           required: [mode]
@@ -22935,9 +23418,30 @@ components:
           type: array
           items: {$ref: "#/components/schemas/UserSession"}
         next: {type: string, description: Pass as `from` for the next page; absent when the page is empty.}
-    UserRefreshToken:
+    RefreshTokenDevice:
       type: object
-      required: [id, user_id, created_at, idle_expires_at, expires_at, client_id, session_id, rotating, resource_servers, last_exchanged_at]
+      description: Device details recorded when the refresh token was issued and last exchanged.
+      properties:
+        initial_ip: {type: string}
+        initial_asn: {type: string, description: Empty because ASN lookup is unavailable.}
+        initial_user_agent: {type: string}
+        last_ip: {type: string}
+        last_asn: {type: string, description: Empty because ASN lookup is unavailable.}
+        last_user_agent: {type: string}
+    RefreshTokenMetadata:
+      type: [object, "null"]
+      maxProperties: 25
+      propertyNames: {type: string, maxLength: 255}
+      additionalProperties: {type: string, maxLength: 255}
+    RefreshTokenMetadataUpdate:
+      type: object
+      additionalProperties: false
+      required: [refresh_token_metadata]
+      properties:
+        refresh_token_metadata: {$ref: "#/components/schemas/RefreshTokenMetadata"}
+    RefreshToken:
+      type: object
+      additionalProperties: false
       properties:
         id: {type: string}
         user_id: {type: string}
@@ -22956,8 +23460,25 @@ components:
             properties:
               audience: {type: string}
               scopes: {type: string}
-        device: {$ref: "#/components/schemas/SessionDevice"}
-        last_exchanged_at: {type: [string, "null"], format: date-time}
+        device: {$ref: "#/components/schemas/RefreshTokenDevice"}
+        refresh_token_metadata: {$ref: "#/components/schemas/RefreshTokenMetadata"}
+        last_exchanged_at:
+          type: [string, "null"]
+          format: date-time
+          description: The last successful exchange, or null before the first exchange.
+    UserRefreshToken:
+      allOf:
+        - $ref: "#/components/schemas/RefreshToken"
+        - type: object
+          required: [id, user_id, created_at, idle_expires_at, expires_at, client_id, session_id, rotating, resource_servers, last_exchanged_at]
+    RefreshTokenPage:
+      type: object
+      required: [refresh_tokens]
+      properties:
+        refresh_tokens:
+          type: array
+          items: {$ref: "#/components/schemas/RefreshToken"}
+        next: {type: string, description: Cursor to pass as `from` on the next request.}
     UserRefreshTokenPage:
       type: object
       required: [tokens]
@@ -22966,6 +23487,27 @@ components:
           type: array
           items: {$ref: "#/components/schemas/UserRefreshToken"}
         next: {type: string, description: Pass as `from` for the next page; absent when the page is empty.}
+    RefreshTokenRevocation:
+      type: object
+      additionalProperties: false
+      properties:
+        ids:
+          type: array
+          minItems: 1
+          maxItems: 100
+          items: {type: string, minLength: 1}
+        user_id: {type: string, minLength: 1}
+        client_id: {type: string, minLength: 1}
+        audience: {type: string, minLength: 1, maxLength: 600}
+      oneOf:
+        - required: [ids]
+          maxProperties: 1
+        - required: [user_id]
+          maxProperties: 1
+        - required: [user_id, client_id]
+          maxProperties: 2
+        - required: [user_id, client_id, audience]
+          maxProperties: 3
     UserGrant:
       type: object
       required: [id, clientID, user_id, audience, scope]
@@ -23134,6 +23676,7 @@ components:
       properties:
         user_id: {type: string, description: The user to send the email to.}
         client_id: {type: string, description: The application the email is for.}
+        organization_id: {type: string, description: The organization whose branding the verification uses. The user must be a member.}
         identity:
           type: object
           description: One of the user's database identities; the user's primary one when absent.
@@ -23220,8 +23763,9 @@ components:
       description: Unknown properties are `400 invalid_body`.
       properties:
         user_id: {type: string}
-        result_url: {type: string, description: "Where the page redirects after opening. Not with `client_id`."}
+        result_url: {type: string, description: "Where the page redirects after opening. Not with `client_id` or `organization_id`."}
         client_id: {type: string}
+        organization_id: {type: string, description: The organization whose branding the result page uses. The user must be a member.}
         ttl_sec: {type: integer, minimum: 0, description: "Seconds the ticket is valid; 0 or absent is 432000 (5 days)."}
         includeEmailInRedirect: {type: boolean}
         identity: {$ref: "#/components/schemas/TicketIdentity"}
@@ -23289,12 +23833,26 @@ components:
             user_id: {type: string, maxLength: 255, description: "Prefixed with `auth0|`."}
     UserUpdate:
       description: Fields to change; unknown properties are `400 invalid_body`.
-      allOf:
-        - $ref: "#/components/schemas/UserProfileSettings"
-        - type: object
-          properties:
-            connection: {type: string}
-            client_id: {type: string, description: The application the verification email is for.}
+      type: object
+      properties:
+        email: {type: [string, 'null']}
+        email_verified: {type: boolean}
+        verify_email: {type: boolean, description: Send the verification email.}
+        username: {type: [string, 'null']}
+        password: {type: string, writeOnly: true}
+        phone_number: {type: [string, 'null']}
+        phone_verified: {type: boolean}
+        verify_phone_number: {type: boolean, description: Send a text verification code to the resulting phone number when true.}
+        name: {type: [string, 'null']}
+        given_name: {type: [string, 'null']}
+        family_name: {type: [string, 'null']}
+        nickname: {type: [string, 'null']}
+        picture: {type: [string, 'null']}
+        blocked: {type: boolean}
+        user_metadata: {type: object, additionalProperties: true}
+        app_metadata: {type: object, additionalProperties: true}
+        connection: {type: string}
+        client_id: {type: string, description: The application the verification email is for.}
     UserPage:
       type: object
       description: A page of users with `include_totals=true`.
@@ -23619,6 +24177,11 @@ components:
           schema: {$ref: "#/components/schemas/ManagementError"}
     NotImplemented:
       description: The storage plugin lacks the `client_credentials.v1` capability, or the operation is not built yet.
+      content:
+        application/json:
+          schema: {$ref: "#/components/schemas/ManagementError"}
+    RefreshTokensUnavailable:
+      description: The refresh-token or session operation is unavailable.
       content:
         application/json:
           schema: {$ref: "#/components/schemas/ManagementError"}

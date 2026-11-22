@@ -11,7 +11,6 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/actions"
 	"github.com/zeroauthy/zeroauthy/internal/federation"
 	"github.com/zeroauthy/zeroauthy/internal/gen/authapi"
-	"github.com/zeroauthy/zeroauthy/internal/httpx"
 	"github.com/zeroauthy/zeroauthy/internal/logs"
 	"github.com/zeroauthy/zeroauthy/internal/logscrub"
 	"github.com/zeroauthy/zeroauthy/internal/orglogin"
@@ -163,10 +162,10 @@ func (h *Handlers) nativeAppleExchange(ctx context.Context, res tenant.Resolved,
 				if err = orglogin.CheckMemberClient(ctx, tx, tid, orgID, c.ClientID); err != nil {
 					return err
 				}
-				if err = orglogin.EnsureMembership(ctx, tx, currentOrg, u.UserID, current.ID); err != nil {
+				if err = orglogin.CheckMembership(ctx, tx, currentOrg, u.UserID, current.ID); err != nil {
 					return err
 				}
-				_, err = tokenOrganization(ctx, tx, tid, u.UserID, orgID, current.ID, fresh)
+				_, err = pendingOrganization(ctx, tx, tid, u.UserID, orgID, current.ID, fresh, true)
 				return err
 			}
 			return nil
@@ -178,7 +177,7 @@ func (h *Handlers) nativeAppleExchange(ctx context.Context, res tenant.Resolved,
 		}
 		// Never surface or log provider error text: it may echo a code or token.
 		switch {
-		case errors.Is(err, federation.ErrProviderResponse), errors.Is(err, federation.ErrNetworkPolicy), errors.Is(err, federation.ErrAttemptStale), errors.Is(err, federation.ErrConnectionUnusable), errors.Is(err, federation.ErrUserBlocked), errors.Is(err, federation.ErrIdentityConflict), errors.Is(err, orglogin.ErrNotMember), errors.Is(err, errOrganizationGrant), errors.Is(err, store.ErrNotFound):
+		case errors.Is(err, federation.ErrProviderResponse), errors.Is(err, federation.ErrNetworkPolicy), errors.Is(err, federation.ErrAttemptStale), errors.Is(err, federation.ErrConnectionUnusable), errors.Is(err, federation.ErrUserBlocked), errors.Is(err, federation.ErrEmailRequired), errors.Is(err, federation.ErrIdentityConflict), errors.Is(err, orglogin.ErrNotMember), errors.Is(err, errOrganizationGrant), errors.Is(err, store.ErrNotFound):
 			return nil, invalidGrant("Error from Apple connection")
 		default:
 			h.log().ErrorContext(ctx, "native Apple login could not complete", "tenant", tid)
@@ -186,12 +185,20 @@ func (h *Handlers) nativeAppleExchange(ctx context.Context, res tenant.Resolved,
 		}
 	}
 	uid = user.UserID
-	org, oerr = h.organizationForToken(ctx, tid, uid, orgID, conn.ID, c)
-	if oerr != nil {
-		return nil, oerr
+	pendingMembership := false
+	if orgID != "" {
+		member, e := h.Store.Organizations().IsMember(ctx, tid, orgID, uid)
+		if e != nil {
+			return nil, serverError()
+		}
+		pendingMembership = !member
+	}
+	org, err = pendingOrganization(ctx, h.Store, tid, uid, orgID, conn.ID, c, pendingMembership)
+	if err != nil {
+		return nil, invalidGrant("the organization grant is no longer eligible")
 	}
 	ctx = logs.WithEvent(ctx, logs.Event{UserID: uid, UserName: user.Name, Connection: conn.Name, ConnectionID: conn.ID, Strategy: conn.Strategy, StrategyType: logs.StrategyType(conn.Strategy)})
-	eff, oerr := h.postLogin(ctx, res, c, loginFlow{organizationID: orgID, user: user, connection: conn, rs: rs, protocol: actions.ProtocolTokenExchange, requested: requested, target: requested})
+	eff, oerr := h.postLogin(ctx, res, c, loginFlow{pendingMembership: pendingMembership, organizationID: orgID, user: user, connection: conn, rs: rs, protocol: actions.ProtocolTokenExchange, requested: requested, target: requested})
 	if oerr != nil {
 		return nil, oerr
 	}
@@ -204,7 +211,7 @@ func (h *Handlers) nativeAppleExchange(ctx context.Context, res tenant.Resolved,
 	}
 	ceiling := actions.CeilingOf(d.Scopes, before)
 	now := h.now().UTC()
-	flow := firstFactorTokens{Organization: org, ConnectionID: conn.ID, Native: binding}
+	flow := firstFactorTokens{PendingMembership: pendingMembership, Organization: org, ConnectionID: conn.ID, Native: binding}
 	if _, err := h.Federation.CheckNative(ctx, h.Store, binding); err != nil {
 		return nil, invalidGrant("the native login is no longer eligible")
 	}
@@ -216,18 +223,18 @@ func (h *Handlers) nativeAppleExchange(ctx context.Context, res tenant.Resolved,
 		return nil, oerr
 	}
 	version := user.Version
+	ctx, flushMembership := orglogin.StageMembershipEvents(ctx)
 	err = h.mintCheckedTx(ctx, tid, uid, &version, func(tx store.Store) error {
 		if _, err := h.Federation.CheckNative(ctx, tx, binding); err != nil {
 			return err
 		}
-		return checkTokenOrganization(ctx, tx, tid, uid, orgID, conn.ID, c.ClientID)
+		return checkPendingOrganization(ctx, tx, tid, uid, orgID, conn.ID, c.ClientID, pendingMembership, true)
 	}, write)
+	flushMembership(err)
 	if err != nil {
 		return nil, invalidGrant("the native login is no longer eligible")
 	}
-	if err := h.Store.Users().RecordLogin(ctx, tid, uid, now, httpx.CanonicalIP(clientIPFrom(ctx))); err != nil {
-		h.log().WarnContext(ctx, "record native login", "err", err)
-	}
+
 	return resp, nil
 }
 

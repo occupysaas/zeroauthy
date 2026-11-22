@@ -118,6 +118,12 @@ func TestLogoutOutcomeEvents(t *testing.T) {
 
 type deleteFailureStore struct{ store.Store }
 
+// Preserve the injected failure in transaction views: logout now deletes and
+// enqueues atomically rather than calling the outer repository directly.
+func (s deleteFailureStore) WithTx(ctx context.Context, fn func(store.Store) error) error {
+	return s.Store.WithTx(ctx, func(tx store.Store) error { return fn(deleteFailureStore{tx}) })
+}
+
 func (s deleteFailureStore) Sessions() store.Sessions {
 	return deleteFailureSessions{s.Store.Sessions()}
 }

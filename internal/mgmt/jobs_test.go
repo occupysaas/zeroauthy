@@ -59,6 +59,10 @@ func TestVerificationEmailJobCases(t *testing.T) {
 	uid := u["user_id"].(string)
 	bare := strings.TrimPrefix(uid, "auth0|")
 	conID := e.conn.ID
+	// A federated identity needs its connection to be indexed.
+	if err := e.st.Connections().Create(context.Background(), &store.Connection{TenantID: e.tn.ID, ID: "con_github", Name: "github", Strategy: "github", CreatedAt: now}); err != nil {
+		t.Fatal(err)
+	}
 	social := &store.User{TenantID: e.tn.ID, UserID: "github|7", Email: "g@x.test", CreatedAt: now, UpdatedAt: now,
 		Identities: []store.Identity{{Connection: "github", Provider: "github", UserID: "7"}}}
 	if err := e.st.Users().Create(context.Background(), social); err != nil {
@@ -112,7 +116,7 @@ func TestVerificationEmailJobCases(t *testing.T) {
 		{"identity of another connection", map[string]any{"user_id": uid, "identity": map[string]any{"user_id": bare, "provider": "auth0", "connection_id": "con_other"}}, nil, 400, "inexistent_identity",
 			"The user exists, but does not contain the given identity"},
 		{"unknown property", map[string]any{"user_id": uid, "foo": 1}, nil, 400, "invalid_body", "Payload validation error: 'Additional properties not allowed: foo'."},
-		{"organization_id", map[string]any{"user_id": uid, "organization_id": "org_1"}, nil, 400, "invalid_body", "Payload validation error: 'Additional properties not allowed: organization_id'."},
+		{"malformed organization_id", map[string]any{"user_id": uid, "organization_id": "org_1"}, nil, 400, "invalid_body", "Invalid organization_id."},
 		{"unknown identity property", map[string]any{"user_id": uid, "identity": map[string]any{"user_id": bare, "provider": "auth0", "x": 1}}, nil, 400, "invalid_body",
 			"Payload validation error: 'Additional properties not allowed: x' on property identity."},
 		{"unknown client", map[string]any{"user_id": uid, "client_id": "nope"}, nil, 400, "inexistent_client", "The client does not exist"},

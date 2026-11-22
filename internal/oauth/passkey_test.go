@@ -305,10 +305,18 @@ func TestPasskeyGrantMFA(t *testing.T) {
 	c, _ := f.st.Clients().Get(ctx, tid, "ropg")
 	c.GrantTypes = append(c.GrantTypes, otpGrant)
 	_ = f.st.Clients().Update(ctx, c)
+	before, err := f.st.Users().FindByLogin(ctx, tid, "Username-Password-Authentication", "native@acme.test")
+	if err != nil {
+		t.Fatal(err)
+	}
 	form, _ := nativeLogin(t, f, d, "https://native.example.test")
 	w, b := f.native(t, "/oauth/token", "native.example.test", form, true)
 	if w.Code != 403 || b["error"] != "mfa_required" {
 		t.Fatalf("%d %v", w.Code, b)
+	}
+	pending, err := f.st.Users().Get(ctx, tid, before.UserID)
+	if err != nil || pending.LoginsCount != before.LoginsCount {
+		t.Errorf("counter before MFA: %+v %v", pending, err)
 	}
 	tok := b["mfa_token"].(string)
 	r := httptest.NewRequest("POST", "https://native.example.test/mfa/associate", strings.NewReader(`{"authenticator_types":["otp"]}`))
@@ -327,6 +335,10 @@ func TestPasskeyGrantMFA(t *testing.T) {
 	w, b = f.native(t, "/oauth/token", "native.example.test", mfaForm(otpGrant, tok, "otp", otpAt(secret, f.h.now())), true)
 	if w.Code != 200 {
 		t.Fatalf("MFA proof %d %v", w.Code, b)
+	}
+	after, err := f.st.Users().Get(ctx, tid, before.UserID)
+	if err != nil || after.LoginsCount != before.LoginsCount+1 {
+		t.Fatal("completed count", after, err)
 	}
 	found := false
 	for _, e := range capture.events {
@@ -1096,5 +1108,145 @@ func TestPasskeyEndpointsUnavailableOnCanonicalHost(t *testing.T) {
 		if w.Code != 404 || b["error"] != "not_found" || len(b) != 1 {
 			t.Fatalf("%s: %d %v", path, w.Code, b)
 		}
+	}
+}
+
+func TestNoSideEffectsBeforeMFANativePasskeyOrganization(t *testing.T) {
+	f, _ := nativeFixture(t)
+	ctx := context.Background()
+	of := organizationFixtureWith(t, f)
+	f.setOrgUsage(t, "ropg", store.OrgUsageRequire, "no_prompt")
+	g, err := f.st.MFA().GetGuardian(ctx, of.tid)
+	if err != nil {
+		t.Fatal(err)
+	}
+	g.Factors = map[string]bool{"otp": true, "recovery-code": true}
+	g.Policies = []string{"all-applications"}
+	if err = f.st.MFA().PutGuardian(ctx, g, g.Version); err != nil {
+		t.Fatal(err)
+	}
+	f.h.MFA = mfa.NewService(f.st, f.wrapper, &mfaMail{}, nil, f.h.Log, func() time.Time { return f.h.now() })
+	c, _ := f.st.Clients().Get(ctx, of.tid, "ropg")
+	c.GrantTypes = append(c.GrantTypes, otpGrant)
+	if err = f.st.Clients().Update(ctx, c); err != nil {
+		t.Fatal(err)
+	}
+	body := nativeBody()
+	body["organization"] = of.org.ID
+	w, b := f.native(t, "/passkey/register", "native.example.test", body, false)
+	if w.Code != 200 {
+		t.Fatal(w.Code, b)
+	}
+	device := webauthntest.New(webauthntest.Options{})
+	raw := device.Create(nativeOptions(t, b), "https://native.example.test")
+	form := nativeToken(b["auth_session"].(string), raw)
+	form.Set("organization", of.org.ID)
+	w, b = f.native(t, "/oauth/token", "native.example.test", form, true)
+	if w.Code != 403 || b["error"] != "mfa_required" {
+		t.Fatal(w.Code, b)
+	}
+	user, err := f.st.Users().FindByLogin(ctx, of.tid, "Username-Password-Authentication", "native@acme.test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	member, err := f.st.Organizations().IsMember(ctx, of.tid, of.org.ID, user.UserID)
+	if err != nil || member || user.LoginsCount != 0 {
+		t.Fatal("first factor committed login", member, user.LoginsCount, err)
+	}
+	token := b["mfa_token"].(string)
+	req := httptest.NewRequest("POST", "https://native.example.test/mfa/associate", strings.NewReader(`{"authenticator_types":["otp"]}`))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token)
+	tn, _ := f.st.Tenants().Get(ctx, of.tid)
+	req = req.WithContext(tenant.WithResolved(ctx, tenant.Resolved{Tenant: tn, Host: "native.example.test"}))
+	rec := httptest.NewRecorder()
+	f.h.MFAAssociate(rec, req)
+	var association map[string]any
+	_ = json.Unmarshal(rec.Body.Bytes(), &association)
+	if rec.Code != 200 {
+		t.Fatal(rec.Code, association)
+	}
+	w, b = f.native(t, "/oauth/token", "native.example.test", mfaForm(otpGrant, token, "otp", otpAt(association["secret"].(string), f.h.now())), true)
+	if w.Code != 200 {
+		t.Fatal(w.Code, b)
+	}
+	after, err := f.st.Users().Get(ctx, of.tid, user.UserID)
+	if err != nil || after.LoginsCount != 1 {
+		t.Fatal("completion count", after, err)
+	}
+	member, err = f.st.Organizations().IsMember(ctx, of.tid, of.org.ID, user.UserID)
+	if err != nil || !member {
+		t.Fatal("completion membership", member, err)
+	}
+}
+
+func TestNativePasskeyMFARechecksPolicyBeforeMembership(t *testing.T) {
+	f, _ := nativeFixture(t)
+	ctx := context.Background()
+	of := organizationFixtureWith(t, f)
+	f.setOrgUsage(t, "ropg", store.OrgUsageRequire, "no_prompt")
+	g, err := f.st.MFA().GetGuardian(ctx, of.tid)
+	if err != nil {
+		t.Fatal(err)
+	}
+	g.Factors = map[string]bool{"otp": true, "recovery-code": true}
+	g.Policies = []string{"all-applications"}
+	if err = f.st.MFA().PutGuardian(ctx, g, g.Version); err != nil {
+		t.Fatal(err)
+	}
+	f.h.MFA = mfa.NewService(f.st, f.wrapper, &mfaMail{}, nil, f.h.Log, func() time.Time { return f.h.now() })
+	c, _ := f.st.Clients().Get(ctx, of.tid, "ropg")
+	c.GrantTypes = append(c.GrantTypes, otpGrant)
+	if err = f.st.Clients().Update(ctx, c); err != nil {
+		t.Fatal(err)
+	}
+	body := nativeBody()
+	body["organization"] = of.org.ID
+	w, b := f.native(t, "/passkey/register", "native.example.test", body, false)
+	if w.Code != 200 {
+		t.Fatal(w.Code, b)
+	}
+	device := webauthntest.New(webauthntest.Options{})
+	raw := device.Create(nativeOptions(t, b), "https://native.example.test")
+	form := nativeToken(b["auth_session"].(string), raw)
+	form.Set("organization", of.org.ID)
+	w, b = f.native(t, "/oauth/token", "native.example.test", form, true)
+	if w.Code != 403 || b["error"] != "mfa_required" {
+		t.Fatal(w.Code, b)
+	}
+	user, err := f.st.Users().FindByLogin(ctx, of.tid, "Username-Password-Authentication", "native@acme.test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	member, err := f.st.Organizations().IsMember(ctx, of.tid, of.org.ID, user.UserID)
+	if err != nil || member || user.LoginsCount != 0 {
+		t.Fatal("first factor committed login", member, user.LoginsCount, err)
+	}
+	token := b["mfa_token"].(string)
+	req := httptest.NewRequest("POST", "https://native.example.test/mfa/associate", strings.NewReader(`{"authenticator_types":["otp"]}`))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token)
+	tn, _ := f.st.Tenants().Get(ctx, of.tid)
+	req = req.WithContext(tenant.WithResolved(ctx, tenant.Resolved{Tenant: tn, Host: "native.example.test"}))
+	rec := httptest.NewRecorder()
+	f.h.MFAAssociate(rec, req)
+	var association map[string]any
+	_ = json.Unmarshal(rec.Body.Bytes(), &association)
+	if rec.Code != 200 {
+		t.Fatal(rec.Code, association)
+	}
+	conn, _ := f.st.Connections().GetByName(ctx, of.tid, "Username-Password-Authentication")
+	conn.Extra["authentication_methods"] = map[string]any{"passkey": map[string]any{"enabled": false}}
+	if err = f.st.Connections().Update(ctx, conn); err != nil {
+		t.Fatal(err)
+	}
+	w, b = f.native(t, "/oauth/token", "native.example.test", mfaForm(otpGrant, token, "otp", otpAt(association["secret"].(string), f.h.now())), true)
+	if w.Code == 200 {
+		t.Error("revoked passkey policy issued tokens")
+	}
+	after, _ := f.st.Users().Get(ctx, of.tid, user.UserID)
+	member, err = f.st.Organizations().IsMember(ctx, of.tid, of.org.ID, user.UserID)
+	if err != nil || member || after.LoginsCount != 0 {
+		t.Fatal("revoked passkey committed login", member, after.LoginsCount, err)
 	}
 }

@@ -43,7 +43,7 @@
     "lifetime": "null or zero uses existing flow default; positive seconds capped at 604800 (local security fallback)",
     "aliases": "reset_email active; change_password and password_reset independently stored; no implicit alias/double dispatch"
   },
-  "credential_redaction": "Provider credentials are write-only; public projections expose only allowlisted nonsecret configuration and never secret presence or values. Secrets are envelope encrypted with tenant/provider bound AAD.",
+  "credential_redaction": "Provider reads expose api_user, region, smtp_host, smtp_port and smtp_user when configured. Other credential members are excluded from the credentials projection. Secrets are envelope encrypted with tenant/provider bound AAD.",
   "normalizations": [
     {"path":"provider.region","rule":"Mailgun and SparkPost accept eu or null only","source":"sdk types/docs"},
     {"path":"settings","rule":"allow only provider-specific implemented settings; SMTP headers and SES configuration_set_name only","source":"sdk docs/local policy"}

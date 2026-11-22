@@ -114,7 +114,7 @@ func (h *Handlers) existingFactorChallenge(r *http.Request, f *flow, p *authz.MF
 		return req, true, err
 	}
 	customize, _ := f.res.Tenant.SettingsExtra["customize_mfa_in_postlogin_action"].(bool)
-	req, err = mfa.Decide(mfa.DecideInput{Settings: g, Effects: p.Effects.MFA, User: u, Authenticators: aa, CustomizeInActions: customize, MFAAPI: p.Requirement.Reason == "mfa-api", PhoneEnroll: len(methods) > 0, WebAuthn: caps})
+	req, err = mfa.Decide(mfa.DecideInput{StepUp: p.Requirement.StepUp, Settings: g, Effects: p.Effects.MFA, User: u, Authenticators: aa, CustomizeInActions: customize, MFAAPI: p.Requirement.Reason == "mfa-api", PhoneEnroll: len(methods) > 0, WebAuthn: caps})
 	if err != nil || !req.Required || req.Enroll || len(req.Factors) == 0 {
 		// Fail closed: the transaction can neither enroll nor challenge.
 		return req, true, errTxn
@@ -147,7 +147,7 @@ func (h *Handlers) loadMFA(w http.ResponseWriter, r *http.Request, post bool) *m
 	var sess *store.LoginSession
 	isolated := f.txn.ClientID == "" && (f.txn.Params["za_mfa_ticket"] == "1" || f.txn.Params["za_mfa_reset"] == "1")
 	if !isolated {
-		sess, err = h.Authz.ActiveSession(r.Context(), r, f.res)
+		sess, err = h.Authz.FlowSession(r.Context(), r, f.res)
 		if err != nil {
 			h.mfaInvalid(w, r, f)
 			return nil
@@ -874,27 +874,17 @@ func (h *Handlers) finishMFA(w http.ResponseWriter, r *http.Request, f *mfaFlow)
 		return
 	}
 	if f.pending.Requirement.Reason != "ticket" {
-		if err := h.Sessions.MarkMFA(r.Context(), f.sess); err != nil {
-			h.fail(w, r, err, f.flow)
-			return
-		}
+		factors := []string{}
 		if f.page.OtherProvenFactor != "" {
-			if err := h.Sessions.AddMethod(r.Context(), f.sess, store.AuthMethod{Name: "mfa", Type: f.page.OtherProvenFactor}); err != nil {
-				h.fail(w, r, err, f.flow)
-				return
-			}
+			factors = append(factors, f.page.OtherProvenFactor)
 		}
-		if err := h.Sessions.AddMethod(r.Context(), f.sess, store.AuthMethod{Name: "mfa", Type: f.page.Factor}); err != nil {
+		factors = append(factors, f.page.Factor)
+		if err := h.Authz.MarkFlowMFA(r, f.res, f.sess, factors...); err != nil {
 			h.fail(w, r, err, f.flow)
 			return
 		}
 		if f.page.Remember && f.pending.Requirement.AllowRemember {
-			u, err := h.Store.Users().Get(r.Context(), f.res.Tenant.ID, f.pending.UserID)
-			if err != nil {
-				h.fail(w, r, err, f.flow)
-				return
-			}
-			if err = h.Sessions.SetMFABrowser(r.Context(), w, u, "remember"); err != nil {
+			if err := h.Authz.RememberFlow(r, f.res, f.sess); err != nil {
 				h.fail(w, r, err, f.flow)
 				return
 			}

@@ -128,6 +128,7 @@ func (s *Store) snapshot() *state {
 		signingKeys:            cloneMap(s.signingKeys, cloneSigningKey),
 		customSigningKeys:      cloneMap(s.customSigningKeys, cloneCustomSigningKeySet),
 		connections:            cloneMap(s.connections, cloneConnection),
+		connectionKeys:         cloneMap(s.connectionKeys, (*store.ConnectionKey).Clone),
 		passwordHistories:      clonePasswordHistories(s.passwordHistories),
 		users:                  cloneMap(s.users, cloneUser),
 		sessions:               cloneMap(s.sessions, cloneSession),
@@ -135,6 +136,11 @@ func (s *Store) snapshot() *state {
 		authCodes:              cloneMap(s.authCodes, cloneAuthCode),
 		pushedAuthRequests:     cloneMap(s.pushedAuthRequests, clonePushedAuthRequest),
 		deviceCodes:            cloneMap(s.deviceCodes, cloneDeviceCode),
+		refreshOrder:           maps.Clone(s.refreshOrder),
+		refreshFamilyAliases:   maps.Clone(s.refreshFamilyAliases),
+		refreshSequence:        s.refreshSequence,
+		dpopProofs:             s.dpopProofs.clone(),
+		quotaCounters:          maps.Clone(s.quotaCounters),
 		refreshTokens:          cloneMap(s.refreshTokens, cloneRefreshToken),
 		resetTickets:           cloneMap(s.resetTickets, cloneResetTicket),
 		verifyTickets:          cloneMap(s.verifyTickets, cloneVerifyTicket),
@@ -152,6 +158,7 @@ func (s *Store) snapshot() *state {
 		fedTokens:              cloneFedTokens(s.fedTokens),
 		credentials:            cloneMap(s.credentials, cloneClientCredential),
 		assertionJTIs:          maps.Clone(s.assertionJTIs),
+		globalRevocationJTIs:   maps.Clone(s.globalRevocationJTIs),
 		exchangeProfiles:       cloneMap(s.exchangeProfiles, cloneValue[store.TokenExchangeProfile]),
 	}
 }
@@ -176,11 +183,15 @@ func (s *Store) restore(snap *state) {
 	s.tlsAssets, s.tlsLeases = snap.tlsAssets, snap.tlsLeases
 	s.protection, s.proofs = snap.protection, snap.proofs
 	s.tenants, s.clients, s.resourceServers = snap.tenants, snap.clients, snap.resourceServers
+	s.connectionKeys = snap.connectionKeys
 	s.clientGrants, s.signingKeys, s.connections = snap.clientGrants, snap.signingKeys, snap.connections
 	s.customSigningKeys = snap.customSigningKeys
 	s.userGrants = snap.userGrants
 	s.users, s.sessions, s.transactions = snap.users, snap.sessions, snap.transactions
 	s.authCodes, s.refreshTokens, s.resetTickets = snap.authCodes, snap.refreshTokens, snap.resetTickets
+	s.refreshOrder, s.refreshSequence = snap.refreshOrder, snap.refreshSequence
+	s.refreshFamilyAliases = snap.refreshFamilyAliases
+	s.dpopProofs, s.quotaCounters = snap.dpopProofs, snap.quotaCounters
 	s.pushedAuthRequests, s.deviceCodes = snap.pushedAuthRequests, snap.deviceCodes
 	s.verifyTickets = snap.verifyTickets
 	s.operators, s.passwordHistories = snap.operators, snap.passwordHistories
@@ -189,6 +200,7 @@ func (s *Store) restore(snap *state) {
 	s.emailProviders, s.emailProviderRevisions = snap.emailProviders, snap.emailProviderRevisions
 	s.emailTemplates, s.emailNotifications = snap.emailTemplates, snap.emailNotifications
 	s.fedAttempts, s.fedIdentities, s.fedTokens = snap.fedAttempts, snap.fedIdentities, snap.fedTokens
+	s.globalRevocationJTIs = snap.globalRevocationJTIs
 	s.credentials, s.assertionJTIs, s.exchangeProfiles = snap.credentials, snap.assertionJTIs, snap.exchangeProfiles
 }
 

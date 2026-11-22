@@ -125,7 +125,8 @@ func (s *Spec) FederationInput() rules.Input {
 	return rules.Input{
 		Strategy: s.Strategy, Name: s.Name, Options: s.Options.Extra,
 		RootAttributes: s.Options.SetUserRootAttributes, Authentication: s.Authentication,
-		HasSealedSecret: len(s.FederationSecretsSealed) > 0,
+		ConnectedAccounts: s.ConnectedAccounts,
+		HasSealedSecret:   len(s.FederationSecretsSealed) > 0,
 	}
 }
 
@@ -336,8 +337,8 @@ func normalize(s *Spec, api bool) []error {
 		s.Strategy = store.StrategyDatabase
 	}
 	if s.Strategy != store.StrategyDatabase && !s.Federated() && !s.Passwordless() {
-		fail("strategy %q is not supported (only %q, %q, %q, %q, %q, %q, %q, %q or %q)", s.Strategy,
-			store.StrategyDatabase, rules.Google, rules.OAuth2, rules.OIDC, rules.WindowsLive, rules.WAAD, rules.Apple,
+		fail("strategy %q is not supported (only %q, %q, %q, %q, %q, %q, %q, %q, %q or %q)", s.Strategy,
+			store.StrategyDatabase, rules.Google, rules.OAuth2, rules.OIDC, rules.WindowsLive, rules.WAAD, rules.Apple, rules.GitHub,
 			StrategyEmail, StrategySMS)
 	}
 	for _, r := range s.Realms {
@@ -421,7 +422,7 @@ func normalizeFederated(s *Spec) []error {
 		if s.Strategy == rules.WindowsLive && k == "strategy_version" {
 			continue
 		}
-		if s.Strategy == rules.Apple && k == "non_persistent_attrs" {
+		if (s.Strategy == rules.Apple || s.Strategy == rules.OIDC || s.Strategy == rules.Okta) && k == "non_persistent_attrs" {
 			continue
 		}
 		if _, ok := o.Extra[k]; ok {
@@ -430,7 +431,26 @@ func normalizeFederated(s *Spec) []error {
 	}
 	errs = append(errs, normalizeExtra(o)...)
 	errs = append(errs, normalizePhoneAttributes(o)...)
-	_, ruleErrs := rules.Parse(s.FederationInput())
+	settings, ruleErrs := rules.Parse(s.FederationInput())
+	if len(ruleErrs) == 0 {
+		if settings.DomainAliases != nil {
+			s.Options.Extra["domain_aliases"] = settings.DomainAliases
+		}
+		if settings.OktaDomain != "" {
+			s.Options.Extra["domain"] = settings.OktaDomain
+		}
+		if settings.Channel != "" {
+			s.Options.Extra["type"] = settings.Channel
+		}
+		if s.Strategy == rules.GitHub {
+			// The effective scope is returned, as the GitHub rules document.
+			scope := make([]any, len(settings.Scopes))
+			for i, sc := range settings.Scopes {
+				scope[i] = sc
+			}
+			s.Options.Extra["scope"] = scope
+		}
+	}
 	return append(errs, ruleErrs...)
 }
 

@@ -8,6 +8,30 @@ All notable changes to zeroauthy are recorded here. The format follows
 
 ### Added
 
+- OIDC claims requests, phone/address/profile claims, requested MFA step-up,
+  per-client ID token algorithms, back-channel logout with durable delivery,
+  and enterprise upstream global revocation. Console, seed and Deploy CLI
+  support accompany the settings. See [logout](docs/logout.md).
+  Global revocation tolerates an upstream clock up to 60 seconds ahead and
+  accepts a one-element `aud` array.
+
+- Refresh Tokens II: strict rotation overlap and conversion, multi-resource
+  and session-bound online tokens, downstream DPoP, grant/session revocation,
+  token/session metadata and device history, and client-credentials quotas.
+  Console, seed and Deploy CLI support accompany the new Management routes.
+  See [refresh tokens](docs/refresh-tokens.md) and [upgrade notes](docs/upgrading.md).
+
+- Enterprise OIDC and Okta login: front-channel form post, explicit endpoints,
+  PKCE modes, claim mapping and userinfo, signed client assertions, encrypted
+  ID tokens, upstream PAR, public connection keys and home realm discovery.
+  Migration 0041 preserves existing back-channel connections and stores sealed
+  connection keys. See [enterprise connections](docs/enterprise-connections.md).
+
+- GitHub social connection (`github`): OAuth app sign-in with S256 PKCE, the
+  Auth0 scope flags, a numeric `github|<id>` identity and a verified primary
+  email required when `email` is on. GitHub Enterprise, device flow and token
+  refresh are not supported. See [the guide](docs/social-connections.md#github).
+
 - Sign in with Apple web login and native iOS authorization-code exchange,
   operator-owned signing keys, private-relay profiles and first-login names.
   Console, seed and Deploy CLI support include stored native-social switches;
@@ -16,6 +40,26 @@ All notable changes to zeroauthy are recorded here. The format follows
 
 ### Changed
 
+- Hosted login now completes MFA before showing consent. Accepting an invitation,
+  assigning membership, creating a session and recording the login commit with
+  authorization. Abandoning a fresh login at either prompt leaves those changes
+  unapplied. Post-login Actions retain their position.
+- Management clients listing a user's organizations need `read:organizations`.
+  Listing organization members requires `read:organization_members`, plus
+  `read:organization_member_roles` when including roles. User search on v2/v3
+  ignores the legacy `connection` parameter. See [upgrading](docs/upgrading.md).
+- Console Management calls for custom-host tenants and passwordless test sends
+  use the system host. The admin CSP derives its connection sources from server
+  configuration.
+- User updates can clear eight nullable profile attributes and request phone
+  verification. Verification jobs and tickets accept an organization for a
+  member. Email-provider reads expose configured public credential members and
+  support field projection.
+- New signup codes last 900 seconds. Send limits distinguish connection and
+  purpose. Brute-force protection records the first refused attempt in each
+  settled block. PostgreSQL and MySQL lock the affected counters in key order.
+- The MFA sweep removes stale unconfirmed authenticators. User lists batch MFA
+  lookups and authorization codes capture MFA evidence at issue time.
 - The tenant JWKS (`/.well-known/jwks.json`) no longer includes `alg` on the
   signing keys, for every tenant and for keys created earlier. One key signs
   both RS256 and PS256 tokens, and jose-based verifiers such as

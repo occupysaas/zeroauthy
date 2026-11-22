@@ -75,3 +75,25 @@ test('organization password reset preserves organization in actual custom email 
  await expect.poll(async()=>(await sink()).filter(x=>x.notification?.message_type==='reset_email'&&x.notification.to==='reset-context30@e2e.local').length,{timeout:30000}).toBe(1);
  const mail=(await sink()).find(x=>x.notification?.message_type==='reset_email'&&x.notification.to==='reset-context30@e2e.local');expect(mail.organization.id).toBe(f.org);expect(mail.organization.name).toBe('plan30-invitations');expect(/\/u\/reset-password\?ticket=/.test(mail.notification.html)).toBe(true);
 });
+
+// This harness runs no job worker; job delivery with organization context is
+// covered by TestVerificationOrganizationID. Here the API binding is exercised
+// end to end and the organization-bound ticket is redeemed in a real browser.
+test('verification jobs and tickets accept an organization only for a member', async ({ page }) => {
+  const m = await management();
+  const { org } = await state();
+  const create = email => m.users.create({
+    connection: 'Username-Password-Authentication', email, password, verify_email: false,
+  });
+  const member = await create('verify-member30@e2e.local');
+  const outsider = await create('verify-outsider30@e2e.local');
+  await m.organizations.members.create(org, { members: [member.user_id] });
+  for (const path of ['jobs/verification-email', 'tickets/email-verification'])
+    expect((await api(path, 'POST', { user_id: outsider.user_id, organization_id: org })).status).toBe(400);
+  expect((await api('jobs/verification-email', 'POST', { user_id: member.user_id, organization_id: org })).status).toBe(201);
+  const ticket = await api('tickets/email-verification', 'POST', { user_id: member.user_id, organization_id: org });
+  expect(ticket.status).toBe(201);
+  expect(ticket.body.ticket).toMatch(/\/u\/email-verification\?ticket=/);
+  await page.goto(ticket.body.ticket);
+  await expect.poll(async () => (await m.users.get(member.user_id)).email_verified, { timeout: 30000 }).toBe(true);
+});

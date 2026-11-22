@@ -13,10 +13,11 @@ import (
 
 func newRefreshToken(tenantID, id, hash, family string) *store.RefreshToken {
 	return &store.RefreshToken{
+		UserInfoClaims: "auth_time acr", ACR: "http://schemas.openid.net/pape/policies/2007/06/multi-factor",
 		TenantID: tenantID, ID: id, TokenHash: hash, FamilyID: family,
 		ClientID: "spa", UserID: "auth0|u1", SessionID: "s1",
 		Scopes: []string{"openid", "offline_access"}, Audience: "https://api.test",
-		AuthTime: ts(0), Rotating: true,
+		AuthTime: ts(0), Rotating: true, Access: "offline",
 		ExpiresAt: ts(30 * 24 * time.Hour), IdleExpiresAt: ts(15 * 24 * time.Hour), CreatedAt: ts(0),
 	}
 }
@@ -61,7 +62,9 @@ func testRefreshTokens(t *testing.T, newStore Factory) {
 		mustNoErr(t, s.RefreshTokens().Create(ctx, newRefreshToken("ten_a", "rt1", "h1", "f1")))
 		next := newRefreshToken("ten_a", "rt2", "h2", "f1")
 		mustNoErr(t, s.RefreshTokens().Rotate(ctx, "ten_a", "rt1", next, ts(time.Minute), 0))
-		mustEqual(t, getRT(t, s, "ten_a", "h2"), next)
+		want := *next
+		want.ParentID = "rt1"
+		mustEqual(t, getRT(t, s, "ten_a", "h2"), &want)
 		old := getRT(t, s, "ten_a", "h1")
 		mustEqual(t, old.RotatedAt != nil && old.RotatedAt.Equal(ts(time.Minute)), true)
 		mustEqual(t, old.RevokedAt == nil, true)

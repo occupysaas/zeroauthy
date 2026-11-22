@@ -16,7 +16,7 @@ import (
 )
 
 func TestScrubKeys(t *testing.T) {
-	keys := []string{"password", "Password", "new_password", "client_secret", "x-api-key", "httpAuthorization", "id_token", "otp_code", "private_key", "passwd", "pwd", "credentials", "recovery.code", "prefixSECRETpostfix", "client_assertion", "clientAssertion"}
+	keys := []string{"userinfo", "password", "Password", "new_password", "client_secret", "x-api-key", "httpAuthorization", "id_token", "otp_code", "private_key", "passwd", "pwd", "credentials", "recovery.code", "prefixSECRETpostfix", "client_assertion", "clientAssertion"}
 	for _, key := range keys {
 		for _, value := range []any{"hunter2!!", true, nil, 42, map[string]any{"visible": "hidden"}, []any{1, 2}} {
 			input := map[string]any{key: value, "sibling": "public"}
@@ -319,5 +319,44 @@ func TestMFAProtocolCredentialKeys(t *testing.T) {
 		if logscrub.SensitiveKey(key) {
 			t.Errorf("unrelated key %q became sensitive", key)
 		}
+	}
+}
+
+func TestDPoPFields(t *testing.T) {
+	for _, key := range []string{"DPoP", "dpop_proof", "DPoP-Nonce", "jti"} {
+		if !logscrub.SensitiveKey(key) {
+			t.Errorf("proof field %s not hidden", key)
+		}
+	}
+}
+
+func TestSessionMetadataRedacted(t *testing.T) {
+	input := []byte(`{"session_metadata":{"note":"private session value"},"refresh_token_metadata":{"note":"private refresh value"}}`)
+	output, err := logscrub.Scrub(input)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(output), "private session value") || strings.Contains(string(output), "private refresh value") {
+		t.Fatal("metadata escaped scrubbing")
+	}
+}
+
+func TestClaimsRequestRedacted(t *testing.T) {
+	out, err := logscrub.Scrub([]byte(`{"claims":"{\"extension\":{\"contact\":\"private@example.test\"}}","scope":"openid"}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(out), "private@example.test") || !strings.Contains(string(out), `"claims":"[REDACTED]"`) {
+		t.Fatalf("claim request leaked: %s", out)
+	}
+}
+
+func TestBackchannelURLRedacted(t *testing.T) {
+	out, err := logscrub.Scrub([]byte(`{"oidc_logout":{"backchannel_logout_urls":["https://rp.example/logout?hook=private-value"]}}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(out), "private-value") {
+		t.Fatal("credential-bearing logout URL logged")
 	}
 }

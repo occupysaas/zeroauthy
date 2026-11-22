@@ -300,3 +300,33 @@ func (o *opened) ClientCredentialsSupported() bool {
 func (o *opened) WebAuthnSupported() bool {
 	return o.Store.(store.WebAuthnSupporter).WebAuthnSupported()
 }
+
+func (s *opened) CheckRefreshTokensIISupport(ctx context.Context) error {
+	return s.Store.(store.RefreshTokensIISupporter).CheckRefreshTokensIISupport(ctx)
+}
+
+// Keep oidc_logout.v1 optional interfaces visible through the process wrapper.
+func (o *opened) CheckOIDCLogoutSupport(ctx context.Context) error {
+	if repo, ok := o.Store.(store.OIDCLogoutSupporter); ok {
+		return repo.CheckOIDCLogoutSupport(ctx)
+	}
+	return store.ErrOIDCLogoutUnavailable
+}
+func (o *opened) UseGlobalRevocationJTI(ctx context.Context, tid, connection, jti string, exp, now time.Time) error {
+	if repo, ok := o.Store.(store.GlobalRevocationStore); ok {
+		return repo.UseGlobalRevocationJTI(ctx, tid, connection, jti, exp, now)
+	}
+	return store.ErrOIDCLogoutUnavailable
+}
+func (o *opened) PurgeGlobalRevocationJTIs(ctx context.Context, before time.Time, limit int) (int, error) {
+	if repo, ok := o.Store.(store.GlobalRevocationStore); ok {
+		return repo.PurgeGlobalRevocationJTIs(ctx, before, limit)
+	}
+	return 0, store.ErrOIDCLogoutUnavailable
+}
+func (o *opened) FindByFederatedEmail(ctx context.Context, tid, connection, email string) (*store.User, error) {
+	if repo, ok := o.Store.(store.GlobalRevocationStore); ok {
+		return repo.FindByFederatedEmail(ctx, tid, connection, email)
+	}
+	return nil, store.ErrOIDCLogoutUnavailable
+}

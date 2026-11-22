@@ -32,12 +32,41 @@ tenants:
         grant_types: [authorization_code, refresh_token]
         callbacks: ["https://localhost.emobix.co.uk:8443/test/a/zeroauthy/callback"]
         allowed_logout_urls: ["https://localhost.emobix.co.uk:8443/test/a/zeroauthy/post_logout_redirect"]
+      - client_id: za-conformance-logout
+        name: Conformance back-channel logout
+        app_type: regular_web
+        client_secret: "za-conformance-logout-secret-not-for-production"
+        token_endpoint_auth_method: client_secret_basic
+        grant_types: [authorization_code, refresh_token]
+        callbacks: ["https://localhost.emobix.co.uk:8443/test/a/zeroauthy/callback"]
+        allowed_logout_urls: ["https://localhost.emobix.co.uk:8443/test/a/zeroauthy/post_logout_redirect"]
+        oidc_logout:
+          backchannel_logout_urls: ["https://localhost.emobix.co.uk:8443/test/a/zeroauthy/backchannel_logout"]
     connections:
       - name: Username-Password-Authentication
-        enabled_clients: [za-conformance-1, za-conformance-2, za-conformance-post]
+        enabled_clients: [za-conformance-1, za-conformance-2, za-conformance-post, za-conformance-logout]
     users:
       - connection: Username-Password-Authentication
         email: conformance@example.com
         password: "Conformance-Horse-9"
         email_verified: true
         name: Conformance User
+        given_name: Conformance
+        family_name: User
+        nickname: conformance
+      - connection: Username-Password-Authentication
+        email: acr-basic@example.com
+        password: "Conformance-Horse-9"
+        email_verified: true
+        name: Conformance User
+        given_name: Conformance
+        family_name: User
+        nickname: conformance
+      - connection: Username-Password-Authentication
+        email: acr-formpost@example.com
+        password: "Conformance-Horse-9"
+        email_verified: true
+        name: Conformance User
+        given_name: Conformance
+        family_name: User
+        nickname: conformance

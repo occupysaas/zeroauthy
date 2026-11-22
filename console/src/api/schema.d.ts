@@ -1347,6 +1347,8 @@ export interface paths {
          *     operator credentials are required on create, `client_id` is immutable,
          *     and `app_secret` is sealed and never returned. Apple web and native
          *     authorization-code login are active (D-0170).
+         *     Plan 39c implements `github` options in `ConnectionOptionsGitHub`:
+         *     `client_secret` is sealed and write-only and `scope` follows the flags.
          */
         post: operations["createConnection"];
         delete?: never;
@@ -1396,6 +1398,98 @@ export interface paths {
          *     `null` removes the key.
          */
         patch: operations["updateConnection"];
+        trace?: never;
+    };
+    "/api/v2/connections/{id}/keys": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        /**
+         * getConnectionKeys
+         * @description List public signing and encryption certificates. Requires read:connections_keys.
+         */
+        get: operations["getConnectionKeys"];
+        put?: never;
+        /**
+         * postConnectionKeys
+         * @description Create current and next keys. Requires create:connections_keys. Existing keys of the same use return 409.
+         */
+        post: operations["postConnectionKeys"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/connections/{id}/keys/rotate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * postConnectionKeysRotate
+         * @description Promote the next key and retain the previous key. Requires create:connections_keys and update:connections_keys.
+         */
+        post: operations["postConnectionKeysRotate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/connections/{id}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        /**
+         * getConnectionStatus
+         * @description Check AD connector availability. Other strategies return 404. Requires read:connections.
+         */
+        get: operations["getConnectionStatus"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/connections/{id}/users": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * deleteConnectionUsersByEmail
+         * @description Delete database users of this connection with the specified email, including their sessions and grants. Requires delete:users. An unknown email returns 204.
+         */
+        delete: operations["deleteConnectionUsersByEmail"];
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/v2/connections/{id}/clients": {
@@ -1449,7 +1543,7 @@ export interface paths {
          *     `sort` is `field:1` or `field:-1` (`400 invalid_query_string`
          *     otherwise); unknown and metadata fields are ignored. Without `sort`,
          *     users are ordered by `last_login` descending, those who never logged
-         *     in last. `connection` keeps users with an identity on that connection.
+         *     in last. To filter by connection, use `q=identities.connection:"connection_name"`.
          *
          *     Offset paging (`page`, `per_page` 1 to 100, 50 by default). Only the
          *     first 1000 results can be reached: `(page + 1) × per_page` above 1000
@@ -1523,6 +1617,13 @@ export interface paths {
          *     username another user of the connection has is `409 auth0_idp_error`,
          *     and nothing changes. Neither a password change nor `blocked: true`
          *     revokes sessions or refresh tokens.
+         *
+         *     Send null for `email`, `phone_number`, `given_name`, `family_name`,
+         *     `name`, `nickname`, `picture`, or `username` to remove its value.
+         *     Required identifiers and the last active login identifier cannot
+         *     be removed. `verify_phone_number: true` sends a text verification
+         *     code to the resulting phone number without setting `phone_verified`.
+         *     Delivery is attempted after the profile update commits.
          *
          *     On a custom database connection that is not in import mode, an email
          *     change runs `change_email` and a password change `change_password`
@@ -1630,9 +1731,10 @@ export interface paths {
         /**
          * Delete a user's sessions
          * @description Requires `delete:sessions`. Deletes every session of the user, which
-         *     ends their single sign-on, and bumps the user's version. Refresh
-         *     tokens are not revoked. Answers `202 {}`, also when there were none;
-         *     an unknown user is `404 inexistent_user`.
+         *     ends their single sign-on, invalidates online refresh tokens bound
+         *     to those sessions, and bumps the user's version. Offline refresh
+         *     tokens remain valid. Answers `202 {}`, also when there were none.
+         *     An unknown user is `404 inexistent_user`.
          */
         delete: operations["deleteUserSessions"];
         options?: never;
@@ -1652,8 +1754,8 @@ export interface paths {
         };
         /**
          * List a user's refresh tokens
-         * @description Requires `read:refresh_tokens`. The user's live refresh tokens (not
-         *     revoked, rotated or expired), newest first, by checkpoint paging only
+         * @description Requires `read:refresh_tokens`. The user's live offline refresh
+         *     tokens, newest first, by checkpoint paging only
          *     as for sessions: `take`, `from`, and `next` on every non-empty page.
          *     An unknown user is `404 inexistent_user`.
          */
@@ -1662,9 +1764,9 @@ export interface paths {
         post?: never;
         /**
          * Delete a user's refresh tokens
-         * @description Requires `delete:refresh_tokens`. Revokes every refresh token of the
-         *     user; a refresh grant with one answers `invalid_grant`. Answers
-         *     `202 {}`, also when there were none; an unknown user is
+         * @description Requires `delete:refresh_tokens`. Revokes the user's offline refresh
+         *     tokens. A refresh grant with a revoked token answers `invalid_grant`.
+         *     Answers `202 {}`, also when there were none. An unknown user is
          *     `404 inexistent_user`.
          */
         delete: operations["deleteUserRefreshTokens"];
@@ -1694,10 +1796,83 @@ export interface paths {
         /**
          * Delete a session
          * @description Requires `delete:sessions`. Ends the session, so the next
-         *     `/authorize?prompt=none` answers `login_required`. Answers `202 {}`,
+         *     `/authorize?prompt=none` answers `login_required`, and invalidates its
+         *     online refresh tokens. Offline refresh tokens remain valid. Answers `202 {}`,
          *     also when there was no such session.
          */
         delete: operations["deleteSession"];
+        options?: never;
+        head?: never;
+        /**
+         * Update session metadata
+         * @description Requires `update:sessions`. Replaces the metadata. Use `null` or `{}` to clear it.
+         */
+        patch: operations["updateSession"];
+        trace?: never;
+    };
+    "/api/v2/sessions/{id}/revoke": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The session's ID. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Revoke a session and its refresh tokens
+         * @description Requires both `delete:sessions` and `delete:refresh_tokens`. Ends the
+         *     session and revokes all refresh tokens issued in it.
+         */
+        post: operations["revokeSession"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/refresh-tokens": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List refresh tokens by user
+         * @description Requires `read:refresh_tokens`. Lists the user's live offline tokens in
+         *     ascending ID order. Pass `client_id` to filter by application. An
+         *     unknown user is `404 inexistent_user`.
+         */
+        get: operations["getRefreshTokens"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/refresh-tokens/revoke": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Revoke refresh tokens in bulk
+         * @description Requires `delete:refresh_tokens`. Select offline tokens by up to 100 IDs or
+         *     by user, optionally narrowed by client and then by audience. Revocation
+         *     completes before the server returns `202` (D-0070 LR48-9).
+         */
+        post: operations["revokeRefreshTokens"];
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -1708,7 +1883,7 @@ export interface paths {
             query?: never;
             header?: never;
             path: {
-                /** @description The refresh token's ID (not the token). */
+                /** @description The Management API identifier of an offline refresh token. */
                 id: string;
             };
             cookie?: never;
@@ -1731,7 +1906,11 @@ export interface paths {
         delete: operations["deleteRefreshToken"];
         options?: never;
         head?: never;
-        patch?: never;
+        /**
+         * Update refresh token metadata
+         * @description Requires `update:refresh_tokens`. Replaces the metadata. Use `null` or `{}` to clear it.
+         */
+        patch: operations["updateRefreshToken"];
         trace?: never;
     };
     "/api/v2/grants": {
@@ -1835,10 +2014,13 @@ export interface paths {
          *     the page redirects there, appending `success`, `message`, `code`,
          *     `supportSignUp`, `supportForgotPassword` and, with
          *     `includeEmailInRedirect`, `email` to its query.
+         *     With `organization_id`, the user must be a member of the organization
+         *     and the result page uses that organization's branding.
          *
          *     A missing `user_id`, a negative `ttl_sec`, `result_url` together with
-         *     `client_id` and an unknown property are `400 invalid_body`; an unknown
-         *     user is `404 inexistent_user`.
+         *     `client_id` or `organization_id`, invalid organization membership and
+         *     an unknown property are `400 invalid_body`. An unknown user is
+         *     `404 inexistent_user`.
          */
         post: operations["createEmailVerificationTicket"];
         delete?: never;
@@ -2101,12 +2283,12 @@ export interface paths {
          *     and answers `201` with the job, `status: pending`, whether or not the
          *     user is already verified. Without an email provider the job still
          *     completes. `identity` names one of the user's identities and
-         *     `client_id` the application the email is for.
+         *     `client_id` the application the email is for. `organization_id` adds
+         *     the organization and its branding to the email and the result page.
          *
-         *     A missing or empty `user_id`, a wrong type and an unknown property
-         *     (`organization_id` too: zeroauthy has no organizations) are
-         *     `400 invalid_body`; as on Auth0 every other error is a `400` too: an
-         *     unknown user is `inexistent_user`; an identity the user does not have
+         *     A missing or empty `user_id`, a wrong type, an unknown property and
+         *     invalid organization membership are `400 invalid_body`. An unknown
+         *     user is `inexistent_user`; an identity the user does not have
          *     is `inexistent_identity`; an unknown `client_id` is
          *     `inexistent_client`; a user without an email address, or an identity
          *     that is not in a database connection, is `operation_not_supported`.
@@ -2644,6 +2826,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/system/tenants/{tenant}/connections/{id}/passwordless/try": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The tenant's name. */
+                tenant: string;
+                /** @description The saved passwordless connection ID. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Send a test code or magic link through a saved passwordless connection.
+         * @description A zeroauthy extension on the system host (D-0270). Requires signed
+         *     and current operator grants for the target tenant. The application
+         *     must be enabled for the connection and have the passwordless OTP
+         *     grant. The operator authorizes this call without a client credential.
+         *     The send uses the saved delivery configuration and the same policies,
+         *     budgets and outstanding-credential replacement as a regular start.
+         *     Magic links use the target tenant's canonical origin and saved
+         *     authorization parameters.
+         */
+        post: operations["tryConnectionPasswordless"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/system/tenants/{tenant}/connections/{id}/scripts/{name}/try": {
         parameters: {
             query?: never;
@@ -2856,7 +3070,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Get the tenant email provider without credentials. */
+        /** Get the tenant email provider and its public credentials. */
         get: operations["GetEmailProvider"];
         put?: never;
         /** Create the tenant email provider. */
@@ -3195,9 +3409,8 @@ export interface paths {
         };
         /**
          * List an organization's members, ordered by user ID
-         * @description Needs `read:organization_members` or `read:organization_member_roles`;
-         *     `fields` naming `roles` (included) also needs
-         *     `read:organization_member_roles`.
+         * @description Requires `read:organization_members`. Including `roles` via `fields`
+         *     also requires `read:organization_member_roles`.
          */
         get: operations["ListOrganizationMembers"];
         put?: never;
@@ -4444,6 +4657,147 @@ export interface components {
              */
             time_step?: number;
         };
+        ConnectionKey: {
+            kid: string;
+            cert: string;
+            pkcs?: string;
+            fingerprint: string;
+            thumbprint: string;
+            algorithm?: string;
+            subject_dn?: string;
+            /** @enum {string} */
+            key_use?: "signing" | "encryption";
+            current?: boolean;
+            next?: boolean;
+            previous?: boolean;
+            /** Format: date-time */
+            current_since?: string;
+        };
+        PostConnectionKeysRequestContent: {
+            /**
+             * @default signing
+             * @enum {string}
+             */
+            key_use?: "signing" | "encryption";
+            /**
+             * @default RS256
+             * @enum {string}
+             */
+            signing_alg?: "RS256" | "RS384" | "RS512" | "PS256" | "PS384" | "ES256" | "ES384";
+            /** @enum {string} */
+            encryption_alg?: "RSA-OAEP-256" | "RSA-OAEP-384" | "RSA-OAEP-512" | "ECDH-ES" | "ECDH-ES+A128KW" | "ECDH-ES+A192KW" | "ECDH-ES+A256KW";
+        };
+        ConnectionOptionsOIDC: {
+            client_id: string;
+            client_secret?: string;
+            discovery_url?: string;
+            issuer?: string;
+            authorization_endpoint?: string;
+            token_endpoint?: string;
+            jwks_uri?: string;
+            userinfo_endpoint?: string;
+            scope?: string;
+            scopes?: string;
+            tenant_domain?: string;
+            icon_url?: string;
+            pushed_authorization_request_endpoint?: string;
+            /**
+             * @default front_channel
+             * @enum {string}
+             */
+            type?: "back_channel" | "front_channel";
+            oidc_metadata?: {
+                [key: string]: unknown;
+            };
+            connection_settings?: {
+                /**
+                 * @default auto
+                 * @enum {string}
+                 */
+                pkce?: "auto" | "S256" | "s256" | "plain" | "disabled";
+            };
+            /** @default true */
+            send_back_channel_nonce?: boolean;
+            /** @enum {string|null} */
+            token_endpoint_auth_method?: "client_secret_post" | "private_key_jwt" | null;
+            /** @enum {string} */
+            token_endpoint_auth_signing_alg?: "RS256" | "RS384" | "RS512" | "PS256" | "PS384" | "ES256" | "ES384";
+            /** @enum {string} */
+            token_endpoint_jwtca_aud_format?: "issuer" | "token_endpoint";
+            id_token_signed_response_algs?: string[];
+            /** @enum {string} */
+            id_token_encrypted_response_alg?: "RSA-OAEP-256" | "RSA-OAEP-384" | "RSA-OAEP-512" | "ECDH-ES" | "ECDH-ES+A128KW" | "ECDH-ES+A192KW" | "ECDH-ES+A256KW";
+            id_token_encrypted_response_encs?: string[];
+            domain_aliases?: string[];
+            non_persistent_attrs?: string[];
+            enable_pushed_authorization_requests?: boolean;
+            id_token_session_expiry_supported?: boolean;
+            useOauthSpecScope?: boolean;
+            set_user_root_attributes?: string;
+            dpop_signing_alg?: string | null;
+            attribute_map?: {
+                /** @enum {string} */
+                mapping_mode?: "bind_all" | "use_map";
+                attributes?: {
+                    [key: string]: string;
+                };
+                userinfo_scope?: string;
+            };
+        };
+        ConnectionOptionsOkta: {
+            client_id: string;
+            client_secret?: string;
+            issuer?: string;
+            authorization_endpoint?: string;
+            token_endpoint?: string;
+            jwks_uri?: string;
+            userinfo_endpoint?: string;
+            scope?: string;
+            scopes?: string;
+            tenant_domain?: string;
+            icon_url?: string;
+            pushed_authorization_request_endpoint?: string;
+            /** @enum {string} */
+            type?: "back_channel";
+            oidc_metadata?: {
+                [key: string]: unknown;
+            };
+            connection_settings?: {
+                /**
+                 * @default auto
+                 * @enum {string}
+                 */
+                pkce?: "auto" | "S256" | "s256" | "plain" | "disabled";
+            };
+            /** @default true */
+            send_back_channel_nonce?: boolean;
+            /** @enum {string|null} */
+            token_endpoint_auth_method?: "client_secret_post" | "private_key_jwt" | null;
+            /** @enum {string} */
+            token_endpoint_auth_signing_alg?: "RS256" | "RS384" | "RS512" | "PS256" | "PS384" | "ES256" | "ES384";
+            /** @enum {string} */
+            token_endpoint_jwtca_aud_format?: "issuer" | "token_endpoint";
+            id_token_signed_response_algs?: string[];
+            /** @enum {string} */
+            id_token_encrypted_response_alg?: "RSA-OAEP-256" | "RSA-OAEP-384" | "RSA-OAEP-512" | "ECDH-ES" | "ECDH-ES+A128KW" | "ECDH-ES+A192KW" | "ECDH-ES+A256KW";
+            id_token_encrypted_response_encs?: string[];
+            domain_aliases?: string[];
+            non_persistent_attrs?: string[];
+            enable_pushed_authorization_requests?: boolean;
+            id_token_session_expiry_supported?: boolean;
+            useOauthSpecScope?: boolean;
+            set_user_root_attributes?: string;
+            dpop_signing_alg?: string | null;
+            attribute_map?: {
+                /** @enum {string} */
+                mapping_mode?: "basic_profile" | "use_map";
+                attributes?: {
+                    [key: string]: string;
+                };
+                userinfo_scope?: string;
+            };
+            domain: string;
+        };
         /**
          * @description Apple web and native connection contract (D-0170). Create requires client_id (Services ID), team_id, kid and
          *     app_secret; no developer credentials are supplied. The Services ID
@@ -4476,6 +4830,144 @@ export interface components {
             freeform_scopes?: ("name" | "email")[];
             /**
              * @description Apple names are preserved after the first login regardless of this setting (LR39a-10).
+             * @default on_each_login
+             * @enum {string}
+             */
+            set_user_root_attributes?: "on_each_login" | "on_first_login" | "never_on_login";
+            /** @description Stored only; reserved protocol and security overrides are refused (Plan 24 policy). */
+            upstream_params?: {
+                [key: string]: unknown;
+            };
+            /** @description Stored only. */
+            non_persistent_attrs?: string[];
+        } & {
+            [key: string]: unknown;
+        };
+        /**
+         * @description GitHub connection contract (Plan 39c, D-0181). Create requires client_id and
+         *     client_secret of a GitHub OAuth App; the secret is sealed and never
+         *     returned. PATCH omitting client_secret preserves it; empty or null is
+         *     refused. client_id is immutable. The endpoints are fixed to github.com
+         *     and api.github.com: GitHub Enterprise hosts, endpoint overrides, the
+         *     device flow and connected_accounts.active are rejected.
+         *     The requested scope is computed from the flags: user:email when
+         *     `email` is on (the default), then each true scope flag. `scope` is
+         *     returned on read as that effective array. An input `scope` is accepted
+         *     only when it equals the effective scope as a set; otherwise the request
+         *     is `400` naming the expected scope. `profile` is stored and returned
+         *     only: login always reads the GitHub user for the subject.
+         *     Rotating client_secret or changing the scope increments FederationRevision.
+         */
+        ConnectionOptionsGitHub: {
+            /** @description GitHub OAuth App client ID; immutable after creation. */
+            client_id?: string;
+            /** @description Sealed at write and never returned, logged or exported. */
+            client_secret?: string;
+            /**
+             * @description Stored and returned only; login always maps the GitHub user profile.
+             * @default true
+             */
+            profile?: boolean;
+            /**
+             * @description Requests user:email and reads the verified primary email; false creates users without an email.
+             * @default true
+             */
+            email?: boolean;
+            /**
+             * @description Requests the GitHub `admin:org` scope.
+             * @default false
+             */
+            admin_org?: boolean;
+            /**
+             * @description Requests the GitHub `admin:public_key` scope.
+             * @default false
+             */
+            admin_public_key?: boolean;
+            /**
+             * @description Requests the GitHub `admin:repo_hook` scope.
+             * @default false
+             */
+            admin_repo_hook?: boolean;
+            /**
+             * @description Requests the GitHub `delete_repo` scope.
+             * @default false
+             */
+            delete_repo?: boolean;
+            /**
+             * @description Requests the GitHub `user:follow` scope.
+             * @default false
+             */
+            follow?: boolean;
+            /**
+             * @description Requests the GitHub `gist` scope.
+             * @default false
+             */
+            gist?: boolean;
+            /**
+             * @description Requests the GitHub `notifications` scope.
+             * @default false
+             */
+            notifications?: boolean;
+            /**
+             * @description Requests the GitHub `public_repo` scope.
+             * @default false
+             */
+            public_repo?: boolean;
+            /**
+             * @description Requests the GitHub `read:org` scope.
+             * @default false
+             */
+            read_org?: boolean;
+            /**
+             * @description Requests the GitHub `read:public_key` scope.
+             * @default false
+             */
+            read_public_key?: boolean;
+            /**
+             * @description Requests the GitHub `read:repo_hook` scope.
+             * @default false
+             */
+            read_repo_hook?: boolean;
+            /**
+             * @description Requests the GitHub `read:user` scope.
+             * @default false
+             */
+            read_user?: boolean;
+            /**
+             * @description Requests the GitHub `repo` scope.
+             * @default false
+             */
+            repo?: boolean;
+            /**
+             * @description Requests the GitHub `repo_deployment` scope.
+             * @default false
+             */
+            repo_deployment?: boolean;
+            /**
+             * @description Requests the GitHub `repo:status` scope.
+             * @default false
+             */
+            repo_status?: boolean;
+            /**
+             * @description Requests the GitHub `write:org` scope.
+             * @default false
+             */
+            write_org?: boolean;
+            /**
+             * @description Requests the GitHub `write:public_key` scope.
+             * @default false
+             */
+            write_public_key?: boolean;
+            /**
+             * @description Requests the GitHub `write:repo_hook` scope.
+             * @default false
+             */
+            write_repo_hook?: boolean;
+            /** @description Effective scope computed from the flags. Input must equal it as a set. */
+            scope?: string[];
+            /** @description Only absent or empty is accepted. */
+            freeform_scopes?: string[];
+            /**
              * @default on_each_login
              * @enum {string}
              */
@@ -6071,13 +6563,25 @@ export interface components {
             primary: string;
             page_background: string;
         };
+        /** @description Application or organization quota for the client-credentials grant. Null removes the override. */
         IITokenQuota: {
             client_credentials: components["schemas"]["IITokenQuotaClientCredentials"];
-        };
+        } | null;
         IITokenQuotaClientCredentials: {
+            /** @default true */
             enforce?: boolean;
             per_day?: number;
             per_hour?: number;
+        };
+        /** @description Fallback quotas for clients and organizations that have no override. Null removes the defaults. */
+        DefaultTokenQuota: {
+            clients?: components["schemas"]["DefaultTokenQuotaSubject"];
+            organizations?: components["schemas"]["DefaultTokenQuotaSubject"];
+        } | null;
+        DefaultTokenQuotaSubject: {
+            client_credentials: components["schemas"]["IITokenQuotaClientCredentials"];
+        } & {
+            [key: string]: unknown;
         };
         /** @enum {string} */
         IIOrganizationThirdPartyClientAccessEnum: "block" | "allow";
@@ -6407,6 +6911,7 @@ export interface components {
             display_name: string;
             branding?: components["schemas"]["OrganizationBranding"];
             metadata?: components["schemas"]["OrganizationMetadata"];
+            token_quota?: components["schemas"]["IITokenQuota"];
             /** @description `block` (default) or `allow`. */
             third_party_client_access: string;
             /**
@@ -6426,6 +6931,7 @@ export interface components {
             display_name: string;
             branding?: components["schemas"]["OrganizationBranding"];
             metadata?: components["schemas"]["OrganizationMetadata"];
+            token_quota?: components["schemas"]["IITokenQuota"];
             /** @description `block` (default) or `allow`. */
             third_party_client_access: string;
             /**
@@ -6464,6 +6970,7 @@ export interface components {
             display_name?: string;
             branding?: components["schemas"]["OrganizationBrandingWrite"];
             metadata?: components["schemas"]["OrganizationMetadataWrite"];
+            token_quota?: components["schemas"]["IITokenQuota"];
             /** @description `block` (default) or `allow`. */
             third_party_client_access?: string;
             /**
@@ -6479,6 +6986,7 @@ export interface components {
             display_name?: string;
             branding?: components["schemas"]["OrganizationBrandingWrite"];
             metadata?: components["schemas"]["OrganizationMetadataWrite"];
+            token_quota?: components["schemas"]["IITokenQuota"];
             /** @description `block` (default) or `allow`. */
             third_party_client_access?: string;
             /**
@@ -6858,9 +7366,16 @@ export interface components {
             next?: string;
         };
         EmailProvider: {
-            name: string;
-            enabled: boolean;
+            name?: string;
+            enabled?: boolean;
             default_from_address?: string;
+            credentials?: {
+                api_user?: string;
+                region?: string;
+                smtp_host?: string;
+                smtp_port?: number;
+                smtp_user?: string;
+            };
             settings?: {
                 [key: string]: unknown;
             };
@@ -6913,6 +7428,21 @@ export interface components {
                     [key: string]: unknown;
                 };
             };
+        };
+        PasswordlessTryRequest: {
+            client_id: string;
+            /**
+             * Format: email
+             * @description Required for an email connection.
+             */
+            email?: string;
+            /** @description E.164 number required for an SMS connection. */
+            phone_number?: string;
+            /**
+             * @description Defaults to code for SMS and link for email.
+             * @enum {string}
+             */
+            send?: "code" | "link";
         };
         EmailTestRequest: {
             template: string;
@@ -7196,27 +7726,7 @@ export interface components {
                  */
                 url?: string;
             } | null;
-            /** @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner. */
-            default_token_quota?: {
-                clients?: {
-                    client_credentials: {
-                        enforce?: boolean;
-                        per_day?: number;
-                        per_hour?: number;
-                    };
-                } & {
-                    [key: string]: unknown;
-                };
-                organizations?: {
-                    client_credentials: {
-                        enforce?: boolean;
-                        per_day?: number;
-                        per_hour?: number;
-                    };
-                } & {
-                    [key: string]: unknown;
-                };
-            } | null;
+            default_token_quota?: components["schemas"]["DefaultTokenQuota"];
             /** @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner. */
             flags?: {
                 /** @default false */
@@ -7241,6 +7751,10 @@ export interface components {
                 no_disclose_enterprise_connections?: boolean;
                 enforce_client_authentication_on_passwordless_start?: boolean;
                 enable_adfs_waad_email_verification?: boolean;
+                /**
+                 * @description Whether OAuth refresh token revocation also deletes the associated user grant.
+                 * @default false
+                 */
                 revoke_refresh_token_grant?: boolean;
                 dashboard_log_streams_next?: boolean;
                 dashboard_insights_view?: boolean;
@@ -7373,7 +7887,7 @@ export interface components {
                     activate_cookie?: boolean;
                 } | null;
             } | null;
-            /** @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner. */
+            /** @description Controls RP-initiated logout endpoint discovery. False hides its metadata entry without disabling the endpoint (D-0080). */
             oidc_logout?: {
                 /** @default true */
                 rp_logout_end_session_endpoint_discovery?: boolean;
@@ -7388,7 +7902,7 @@ export interface components {
              * @default false
              */
             allow_organization_name_in_authentication_api?: boolean | null;
-            /** @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner. */
+            /** @description Effective discovery values are intersected with the supported multi-factor context. Absent or null uses the supported default; an empty list disables it (D-0080). */
             acr_values_supported?: string[] | null;
             /** @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner. */
             mtls?: {
@@ -7403,13 +7917,13 @@ export interface components {
              */
             authorization_response_iss_parameter_supported?: boolean | null;
             /**
-             * @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
-             * @default false
+             * @description Bind refresh tokens to any supplied DPoP proof independently of API access-token settings. New tenants default to true; explicit false retains legacy per-API binding.
+             * @default true
              */
             dpop_strict_refresh_token_binding?: boolean | null;
             skip_non_verifiable_callback_uri_confirmation_prompt?: boolean;
             /**
-             * @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
+             * @description Audience profile ignores resource; compatibility uses one resource as an audience alias and rejects conflicting or multiple values (D-0080).
              * @default audience
              * @enum {string}
              */
@@ -7488,27 +8002,7 @@ export interface components {
                  */
                 url?: string;
             } | null;
-            /** @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner. */
-            default_token_quota?: {
-                clients?: {
-                    client_credentials: {
-                        enforce?: boolean;
-                        per_day?: number;
-                        per_hour?: number;
-                    };
-                } & {
-                    [key: string]: unknown;
-                };
-                organizations?: {
-                    client_credentials: {
-                        enforce?: boolean;
-                        per_day?: number;
-                        per_hour?: number;
-                    };
-                } & {
-                    [key: string]: unknown;
-                };
-            } | null;
+            default_token_quota?: components["schemas"]["DefaultTokenQuota"];
             /** @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner. */
             flags?: {
                 /** @default false */
@@ -7533,6 +8027,10 @@ export interface components {
                 no_disclose_enterprise_connections?: boolean;
                 enforce_client_authentication_on_passwordless_start?: boolean;
                 enable_adfs_waad_email_verification?: boolean;
+                /**
+                 * @description Whether OAuth refresh token revocation also deletes the associated user grant.
+                 * @default false
+                 */
                 revoke_refresh_token_grant?: boolean;
                 dashboard_log_streams_next?: boolean;
                 dashboard_insights_view?: boolean;
@@ -7673,7 +8171,7 @@ export interface components {
                     activate_cookie?: boolean;
                 } | null;
             } | null;
-            /** @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner. */
+            /** @description Controls RP-initiated logout endpoint discovery. False hides its metadata entry without disabling the endpoint (D-0080). */
             oidc_logout?: {
                 /** @default true */
                 rp_logout_end_session_endpoint_discovery?: boolean;
@@ -7688,7 +8186,7 @@ export interface components {
              * @default false
              */
             allow_organization_name_in_authentication_api?: boolean | null;
-            /** @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner. */
+            /** @description Effective discovery values are intersected with the supported multi-factor context. Absent or null uses the supported default; an empty list disables it (D-0080). */
             acr_values_supported?: string[] | null;
             /** @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner. */
             mtls?: {
@@ -7703,13 +8201,13 @@ export interface components {
              */
             authorization_response_iss_parameter_supported?: boolean | null;
             /**
-             * @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
-             * @default false
+             * @description Bind refresh tokens to any supplied DPoP proof independently of API access-token settings. New tenants default to true; explicit false retains legacy per-API binding.
+             * @default true
              */
             dpop_strict_refresh_token_binding?: boolean | null;
             skip_non_verifiable_callback_uri_confirmation_prompt?: boolean | null;
             /**
-             * @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
+             * @description Audience profile ignores resource; compatibility uses one resource as an audience alias and rejects conflicting or multiple values (D-0080).
              * @default audience
              * @enum {string}
              */
@@ -7756,25 +8254,59 @@ export interface components {
          * @enum {string}
          */
         TokenEndpointAuthMethod: "none" | "client_secret_post" | "client_secret_basic";
+        /** @description OIDC and scope restrictions. Null restores OIDC with all scopes. allow_all_scopes and allowed_scopes cannot both be supplied (D-0080). */
+        ClientOIDCSupport: {
+            is_allowed: boolean;
+            allow_all_scopes?: boolean;
+            allowed_scopes?: ("profile" | "email" | "address" | "phone")[];
+        } | null;
+        ClientOIDCLogout: {
+            /** @description Public HTTPS receiver. Organization ID and name placeholders are supported (D-0080). */
+            backchannel_logout_urls?: string[];
+            /** @description Custom mode requires selected_initiators including rp-logout and idp-logout. Absent defaults to those two initiators. */
+            backchannel_logout_initiators?: {
+                /**
+                 * @default custom
+                 * @enum {string}
+                 */
+                mode: "custom" | "all";
+                selected_initiators?: ("rp-logout" | "idp-logout" | "password-changed" | "session-expired" | "session-revoked" | "account-deleted" | "email-identifier-changed" | "mfa-phone-unenrolled" | "account-deactivated" | "profile-changed")[];
+            };
+            backchannel_logout_session_metadata?: {
+                /** @default false */
+                include?: boolean;
+            };
+        } | null;
         /** @description ID token settings. */
         JwtConfiguration: {
             /**
-             * @description The signing algorithm; zeroauthy signs with RS256 only.
+             * @description ID token algorithm. HS256 requires a confidential client with a usable client secret (D-0080).
+             * @default RS256
              * @enum {string}
              */
-            alg?: "RS256";
+            alg?: "HS256" | "RS256" | "PS256";
             /** @description ID token lifetime; 36000 by default. */
             lifetime_in_seconds?: number;
-            /** @description Accepted and ignored (HS256 is not offered). */
+            /** @description Legacy setting, accepted and ignored. HS256 uses the client secret UTF-8 bytes (D-0080). */
             secret_encoded?: boolean;
         };
+        DPoPPolicy: {
+            /** @enum {string} */
+            mechanism: "none" | "dpop";
+            required: boolean;
+            /**
+             * @default all_clients
+             * @enum {string}
+             */
+            required_for?: "all_clients" | "public_clients";
+        } | null;
         /** @description The refresh tokens the application receives. */
         RefreshTokenSettings: {
             /** @enum {string} */
             rotation_type?: "rotating" | "non-rotating";
             /** @enum {string} */
             expiration_type?: "expiring" | "non-expiring";
-            /** @description Seconds a rotated token may still be used. */
+            /** @description Seconds during which only the immediately previous rotating token may be exchanged again. */
             leeway?: number;
             /** @description Absolute lifetime in seconds. */
             token_lifetime?: number;
@@ -7784,6 +8316,16 @@ export interface components {
             infinite_token_lifetime?: boolean;
             /** @description True for non-expiring tokens; derived from `expiration_type`. */
             infinite_idle_token_lifetime?: boolean;
+            /**
+             * @description API audiences and scopes available to this first-party application
+             *     during refresh token exchange. Audience identifiers must be unique.
+             *     The Management API is excluded. Null clears the policies.
+             */
+            policies?: components["schemas"]["RefreshTokenPolicy"][] | null;
+        };
+        RefreshTokenPolicy: {
+            audience: string;
+            scope: string[];
         };
         RoamingUVSettings: {
             /**
@@ -7877,14 +8419,19 @@ export interface components {
             web_origins?: string[];
             /** @description Origins allowed for cross-origin requests. */
             allowed_origins?: string[];
+            oidc_logout?: components["schemas"]["ClientOIDCLogout"];
+            oidc_support?: components["schemas"]["ClientOIDCSupport"];
             jwt_configuration?: components["schemas"]["JwtConfiguration"];
             refresh_token?: components["schemas"]["RefreshTokenSettings"];
+            token_quota?: components["schemas"]["IITokenQuota"];
             /** @description zeroauthy is always OIDC-conformant; `false` is refused. */
             oidc_conformant?: boolean;
             /** @enum {string} */
             redirection_policy?: "open_redirect_protection" | "allow_always";
             /** @description Overrides the tenant's setting; null inherits it. */
             skip_non_verifiable_callback_uri_confirmation_prompt?: boolean | null;
+            /** @default false */
+            require_proof_of_possession?: boolean;
             /** @description Refuse authorization requests that were not pushed (confidential first-party applications of a tenant that allows PAR). */
             require_pushed_authorization_requests?: boolean;
             /** @description A secret to set instead of a generated one (confidential applications only). */
@@ -8009,11 +8556,16 @@ export interface components {
             client_authentication_methods?: components["schemas"]["ClientAuthenticationMethods"];
             signed_request_object?: components["schemas"]["SignedRequestObject"];
             token_exchange?: components["schemas"]["ClientTokenExchange"];
+            oidc_logout?: components["schemas"]["ClientOIDCLogout"];
+            oidc_support?: components["schemas"]["ClientOIDCSupport"];
             jwt_configuration: components["schemas"]["JwtConfiguration"];
             refresh_token: components["schemas"]["RefreshTokenSettings"];
+            token_quota?: components["schemas"]["IITokenQuota"];
             /** @enum {string} */
             redirection_policy?: "open_redirect_protection" | "allow_always";
             skip_non_verifiable_callback_uri_confirmation_prompt?: boolean;
+            /** @default false */
+            require_proof_of_possession?: boolean;
             require_pushed_authorization_requests: boolean;
             /**
              * @description Left out when unset (deny).
@@ -8192,7 +8744,7 @@ export interface components {
              */
             signing_alg?: "RS256" | "HS256" | "PS256";
             /**
-             * @description HS256 only: at least 16 characters (C15). Generated (32 random
+             * @description HS256 only: at least 32 characters on new writes (D-0080). Generated (32 random
              *     bytes, base64url) when an HS256 API is created without one; sent
              *     with `signing_alg` RS256 or PS256 it is refused (`invalid_body`).
              */
@@ -8207,6 +8759,16 @@ export interface components {
             token_lifetime_for_web?: number;
             /** @description Whether clients may get refresh tokens for the API. */
             allow_offline_access?: boolean;
+            /**
+             * @description Allow clients to obtain session-bound refresh tokens for this API.
+             * @default false
+             */
+            allow_online_access?: boolean;
+            /**
+             * @description Allow online refresh token issuance for ephemeral sessions when online access is enabled.
+             * @default false
+             */
+            allow_online_access_with_ephemeral_sessions?: boolean;
             skip_consent_for_verifiable_first_party_clients?: boolean;
             subject_type_authorization?: components["schemas"]["SubjectTypeAuthorization"];
             /** @description Limit custom API user scopes to current role and direct permissions when true. */
@@ -8218,8 +8780,7 @@ export interface components {
             token_dialect?: "access_token" | "access_token_authz" | "rfc9068_profile" | "rfc9068_profile_authz";
             /** @description Only null is accepted (transactional authorization is not supported). */
             consent_policy?: unknown;
-            /** @description Only null is accepted (mTLS and DPoP are not supported). */
-            proof_of_possession?: unknown;
+            proof_of_possession?: components["schemas"]["DPoPPolicy"];
             /** @description Only null or an empty list is accepted (rich authorization requests are not supported). */
             authorization_details?: unknown;
             /** @description Only null is accepted (token encryption is not supported). */
@@ -8262,7 +8823,10 @@ export interface components {
             signing_secret?: string;
             token_lifetime: number;
             token_lifetime_for_web: number;
+            proof_of_possession?: components["schemas"]["DPoPPolicy"];
             allow_offline_access: boolean;
+            allow_online_access?: boolean;
+            allow_online_access_with_ephemeral_sessions?: boolean;
             skip_consent_for_verifiable_first_party_clients: boolean;
             subject_type_authorization: {
                 user: {
@@ -8391,10 +8955,10 @@ export interface components {
             /** @description Letters and digits with single hyphens between them. */
             name: string;
             /**
-             * @description `email` and `sms` are passwordless connections whose name must equal the strategy; options follow ConnectionOptionsEmail and ConnectionOptionsSMS (Plan 34). `apple` follows ConnectionOptionsApple; web/native login is active (D-0170).
+             * @description `email` and `sms` are passwordless connections whose name must equal the strategy; options follow ConnectionOptionsEmail and ConnectionOptionsSMS (Plan 34). `apple` follows ConnectionOptionsApple; web/native login is active (D-0170). `github` follows ConnectionOptionsGitHub (Plan 39c).
              * @enum {string}
              */
-            strategy: "auth0" | "google-oauth2" | "oauth2" | "oidc" | "windowslive" | "waad" | "email" | "sms" | "apple";
+            strategy: "auth0" | "google-oauth2" | "oauth2" | "oidc" | "windowslive" | "waad" | "email" | "sms" | "apple" | "github" | "okta";
             /** @description Applications to enable on the connection; accepted on create only. */
             enabled_clients?: string[];
         };
@@ -8407,7 +8971,7 @@ export interface components {
          * @description A connection. `options.configuration` values are opaque blobs, never
          *     plaintext. `enabled_clients` is returned by create only. `fields`
          *     can leave out any property but `id` and `is_domain_connection`.
-         *     For `google-oauth2`, `oauth2`, `oidc`, `windowslive` and `waad` connections
+         *     For `google-oauth2`, `github`, `oauth2`, `oidc`, `windowslive` and `waad` connections
          *     `options.client_secret` is write-only: it is sealed when written and
          *     never returned.
          *     Microsoft connections require GUID client IDs and request exactly
@@ -8507,7 +9071,7 @@ export interface components {
             friendly_name: string;
             /** @description Custom domains the tenant answers on. */
             domains: string[];
-            /** @description The tenant's canonical host, where the console calls its Management API. */
+            /** @description The tenant's canonical host. It serves the tenant's public Management API. */
             host: string;
             /** @description The audience of the tenant's machine-to-machine Management API tokens. */
             management_api_identifier: string;
@@ -8576,6 +9140,12 @@ export interface components {
             last_user_agent?: string;
             last_ip?: string;
         };
+        SessionMetadata: {
+            [key: string]: string;
+        } | null;
+        SessionMetadataUpdate: {
+            session_metadata: components["schemas"]["SessionMetadata"];
+        };
         UserSession: {
             id: string;
             user_id: string;
@@ -8605,6 +9175,7 @@ export interface components {
             }[];
             /** Format: date-time */
             last_interacted_at: string;
+            session_metadata?: components["schemas"]["SessionMetadata"];
             cookie: {
                 /** @enum {string} */
                 mode: "persistent";
@@ -8615,32 +9186,65 @@ export interface components {
             /** @description Pass as `from` for the next page; absent when the page is empty. */
             next?: string;
         };
-        UserRefreshToken: {
-            id: string;
-            user_id: string;
+        /** @description Device details recorded when the refresh token was issued and last exchanged. */
+        RefreshTokenDevice: {
+            initial_ip?: string;
+            /** @description Empty because ASN lookup is unavailable. */
+            initial_asn?: string;
+            initial_user_agent?: string;
+            last_ip?: string;
+            /** @description Empty because ASN lookup is unavailable. */
+            last_asn?: string;
+            last_user_agent?: string;
+        };
+        RefreshTokenMetadata: {
+            [key: string]: string;
+        } | null;
+        RefreshTokenMetadataUpdate: {
+            refresh_token_metadata: components["schemas"]["RefreshTokenMetadata"];
+        };
+        RefreshToken: {
+            id?: string;
+            user_id?: string;
             /** Format: date-time */
-            created_at: string;
+            created_at?: string;
             /** Format: date-time */
-            idle_expires_at: string | null;
+            idle_expires_at?: string | null;
             /** Format: date-time */
-            expires_at: string | null;
-            client_id: string;
-            session_id: string | null;
-            rotating: boolean;
+            expires_at?: string | null;
+            client_id?: string;
+            session_id?: string | null;
+            rotating?: boolean;
             /** @description The API the token is for with its space-separated scopes; the tenant's `/userinfo` audience when it has no API. */
-            resource_servers: {
+            resource_servers?: {
                 audience: string;
                 scopes: string;
             }[];
-            device?: components["schemas"]["SessionDevice"];
-            /** Format: date-time */
-            last_exchanged_at: string | null;
+            device?: components["schemas"]["RefreshTokenDevice"];
+            refresh_token_metadata?: components["schemas"]["RefreshTokenMetadata"];
+            /**
+             * Format: date-time
+             * @description The last successful exchange, or null before the first exchange.
+             */
+            last_exchanged_at?: string | null;
+        };
+        UserRefreshToken: components["schemas"]["RefreshToken"] & Record<string, never>;
+        RefreshTokenPage: {
+            refresh_tokens: components["schemas"]["RefreshToken"][];
+            /** @description Cursor to pass as `from` on the next request. */
+            next?: string;
         };
         UserRefreshTokenPage: {
             tokens: components["schemas"]["UserRefreshToken"][];
             /** @description Pass as `from` for the next page; absent when the page is empty. */
             next?: string;
         };
+        RefreshTokenRevocation: {
+            ids?: string[];
+            user_id?: string;
+            client_id?: string;
+            audience?: string;
+        } & (unknown | unknown | unknown | unknown);
         UserGrant: {
             id: string;
             /** @description Spelled `clientID`, as Auth0 does. */
@@ -8805,6 +9409,8 @@ export interface components {
             user_id: string;
             /** @description The application the email is for. */
             client_id?: string;
+            /** @description The organization whose branding the verification uses. The user must be a member. */
+            organization_id?: string;
             /** @description One of the user's database identities; the user's primary one when absent. */
             identity?: {
                 /** @description The identity's ID, without the provider. */
@@ -8891,9 +9497,11 @@ export interface components {
         /** @description Unknown properties are `400 invalid_body`. */
         EmailVerificationTicketCreate: {
             user_id: string;
-            /** @description Where the page redirects after opening. Not with `client_id`. */
+            /** @description Where the page redirects after opening. Not with `client_id` or `organization_id`. */
             result_url?: string;
             client_id?: string;
+            /** @description The organization whose branding the result page uses. The user must be a member. */
+            organization_id?: string;
             /** @description Seconds the ticket is valid; 0 or absent is 432000 (5 days). */
             ttl_sec?: number;
             includeEmailInRedirect?: boolean;
@@ -8968,7 +9576,29 @@ export interface components {
             user_id?: string;
         };
         /** @description Fields to change; unknown properties are `400 invalid_body`. */
-        UserUpdate: components["schemas"]["UserProfileSettings"] & {
+        UserUpdate: {
+            email?: string | null;
+            email_verified?: boolean;
+            /** @description Send the verification email. */
+            verify_email?: boolean;
+            username?: string | null;
+            password?: string;
+            phone_number?: string | null;
+            phone_verified?: boolean;
+            /** @description Send a text verification code to the resulting phone number when true. */
+            verify_phone_number?: boolean;
+            name?: string | null;
+            given_name?: string | null;
+            family_name?: string | null;
+            nickname?: string | null;
+            picture?: string | null;
+            blocked?: boolean;
+            user_metadata?: {
+                [key: string]: unknown;
+            };
+            app_metadata?: {
+                [key: string]: unknown;
+            };
             connection?: string;
             /** @description The application the verification email is for. */
             client_id?: string;
@@ -9164,6 +9794,15 @@ export interface components {
         };
         /** @description The storage plugin lacks the `client_credentials.v1` capability, or the operation is not built yet. */
         NotImplemented: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["ManagementError"];
+            };
+        };
+        /** @description The refresh-token or session operation is unavailable. */
+        RefreshTokensUnavailable: {
             headers: {
                 [name: string]: unknown;
             };
@@ -14228,6 +14867,147 @@ export interface operations {
             404: components["responses"]["NotFound"];
         };
     };
+    getConnectionKeys: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConnectionKey"][];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    postConnectionKeys: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PostConnectionKeysRequestContent"];
+            };
+        };
+        responses: {
+            /** @description Success. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConnectionKey"][];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    postConnectionKeysRotate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PostConnectionKeysRequestContent"];
+            };
+        };
+        responses: {
+            /** @description Success. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConnectionKey"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    getConnectionStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    deleteConnectionUsersByEmail: {
+        parameters: {
+            query: {
+                email: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+        };
+    };
     getConnectionClients: {
         parameters: {
             query?: {
@@ -14300,7 +15080,10 @@ export interface operations {
                 include_totals?: components["parameters"]["include_totals"];
                 /** @description `field:1` (ascending) or `field:-1` (descending). */
                 sort?: string;
-                /** @description Only users with an identity on this connection. */
+                /**
+                 * @description This Auth0 v1-only parameter is ignored by zeroauthy. It must be
+                 *     valid UTF-8 without NUL characters. Use `q` to filter by connection.
+                 */
                 connection?: string;
                 /** @description Comma-separated fields to include or, with `include_fields=false`, to leave out. */
                 fields?: string;
@@ -14447,7 +15230,33 @@ export interface operations {
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
             409: components["responses"]["Conflict"];
-            503: components["responses"]["ScriptRuntimeUnavailable"];
+            /** @description The phone verification send limit was reached. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description The storage plugin does not support phone messaging (`phone_unavailable`). */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description A custom database script could not run or phone verification delivery is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
         };
     };
     linkUserIdentity: {
@@ -14659,12 +15468,120 @@ export interface operations {
             403: components["responses"]["Forbidden"];
         };
     };
+    updateSession: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The session's ID. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SessionMetadataUpdate"];
+            };
+        };
+        responses: {
+            /** @description The updated session. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserSession"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            501: components["responses"]["RefreshTokensUnavailable"];
+        };
+    };
+    revokeSession: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The session's ID. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            202: components["responses"]["Accepted"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            501: components["responses"]["RefreshTokensUnavailable"];
+        };
+    };
+    getRefreshTokens: {
+        parameters: {
+            query: {
+                /** @description The user whose refresh tokens to list. */
+                user_id: string;
+                /** @description Only return refresh tokens issued to this application. */
+                client_id?: string;
+                /** @description The `next` cursor from the previous page. */
+                from?: string;
+                /** @description Page size. */
+                take?: number;
+                /** @description Comma-separated fields to include or exclude from each refresh token. */
+                fields?: string;
+                /** @description Whether `fields` lists the fields to include (true) or to leave out (false). */
+                include_fields?: components["parameters"]["include_fields"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A checkpoint page of refresh tokens. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RefreshTokenPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            501: components["responses"]["RefreshTokensUnavailable"];
+        };
+    };
+    revokeRefreshTokens: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RefreshTokenRevocation"];
+            };
+        };
+        responses: {
+            202: components["responses"]["Accepted"];
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            501: components["responses"]["RefreshTokensUnavailable"];
+        };
+    };
     getRefreshToken: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                /** @description The refresh token's ID (not the token). */
+                /** @description The Management API identifier of an offline refresh token. */
                 id: string;
             };
             cookie?: never;
@@ -14690,7 +15607,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                /** @description The refresh token's ID (not the token). */
+                /** @description The Management API identifier of an offline refresh token. */
                 id: string;
             };
             cookie?: never;
@@ -14700,6 +15617,38 @@ export interface operations {
             202: components["responses"]["Accepted"];
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
+        };
+    };
+    updateRefreshToken: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The Management API identifier of an offline refresh token. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RefreshTokenMetadataUpdate"];
+            };
+        };
+        responses: {
+            /** @description The updated refresh token. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserRefreshToken"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            501: components["responses"]["RefreshTokensUnavailable"];
         };
     };
     getGrants: {
@@ -16027,6 +16976,91 @@ export interface operations {
             };
         };
     };
+    tryConnectionPasswordless: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The tenant's name. */
+                tenant: string;
+                /** @description The saved passwordless connection ID. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PasswordlessTryRequest"];
+            };
+        };
+        responses: {
+            /** @description Delivery accepted. The response has no body. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Invalid request or SMS delivery was refused. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Operator authentication failed or the application does not exist in the tenant. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Tenant, application, connection or user policy refused the attempt. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            404: components["responses"]["NotFound"];
+            /** @description A passwordless start budget was exhausted. */
+            429: {
+                headers: {
+                    /** @description Seconds until another send is allowed. */
+                    "Retry-After"?: number;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Email delivery failed or an internal error occurred. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description The storage plugin lacks the Phone capability. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
     tryConnectionScript: {
         parameters: {
             query?: never;
@@ -16342,7 +17376,12 @@ export interface operations {
     };
     GetEmailProvider: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Comma-separated public fields to select. An empty list returns all public fields. */
+                fields?: string;
+                /** @description Whether `fields` lists the fields to include (true) or to leave out (false). */
+                include_fields?: components["parameters"]["include_fields"];
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -16358,6 +17397,7 @@ export interface operations {
                     "application/json": components["schemas"]["EmailProvider"];
                 };
             };
+            400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];

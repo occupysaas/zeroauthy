@@ -12,10 +12,11 @@ import (
 
 func newAuthCode(tenantID, hash string) *store.AuthCode {
 	return &store.AuthCode{
+		UserInfoClaims: "auth_time acr", ACR: "http://schemas.openid.net/pape/policies/2007/06/multi-factor",
 		TenantID: tenantID, CodeHash: hash, ClientID: "spa", RedirectURI: "https://app.test/cb",
 		UserID: "auth0|u1", SessionID: "s1", Scopes: []string{"openid", "email"},
 		Audience: "https://api.test", Nonce: "n", CodeChallenge: "ch", CodeChallengeMethod: "S256",
-		AuthTime: ts(0), ExpiresAt: ts(time.Minute), CreatedAt: ts(0),
+		AuthTime: ts(0), MFAAt: ts(-time.Minute), ExpiresAt: ts(time.Minute), CreatedAt: ts(0),
 		ActionEffects: sealedEffects(),
 	}
 }
@@ -27,6 +28,30 @@ func sealedEffects() []byte { return []byte{0, 0xff, 0xfe, 'e', 0, 0x80, 0x7f} }
 func testAuthCodes(t *testing.T, newStore Factory) {
 	ctx := context.Background()
 
+	t.Run("RedemptionBinding", func(t *testing.T) {
+		s := open(t, newStore)
+		repo := s.AuthCodes()
+		mustNoErr(t, repo.Create(ctx, newAuthCode("ten_a", "claim")))
+		mustErrIs(t, repo.SetRedemptionBinding(ctx, "ten_a", "claim", "", "first"), store.ErrNotFound)
+		_, err := repo.Consume(ctx, "ten_a", "claim", ts(time.Second))
+		mustNoErr(t, err)
+		mustNoErr(t, repo.SetRedemptionBinding(ctx, "ten_a", "claim", "", "first"))
+		mustErrIs(t, repo.SetRedemptionBinding(ctx, "ten_b", "claim", "first", ""), store.ErrNotFound)
+		mustErrIs(t, repo.SetRedemptionBinding(ctx, "ten_a", "claim", "other", ""), store.ErrNotFound)
+		mustErrIs(t, s.WithTx(ctx, func(tx store.Store) error {
+			if err := tx.AuthCodes().SetRedemptionBinding(ctx, "ten_a", "claim", "first", ""); err != nil {
+				return err
+			}
+			return store.ErrInvalid
+		}), store.ErrInvalid)
+		got, err := repo.Get(ctx, "ten_a", "claim")
+		mustNoErr(t, err)
+		mustEqual(t, got.DPoPJKT, "first")
+		mustNoErr(t, repo.SetRedemptionBinding(ctx, "ten_a", "claim", "first", ""))
+		got, err = repo.Get(ctx, "ten_a", "claim")
+		mustNoErr(t, err)
+		mustEqual(t, got.DPoPJKT, "")
+	})
 	t.Run("ConsumeOnce", func(t *testing.T) {
 		s := open(t, newStore)
 		mustNoErr(t, s.AuthCodes().Create(ctx, newAuthCode("ten_a", "h1")))

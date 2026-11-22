@@ -12,18 +12,28 @@ This folder holds how zeroauthy is designed and built:
 - `plan-1-followups.md` — open follow-ups and observation points.
 - `reviews/` — whole-project reviews.
 
+P2 / Plan 48 is implemented, locally verified and reviewed on
+`plan-48-refresh-tokens-ii`, including DPoP and dedicated acceptance.
+Full plan-branch CI remains pending. See
+[its record](2026-11-16-plan-48-implementation-record.md).
+
 ## What to work on next
 
 Every remaining roadmap item except X1 (hosted zeroauthy, maintainer-only)
 has a spec and a plan, written 2026-11-16. Implementation and verification states are recorded per item.
 
+F1 / Plan 36 enterprise OIDC is implemented, locally verified and reviewed on
+`plan-36-enterprise-oidc`; full CI and maintainer approval remain before merge.
+see [the record](2026-11-16-plan-36-implementation-record.md) for verification state.
+
 S1 / Plan 39a (web and native Apple login) is implemented and merged into
 `main` (2026-11-17, plan-branch CI green at `74752598`); see
 [its record](2026-11-16-plan-39a-implementation-record.md).
 
-O3 / Plan 45b is in progress on `plan-45b-flow-api-fixes`: Tasks 1–5 are done
-(Tasks 1 and 3 merged into `main`), Tasks 6–14, verification and CI are
-pending ([record](2026-11-16-plan-45b-implementation-record.md)).
+O3 / Plan 45b (flow and API fixes) is implemented: all 14 tasks, the
+whole-branch review and local verification are complete; see
+[its record](2026-11-16-plan-45b-implementation-record.md). Review follow-ups
+R1–R7 are in [plan-1-followups.md](plan-1-followups.md).
 
 Start at the roadmap's **"Designed 2026-11-16"** table
 ([roadmap §0](specs/2026-10-19-zeroauthy-management-roadmap-design.md)).
@@ -43,8 +53,9 @@ track order in the [parallel paths design](specs/2026-11-13-zeroauthy-parallel-p
 | M1 | 38d Management API gaps | [spec](specs/2026-11-16-zeroauthy-management-gaps-design.md) | [plan](plans/2026-11-16-zeroauthy-plan-38d-management-gaps.md) |
 | S1 | 39a Sign in with Apple | [spec](specs/2026-11-16-zeroauthy-apple-design.md) | [plan](plans/2026-11-16-zeroauthy-plan-39a-apple.md) |
 | S2 | 39b Remaining social providers | [spec](specs/2026-11-16-zeroauthy-social-providers-design.md) | [plan](plans/2026-11-16-zeroauthy-plan-39b-social-providers.md) |
+| S2 | 39c GitHub social connection (split out of 39b; implemented on `plan-39-github-social`) | [spec](specs/2026-11-16-zeroauthy-github-connection-design.md) | [plan](plans/2026-11-18-zeroauthy-plan-39c-github.md) |
 | A1 | 40 Actions III | [spec](specs/2026-11-16-zeroauthy-actions-iii-design.md) | [plan](plans/2026-11-16-zeroauthy-plan-40-actions-iii.md) |
-| P3 | 41a OIDC extras and logout | [spec](specs/2026-11-16-zeroauthy-oidc-extras-logout-design.md) | [plan](plans/2026-11-16-zeroauthy-plan-41a-oidc-extras-logout.md) |
+| P3 | 41a OIDC extras and logout ([implementation and local verification complete](2026-11-16-plan-41a-implementation-record.md)) | [spec](specs/2026-11-16-zeroauthy-oidc-extras-logout-design.md) | [plan](plans/2026-11-16-zeroauthy-plan-41a-oidc-extras-logout.md) |
 | P4 | 41b Dynamic Client Registration, CIMD | [spec](specs/2026-11-16-zeroauthy-dynamic-client-registration-design.md) | [plan](plans/2026-11-16-zeroauthy-plan-41b-dynamic-client-registration.md) |
 | P5 | 41c CIBA | [spec](specs/2026-11-16-zeroauthy-ciba-design.md) | [plan](plans/2026-11-16-zeroauthy-plan-41c-ciba.md) |
 | U1 | 42a My Account API | [spec](specs/2026-11-16-zeroauthy-my-account-api-design.md) | [plan](plans/2026-11-16-zeroauthy-plan-42a-my-account-api.md) |

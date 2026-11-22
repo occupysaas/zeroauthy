@@ -3,6 +3,7 @@ package grpcstore
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"net"
 	"path/filepath"
@@ -10,6 +11,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/zeroauthy/zeroauthy/internal/emailrules"
+	"github.com/zeroauthy/zeroauthy/internal/keys"
+	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/store/sqlstore"
 	storev1 "github.com/zeroauthy/zeroauthy/proto/store/v1"
@@ -97,7 +101,11 @@ func TestEmailGRPCUnimplemented(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer conn.Close()
-	_, err = NewClient(conn, nil).EmailProviders().Get(context.Background(), "t")
+	repo := NewClient(conn, nil).EmailProviders()
+	if err := emailrules.BackfillProvider(t.Context(), repo, nil, "t"); err != nil {
+		t.Fatal("older plugin blocked startup", err)
+	}
+	_, err = repo.Get(context.Background(), "t")
 	if status.Code(err) != codes.Unimplemented || errors.Is(err, store.ErrEmailRepositoryUnavailable) {
 		t.Fatalf("old plugin error=%v", err)
 	}
@@ -170,5 +178,50 @@ func TestEmailGRPCConcurrentSQLiteClaims(t *testing.T) {
 	wg.Wait()
 	if won != 5 || len(errs) > 0 {
 		t.Fatalf("claims won=%d errors=%v", won, errs)
+	}
+}
+
+func TestEmailProviderMigrationThroughPlugin(t *testing.T) {
+	ctx := t.Context()
+	st := inProcessSQLite(t)
+	defer st.Close()
+	if err := st.Tenants().Create(ctx, &store.Tenant{ID: "email-user", Name: "email-user"}); err != nil {
+		t.Fatal(err)
+	}
+	w, err := keys.NewLocalWrapper([]byte(secrets.RandomString(32)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	key := secrets.RandomString(32)
+	plain, _ := json.Marshal(map[string]any{"api_user": "legacy-user", "api_key": key})
+	old, err := keys.SealEmailProvider(w, "email-user", "sendgrid", plain)
+	if err != nil {
+		t.Fatal(err)
+	}
+	repo := st.EmailProviders()
+	if err := repo.Put(ctx, &store.EmailProvider{TenantID: "email-user", Name: "sendgrid", SealedCredentials: old}, 0); err != nil {
+		t.Fatal(err)
+	}
+	if err := emailrules.BackfillProvider(ctx, repo, w, "email-user"); err != nil {
+		t.Fatal(err)
+	}
+	p, err := repo.Get(ctx, "email-user")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(p.PublicConfig) != 1 || p.PublicConfig["api_user"] != "legacy-user" || bytes.Contains(p.SealedCredentials, []byte(key)) {
+		t.Fatal("incorrect migrated plugin row")
+	}
+	b, err := keys.OpenEmailProvider(w, "email-user", "sendgrid", p.SealedCredentials)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var private map[string]any
+	if json.Unmarshal(b, &private) != nil || len(private) != 1 || private["api_key"] != key {
+		t.Fatal("incorrect sealed plugin credentials")
+	}
+	p.PublicConfig["api_user"] = map[string]any{"value": key}
+	if err := repo.Put(ctx, p, p.Revision); !errors.Is(err, store.ErrInvalid) {
+		t.Fatal("plugin accepted a non-string public username")
 	}
 }

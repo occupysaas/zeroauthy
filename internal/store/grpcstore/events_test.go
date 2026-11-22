@@ -32,11 +32,17 @@ import (
 // Exercise a real server and transport, selectively making Events methods look
 // like an older or restarting plugin without replacing any earlier feature.
 type eventsFaults struct {
+	oidcMissing        bool
+	mfaBatch           atomic.Int32
+	mfaBatchCalls      atomic.Int32
+	mfaListCalls       atomic.Int32
 	mfaDomainOperation atomic.Bool
 	mfaDomainMark      atomic.Bool
 	mfaMissing         bool
 	phoneMissing       bool
 	webauthnMissing    bool
+	ckMissing          bool
+	ckProbes           atomic.Int32
 	ccMissing          bool
 	ccProbes           atomic.Int32 // ClientCredentialsCapabilities calls seen
 	ccFieldsSent       atomic.Bool  // a client, API or PAR write carried a Plan 35 field
@@ -59,6 +65,9 @@ func serveEventsFaults(t *testing.T, backing store.Store, faults *eventsFaults) 
 	lis := bufconn.Listen(1 << 20)
 	gs := grpc.NewServer(grpc.UnaryInterceptor(func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
 		name := strings.TrimPrefix(info.FullMethod, "/zeroauthy.store.v1.StoreService/")
+		if name == "OIDCLogoutCapabilities" && faults.oidcMissing {
+			return nil, status.Error(codes.Unimplemented, "pre-oidc_logout.v1 plugin")
+		}
 		if name == "MFACapabilities" {
 			if faults.mfaBlock.Swap(false) {
 				faults.mfaProbeEntered <- struct{}{}
@@ -73,6 +82,12 @@ func serveEventsFaults(t *testing.T, backing store.Store, faults *eventsFaults) 
 		}
 		if name == "WebAuthnCapabilities" && faults.webauthnMissing {
 			return nil, status.Error(codes.Unimplemented, "WebAuthn capability missing")
+		}
+		if name == "ConnectionKeysCapabilities" {
+			faults.ckProbes.Add(1)
+			if faults.ckMissing {
+				return nil, status.Error(codes.Unimplemented, "pre-connection_keys.v1 plugin")
+			}
 		}
 		if name == "ClientCredentialsCapabilities" {
 			faults.ccProbes.Add(1)
@@ -104,6 +119,15 @@ func serveEventsFaults(t *testing.T, backing store.Store, faults *eventsFaults) 
 			if code := codes.Code(faults.mfaMark.Swap(0)); code != codes.OK {
 				return nil, status.Error(code, "mark failure")
 			}
+		}
+		if name == "MFAGuardianUsers" {
+			faults.mfaBatchCalls.Add(1)
+			if code := codes.Code(faults.mfaBatch.Load()); code != codes.OK {
+				return nil, status.Error(code, "batch unavailable")
+			}
+		}
+		if name == "MFAListAuthenticators" {
+			faults.mfaListCalls.Add(1)
 		}
 		if name == "MFAGetGuardian" {
 			if faults.mfaDomainOperation.Swap(false) {

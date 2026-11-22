@@ -9,9 +9,13 @@ export const settingsPanels: Panel[] = [
   ] },
   { ...settings, key: 'languages', title: 'policy.languages', fields: [field('enabled_locales', 'lines', { hint: 'policy.localesHint' })] },
   { ...settings, key: 'advanced', title: 'policy.advanced', fields: [
+    { ...field('flags.revoke_refresh_token_grant', 'toggle'), label: 'rt48.revokeFlag' },
+    { ...field('dpop_strict_refresh_token_binding', 'toggle'), label: 'rt48.strictBinding' },
     field('default_audience'), field('default_directory'), field('allowed_logout_urls', 'lines', { hint: 'policy.linesHint' }),
     field('device_flow.charset', undefined, { options: ['base20', 'digits'] }), field('device_flow.mask'),
     field('pushed_authorization_requests_supported', 'toggle'), field('skip_non_verifiable_callback_uri_confirmation_prompt', 'toggle'),
+    { ...field('oidc_logout.rp_logout_end_session_endpoint_discovery', 'toggle'), label: 'oidc41.discovery' },
+    { ...field('resource_parameter_profile', undefined, { options: ['audience', 'compatibility'] }), label: 'oidc41.resource' },
     field('default_redirection_uri', 'url', { hint: 'policy.future' }),
     ...['change_pwd_flow_v1', 'enable_apis_section', 'enable_client_connections', 'enable_pipeline2', 'enable_dynamic_client_registration', 'disable_management_api_sms_obfuscation', 'trust_azure_adfs_email_verified_connection_property', 'custom_domains_provisioning'].map(p => field('flags.' + p, 'toggle', { hint: 'policy.future' })),
     field('flags.disable_impersonation', 'toggle', { readonly: true, hint: 'policy.readonly' }),

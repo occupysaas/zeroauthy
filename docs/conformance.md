@@ -10,16 +10,17 @@ zeroauthy is checked against the OpenID Foundation conformance suite (https://gi
 | `oidcc-config-certification-test-plan` | Config OP |
 | `oidcc-formpost-basic-certification-test-plan` | Form Post OP (basic) |
 | `oidcc-rp-initiated-logout-certification-test-plan` | RP-Initiated OP |
+| `oidcc-backchannel-rp-initiated-logout-certification-test-plan` | Back-Channel OP |
 
 - Every plan uses discovery (`server_metadata=discovery`) and static clients (`client_registration=static_client`), because zeroauthy has no registration endpoint.
-- Basic and Form Post use `client_secret_basic`. The suite also runs one module with `client_secret_post`. A full `client_secret_post` variant run is a follow-up.
-- Not attempted, because the feature is missing: Implicit, Hybrid, Dynamic OP, front-channel and back-channel logout.
+- Basic and Form Post use `client_secret_basic`. The suite also runs one module with `client_secret_post`. The pinned plans fix authentication for their other modules; they have no selectable full post-authentication variant.
+- Implicit and Hybrid were tried during Plan 41a inventory and rejected unsupported response types. Dynamic OP and front-channel logout remain outside this implementation.
 
 ## Running it
 
 ```bash
-make conformance                 # all four plans
-make conformance PLANS=config    # a subset: basic, config, formpost, logout
+make conformance                 # all five plans
+make conformance PLANS=config    # a subset: basic, config, formpost, logout, backchannel
 CONFORMANCE_RUNTIME=docker ./tests/conformance/run.sh
 CONFORMANCE_KEEP=1 ./tests/conformance/run.sh config   # leave the containers up to debug
 ```
@@ -61,13 +62,30 @@ The current entries are accepted warnings and skips, recorded in D-0036 (with D-
 
 ## Non-compliant switches
 
-Spec-compliant behaviour is the default. Where the maintainer rules that Auth0's behaviour must stay available, it goes behind a server-wide environment variable `ZEROAUTHY_COMPAT__NONCOMPLIANT_<BEHAVIOUR>` (default off; a startup warning naming each switch that is on is planned, since no switches exist yet; the conformance run uses the defaults). Each case is decided by the maintainer.
+Spec-compliant behaviour is the default. The following server-wide
+`ZEROAUTHY_COMPAT__NONCOMPLIANT_*` environment switches default off. Each
+enabled switch produces one startup warning naming it. Set `1` or `true`
+to enable, and `0`, `false` or an empty value to disable. Other spellings
+(including uppercase booleans or surrounding whitespace) cause a startup
+configuration error. Values are never included in errors or warnings.
+These switches are environment-only; the local conformance containers do
+not enable them.
 
-| Switch | Auth0 behaviour it restores | Decision |
+| Switch | Compatibility behavior | Decision |
 |---|---|---|
-| (none) | | |
+| `ZEROAUTHY_COMPAT__NONCOMPLIANT_IGNORE_CLAIMS_PARAMETER` | Ignore the claims request and omit claims_parameter_supported from discovery | D-0080, LR41a-5 |
+| `ZEROAUTHY_COMPAT__NONCOMPLIANT_OPTIONAL_REDIRECT_URI` | Use the sole registered non-wildcard callback when redirect_uri is omitted | D-0080, LR41a-10 |
+| `ZEROAUTHY_COMPAT__NONCOMPLIANT_LOGOUT_TOKEN_TYP_JWT` | Use JWT instead of logout+jwt for the logout-token typ header | D-0080, §7.3 |
 
-No such switch exists today.
+All three switches are connected to their protocol consumers and emit startup
+warnings when enabled. See the
+[implementation record](superpowers/2026-11-16-plan-41a-implementation-record.md)
+for verification results.
+
+The older `ZEROAUTHY_COMPATIBILITY__AUTH0_REFRESH_ERROR_STATUS` setting also
+defaults off. It restores HTTP 403 for invalid refresh grants instead of the
+specification's HTTP 400; this pre-existing setting is separate from the
+three Plan 41a switches.
 
 ## Certification
 
@@ -247,3 +265,63 @@ Packages: signed 2026-10-29 for Basic, Config and Form Post. OIDF certifies RP-I
 4. Record below the date, the suite version and the zeroauthy commit that was certified.
 
 Certified: 2026-10-30 (listed with test date 18-Oct-2026), suite `release-v5.3.3`, zeroauthy commit `38b4229`, profiles Basic OP, Config OP and Form Post OP. Listing: https://openid.net/certification/certified-openid-providers-profiles/. Teardown date: TBD.
+
+
+## Plan 41a verification additions
+
+The local runner adds `backchannel`, the official Back-Channel OP plan at
+release-v5.3.3, with a separate static client and `/backchannel_logout`
+receiver. Basic and Form Post already include the official
+`client_secret_post` module and use their separate post client. The pinned
+plans fix Basic authentication for their other modules; they do not offer
+independent full post-authentication profiles. Implicit and Hybrid remain
+excluded after the actual Plan 41a inventory found unsupported response
+types; no certification for those profiles is claimed.
+
+The local harness provisions complete synthetic profile, phone and address
+data and separate ACR users. Each ACR module uses a real confirmed TOTP
+account's one-use recovery factor and acknowledges its replacement. The
+suite browser only supports static commands, so the two modules need
+separate, freshly generated recovery proofs. Nothing bypasses MFA or
+asserts an authentication that did not happen. The test-only
+`tests/conformance/prepare` helper prepares only the named conformance or
+certification fixture users in SQLite; never use it against production.
+
+The public renderer now produces `configs/backchannel.json` and a private
+`fixtures.json`, in addition to the seed and other suite configurations.
+Before starting the hosted fixture server, prepare its SQLite data with the
+same fresh master key that the server will use:
+
+```bash
+ZEROAUTHY_SECURITY__MASTER_KEY="$CERT_MASTER_KEY" go run ./tests/conformance/prepare \
+  --dsn 'sqlite:///absolute/path/certification.db' \
+  --tenant certification --seed /private/kit/seed.yaml \
+  --fixtures /private/kit/fixtures.json
+```
+
+Repeat preparation before rerunning either ACR module, since its proof is
+consumed. Keep the rendered kit private until the throwaway certification
+run; the suite publishes credentials in its logs. In the local container
+harness, both servers use the per-run CA and the receiver uses an explicit
+private-network opt-in. Production delivery retains verified HTTPS and its
+default public-address policy.
+
+Certification remains a maintainer action after green plan CI and review:
+run the added Back-Channel OP and RP-Initiated Logout OP plans on the hosted
+suite, export every result, update the declaration and follow the existing
+submission process. Local acceptance results are not certification.
+
+
+Plan 41a local acceptance on 2026-11-21: all five plans finished, runner
+exit 0; artifacts `tests/conformance/results/20261121T042726Z`. Basic and
+Form Post each ran 35 modules (26 passed, 4 documented warnings, 3 review,
+2 documented unsigned-request-object skips); Config passed its module;
+RP-Initiated Logout ran 11 (3 passed, 8 review); Back-Channel Logout passed
+both modules. The genuine ACR proof and phone/address/profile modules now
+pass. The retained essential-name warning is for a request granting only
+openid: the implementation follows LR41a-4's consent boundary rather than
+returning ungranted profile data. Historical scope/ACR/unsupported-claims
+explanations were removed. No new warning class was accepted.
+
+The post-review acceptance rerun also exited 0 on the final production snapshot
+(`7607f4bc`), results `20261121T050646Z`, with the same module counts above.

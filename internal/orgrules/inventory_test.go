@@ -22,7 +22,7 @@ func TestOrganizationsInventory(t *testing.T) {
 		"GET /api/v2/organizations/name/{name}":                                 {[]string{"read:organizations"}, "all", nil, 200, "none"},
 		"PATCH /api/v2/organizations/{id}":                                      {[]string{"update:organizations"}, "all", nil, 200, "none"},
 		"DELETE /api/v2/organizations/{id}":                                     {[]string{"delete:organizations"}, "all", nil, 204, "none"},
-		"GET /api/v2/organizations/{id}/members":                                {[]string{"read:organization_members", "read:organization_member_roles"}, "any", []string{"read:organization_member_roles"}, 200, "offset+checkpoint"},
+		"GET /api/v2/organizations/{id}/members":                                {[]string{"read:organization_members"}, "all", []string{"read:organization_member_roles"}, 200, "offset+checkpoint"},
 		"POST /api/v2/organizations/{id}/members":                               {[]string{"create:organization_members"}, "all", nil, 204, "none"},
 		"DELETE /api/v2/organizations/{id}/members":                             {[]string{"delete:organization_members"}, "all", nil, 204, "none"},
 		"GET /api/v2/organizations/{id}/members/{user_id}/roles":                {[]string{"read:organization_member_roles"}, "all", nil, 200, "offset"},
@@ -35,7 +35,7 @@ func TestOrganizationsInventory(t *testing.T) {
 		"GET /api/v2/organizations/{id}/enabled_connections/{connection_id}":    {[]string{"read:organization_connections"}, "all", nil, 200, "none"},
 		"PATCH /api/v2/organizations/{id}/enabled_connections/{connection_id}":  {[]string{"update:organization_connections"}, "all", nil, 200, "none"},
 		"DELETE /api/v2/organizations/{id}/enabled_connections/{connection_id}": {[]string{"delete:organization_connections"}, "all", nil, 204, "none"},
-		"GET /api/v2/users/{id}/organizations":                                  {[]string{"read:users", "read:organizations"}, "any", nil, 200, "offset+checkpoint"},
+		"GET /api/v2/users/{id}/organizations":                                  {[]string{"read:organizations"}, "all", nil, 200, "offset+checkpoint"},
 		// Task 5 ruling: the Early Access /connections and the read-only
 		// client-grant list, which the Deploy CLI needs.
 		"GET /api/v2/organizations/{id}/connections":                    {[]string{"read:organization_connections"}, "all", nil, 200, "offset"},

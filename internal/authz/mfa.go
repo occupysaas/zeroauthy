@@ -54,6 +54,7 @@ type mfaCompletedKey struct{}
 type mfaEnrollmentCompletedKey struct{}
 
 func (h *Handlers) mfaDecision(r *http.Request, res tenant.Resolved, fr flowReq, sess *store.LoginSession, eff *actions.Effects) (mfa.Requirement, error) {
+	stepUp := requestedACR(fr.Request, res.Tenant) != ""
 	var effects *actions.MFAEffects
 	if eff != nil {
 		effects = eff.MFA
@@ -62,7 +63,7 @@ func (h *Handlers) mfaDecision(r *http.Request, res tenant.Resolved, fr flowReq,
 	if errors.Is(err, store.ErrMFAUnavailable) {
 		// Older plugins have no policy. An explicit Action request still cannot
 		// be fulfilled, except for its explicit skip instruction.
-		if effects != nil && (effects.Mode != "" || effects.Provider != "" && effects.Provider != "none") {
+		if stepUp || effects != nil && (effects.Mode != "" || effects.Provider != "" && effects.Provider != "none") {
 			return mfa.Requirement{}, mfa.ErrNoFactor
 		}
 		return mfa.Requirement{}, nil
@@ -90,7 +91,7 @@ func (h *Handlers) mfaDecision(r *http.Request, res tenant.Resolved, fr flowReq,
 		return mfa.Requirement{}, err
 	}
 	customize, _ := res.Tenant.SettingsExtra["customize_mfa_in_postlogin_action"].(bool)
-	in := mfa.DecideInput{Settings: g, Effects: effects, User: u, Authenticators: aa, SessionMFAAt: sess.MFAAt, RememberValid: remember, KnownDevice: known, CustomizeInActions: customize}
+	in := mfa.DecideInput{StepUp: stepUp, Settings: g, Effects: effects, User: u, Authenticators: aa, SessionMFAAt: sess.MFAAt, RememberValid: remember, KnownDevice: known, CustomizeInActions: customize}
 	if h.MFA != nil {
 		methods, e := h.MFA.WithStore(h.Store).PhoneMethods(r.Context(), res.Tenant.ID)
 		if e != nil {
@@ -195,7 +196,7 @@ func (h *Handlers) requireMFA(w http.ResponseWriter, r *http.Request, res tenant
 }
 
 // PendingMFA validates the stored transaction, browser binding, origin and
-// current active session before opening its sealed requirement. It is suitable
+// current hosted identity before opening its sealed requirement. It is suitable
 // for every MFA page request; it does not consume the transaction.
 func (h *Handlers) PendingMFA(ctx context.Context, r *http.Request, res tenant.Resolved, txn *store.AuthTransaction, sess *store.LoginSession) (*MFAPending, error) {
 	invalid := errors.New("authz: invalid MFA transaction")
@@ -221,7 +222,7 @@ func (h *Handlers) PendingMFA(ctx context.Context, r *http.Request, res tenant.R
 	sid := ""
 	var current *store.LoginSession
 	if !ticket && !reset {
-		current, err = h.ActiveSession(ctx, r, res)
+		current, err = h.FlowSession(ctx, r, res)
 		if err != nil {
 			return nil, err
 		}
@@ -273,7 +274,7 @@ func (h *Handlers) PendingMFA(ctx context.Context, r *http.Request, res tenant.R
 	return &pending, nil
 }
 
-// MFAComplete resumes only after a fresh proof marked the bound active session.
+// MFAComplete resumes only after a fresh proof marked the bound hosted identity.
 // Consuming the transaction is single-use; Actions are carried and never rerun.
 // enrolledFactor is supplied only by the final server-proven enrollment page.
 func (h *Handlers) MFAComplete(w http.ResponseWriter, r *http.Request, res tenant.Resolved, txn *store.AuthTransaction, sess *store.LoginSession, enrolledFactor ...string) {
@@ -301,7 +302,7 @@ func (h *Handlers) MFAComplete(w http.ResponseWriter, r *http.Request, res tenan
 		h.invalidMFA(w, r, res)
 		return
 	}
-	current, err := h.ActiveSession(r.Context(), r, res)
+	current, err := h.FlowSession(r.Context(), r, res)
 	if err != nil || current == nil || current.MFAAt.IsZero() || current.MFAAt.Equal(pending.PreviousMFAAt) || current.MFAAt.Before(stored.CreatedAt) {
 		h.invalidMFA(w, r, res)
 		return

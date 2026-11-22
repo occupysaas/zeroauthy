@@ -2,9 +2,9 @@ import type { Connection, SystemTenant } from '../../../api/client'
 
 // Classification and route support are distinct: historical social routes
 // must continue opening generic OIDC connections.
-export const federatedStrategies = ['google-oauth2', 'oauth2', 'oidc', 'windowslive', 'waad', 'apple'] as const
-export const socialStrategies = ['google-oauth2', 'oauth2', 'windowslive', 'apple'] as const
-export const enterpriseStrategies = ['oidc', 'waad'] as const
+export const federatedStrategies = ['google-oauth2', 'oauth2', 'oidc', 'windowslive', 'waad', 'apple', 'github', 'okta'] as const
+export const socialStrategies = ['google-oauth2', 'oauth2', 'windowslive', 'apple', 'github'] as const
+export const enterpriseStrategies = ['oidc', 'okta', 'waad'] as const
 export type FederatedStrategy = (typeof federatedStrategies)[number]
 export type SocialStrategy = (typeof socialStrategies)[number]
 export type EnterpriseStrategy = (typeof enterpriseStrategies)[number]
@@ -90,3 +90,46 @@ export function applePEM(value: string): boolean {
 }
 
 export const APPLE_IDENTIFIER = /^[A-Z0-9]{10}$/
+
+/** GitHub scope flags in inventory order (internal/federation/rules/github.go
+ * GitHubScopeFlags); `email` and `profile` are separate options. */
+export const githubScopeFlags = [
+  { option: 'admin_org', scope: 'admin:org' },
+  { option: 'admin_public_key', scope: 'admin:public_key' },
+  { option: 'admin_repo_hook', scope: 'admin:repo_hook' },
+  { option: 'delete_repo', scope: 'delete_repo' },
+  { option: 'follow', scope: 'user:follow' },
+  { option: 'gist', scope: 'gist' },
+  { option: 'notifications', scope: 'notifications' },
+  { option: 'public_repo', scope: 'public_repo' },
+  { option: 'read_org', scope: 'read:org' },
+  { option: 'read_public_key', scope: 'read:public_key' },
+  { option: 'read_repo_hook', scope: 'read:repo_hook' },
+  { option: 'read_user', scope: 'read:user' },
+  { option: 'repo', scope: 'repo' },
+  { option: 'repo_deployment', scope: 'repo_deployment' },
+  { option: 'repo_status', scope: 'repo:status' },
+  { option: 'write_org', scope: 'write:org' },
+  { option: 'write_public_key', scope: 'write:public_key' },
+  { option: 'write_repo_hook', scope: 'write:repo_hook' },
+] as const
+
+/** The scope a GitHub connection requests: user:email when email is on, then
+ * the checked flags, space-separated. Empty is valid. */
+export function githubScope(email: boolean, flags: Record<string, boolean>): string {
+  const scopes: string[] = email ? ['user:email'] : []
+  for (const f of githubScopeFlags) if (flags[f.option] === true && !scopes.includes(f.scope)) scopes.push(f.scope)
+  return scopes.join(' ')
+}
+
+/** The checked flags of a stored connection's options. */
+export function githubFlagsOf(o: Options): Record<string, boolean> {
+  return Object.fromEntries(githubScopeFlags.map((f) => [f.option, o[f.option] === true]))
+}
+
+/** The options a GitHub form writes: only checked flags, never `scope`. */
+export function githubFlagOptions(email: boolean, flags: Record<string, boolean>): Options {
+  const out: Options = { email }
+  for (const f of githubScopeFlags) if (flags[f.option] === true) out[f.option] = true
+  return out
+}

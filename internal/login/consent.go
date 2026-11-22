@@ -14,7 +14,7 @@ func (h *Handlers) ConsentPage(w http.ResponseWriter, r *http.Request) {
 		h.fail(w, r, err, f)
 		return
 	}
-	sess, err := h.Authz.ActiveSession(r.Context(), r, f.res)
+	sess, err := h.Authz.FlowSession(r.Context(), r, f.res)
 	if err != nil {
 		h.fail(w, r, err, f)
 		return
@@ -42,7 +42,7 @@ func (h *Handlers) ConsentSubmit(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	sess, err := h.Authz.ActiveSession(r.Context(), r, f.res)
+	sess, err := h.Authz.FlowSession(r.Context(), r, f.res)
 	switch {
 	case err != nil:
 		h.fail(w, r, err, f)

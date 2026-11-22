@@ -3,6 +3,7 @@ package memory
 import (
 	"cmp"
 	"context"
+	"maps"
 	"slices"
 	"time"
 
@@ -43,6 +44,11 @@ func (r sessions) Get(_ context.Context, tenantID, id string) (*store.LoginSessi
 		return nil, store.ErrNotFound
 	}
 	return cloneSession(s), nil
+}
+
+// WithTx holds the memory store's write lock for its entire callback.
+func (r sessions) GetForUpdate(ctx context.Context, tenantID, id string) (*store.LoginSession, error) {
+	return r.Get(ctx, tenantID, id)
 }
 
 func (r sessions) ListByUser(_ context.Context, tenantID, userID string) ([]*store.LoginSession, error) {
@@ -152,5 +158,63 @@ func (r sessions) AddMethod(_ context.Context, tid, id string, method store.Auth
 		return store.ErrNotFound
 	}
 	s.AuthMethods = append(s.AuthMethods, method)
+	return nil
+}
+
+func (r sessions) UpdateMetadata(_ context.Context, tid, id string, md map[string]string) (*store.LoginSession, error) {
+	r.s.lock()
+	defer r.s.unlock()
+	s := r.s.sessions[key{tid, id}]
+	if s == nil {
+		return nil, store.ErrNotFound
+	}
+	s.Metadata = maps.Clone(md)
+	return cloneSession(s), nil
+}
+
+func (r sessions) ListExpired(_ context.Context, before time.Time, limit int) ([]*store.LoginSession, error) {
+	if limit < 1 || limit > 1000 {
+		return nil, store.ErrInvalid
+	}
+	r.s.readLock()
+	defer r.s.readUnlock()
+	out := []*store.LoginSession{}
+	for _, s := range r.s.sessions {
+		if !s.ExpiresAt.After(before) || !s.IdleExpiresAt.After(before) {
+			out = append(out, cloneSession(s))
+		}
+	}
+	slices.SortFunc(out, func(a, b *store.LoginSession) int {
+		if a.TenantID < b.TenantID {
+			return -1
+		}
+		if a.TenantID > b.TenantID {
+			return 1
+		}
+		if a.ID < b.ID {
+			return -1
+		}
+		if a.ID > b.ID {
+			return 1
+		}
+		return 0
+	})
+	return out[:min(len(out), limit)], nil
+}
+
+func (r sessions) RecordClientOrganization(_ context.Context, tenantID, id, clientID, orgID string) error {
+	r.s.lock()
+	defer r.s.unlock()
+	s, ok := r.s.sessions[key{tenantID, id}]
+	if !ok {
+		return store.ErrNotFound
+	}
+	if !slices.Contains(s.ClientIDs, clientID) {
+		s.ClientIDs = append(slices.Clone(s.ClientIDs), clientID)
+	}
+	if s.ClientOrganizations == nil {
+		s.ClientOrganizations = map[string]string{}
+	}
+	s.ClientOrganizations[clientID] = orgID
 	return nil
 }

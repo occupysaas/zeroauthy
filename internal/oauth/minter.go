@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/go-jose/go-jose/v4"
+	josejson "github.com/go-jose/go-jose/v4/json"
 	"github.com/zeroauthy/zeroauthy/internal/claims"
 	"github.com/zeroauthy/zeroauthy/internal/keys"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
@@ -29,6 +30,7 @@ type Minter struct {
 }
 
 type AccessTokenParams struct {
+	DPoPJKT  string
 	TenantID string
 	Issuer   string
 	Subject  string
@@ -59,18 +61,19 @@ type AccessTokenParams struct {
 }
 
 type accessTokenClaims struct {
-	Issuer          string    `json:"iss"`
-	Subject         string    `json:"sub"`
-	Audience        audience  `json:"aud"`
-	IssuedAt        int64     `json:"iat"`
-	Expiry          int64     `json:"exp"`
-	Scope           string    `json:"scope,omitempty"`
-	AuthorizedParty string    `json:"azp,omitempty"`
-	ClientID        string    `json:"client_id,omitempty"`
-	Permissions     *[]string `json:"permissions,omitempty"`
-	GrantType       string    `json:"gty,omitempty"`
-	ID              string    `json:"jti"`
-	Operator        []string  `json:"https://zeroauthy.dev/operator,omitempty"`
+	Confirmation    map[string]string `json:"cnf,omitempty"`
+	Issuer          string            `json:"iss"`
+	Subject         string            `json:"sub"`
+	Audience        audience          `json:"aud"`
+	IssuedAt        int64             `json:"iat"`
+	Expiry          int64             `json:"exp"`
+	Scope           string            `json:"scope,omitempty"`
+	AuthorizedParty string            `json:"azp,omitempty"`
+	ClientID        string            `json:"client_id,omitempty"`
+	Permissions     *[]string         `json:"permissions,omitempty"`
+	GrantType       string            `json:"gty,omitempty"`
+	ID              string            `json:"jti"`
+	Operator        []string          `json:"https://zeroauthy.dev/operator,omitempty"`
 	// Actor is the RFC 8693 act claim: the acting party, its earlier actors
 	// nested under act.
 	Actor map[string]any `json:"act,omitempty"`
@@ -144,6 +147,9 @@ func (m *Minter) AccessToken(ctx context.Context, p AccessTokenParams) (string, 
 		Operator:        p.Operator,
 		Actor:           p.Actor,
 	}
+	if p.DPoPJKT != "" {
+		c.Confirmation = map[string]string{"jkt": p.DPoPJKT}
+	}
 	if authz && p.IncludePermissions {
 		permissions := append([]string{}, p.Permissions...)
 		slices.Sort(permissions)
@@ -174,7 +180,7 @@ func (m *Minter) AccessToken(ctx context.Context, p AccessTokenParams) (string, 
 
 // signHS256 signs claims with the API's secret. The header carries no kid:
 // the secret is not a published key. go-jose refuses secrets under 32 bytes
-// (RFC 7518 3.2), but the API accepts 16 characters and up (C15), so the
+// (RFC 7518 3.2). Legacy stored API secrets may be shorter than 32 bytes, so the
 // compact JWS is built here.
 func signHS256(claims any, secret []byte, tokenType string) (string, error) {
 	payload, err := json.Marshal(claims)
@@ -206,15 +212,18 @@ func (m *Minter) now() time.Time {
 }
 
 type IDTokenParams struct {
-	TenantID  string
-	Issuer    string
-	ClientID  string
-	User      *store.User
-	Scopes    []string
-	Nonce     string
-	SessionID string
-	AuthTime  time.Time
-	MFAAt     time.Time
+	SigningAlg    string
+	SigningSecret []byte
+	ACR           string
+	TenantID      string
+	Issuer        string
+	ClientID      string
+	User          *store.User
+	Scopes        []string
+	Nonce         string
+	SessionID     string
+	AuthTime      time.Time
+	MFAAt         time.Time
 	// AccessToken, when set, adds at_hash (OpenID Connect Core §3.1.3.6).
 	AccessToken string
 	// Lifetime defaults to DefaultIDTokenLifetime when zero.
@@ -241,6 +250,9 @@ func (m *Minter) IDToken(ctx context.Context, p IDTokenParams) (string, error) {
 	}
 	if !p.MFAAt.IsZero() {
 		c["amr"] = []string{"mfa"}
+		if p.ACR == claims.ACRMultiFactor {
+			c["acr"] = p.ACR
+		}
 	}
 	if p.Nonce != "" {
 		c["nonce"] = p.Nonce
@@ -257,7 +269,19 @@ func (m *Minter) IDToken(ctx context.Context, p IDTokenParams) (string, error) {
 			c[k] = v
 		}
 	}
-	return m.Keys.Sign(ctx, p.TenantID, c)
+	switch p.SigningAlg {
+	case "", "RS256":
+		return m.Keys.Sign(ctx, p.TenantID, c)
+	case "PS256":
+		return m.Keys.SignWithAlg(ctx, p.TenantID, c, "JWT", jose.PS256)
+	case "HS256":
+		if len(p.SigningSecret) < 32 {
+			return "", errors.New("ID token signing secret is unavailable")
+		}
+		return signHS256(c, p.SigningSecret, "JWT")
+	default:
+		return "", errors.New("unsupported ID token signing algorithm")
+	}
 }
 
 // withCustomClaims returns c's claims plus custom claims c does not carry.
@@ -267,8 +291,8 @@ func withCustomClaims(c accessTokenClaims, custom map[string]any) (map[string]an
 		return nil, err
 	}
 	out := map[string]any{}
-	dec := json.NewDecoder(bytes.NewReader(b))
-	dec.UseNumber() // iat and exp stay integers
+	dec := josejson.NewDecoder(bytes.NewReader(b))
+	dec.SetNumberType(josejson.UnmarshalJSONNumber) // Preserve integers using the signer's JSON number type.
 	if err := dec.Decode(&out); err != nil {
 		return nil, err
 	}

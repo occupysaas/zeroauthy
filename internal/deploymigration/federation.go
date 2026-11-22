@@ -30,10 +30,21 @@ func FederationImport(export Export, credentials map[string]string) (json.RawMes
 		}
 		_, exportedClient := options["client_secret"]
 		_, exportedApple := options["app_secret"]
-		if exportedClient || exportedApple || strings.TrimSpace(secret) == "" || strings.Contains(secret, "********") {
+		front := strategy == rules.OIDC && options["type"] != "back_channel"
+		optional := front || (strategy == rules.OIDC || strategy == rules.Okta) && options["token_endpoint_auth_method"] == "private_key_jwt"
+		if exportedClient || exportedApple || !optional && strings.TrimSpace(secret) == "" || strings.Contains(secret, "********") || front && secret != "" {
 			return nil, errors.New("deploymigration: explicit provider-secret injection is required")
 		}
-		options[rules.SecretOption(strategy)] = secret
+		if secret != "" {
+			options[rules.SecretOption(strategy)] = secret
+		}
+		if strategy == rules.GitHub {
+			// Fail before the Deploy CLI runs: a scope that disagrees with
+			// the flags is rejected, never silently rewritten.
+			if _, errs := rules.Parse(rules.Input{Strategy: strategy, Name: name, Options: options, HasSealedSecret: true}); len(errs) > 0 {
+				return nil, errors.New("deploymigration: invalid github connection: " + errs[0].Error())
+			}
+		}
 		if strategy == rules.OAuth2 {
 			scripts, ok := options["scripts"].(map[string]any)
 			if !ok {

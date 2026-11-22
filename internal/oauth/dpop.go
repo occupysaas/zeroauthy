@@ -1,0 +1,229 @@
+package oauth
+
+import (
+	"context"
+	"errors"
+	"net/http"
+	"net/url"
+	"slices"
+
+	"github.com/zeroauthy/zeroauthy/internal/clientrules"
+	"github.com/zeroauthy/zeroauthy/internal/dpop"
+	"github.com/zeroauthy/zeroauthy/internal/logscrub"
+	"github.com/zeroauthy/zeroauthy/internal/mfa"
+	"github.com/zeroauthy/zeroauthy/internal/secrets"
+	"github.com/zeroauthy/zeroauthy/internal/store"
+	"github.com/zeroauthy/zeroauthy/internal/tenant"
+	"github.com/zeroauthy/zeroauthy/internal/tenantrules"
+)
+
+func accessProof(ctx context.Context, c *store.Client, rs *store.ResourceServer) (string, *Error) {
+	p := dpop.FromContext(ctx)
+	has := p != nil && p.JKT != ""
+	public := c.TokenEndpointAuthMethod == store.AuthMethodNone
+	allowed := rs == nil
+	required := c.RequireProofOfPossession
+	if rs != nil && rs.ProofOfPossession != nil {
+		policy := rs.ProofOfPossession
+		allowed = policy.Mechanism == "dpop"
+		required = required || (policy.Required && (policy.RequiredFor != "public_clients" || public))
+	}
+	if required && (!has || !allowed) {
+		return "", &Error{Status: 400, Code: "invalid_dpop_proof", Description: "a proof is required for this request"}
+	}
+	// These server resources intentionally remain Bearer-only.
+	if rs != nil && (rs.IsSystem || rs.Identifier == tenant.OperatorAudience) {
+		if required {
+			return "", invalidRequest("sender constraints are unavailable for this audience")
+		}
+		return "", nil
+	}
+	if has && allowed {
+		return p.JKT, nil
+	}
+	return "", nil
+}
+func (h *Handlers) verifyDPoP(w http.ResponseWriter, r *http.Request, res tenant.Resolved, c *store.Client, form url.Values) *Error {
+	*r = *r.WithContext(context.WithValue(r.Context(), proofMintKey{}, &proofMint{}))
+	expected := ""
+	online := false
+	aud := form.Get("audience")
+	grant := form.Get("grant_type")
+	switch grant {
+	case clientrules.GrantMFAOTP, clientrules.GrantMFAOOB, clientrules.GrantMFARecoveryCode:
+		// Only the authenticated continuation can select the issuing audience.
+		// Preserve the grant's error reporting and factor-failure event paths.
+		pending := &pendingMFARequest{failure: mfaUnavailableError()}
+		if h.MFA != nil {
+			pending.token, pending.request, pending.failure = h.pendingMFAToken(r.Context(), res, form.Get("mfa_token"), c.ClientID)
+		}
+		*r = *r.WithContext(context.WithValue(r.Context(), pendingMFARequestKey{}, pending))
+		aud = ""
+		if pending.failure == nil {
+			aud = pending.request.Audience
+		}
+	case "authorization_code":
+		ac, e := h.Store.AuthCodes().Get(r.Context(), res.Tenant.ID, secrets.HashToken(form.Get("code")))
+		if e == nil && ac.ClientID == c.ClientID && res.CheckOrigin(ac.Origin) == nil {
+			expected = ac.DPoPJKT
+			online = slices.Contains(ac.Scopes, "online_access")
+			if online {
+				rs, lookup := h.Store.ResourceServers().GetByIdentifier(r.Context(), res.Tenant.ID, ac.Audience)
+				if lookup != nil && !errors.Is(lookup, store.ErrNotFound) {
+					return serverError()
+				}
+				sess, lookup := onlineSession(r.Context(), h.Store, res, ac.UserID, ac.SessionID, h.now().UTC())
+				if lookup != nil && !errors.Is(lookup, errOnlineSession) {
+					return serverError()
+				}
+				online = onlineEligible(c, rs, sess)
+			}
+			aud = ac.Audience
+		} else if e != nil && !errors.Is(e, store.ErrNotFound) {
+			return serverError()
+		}
+	case GrantDeviceCode:
+		// Device exchange uses its stored approval, never an exchange-supplied
+		// audience. Check that API before Poll can consume an approved code.
+		dc, e := h.Store.DeviceCodes().Get(r.Context(), res.Tenant.ID, secrets.HashToken(form.Get("device_code")))
+		if e == nil && dc.ClientID == c.ClientID && res.CheckOrigin(dc.Origin) == nil {
+			aud = dc.Audience
+		} else if e != nil && !errors.Is(e, store.ErrNotFound) {
+			return serverError()
+		}
+	case "refresh_token":
+		rt, e := h.Store.RefreshTokens().GetByTokenHash(r.Context(), res.Tenant.ID, secrets.HashToken(form.Get("refresh_token")))
+		if e == nil && rt.ClientID == c.ClientID && res.CheckOrigin(rt.Origin) == nil {
+			expected = rt.DPoPJKT
+			online = rt.Access == "online"
+			if aud == "" {
+				aud = rt.Audience
+			}
+		} else if e != nil && !errors.Is(e, store.ErrNotFound) {
+			return serverError()
+		}
+	default:
+		if aud == "" {
+			aud = res.Tenant.DefaultAudience
+		}
+	}
+	public := c.TokenEndpointAuthMethod == store.AuthMethodNone
+	if e := h.verifyProofHeader(w, r, res, public, expected, c.RequireProofOfPossession || online && public); e != nil {
+		return e
+	}
+	// Bound source validation precedes consumption even when no proof was supplied.
+	if aud != "" {
+		rs, e := h.Store.ResourceServers().GetByIdentifier(r.Context(), res.Tenant.ID, aud)
+		if e == nil {
+			_, failure := accessProof(r.Context(), c, rs)
+			return failure
+		}
+		if !errors.Is(e, store.ErrNotFound) {
+			return serverError()
+		}
+	}
+	return nil
+}
+
+// verifyProofHeader authenticates this endpoint and the credential's key.
+// Access-token issuance policy belongs to the grant using the verified proof.
+func (h *Handlers) verifyProofHeader(w http.ResponseWriter, r *http.Request, res tenant.Resolved, public bool, expected string, required bool) *Error {
+	values := r.Header.Values("DPoP")
+	if len(values) == 0 {
+		if required || expected != "" {
+			return &Error{Status: 400, Code: "invalid_dpop_proof", Description: "a proof is required for this request"}
+		}
+		return nil
+	}
+	service := h.DPoP
+	if service == nil {
+		service = &dpop.Service{Store: h.Store, Wrapper: h.Wrapper, Now: h.Now}
+	}
+	p, e := service.Verify(r.Context(), r, res, dpop.AuthorizationServer, public, "", expected)
+	if e != nil {
+		if e.Nonce != "" {
+			w.Header().Set("DPoP-Nonce", e.Nonce)
+		}
+		if e.Internal {
+			return serverError()
+		}
+		return &Error{Status: 400, Code: e.Code, Description: "the proof could not be accepted"}
+	}
+	if p.Nonce != "" {
+		w.Header().Set("DPoP-Nonce", p.Nonce)
+	}
+	ctx := dpop.WithProof(r.Context(), &dpop.Proof{JKT: p.JKT})
+	for _, value := range values {
+		ctx = logscrub.WithCredentials(ctx, value)
+	}
+	*r = *r.WithContext(ctx)
+	return nil
+}
+
+// createInitialRefresh chooses the new credential's key under the final
+// policy lock. Rotation and conversion inherit the existing record's key.
+func createInitialRefresh(ctx context.Context, tx store.Store, rt *store.RefreshToken) error {
+	key := proofJKT(ctx)
+	if key != "" && rt.Access != "online" && rt.Audience != "" {
+		tn, err := tx.Tenants().Get(ctx, rt.TenantID)
+		if err != nil {
+			return err
+		}
+		if !tenantrules.StrictRefreshBinding(tn) {
+			rs, err := tx.ResourceServers().GetByIdentifier(ctx, rt.TenantID, rt.Audience)
+			if err != nil {
+				return err
+			}
+			if rs.ProofOfPossession == nil || rs.ProofOfPossession.Mechanism != "dpop" {
+				key = ""
+			}
+		}
+	}
+	rt.DPoPJKT = key
+	return tx.RefreshTokens().Create(ctx, rt)
+}
+
+// proofMint records the exact access binding signed before the final policy lock.
+// It is request-local and never contains a proof or credential.
+type proofMint struct {
+	clientID, audience, jkt string
+}
+type proofMintKey struct{}
+
+func recordProofMint(ctx context.Context, c *store.Client, rs *store.ResourceServer, jkt string) {
+	p, _ := ctx.Value(proofMintKey{}).(*proofMint)
+	if p == nil {
+		return
+	}
+	p.clientID, p.jkt = c.ClientID, jkt
+	p.audience = ""
+	if rs != nil {
+		p.audience = rs.Identifier
+	}
+}
+func checkProofMint(ctx context.Context, tx store.Store, tid string) error {
+	p, _ := ctx.Value(proofMintKey{}).(*proofMint)
+	if p == nil || p.clientID == "" {
+		return nil
+	}
+	c, e := tx.Clients().Get(ctx, tid, p.clientID)
+	if e != nil {
+		return e
+	}
+	var rs *store.ResourceServer
+	if p.audience != "" {
+		rs, e = tx.ResourceServers().GetByIdentifier(ctx, tid, p.audience)
+		if errors.Is(e, store.ErrNotFound) && mfa.APIAudience(ctx, tx, tid, p.audience) {
+			rs = mfa.APIResourceServer(tid, p.audience)
+			e = nil
+		}
+		if e != nil {
+			return e
+		}
+	}
+	jkt, failure := accessProof(ctx, c, rs)
+	if failure != nil || jkt != p.jkt {
+		return errors.New("oauth: proof policy changed during issuance")
+	}
+	return nil
+}

@@ -5,22 +5,23 @@ on:
   workflow_dispatch:
     inputs:
       plans:
-        description: "Space-separated plans to run (basic, config, formpost, logout)"
+        description: "Space-separated plans to run (basic, config, formpost, logout, backchannel)"
         required: false
-        default: "basic config formpost logout"
+        default: "basic config formpost logout backchannel"
         type: string
   workflow_call:
     inputs:
       plans:
         required: false
-        default: "basic config formpost logout"
+        default: "basic config formpost logout backchannel"
         type: string
 
-permissions:
-  contents: read
+permissions: {}
 
 jobs:
   conformance:
+    permissions:
+      contents: read
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:

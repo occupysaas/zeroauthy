@@ -2,6 +2,7 @@ package authz
 
 import (
 	"context"
+	"encoding/base64"
 	"errors"
 	"net/url"
 	"regexp"
@@ -10,8 +11,10 @@ import (
 	"strings"
 
 	"github.com/zeroauthy/zeroauthy/internal/access"
+	"github.com/zeroauthy/zeroauthy/internal/claims"
 	"github.com/zeroauthy/zeroauthy/internal/mfa"
 	"github.com/zeroauthy/zeroauthy/internal/store"
+	"github.com/zeroauthy/zeroauthy/internal/tenantrules"
 )
 
 var (
@@ -43,6 +46,9 @@ func ValidateRequest(ctx context.Context, st store.Store, t *store.Tenant, req *
 			return req.objectErr
 		}
 		return e
+	}
+	if req.RedirectURI == "" && req.OptionalRedirectURI && len(client.Callbacks) == 1 && !strings.ContainsAny(client.Callbacks[0], "*{}") {
+		req.RedirectURI = client.Callbacks[0]
 	}
 	if req.RedirectURI == "" {
 		return client, pageErr(errInvalidRequest("redirect_uri is required")), false
@@ -134,6 +140,36 @@ func ValidateRequest(ctx context.Context, st store.Store, t *store.Tenant, req *
 		}
 	}
 
+	if slices.Contains(strings.Fields(req.Scope), "online_access") && slices.Contains(strings.Fields(req.Scope), "offline_access") {
+		return client, errInvalidRequest("online_access and offline_access cannot be combined"), true
+	}
+	if req.DPoPJKT != "" {
+		b, e := base64.RawURLEncoding.DecodeString(req.DPoPJKT)
+		if e != nil || len(b) != 32 || len(req.DPoPJKT) != 43 {
+			return client, errInvalidRequest("dpop_jkt is malformed"), true
+		}
+		if e := store.CheckRefreshTokensIISupport(ctx, st); e != nil {
+			return client, errServer(), true
+		}
+	}
+	audience, resourceError := tenantrules.ResourceAudience(t, req.Audience, req.Resources)
+	if resourceError != "" {
+		return client, &Error{Code: resourceError, Description: "invalid resource parameters"}, true
+	}
+	req.Audience = audience
+	if tenantrules.ResourceParameterProfile(t) == "audience" {
+		req.Resources = nil
+	}
+	if req.IgnoreClaimsParameter {
+		req.Claims = ""
+	} else if _, err := claims.ParseRequest(req.Claims); err != nil {
+		return client, errInvalidRequest("malformed claims parameter"), true
+	}
+	if requestedACR(*req, t) != "" {
+		if err := store.CheckOIDCLogoutSupport(ctx, st); err != nil {
+			return client, errServer(), true
+		}
+	}
 	if req.MaxAge != "" {
 		if n, err := strconv.Atoi(req.MaxAge); err != nil || n < 0 {
 			return client, errInvalidRequest("max_age must be a non-negative integer"), true

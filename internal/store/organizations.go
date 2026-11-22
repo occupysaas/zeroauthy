@@ -33,6 +33,7 @@ func OrganizationsSupported(st Store) bool {
 // Branding and Metadata are replaced whole by Update. A nil Metadata or
 // Branding means unset.
 type Organization struct {
+	TokenQuota                      *TokenQuota
 	TenantID, ID, Name, DisplayName string
 	Branding                        *OrgBranding
 	Metadata                        map[string]string

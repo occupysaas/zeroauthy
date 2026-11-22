@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"slices"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -67,6 +68,10 @@ func (e *ErrFlow) Unwrap() error { return e.Cause }
 
 // Engine runs Action flows.
 type Engine struct {
+	BackchannelLogout interface {
+		Deliver(context.Context, *store.ActionJob) *store.ActionJob
+		Finished(context.Context, *store.ActionJob)
+	}
 	Recorder        logs.Recorder
 	InvitationEmail InvitationEmailDispatcher
 	Store           store.Store
@@ -222,6 +227,16 @@ func (e *Engine) PostLogin(ctx context.Context, in PostLoginInput) (*Result, err
 			return nil, e.unrecorded(tenantID, TriggerPostLogin, err)
 		}
 	}
+	for _, id := range in.PendingInvitationRoleIDs {
+		if slices.ContainsFunc(roles, func(r roleJSON) bool { return r.ID == id }) {
+			continue
+		}
+		role, err := e.Store.RBAC().GetRole(ctx, tenantID, id)
+		if err != nil {
+			return nil, e.unrecorded(tenantID, TriggerPostLogin, err)
+		}
+		roles = append(roles, roleJSON{ID: role.ID, Name: role.Name, Description: role.Description})
+	}
 	names := make([]string, len(roles))
 	for i, r := range roles {
 		names[i] = r.Name
@@ -230,7 +245,11 @@ func (e *Engine) PostLogin(ctx context.Context, in PostLoginInput) (*Result, err
 		units: pinned(bound), roles: roles, acc: newAccum(TriggerPostLogin, in.TargetScopes, nil, in.CanRedirect),
 		cache: e.caches.get(tenantID, TriggerPostLogin), input: &in}
 	if in.User != nil && in.ResourceServer != nil && !in.ResourceServer.IsSystem && in.ResourceServer.EnforcePolicies {
-		snapshot, err := store.OrganizationAuthorizationSnapshot(ctx, e.Store, tenantID, in.User.UserID, in.OrganizationID, in.ResourceServer.Identifier)
+		snapshotOrg := in.OrganizationID
+		if in.PendingMembership {
+			snapshotOrg = ""
+		}
+		snapshot, err := store.OrganizationAuthorizationSnapshot(ctx, e.Store, tenantID, in.User.UserID, snapshotOrg, in.ResourceServer.Identifier)
 		if err != nil {
 			return nil, e.unrecorded(tenantID, TriggerPostLogin, err)
 		}
@@ -601,7 +620,7 @@ func (e *Engine) step(ctx context.Context, f *flow, u unit, event map[string]any
 	for _, c := range resp.Commands {
 		// Scrub display-only messages before validation truncates them. Do not
 		// mutate business commands (claims, metadata, cache or redirect URLs).
-		if c.Op == "access.deny" || c.Op == "validation.error" || strings.HasPrefix(c.Op, "notification.") {
+		if c.Op == "access.deny" || c.Op == "validation.error" || c.Op == "refreshToken.revoke" || strings.HasPrefix(c.Op, "notification.") {
 			start := 0
 			// A deny code reaches the OAuth error and the logs unmasked, so a
 			// code holding a secret value is refused, never rewritten.

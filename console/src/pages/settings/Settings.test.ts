@@ -169,3 +169,13 @@ it('preserves and exposes optional Arkose fields in a full provider replacement'
   expect(calls.at(-1)?.body).toEqual({ arkose: { ...arkose, client_subdomain: '', fail_open: false, secret: 'second-credential' } })
   wrapper.unmount()
 })
+
+it('edits logout discovery and the resource profile independently', async () => {
+ const {wrapper,calls}=await mountAt(Settings,'/t/acme/settings',()=>({status:200,body:{...settings,oidc_logout:{rp_logout_end_session_endpoint_discovery:true},resource_parameter_profile:'audience'}}))
+ await tab(wrapper,'Advanced')
+ expect(wrapper.text()).toContain('Advertise the RP logout endpoint')
+ await wrapper.get('#resource_parameter_profile').setValue('compatibility')
+ await wrapper.get('form').trigger('submit');await flushPromises()
+ expect(calls.find(c=>c.method==='PATCH')?.body).toEqual({resource_parameter_profile:'compatibility'})
+ wrapper.unmount()
+})

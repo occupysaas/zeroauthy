@@ -13,6 +13,9 @@ import (
 
 	"github.com/zeroauthy/zeroauthy/internal/customdb"
 	"github.com/zeroauthy/zeroauthy/internal/email"
+	"github.com/zeroauthy/zeroauthy/internal/keys"
+	"github.com/zeroauthy/zeroauthy/internal/logout"
+	"github.com/zeroauthy/zeroauthy/internal/logout/logouttest"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/session"
 	"github.com/zeroauthy/zeroauthy/internal/store"
@@ -690,4 +693,43 @@ func TestLegacyResetHistoryFailurePreservesBlock(t *testing.T) {
 	if err != nil || len(blocks) != 1 {
 		t.Fatalf("failed reset cleared automatic block: %+v %v", blocks, err)
 	}
+}
+
+func TestPasswordResetBackchannel(t *testing.T) {
+	e := newEnv(t)
+	wrapper, _ := keys.NewLocalWrapper([]byte(secrets.RandomString(32)))
+	e.h.Logout = &logout.Service{Store: e.st, Wrapper: wrapper, Now: fixedNow}
+	tn := mustTenant(t, e, "acme")
+	rp, err := e.st.Clients().Get(t.Context(), tn.ID, "spa")
+	if err != nil {
+		t.Fatal(err)
+	}
+	rp.OIDCLogout = &store.OIDCLogout{BackchannelURLs: []string{"https://rp.example/logout"}, InitiatorsMode: "all"}
+	if err := e.st.Clients().Update(t.Context(), rp); err != nil {
+		t.Fatal(err)
+	}
+	_, rt := e.signedInElsewhere(t, "alice@acme.test")
+	sess, err := e.st.Sessions().Get(t.Context(), tn.ID, rt.SessionID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := e.st.Sessions().AddClient(t.Context(), tn.ID, sess.ID, "spa"); err != nil {
+		t.Fatal(err)
+	}
+	ticket := e.issueTicket(t, "alice@acme.test", time.Hour)
+	browser := e.browser("acme.example.test")
+	rec := browser.do(t, "GET", "/u/reset-password?ticket="+ticket, nil)
+	match := regexp.MustCompile(`name="csrf" value="([^"]+)"`).FindStringSubmatch(rec.Body.String())
+	if rec.Code != 200 || match == nil {
+		t.Fatalf("reset form status=%d", rec.Code)
+	}
+	rec = browser.do(t, "POST", "/u/reset-password", url.Values{"ticket": {ticket}, "csrf": {match[1]}, "password": {"replacement password 123"}, "password_confirm": {"replacement password 123"}})
+	if rec.Code != 200 {
+		t.Fatalf("reset submit status=%d", rec.Code)
+	}
+	jobs, err := e.st.Actions().ClaimJobs(t.Context(), fixedNow(), time.Minute, 10)
+	if err != nil {
+		t.Fatal(err)
+	}
+	logouttest.RequireInitiator(t, wrapper, jobs, 1, logout.PasswordChanged)
 }

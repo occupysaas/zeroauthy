@@ -448,12 +448,16 @@ behaviour only where Auth0 is shown to differ.
   lane fails once the handler changes, so re-include it then. Optional: report
   the bug upstream to auth0/auth0-deploy-cli. See D-0059.
 
-- **Plan 33 review Minors (deferred, not 1.0 blockers):** M1 consent is
-  shown and persisted before MFA (Auth0 runs MFA first); M3 abandoned
-  pending authenticators are never purged and are each unsealed on OTP
-  challenge; M6 `multifactor: []` is emitted on every user and costs one
-  authenticator list per user in `GET /users`; M7 ID-token `amr` reads the
-  session's `MFAAt` at code exchange rather than at code issue; M8 the
+- **Plan 33 review M1 (fixed Plan 45b Task 2, 2026-11-17):** consent
+  follows MFA, and its grant commits atomically with login completion.
+  `TestConsentAfterMFA` and `TestSideEffectsOneTransactionAfterConsent` pass
+  in the focused login suite. See the [verification record](2026-11-16-plan-45b-implementation-record.md).
+
+- **Plan 33 review M3, M6 and M7 (fixed by Plan 45b Task 13).** The bounded
+  sweep removes unconfirmed authenticators over 24 hours old. Current stores
+  load factor presence once per user page. Codes retain the MFA evidence
+  present when issued. See the [implementation record](2026-11-16-plan-45b-implementation-record.md).
+- **Plan 33 review M8 (deferred).** The
   `totp_secret` write-only scrub for array bodies relies on key-name
   scrubbing without a pinning test. See the Plan 33 implementation record,
   Task 14c.
@@ -570,11 +574,17 @@ unlinking effects on passkeys; W12 hosted challenge lifetime.
 
 1. Tenant MFA policy on custom token exchange: keep it not applied (current,
    documented), or fail closed.
-2. JWKS without `alg`: keep, or publish `alg` again with a second PS256 entry
-   for the same key.
-3. Discovery `id_token_signing_alg_values_supported`: whether to list PS256
-   and HS256 (it lists only RS256 today).
-4. HS256 minimum secret length: 16 characters (current) or 32.
+2. JWKS without `alg`: **ruled 2026-11-19: keep it without `alg`.** `alg` is
+   optional (RFC 7517 §4.4), and RS256 and PS256 share the tenant key, so a
+   second PS256 entry for the same key would confuse key selection.
+3. Discovery `id_token_signing_alg_values_supported`: **ruled 2026-11-19:
+   list `["HS256","RS256","PS256"]`** once ID tokens can use them per client;
+   built by Plan 41a Task 5 (spec §5).
+4. HS256 minimum secret length: **ruled 2026-11-19: 32 characters** for a
+   supplied API `signing_secret` (RFC 7518 §3.2 requires at least 256 bits;
+   standing spec-compliant-by-default rule). Applies on write (Management API
+   and seed); stored shorter secrets keep signing. Built by Plan 41a Task 5.
+   Client secrets already need 48 characters, so HS256 ID tokens are covered.
 5. Seed apply deleting API-added keys on seed-owned clients.
 
 **Deferred review findings** (minor; none blocks the release):
@@ -669,13 +679,11 @@ database connections only); C22 the description of a rejected subject token
   DPoP, `api.transaction.setMetadata` for custom token exchange.
 
 
-### Plan 39a — Sign in with Apple (started 2026-11-16)
+### Plan 39a — Sign in with Apple
 
 D-0170 and [the implementation record](2026-11-16-plan-39a-implementation-record.md)
-track the signer/cache foundation and Task 1's API/inventory contract freeze.
-Option rules, provider, callbacks, native flow, console, seed and E2E remain
-pending; Apple login is not operational yet. These are optional observations,
-not blockers or claims of observed parity. Local contracts apply meanwhile:
+describe the implemented web and native flows merged to `main` through
+`74752598`. A1–A7 remain optional upstream observations. Local contracts apply:
 
 - **A1 (open):** Whether Auth0 consumes Apple server notifications. No
   notification endpoint is built (LR39a-2).
@@ -686,27 +694,116 @@ not blockers or claims of observed parity. Local contracts apply meanwhile:
   `http://auth0.com/oauth/token-type/apple-authz-code`; it is reserved for
   native dispatch and cannot invoke a custom exchange Action. This value
   has not been tenant-observed.
-- **A4 (open):** PKCE support advertised by Apple metadata. Planned web
+- **A4 (open):** PKCE support advertised by Apple metadata. The web
   flow sends S256 only when advertised, following Plan 36's `auto` rule.
-- **A5 (open):** Native-exchange error wording. Planned local error codes
+- **A5 (open):** Native-exchange error wording. The local error codes
   are `invalid_request` for missing prerequisites and `invalid_grant` for
   refused/expired Apple codes; descriptions are local wording.
 - **A6 (open):** Actions `event.transaction.protocol` for native exchanges.
-  Planned local value is `oauth2-token-exchange`, strategy `apple`.
-- **A7 (open):** Log types for native social exchanges. Implementation must
-  select types from the public logs schema and otherwise reuse the existing
-  token-exchange success/failure pair; no new log type is invented.
+  The local value is `oauth2-token-exchange`, strategy `apple`.
+- **A7 (open):** Log types for native social exchanges. See D-0170 for the locally selected log types.
 
 Sources: Auth0's [native Apple guide](https://auth0.com/docs/authenticate/identity-providers/social-identity-providers/apple-native)
 and [native exchange reference](https://auth0.com/docs/api/authentication/token-exchange-for-native-social/token-exchange-native-social).
 
 ### Plan 45b — flow and API fixes (started 2026-11-16)
 
-Contracts and intended amendments are in D-0270; completion is tracked in
+Implemented contracts and amendments are in D-0270; completion is tracked in
 [the implementation record](2026-11-16-plan-45b-implementation-record.md).
 Observation remains optional, and these points have not been observed:
 
-- **B1:** Whether Auth0 emits `limit_wc` once per brute-force block or per denied attempt.
+- **B1:** Whether Auth0 emits `limit_wc` once per brute-force block or per denied attempt. Locally, Task 4 claims the first denied admission after settled failures reach the threshold.
 - **B2:** Clearing a connection's required identifier with `null` (local: `400`).
 - **B3:** The delivery triggered by `verify_phone_number` (local: Plan 34 phone verification code).
-- **B4:** `stats.logins_count` as seen by post-login Actions (local: keep current Action ordering).
+- **B4:** `stats.logins_count` as seen by post-login Actions (locally, hosted Actions see the prospective increment and native Actions see their original preincrement count).
+
+Final whole-branch review (2026-11-17) found no Critical or Important issues.
+Its Minors are deferred, not 1.0 blockers unless noted:
+
+- **R1 (before 1.0):** `PATCH /users` runs a custom-database `change_email`/`change_password`
+  script inside the user-row transaction. On SQLite (one connection) this stalls the
+  server for the script's run time. Validate and capture the version under the lock,
+  run the script outside it, then recheck before writing.
+- **R2 (before 1.0):** `verify_phone_number` sends a `phone-verify` code that no flow
+  redeems yet; Auth0 documents the flag only alongside a `phone_number` change.
+- **R3:** Verification redirects omit Auth0's `organization_id`/`organization_name`
+  query parameters when the ticket names an organization.
+- **R4:** A policy refusal at final commit (user blocked, connection disabled, remember
+  epoch bumped during MFA/consent) surfaces as `server_error`; it should be
+  `access_denied`, and an epoch mismatch should only skip the remember cookie.
+- **R5:** A second first factor on a transaction with pending evidence, or a ninth
+  concurrent pending login per browser, ends in a generic error instead of replacing it.
+- **R6:** Delayed completion records the first-factor time and IP as `last_login`, which
+  can move it backward; use completion time or a forward-only guard.
+- **R7:** `PasswordlessTryRequest` schema looseness, the `operatorTarget` pre-auth
+  tenant-name probe (fix for all such routes together), and `consoleApi.updateUser`'s old
+  profile type (blocks typed null/verify from the console).
+
+
+## Plan 36 observation points
+
+
+- **V1** Okta custom authorization servers through `domain`.
+- **V2** `okta` identity `user_id` format.
+- **V3** Whether `scopes` is still accepted by Auth0 as an alias of `scope`.
+- **V4** PKCE `auto` when metadata omits `code_challenge_methods_supported`.
+- **V5** Default `token_endpoint_auth_signing_alg`.
+- **V6** Where `bind_all` non-root claims appear on the user.
+- **V7** The exact restricted-claims list for mapping.
+- **V8** Claim names containing dots in templates.
+- **V9** HRD subdomain matching and multiple matches.
+- **V10** Keys API message for unsupported strategies.
+- **V11** `subject_dn` format.
+- **V12** Lazy key creation when `private_key_jwt` is set first.
+- **V13** Delete-by-email when several users of one connection share the
+  email (local: all are deleted) and the answer for an unknown email
+  (local: `204`).
+
+
+## Plan 48 observation points
+
+[D-0070](../compat/decisions.md#d-0070--refresh-tokens-ii-and-client-credentials-quotas-plan-48)
+records the local policies and the state of each observation.
+
+- **R1** Which sibling stays valid after a successful overlap exchange.
+  Locally the former family head stays valid until rotated or revoked.
+- **R2** Whether deleting a user grant without an audience revokes refresh
+  tokens for all the user's audiences on that client. Locally it does.
+- **R3** Online refresh tokens with ephemeral sessions when the API's
+  ephemeral-session flag is false. Locally the response omits the online
+  refresh token and `online_access` scope.
+- **R4** Resolved on 2026-11-18. Requests for both `online_access` and
+  `offline_access` return `invalid_request` before a login transaction is
+  created. [Online refresh token scope conflicts](https://auth0.com/docs/secure/tokens/refresh-tokens/online-refresh-tokens/online-refresh-tokens#scope-conflicts).
+- **R5** Whether the device ASN properties are returned and how they are
+  populated. Locally both are empty strings.
+- **R6** Upstream behavior of Actions metadata setters for sessions and
+  refresh tokens. Plan 48's Actions metadata fields are read-only.
+- **R7** Organization quota error description. Locally it is
+  `Organization quota exceeded`.
+- **R8** Quota warning log description. Locally it uses local wording.
+
+
+## Plan 41a observation points
+
+[D-0080](../compat/decisions.md#d-0080-oidc-extras-back-channel-logout-and-global-revocation-plan-41a)
+records the local contracts. These gaps are not live-tenant observations.
+
+- **L1** Whether extra standard profile claims can be set on database users.
+- **L2** The upstream source for structured address claims.
+- **L3** Upstream response when oidc_support disallows openid; locally drop it.
+- **L4** Whether acr appears without an acr_values request; locally omit it.
+- **L5** Logout token signing algorithm; locally always RS256.
+- **L6** Conflicting audience/resource and repeated resource behavior.
+- **L7** Callback selection when redirect_uri is omitted; local opt-in fallback requires exactly one non-wildcard callback.
+- **L8** Supported organization placeholders in back-channel receiver URLs.
+- **L9** Session metadata claim shape; Plan 48 metadata is available locally.
+- **L10** When account-deactivated, mfa-phone-unenrolled and profile-changed are emitted; configuration accepted, no local emission.
+- **L11** Logout token typ; locally logout+jwt, explicit compatibility switch for JWT.
+- **L12** Upstream retry timing; locally ten-minute window with fresh tokens.
+- **L13** Global revocation JWT typ, audience and supported subject formats.
+- **L14** Public catalog rechecked 2026-11-20: Universal Logout uses universal_logout_succeeded/universal_logout_failed; back-channel logout uses oidc_backchannel_logout_succeeded/oidc_backchannel_logout_failed. No sslo/fslo aliases are invented.
+
+**New roadmap follow-up (LR41a-2):** Session Transfer Tokens (Native to Web
+SSO, client session_transfer) need their own scope, spec and plan. They are
+outside Plan 41a.

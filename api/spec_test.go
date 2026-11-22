@@ -3,6 +3,8 @@ package api
 import (
 	"context"
 	"encoding/json"
+	"slices"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -393,5 +395,396 @@ func TestClientAuthContracts(t *testing.T) {
 		if discovery.Properties[p] == nil {
 			t.Errorf("OpenIDConfiguration.%s missing", p)
 		}
+	}
+}
+
+// Enterprise SDKs rely on these public key and connection operations; private
+// key material has no place in a response schema.
+func TestEnterpriseOIDCContracts(t *testing.T) {
+	doc, err := openapi3.NewLoader().LoadFromData(ManagementYAML)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for path, methods := range map[string][]string{
+		"/api/v2/connections/{id}/keys":        {"GET", "POST"},
+		"/api/v2/connections/{id}/keys/rotate": {"POST"},
+		"/api/v2/connections/{id}/status":      {"GET"},
+		"/api/v2/connections/{id}/users":       {"DELETE"},
+	} {
+		item := doc.Paths.Value(path)
+		if item == nil {
+			t.Errorf("missing %s", path)
+			continue
+		}
+		for _, method := range methods {
+			if item.GetOperation(method) == nil {
+				t.Errorf("missing %s %s", method, path)
+			}
+		}
+	}
+	for _, name := range []string{"ConnectionOptionsOIDC", "ConnectionOptionsOkta", "ConnectionKey"} {
+		if doc.Components.Schemas[name] == nil {
+			t.Errorf("missing schema %s", name)
+		}
+	}
+	if ref := doc.Components.Schemas["ConnectionKey"]; ref != nil {
+		for _, field := range []string{"private_key", "private_sealed", "client_secret"} {
+			if ref.Value.Properties[field] != nil {
+				t.Errorf("keys expose %s", field)
+			}
+		}
+	}
+}
+
+func TestRefreshTokensIIManagementContracts(t *testing.T) {
+	doc, err := openapi3.NewLoader().LoadFromData(ManagementYAML)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, tc := range []struct {
+		path, method string
+		status       int
+	}{
+		{"/api/v2/refresh-tokens", "GET", 200},
+		{"/api/v2/refresh-tokens/revoke", "POST", 202},
+		{"/api/v2/refresh-tokens/{id}", "PATCH", 200},
+		{"/api/v2/sessions/{id}", "PATCH", 200},
+		{"/api/v2/sessions/{id}/revoke", "POST", 202},
+	} {
+		t.Run(tc.method+" "+tc.path, func(t *testing.T) {
+			item := doc.Paths.Find(tc.path)
+			if item == nil || item.Operations()[tc.method] == nil {
+				t.Fatal("missing operation")
+			}
+			for _, status := range []int{tc.status, 401, 403} {
+				if item.Operations()[tc.method].Responses.Status(status) == nil {
+					t.Errorf("missing %d response", status)
+				}
+			}
+		})
+	}
+
+	if item := doc.Paths.Find("/api/v2/refresh-tokens"); item != nil && item.Get != nil {
+		params := map[string]bool{"user_id": true, "client_id": false, "from": false, "take": false, "fields": false, "include_fields": false}
+		for name, required := range params {
+			p := item.Get.Parameters.GetByInAndName("query", name)
+			if p == nil || p.Required != required {
+				t.Errorf("missing query parameter %s or incorrect required flag", name)
+			}
+		}
+		schema := item.Get.Responses.Status(200).Value.Content.Get("application/json").Schema.Value
+		if err := schema.VisitJSON(map[string]any{"refresh_tokens": []any{map[string]any{"id": "token-id"}}, "next": "cursor"}); err != nil {
+			t.Errorf("projected refresh token page rejected: %v", err)
+		}
+	}
+}
+
+func TestRefreshTokensIIRequestBounds(t *testing.T) {
+	doc, err := openapi3.NewLoader().LoadFromData(ManagementYAML)
+	if err != nil {
+		t.Fatal(err)
+	}
+	requestSchema := func(t *testing.T, path, method string) *openapi3.Schema {
+		t.Helper()
+		item := doc.Paths.Find(path)
+		if item == nil || item.Operations()[method] == nil {
+			t.Fatalf("missing %s %s", method, path)
+		}
+		return item.Operations()[method].RequestBody.Value.Content.Get("application/json").Schema.Value
+	}
+	t.Run("bulk revoke", func(t *testing.T) {
+		schema := requestSchema(t, "/api/v2/refresh-tokens/revoke", "POST")
+		for _, tc := range []struct {
+			name  string
+			body  map[string]any
+			valid bool
+		}{
+			{"ids", map[string]any{"ids": slices.Repeat([]any{"token-id"}, 100)}, true},
+			{"user", map[string]any{"user_id": "auth0|user"}, true},
+			{"user and client", map[string]any{"user_id": "auth0|user", "client_id": "app"}, true},
+			{"user client and audience", map[string]any{"user_id": "auth0|user", "client_id": "app", "audience": "https://api.example.test"}, true},
+			{"missing selector", map[string]any{}, false},
+			{"mixed selectors", map[string]any{"ids": []any{"token-id"}, "user_id": "auth0|user"}, false},
+			{"client only", map[string]any{"client_id": "app"}, false},
+			{"audience without client", map[string]any{"user_id": "auth0|user", "audience": "https://api.example.test"}, false},
+			{"too many ids", map[string]any{"ids": slices.Repeat([]any{"token-id"}, 101)}, false},
+		} {
+			t.Run(tc.name, func(t *testing.T) {
+				if err := schema.VisitJSON(tc.body); (err == nil) != tc.valid {
+					t.Errorf("valid=%v, error=%v", tc.valid, err)
+				}
+			})
+		}
+	})
+
+	for _, route := range []struct{ path, field string }{
+		{"/api/v2/refresh-tokens/{id}", "refresh_token_metadata"},
+		{"/api/v2/sessions/{id}", "session_metadata"},
+	} {
+		t.Run(route.field, func(t *testing.T) {
+			schema := requestSchema(t, route.path, "PATCH")
+			tooManyProperties := map[string]any{}
+			for i := range 26 {
+				tooManyProperties[strconv.Itoa(i)] = "value"
+			}
+			for _, tc := range []struct {
+				name     string
+				metadata any
+				valid    bool
+			}{
+				{"clear with null", nil, true},
+				{"clear with empty", map[string]any{}, true},
+				{"max length", map[string]any{strings.Repeat("a", 255): strings.Repeat("b", 255)}, true},
+				{"too long key", map[string]any{strings.Repeat("a", 256): "value"}, false},
+				{"too long value", map[string]any{"name": strings.Repeat("b", 256)}, false},
+				{"too many properties", tooManyProperties, false},
+				{"non-string value", map[string]any{"name": 1}, false},
+			} {
+				t.Run(tc.name, func(t *testing.T) {
+					if err := schema.VisitJSON(map[string]any{route.field: tc.metadata}, openapi3.EnableJSONSchema2020()); (err == nil) != tc.valid {
+						t.Errorf("valid=%v, error=%v", tc.valid, err)
+					}
+				})
+			}
+		})
+	}
+}
+
+func TestRefreshTokensIITokenQuotaHeaders(t *testing.T) {
+	doc, err := openapi3.NewLoader().LoadFromData(AuthenticationYAML)
+	if err != nil {
+		t.Fatal(err)
+	}
+	token := doc.Paths.Find("/oauth/token").Post
+	for _, status := range []int{200, 429} {
+		headers := token.Responses.Status(status).Value.Headers
+		for _, name := range []string{"Auth0-Client-Quota-Limit", "Auth0-Organization-Quota-Limit"} {
+			if headers[name] == nil {
+				t.Errorf("%d missing %s", status, name)
+			}
+		}
+	}
+	for _, name := range []string{"X-RateLimit-Limit", "X-RateLimit-Remaining", "X-RateLimit-Reset", "Retry-After"} {
+		if token.Responses.Status(429).Value.Headers[name] == nil {
+			t.Errorf("429 missing %s", name)
+		}
+	}
+}
+
+func TestRefreshTokensIIConfigurationBounds(t *testing.T) {
+	doc, err := openapi3.NewLoader().LoadFromData(ManagementYAML)
+	if err != nil {
+		t.Fatal(err)
+	}
+	policies := make([]any, 11)
+	for i := range policies {
+		policies[i] = map[string]any{"audience": "https://api.example.test/" + strconv.Itoa(i), "scope": []any{"read:data"}}
+	}
+	for _, tc := range []struct {
+		name  string
+		value any
+		valid bool
+	}{
+		{"clear", nil, true},
+		{"maximum policy count", policies[:10], true},
+		{"too many policies", policies, false},
+		{"empty policies", []any{}, false},
+		{"max audience and scope lengths", []any{map[string]any{"audience": strings.Repeat("a", 600), "scope": []any{strings.Repeat("b", 280)}}}, true},
+		{"audience too long", []any{map[string]any{"audience": strings.Repeat("a", 601), "scope": []any{"read:data"}}}, false},
+		{"scope too long", []any{map[string]any{"audience": "https://api.example.test", "scope": []any{strings.Repeat("b", 281)}}}, false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			property := doc.Components.Schemas["RefreshTokenSettings"].Value.Properties["policies"]
+			if property == nil {
+				t.Fatal("missing refresh_token.policies schema")
+			}
+			if err := property.Value.VisitJSON(tc.value); (err == nil) != tc.valid {
+				t.Errorf("valid=%v, error=%v", tc.valid, err)
+			}
+		})
+	}
+
+	for _, target := range []struct{ schema, field string }{
+		{"ClientSettings", "token_quota"},
+		{"TenantSettings", "default_token_quota"},
+	} {
+		t.Run(target.schema, func(t *testing.T) {
+			quota := doc.Components.Schemas[target.schema].Value.Properties[target.field]
+			if quota == nil {
+				t.Fatalf("missing %s", target.field)
+			}
+			if err := quota.Value.VisitJSON(nil); err != nil {
+				t.Errorf("cannot clear quota with null: %v", err)
+			}
+		})
+	}
+}
+
+func TestOnlineRefreshTokenResourceServerFlags(t *testing.T) {
+	doc, err := openapi3.NewLoader().LoadFromData(ManagementYAML)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, flag := range []string{"allow_online_access", "allow_online_access_with_ephemeral_sessions"} {
+		t.Run(flag, func(t *testing.T) {
+			for _, route := range []struct {
+				op   *openapi3.Operation
+				body map[string]any
+			}{
+				{doc.Paths.Find("/api/v2/resource-servers").Post, map[string]any{"identifier": "https://api.example.test", flag: true}},
+				{doc.Paths.Find("/api/v2/resource-servers/{id}").Patch, map[string]any{flag: false}},
+			} {
+				schema := route.op.RequestBody.Value.Content.Get("application/json").Schema.Value
+				if err := schema.VisitJSON(route.body); err != nil {
+					t.Errorf("%s rejected boolean %s: %v", route.op.OperationID, flag, err)
+				}
+				route.body[flag] = "true"
+				if err := schema.VisitJSON(route.body); err == nil {
+					t.Errorf("%s accepted string %s", route.op.OperationID, flag)
+				}
+			}
+			response := doc.Paths.Find("/api/v2/resource-servers/{id}").Get.Responses.Status(200).Value
+			prop := response.Content.Get("application/json").Schema.Value.Properties[flag]
+			if prop == nil || !prop.Value.Type.Is("boolean") {
+				t.Errorf("response must expose %s as a boolean", flag)
+			}
+		})
+	}
+}
+
+func TestOrganizationTokenQuotaContracts(t *testing.T) {
+	doc, err := openapi3.NewLoader().LoadFromData(ManagementYAML)
+	if err != nil {
+		t.Fatal(err)
+	}
+	create := doc.Paths.Find("/api/v2/organizations").Post
+	item := doc.Paths.Find("/api/v2/organizations/{id}")
+	request := func(op *openapi3.Operation) *openapi3.Schema {
+		return op.RequestBody.Value.Content.Get("application/json").Schema.Value
+	}
+	response := func(op *openapi3.Operation, status int) *openapi3.Schema {
+		return op.Responses.Status(status).Value.Content.Get("application/json").Schema.Value
+	}
+	organization := func() map[string]any {
+		return map[string]any{
+			"id": "org_0123456789abcdef", "name": "acme", "display_name": "Acme",
+			"third_party_client_access": "block", "is_app_entitlement_active": false,
+		}
+	}
+	for _, route := range []struct {
+		name   string
+		schema *openapi3.Schema
+		body   map[string]any
+	}{
+		{"create request", request(create), map[string]any{"name": "acme"}},
+		{"update request", request(item.Patch), map[string]any{}},
+		{"create response", response(create, 201), organization()},
+		{"read response", response(item.Get, 200), organization()},
+		{"update response", response(item.Patch, 200), organization()},
+	} {
+		t.Run(route.name, func(t *testing.T) {
+			for _, quota := range []struct {
+				name  string
+				value any
+				valid bool
+			}{
+				{"bounded quota", map[string]any{"client_credentials": map[string]any{"per_hour": 1, "per_day": 2147483647, "enforce": false}}, true},
+				{"clear with null", nil, true},
+				{"missing grant", map[string]any{}, false},
+				{"empty grant quota", map[string]any{"client_credentials": map[string]any{}}, false},
+				{"zero hourly quota", map[string]any{"client_credentials": map[string]any{"per_hour": 0}}, false},
+				{"overflow daily quota", map[string]any{"client_credentials": map[string]any{"per_day": float64(2147483648)}}, false},
+				{"non-boolean enforcement", map[string]any{"client_credentials": map[string]any{"enforce": "true"}}, false},
+			} {
+				t.Run(quota.name, func(t *testing.T) {
+					route.body["token_quota"] = quota.value
+					if err := route.schema.VisitJSON(route.body); (err == nil) != quota.valid {
+						t.Errorf("valid=%v, error=%v", quota.valid, err)
+					}
+				})
+			}
+		})
+	}
+}
+
+// Plan 41a contracts keep the client controls shared by create, patch and read.
+func TestOIDCExtrasContracts(t *testing.T) {
+	m, err := openapi3.NewLoader().LoadFromData(ManagementYAML)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, name := range []string{"ClientSettings", "Client"} {
+		ref := m.Components.Schemas[name]
+		if ref == nil {
+			t.Fatalf("missing schema %s", name)
+		}
+		for _, field := range []string{"oidc_logout", "oidc_support"} {
+			if ref.Value.Properties[field] == nil {
+				t.Errorf("%s missing %s", name, field)
+			}
+		}
+	}
+	alg := m.Components.Schemas["JwtConfiguration"].Value.Properties["alg"].Value.Enum
+	if len(alg) != 3 {
+		t.Errorf("ID token algorithms = %v, want HS256, RS256, PS256", alg)
+	}
+	a, err := openapi3.NewLoader().LoadFromData(AuthenticationYAML)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, name := range []string{"AuthorizeRequest", "PushedAuthorizationRequest"} {
+		for _, field := range []string{"claims", "acr_values", "resource"} {
+			if a.Components.Schemas[name].Value.Properties[field] == nil {
+				t.Errorf("%s missing %s", name, field)
+			}
+		}
+	}
+	if a.Components.Schemas["TokenRequestFields"].Value.Properties["resource"] == nil {
+		t.Error("token request missing resource")
+	}
+	path := a.Paths.Value("/oauth/global-token-revocation/connection/{connectionName}")
+	if path == nil || path.Post == nil {
+		t.Fatal("global token revocation route missing")
+	}
+	for _, code := range []string{"204", "400", "401", "404"} {
+		if path.Post.Responses.Value(code) == nil {
+			t.Errorf("global revocation missing response %s", code)
+		}
+	}
+}
+
+// These fail if the API contract permits ambiguous OIDC scope restrictions or
+// receivers beyond the single registered URL supported by Auth0.
+func TestOIDCExtrasSchemaValidation(t *testing.T) {
+	doc, err := openapi3.NewLoader().LoadFromData(ManagementYAML)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, tc := range []struct {
+		name, schema, body string
+		valid              bool
+	}{
+		{"restricted scopes", "ClientOIDCSupport", `{"is_allowed":true,"allowed_scopes":["email"]}`, true},
+		{"reset support", "ClientOIDCSupport", `null`, true},
+		{"missing is allowed", "ClientOIDCSupport", `{"allowed_scopes":["email"]}`, false},
+		{"conflicting scope controls", "ClientOIDCSupport", `{"is_allowed":true,"allow_all_scopes":false,"allowed_scopes":["email"]}`, false},
+		{"unknown scope", "ClientOIDCSupport", `{"is_allowed":true,"allowed_scopes":["offline_access"]}`, false},
+		{"one receiver", "ClientOIDCLogout", `{"backchannel_logout_urls":["https://rp.example.test/logout"]}`, true},
+		{"two receivers", "ClientOIDCLogout", `{"backchannel_logout_urls":["https://rp.example.test/logout","https://rp2.example.test/logout"]}`, false},
+		{"unknown initiator", "ClientOIDCLogout", `{"backchannel_logout_initiators":{"mode":"custom","selected_initiators":["made-up"]}}`, false},
+		{"HS256", "JwtConfiguration", `{"alg":"HS256"}`, true},
+		{"PS256", "JwtConfiguration", `{"alg":"PS256"}`, true},
+		{"unsigned", "JwtConfiguration", `{"alg":"none"}`, false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			var body any
+			if err := json.Unmarshal([]byte(tc.body), &body); err != nil {
+				t.Fatal(err)
+			}
+			err := doc.Components.Schemas[tc.schema].Value.VisitJSON(body)
+			if (err == nil) != tc.valid {
+				t.Fatalf("valid = %v, want %v: %v", err == nil, tc.valid, err)
+			}
+		})
 	}
 }

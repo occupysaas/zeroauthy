@@ -79,7 +79,7 @@ operators still require target tenant grants.
 | `/organizations` | GET `read:organizations`; POST `create:organizations`, plus `create:organization_connections` when `enabled_connections` is supplied |
 | `/organizations/{id}`, `/organizations/name/{name}` | GET `read:organizations` |
 | `/organizations/{id}` | PATCH `update:organizations`; DELETE `delete:organizations` |
-| `/organizations/{id}/members` | GET either `read:organization_members` or `read:organization_member_roles`; POST `create:organization_members`; DELETE `delete:organization_members` |
+| `/organizations/{id}/members` | GET `read:organization_members`; POST `create:organization_members`; DELETE `delete:organization_members` |
 | `/organizations/{id}/members/{user_id}/roles` | GET/POST/DELETE `read/create/delete:organization_member_roles` respectively |
 | `/organizations/{id}/members/{user_id}/effective-roles` | GET `read:organization_member_effective_roles` |
 | `/organizations/{id}/roles/{role_id}/members` | GET both `read:organization_members` and `read:roles` |
@@ -91,7 +91,7 @@ operators still require target tenant grants.
 | `/client-grants/{id}/organizations` | GET `read:organization_client_grants` |
 | `/organizations/{id}/discovery-domains` | GET/POST `read/create:organization_discovery_domains`; item GET/PATCH/DELETE `read/update/delete:organization_discovery_domains` |
 | `/organizations/search` | GET both `read:organizations` and `read:organizations_summary` |
-| `/users/{id}/organizations` | GET either `read:users` or `read:organizations` |
+| `/users/{id}/organizations` | GET `read:organizations` |
 
 `fields=roles` on member listing additionally needs
 `read:organization_member_roles`. Organization creation returns 201; successful

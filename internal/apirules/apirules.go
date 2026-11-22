@@ -37,16 +37,17 @@ const (
 	SigningAlgPS256 = "PS256"
 
 	// MinSigningSecretLength is the shortest HS256 secret a caller may supply
-	// (C15), in characters.
-	MinSigningSecretLength = 16
+	// in characters (D-0080, RFC 7518 section 3.2).
+	MinSigningSecretLength = 32
 )
 
 // Spec is an API's settings. Empty strings, zeros and nil pointers mean
 // "the default", which Normalize fills in or the token endpoint applies.
 type Spec struct {
-	Identifier      string
-	EnforcePolicies bool
-	TokenDialect    string
+	ProofOfPossession *store.ProofOfPossession
+	Identifier        string
+	EnforcePolicies   bool
+	TokenDialect      string
 	// Name is optional; an empty name is an API without one.
 	Name   string
 	Scopes []store.Scope
@@ -59,8 +60,9 @@ type Spec struct {
 	// CheckWebLifetime is set when the caller sent token_lifetime_for_web:
 	// Normalize then requires it not to exceed the token lifetime. A stored
 	// web lifetime above a lowered token_lifetime is not an error (D-0041).
-	CheckWebLifetime   bool
-	AllowOfflineAccess bool
+	CheckWebLifetime                                          bool
+	AllowOfflineAccess                                        bool
+	AllowOnlineAccess, AllowOnlineAccessWithEphemeralSessions bool
 
 	SkipConsentForVerifiableFirstPartyClients *bool
 	SubjectTypeAuthorization                  store.SubjectTypeAuthorization
@@ -87,9 +89,18 @@ func Normalize(s *Spec) []error {
 	if s.TokenDialect == "" {
 		s.TokenDialect = "access_token"
 	}
+	s.ProofOfPossession = cloneProof(s.ProofOfPossession)
 	s.SigningAlg = cmp.Or(s.SigningAlg, SigningAlg)
 	var errs []error
 	fail := func(format string, args ...any) { errs = append(errs, fmt.Errorf(format, args...)) }
+	if p := s.ProofOfPossession; p != nil {
+		if p.RequiredFor == "" {
+			p.RequiredFor = "all_clients"
+		}
+		if (p.Mechanism != "none" && p.Mechanism != "dpop") || (p.Required && p.Mechanism != "dpop") || (p.RequiredFor != "all_clients" && p.RequiredFor != "public_clients") {
+			fail("proof_of_possession is invalid")
+		}
+	}
 
 	if n := utf8.RuneCountInString(s.Identifier); n < 1 || n > MaxIdentifier {
 		fail("identifier must be 1 to %d characters", MaxIdentifier)
@@ -152,6 +163,7 @@ func Normalize(s *Spec) []error {
 // Apply copies a normalized s into rs. It leaves the identity (tenant, ID,
 // identifier, creation time, is_system and origin) alone.
 func Apply(rs *store.ResourceServer, s *Spec) {
+	rs.ProofOfPossession = cloneProof(s.ProofOfPossession)
 	rs.EnforcePolicies, rs.TokenDialect = s.EnforcePolicies, s.TokenDialect
 	rs.Name = s.Name
 	rs.Scopes = slices.Clone(s.Scopes)
@@ -161,6 +173,7 @@ func Apply(rs *store.ResourceServer, s *Spec) {
 	}
 	rs.TokenLifetime, rs.TokenLifetimeForWeb = s.TokenLifetime, s.TokenLifetimeForWeb
 	rs.AllowOfflineAccess = s.AllowOfflineAccess
+	rs.AllowOnlineAccess, rs.AllowOnlineAccessWithEphemeralSessions = s.AllowOnlineAccess, s.AllowOnlineAccessWithEphemeralSessions
 	rs.SkipConsentForVerifiableFirstPartyClients = *s.SkipConsentForVerifiableFirstPartyClients
 	rs.SubjectTypeAuthorization = s.SubjectTypeAuthorization
 }
@@ -170,11 +183,20 @@ func Apply(rs *store.ResourceServer, s *Spec) {
 func FromResourceServer(rs *store.ResourceServer) Spec {
 	skip := rs.SkipConsentForVerifiableFirstPartyClients
 	return Spec{
-		Identifier: rs.Identifier, Name: rs.Name, Scopes: slices.Clone(rs.Scopes), SigningAlg: cmp.Or(rs.SigningAlg, SigningAlg),
+		ProofOfPossession: cloneProof(rs.ProofOfPossession), Identifier: rs.Identifier, Name: rs.Name, Scopes: slices.Clone(rs.Scopes), SigningAlg: cmp.Or(rs.SigningAlg, SigningAlg),
 		EnforcePolicies: rs.EnforcePolicies, TokenDialect: cmp.Or(rs.TokenDialect, "access_token"),
 		TokenLifetime: rs.TokenLifetime, TokenLifetimeForWeb: rs.TokenLifetimeForWeb,
-		AllowOfflineAccess:                        rs.AllowOfflineAccess,
+		AllowOfflineAccess: rs.AllowOfflineAccess,
+		AllowOnlineAccess:  rs.AllowOnlineAccess, AllowOnlineAccessWithEphemeralSessions: rs.AllowOnlineAccessWithEphemeralSessions,
 		SkipConsentForVerifiableFirstPartyClients: &skip,
 		SubjectTypeAuthorization:                  rs.SubjectTypeAuthorization,
 	}
+}
+
+func cloneProof(p *store.ProofOfPossession) *store.ProofOfPossession {
+	if p == nil {
+		return nil
+	}
+	v := *p
+	return &v
 }

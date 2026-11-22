@@ -16,6 +16,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 )
@@ -231,10 +232,11 @@ func TestOrganizationM2MActionSnapshot(t *testing.T) {
 type machineMintBarrier struct {
 	store.Store
 	reached, resume chan struct{}
+	once            *sync.Once
 }
 
 func (b machineMintBarrier) WithTx(ctx context.Context, fn func(store.Store) error) error {
-	close(b.reached)
+	b.once.Do(func() { close(b.reached) })
 	select {
 	case <-b.resume:
 	case <-ctx.Done():
@@ -284,7 +286,7 @@ func TestOrganizationM2MRevocationRace(t *testing.T) {
 						must(sqlst.Clients().Update(ctx, c))
 					}
 					reached, resume := make(chan struct{}), make(chan struct{})
-					f.h.Store = machineMintBarrier{sqlst, reached, resume}
+					f.h.Store = machineMintBarrier{sqlst, reached, resume, &sync.Once{}}
 					handler := f.server(t, true)
 					req := httptest.NewRequest("POST", "https://acme.example.test/oauth/token", strings.NewReader(cc("m2m", "m2m-secret", "organization", o.ID).Encode())).WithContext(ctx)
 					req.Header.Set("Content-Type", "application/x-www-form-urlencoded")

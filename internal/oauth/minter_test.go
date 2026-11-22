@@ -13,7 +13,10 @@ import (
 	"github.com/go-jose/go-jose/v4"
 	"github.com/go-jose/go-jose/v4/jwt"
 	"github.com/google/go-cmp/cmp"
+	"github.com/zeroauthy/zeroauthy/internal/authz"
 	"github.com/zeroauthy/zeroauthy/internal/keys"
+	"github.com/zeroauthy/zeroauthy/internal/secrets"
+	"github.com/zeroauthy/zeroauthy/internal/session"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/store/memory"
 )
@@ -169,28 +172,108 @@ func TestAMRClaim(t *testing.T) {
 	}
 }
 
-func TestAMRClaimFromAuthorizationSession(t *testing.T) {
+func TestAMRAtCodeIssue(t *testing.T) {
 	f := newFixture(t)
-	ctx := context.Background()
+	ctx := t.Context()
 	tid := f.tenantID(t, "acme")
-	u, err := f.st.Users().FindByLogin(ctx, tid, "Username-Password-Authentication", "alice@acme.test")
+	af := &actionsFixture{fixture: f, tid: tid, az: &authz.Handlers{Store: f.st, Sessions: &session.Manager{Store: f.st, Now: fixedNow}, Now: fixedNow, Wrapper: f.wrapper}}
+	cookie := af.sessionCookie(t)
+	sess, err := f.st.Sessions().GetByTokenHash(ctx, tid, secrets.HashToken(cookie.Value))
 	if err != nil {
 		t.Fatal(err)
 	}
-	s := &store.LoginSession{TenantID: tid, ID: "sid-1", TokenHash: "test-session-hash", UserID: u.UserID, AuthenticatedAt: fixedNow(), ExpiresAt: fixedNow().Add(time.Hour), IdleExpiresAt: fixedNow().Add(time.Hour), CreatedAt: fixedNow(), UpdatedAt: fixedNow()}
-	if err = f.st.Sessions().Create(ctx, s); err != nil {
+	const client, redirect = "rt-spa", "https://rt.acme.test/cb"
+	before := af.authorizeWithCookie(t, client, redirect, "openid offline_access", cookie)
+	if err = f.st.Sessions().MarkMFA(ctx, tid, sess.ID, fixedNow()); err != nil {
 		t.Fatal(err)
 	}
-	if err = f.st.Sessions().MarkMFA(ctx, tid, s.ID, fixedNow()); err != nil {
-		t.Fatal(err)
+	after := af.authorizeWithCookie(t, client, redirect, "openid", cookie)
+	exchange := func(code string) map[string]any {
+		t.Helper()
+		rec, body := f.call(t, true, tokenCall{host: "acme.example.test", form: codeForm(code, client, redirect, pkceVerifier)})
+		if rec.Code != 200 {
+			t.Fatalf("exchange: %d %v", rec.Code, body)
+		}
+		return body
 	}
-	code := f.issueCode(t, "code-spa", "https://app.acme.test/cb", "https://api.acme.test", []string{"openid"}, pkceChallenge)
-	rec, body := f.call(t, true, tokenCall{host: "acme.example.test", form: codeForm(code, "code-spa", "https://app.acme.test/cb", pkceVerifier)})
-	if rec.Code != 200 {
-		t.Fatalf("status=%d body=%v", rec.Code, body)
-	}
+	body := exchange(before)
 	claims, _ := verifyToken(t, f.keys, tid, body["id_token"].(string))
+	if _, ok := claims["amr"]; ok {
+		t.Fatalf("session step-up after issue changed code AMR: %v", claims["amr"])
+	}
+	// A refresh grant keeps its own live-session semantics.
+	status, refreshed := f.refresh(t, refreshForm(client, body["refresh_token"].(string)))
+	if status != 200 {
+		t.Fatalf("refresh: %d %v", status, refreshed)
+	}
+	claims, _ = verifyToken(t, f.keys, tid, refreshed["id_token"].(string))
 	if diff := cmp.Diff([]any{"mfa"}, claims["amr"]); diff != "" {
 		t.Fatal(diff)
+	}
+	if err := f.st.Sessions().Delete(ctx, tid, sess.ID); err != nil {
+		t.Fatal(err)
+	}
+	claims, _ = verifyToken(t, f.keys, tid, exchange(after)["id_token"].(string))
+	if diff := cmp.Diff([]any{"mfa"}, claims["amr"]); diff != "" {
+		t.Fatal(diff)
+	}
+}
+
+func TestACRClaim(t *testing.T) {
+	km := newTestKeys(t, "ten_a")
+	m := &Minter{Keys: km, Now: fixedNow}
+	for _, tc := range []struct {
+		acr  string
+		at   time.Time
+		want bool
+	}{
+		{"http://schemas.openid.net/pape/policies/2007/06/multi-factor", fixedNow(), true},
+		{"", fixedNow(), false}, {"unknown", fixedNow(), false}, {"http://schemas.openid.net/pape/policies/2007/06/multi-factor", time.Time{}, false},
+	} {
+		raw, err := m.IDToken(t.Context(), IDTokenParams{TenantID: "ten_a", Issuer: "https://a.example.test/", ClientID: "spa", User: &store.User{UserID: "u"}, Scopes: []string{"openid"}, ACR: tc.acr, MFAAt: tc.at})
+		if err != nil {
+			t.Fatal(err)
+		}
+		got, _ := verifyToken(t, km, "ten_a", raw)
+		if tc.want {
+			if got["acr"] != tc.acr {
+				t.Fatal("satisfied requested acr missing")
+			}
+			if methods, ok := got["amr"].([]any); !ok || len(methods) != 1 || methods[0] != "mfa" {
+				t.Fatal("MFA method missing")
+			}
+		} else if got["acr"] != nil {
+			t.Fatal("unsatisfied or unrequested acr emitted")
+		}
+	}
+}
+
+func TestIDTokenScopeClaims(t *testing.T) {
+	km := newTestKeys(t, "ten_a")
+	m := &Minter{Keys: km, Now: fixedNow}
+	u := &store.User{UserID: "oidc|upstream", PhoneNumber: "+15555550100", PhoneVerified: false, Identities: []store.Identity{{Provider: "oidc", UserID: "upstream", ProviderData: map[string]any{"locale": "en", "address": map[string]any{"country": "GB"}, "app_metadata": "private"}}}}
+	raw, err := m.IDToken(t.Context(), IDTokenParams{TenantID: "ten_a", Issuer: "https://a.example.test/", ClientID: "spa", User: u, Scopes: []string{"openid", "profile", "phone", "address"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, _ := verifyToken(t, km, "ten_a", raw)
+	if got["locale"] != "en" || got["phone_number"] != "+15555550100" || got["phone_number_verified"] != false || got["address"].(map[string]any)["country"] != "GB" || got["app_metadata"] != nil {
+		t.Fatal("standard ID token claims missing or metadata exposed")
+	}
+}
+
+func TestAccessTokenCustomClaimsKeepNumericDates(t *testing.T) {
+	km := newTestKeys(t, "t")
+	m := &Minter{Keys: km, Now: fixedNow}
+	raw, err := m.AccessToken(t.Context(), AccessTokenParams{TenantID: "t", Issuer: "https://tenant.example/", Subject: "test-user", ClientID: "test-client", Audience: []string{"https://tenant.example/userinfo"}, Scopes: []string{"openid"}, CustomClaims: map[string]any{"https://zeroauthy.dev/userinfo": map[string]any{"auth_time": fixedNow().Unix()}}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var standard jwt.Claims
+	if err := km.Verify(t.Context(), "t", raw, &standard); err != nil {
+		t.Fatalf("registered numeric claims invalid: %v", err)
+	}
+	if standard.IssuedAt == nil || standard.IssuedAt.Time().Unix() != fixedNow().Unix() || standard.Expiry == nil {
+		t.Fatal("registered dates changed")
 	}
 }

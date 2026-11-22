@@ -80,15 +80,15 @@ func TestFederationInventory(t *testing.T) {
 			t.Error("aliases to rejected assurance parameters must also be rejected")
 		}
 	})
-	if len(inv.Strategies) != 4 {
-		t.Fatalf("need exactly four strategies, got %d", len(inv.Strategies))
+	if len(inv.Strategies) != 6 {
+		t.Fatalf("need exactly six strategies, got %d", len(inv.Strategies))
 	}
 	for strategy, want := range map[string]string{
 		"google-oauth2": "google-oauth2|<sub>", "oauth2": "oauth2|<connection-name>|<subject>", "oidc": "oidc|<connection-name>|<sub>",
-		"apple": "apple|<sub>",
+		"apple": "apple|<sub>", "github": "github|<id>", "okta": "okta|<connection-name>|<sub>",
 	} {
 		row, ok := inv.Strategies[strategy]
-		if !ok || row.IDFormat != want || row.IsSocial != (strategy != "oidc") {
+		if !ok || row.IDFormat != want || row.IsSocial != (strategy != "oidc" && strategy != "okta") {
 			t.Errorf("strategy %s: missing ID/social decision", strategy)
 		}
 		for field, rule := range row.Options {
@@ -135,8 +135,8 @@ func TestFederationInventory(t *testing.T) {
 		}
 	}
 	oidc := inv.Strategies["oidc"]
-	if oidc.Options["type"].Validation != "back_channel only; front_channel rejected" || string(oidc.Options["type"].Default) != `"back_channel"` {
-		t.Fatal("OIDC must be back-channel-only")
+	if oidc.Options["type"].Validation != "front_channel or back_channel; omitted means front_channel" || string(oidc.Options["type"].Default) != `"front_channel"` {
+		t.Fatal("OIDC channel contract")
 	}
 	if oidc.Options["scopes"].Type != "string" || !strings.Contains(oidc.Options["scopes"].Validation, "openid") {
 		t.Fatal("OIDC scopes wire format/openid requirement")
@@ -208,10 +208,81 @@ func TestFederationInventory(t *testing.T) {
 			t.Errorf("script privilege missing: %s", forbidden)
 		}
 	}
-	for _, option := range []string{"front_channel", "upstream_params", "authParams", "authParamsMap", "customHeaders", "fieldsMap", "freeform_scopes", "domain_restriction", "pkce_disabled", "development_keys", "connected_accounts", "direct_network", "arbitrary_npm", "issuer_metadata", "token_vault"} {
+	for _, option := range []string{"dpop_signing_alg", "upstream_params", "authParams", "authParamsMap", "customHeaders", "fieldsMap", "freeform_scopes", "domain_restriction", "pkce_disabled", "development_keys", "connected_accounts", "direct_network", "arbitrary_npm", "issuer_metadata", "token_vault"} {
 		row, ok := inv.Unsupported[option]
 		if !ok || !slices.Contains([]string{"stored-only", "rejected", "unavailable"}, row.Disposition) || row.Reason == "" || row.Source == "" {
 			t.Errorf("missing unsupported disposition %s", option)
 		}
+	}
+}
+
+// TestFederationInventoryGitHub freezes the Plan 39c GitHub contract: the
+// flag-to-scope table, the pinned API version, the rate-limit signals and the
+// extra profile fields. Sources are public GitHub documentation read on
+// 2026-11-18; Auth0 documents none of the email, scope or user ID semantics.
+func TestFederationInventoryGitHub(t *testing.T) {
+	b, err := os.ReadFile("inventory.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var inv struct {
+		Strategies map[string]struct {
+			IsSocial bool                       `json:"is_social"`
+			IDFormat string                     `json:"id_format"`
+			Options  map[string]json.RawMessage `json:"options"`
+		}
+		ProviderProtocol struct {
+			GitHub struct {
+				ScopeFlags       map[string]string                        `json:"scope_flags"`
+				APIVersion       string                                   `json:"api_version"`
+				RateLimitSignals []struct{ Status, Header, Value string } `json:"rate_limit_signals"`
+			} `json:"github"`
+		} `json:"provider_protocol"`
+		GitHubProfile struct {
+			ProviderData []string `json:"provider_data"`
+		} `json:"github_profile"`
+	}
+	if err := json.Unmarshal(b, &inv); err != nil {
+		t.Fatal(err)
+	}
+	row, ok := inv.Strategies["github"]
+	if !ok || !row.IsSocial || row.IDFormat != "github|<id>" {
+		t.Fatal("github strategy missing or not social with github|<id>")
+	}
+	want := map[string]string{
+		"admin_org": "admin:org", "admin_public_key": "admin:public_key", "admin_repo_hook": "admin:repo_hook",
+		"delete_repo": "delete_repo", "follow": "user:follow", "gist": "gist", "notifications": "notifications",
+		"public_repo": "public_repo", "read_org": "read:org", "read_public_key": "read:public_key",
+		"read_repo_hook": "read:repo_hook", "read_user": "read:user", "repo": "repo", "repo_deployment": "repo_deployment",
+		"repo_status": "repo:status", "write_org": "write:org", "write_public_key": "write:public_key",
+		"write_repo_hook": "write:repo_hook", "email": "user:email", "profile": "",
+	}
+	got := inv.ProviderProtocol.GitHub.ScopeFlags
+	if len(got) != 20 {
+		t.Errorf("scope_flags has %d entries, want 20", len(got))
+	}
+	for flag, scope := range want {
+		g, ok := got[flag]
+		if !ok || g != scope {
+			t.Errorf("scope flag %s = %q (present %v), want %q", flag, g, ok, scope)
+		}
+		if _, ok := row.Options[flag]; !ok {
+			t.Errorf("github option %s missing", flag)
+		}
+	}
+	for _, field := range []string{"client_id", "client_secret", "set_user_root_attributes", "scope", "freeform_scopes", "upstream_params"} {
+		if _, ok := row.Options[field]; !ok {
+			t.Errorf("github option %s missing", field)
+		}
+	}
+	if inv.ProviderProtocol.GitHub.APIVersion == "" {
+		t.Error("api_version must be pinned")
+	}
+	if len(inv.ProviderProtocol.GitHub.RateLimitSignals) == 0 {
+		t.Error("rate_limit_signals missing")
+	}
+	wantData := []string{"login", "html_url", "blog", "company", "location", "bio", "public_repos", "followers", "following", "created_at", "updated_at"}
+	if !slices.Equal(inv.GitHubProfile.ProviderData, wantData) {
+		t.Errorf("provider_data = %v, want %v", inv.GitHubProfile.ProviderData, wantData)
 	}
 }

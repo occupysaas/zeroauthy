@@ -1,8 +1,103 @@
 [
- {"name":"google-oauth2","strategy":"google-oauth2","enabled_clients":["E2E deploy browser"],"options":{"client_id":"m24-upstream-client","email":true,"profile":true}},
- {"name":"deploy-oauth","strategy":"oauth2","enabled_clients":["E2E deploy browser"],"options":{"client_id":"m24-upstream-client","authorizationURL":"https://idp.e2e.test/oauth2/authorize","tokenURL":"https://idp.e2e.test/oauth2/token","scope":"profile","scripts":{"fetchUserProfile":"function fetchUserProfile(accessToken, context, callback) {\n  request.get({ url: 'https://idp.e2e.test/oauth2/userinfo', headers: { Authorization: 'Bearer ' + accessToken }, json: true }, function (err, response, body) {\n    if (err || response.statusCode !== 200) return callback(new Error('profile'));\n    callback(null, { user_id: String(body.id), email: body.mail, name: body.display, email_verified: true });\n  });\n}"}}},
- {"name":"deploy-oidc","strategy":"oidc","enabled_clients":["E2E deploy browser"],"options":{"type":"back_channel","client_id":"m24-upstream-client","discovery_url":"https://idp.e2e.test/oidc/.well-known/openid-configuration","scopes":"openid email"}},
- {"name":"microsoft-personal","strategy":"windowslive","enabled_clients":["E2E deploy browser"],"options":{"client_id":"aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee","strategy_version":2}},
- {"name":"microsoft-directory","strategy":"waad","enabled_clients":["E2E deploy browser"],"options":{"client_id":"aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee","identity_api":"microsoft-identity-platform-v2.0","waad_protocol":"openid-connect","userid_attribute":"oid","useCommonEndpoint":false,"tenant_domain":"11111111-1111-4111-8111-111111111111"}},
- {"name":"microsoft-organizations","strategy":"waad","enabled_clients":["E2E deploy browser"],"options":{"client_id":"aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee","identity_api":"microsoft-identity-platform-v2.0","waad_protocol":"openid-connect","userid_attribute":"oid","useCommonEndpoint":true}}
+  {
+    "name": "google-oauth2",
+    "strategy": "google-oauth2",
+    "enabled_clients": [
+      "E2E deploy browser"
+    ],
+    "options": {
+      "client_id": "m24-upstream-client",
+      "email": true,
+      "profile": true
+    }
+  },
+  {
+    "name": "deploy-oauth",
+    "strategy": "oauth2",
+    "enabled_clients": [
+      "E2E deploy browser"
+    ],
+    "options": {
+      "client_id": "m24-upstream-client",
+      "authorizationURL": "https://idp.e2e.test/oauth2/authorize",
+      "tokenURL": "https://idp.e2e.test/oauth2/token",
+      "scope": "profile",
+      "scripts": {
+        "fetchUserProfile": "function fetchUserProfile(accessToken, context, callback) {\n  request.get({ url: 'https://idp.e2e.test/oauth2/userinfo', headers: { Authorization: 'Bearer ' + accessToken }, json: true }, function (err, response, body) {\n    if (err || response.statusCode !== 200) return callback(new Error('profile'));\n    callback(null, { user_id: String(body.id), email: body.mail, name: body.display, email_verified: true });\n  });\n}"
+      }
+    }
+  },
+  {
+    "name": "deploy-oidc",
+    "strategy": "oidc",
+    "enabled_clients": [
+      "E2E deploy browser"
+    ],
+    "options": {
+      "type": "back_channel",
+      "client_id": "m24-upstream-client",
+      "discovery_url": "https://idp.e2e.test/oidc/.well-known/openid-configuration",
+      "scopes": "openid email"
+    }
+  },
+  {
+    "name": "microsoft-personal",
+    "strategy": "windowslive",
+    "enabled_clients": [
+      "E2E deploy browser"
+    ],
+    "options": {
+      "client_id": "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee",
+      "strategy_version": 2
+    }
+  },
+  {
+    "name": "microsoft-directory",
+    "strategy": "waad",
+    "enabled_clients": [
+      "E2E deploy browser"
+    ],
+    "options": {
+      "client_id": "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee",
+      "identity_api": "microsoft-identity-platform-v2.0",
+      "waad_protocol": "openid-connect",
+      "userid_attribute": "oid",
+      "useCommonEndpoint": false,
+      "tenant_domain": "11111111-1111-4111-8111-111111111111"
+    }
+  },
+  {
+    "name": "microsoft-organizations",
+    "strategy": "waad",
+    "enabled_clients": [
+      "E2E deploy browser"
+    ],
+    "options": {
+      "client_id": "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee",
+      "identity_api": "microsoft-identity-platform-v2.0",
+      "waad_protocol": "openid-connect",
+      "userid_attribute": "oid",
+      "useCommonEndpoint": true
+    }
+  },
+  {
+    "name": "deploy-okta",
+    "strategy": "okta",
+    "enabled_clients": [
+      "E2E deploy browser"
+    ],
+    "options": {
+      "client_id": "m24-upstream-client",
+      "domain": "idp.e2e.test",
+      "type": "back_channel",
+      "issuer": "https://idp.e2e.test/oidc",
+      "authorization_endpoint": "https://idp.e2e.test/oidc/authorize",
+      "token_endpoint": "https://idp.e2e.test/oidc/token",
+      "jwks_uri": "https://idp.e2e.test/oidc/jwks",
+      "scope": "openid email",
+      "connection_settings": {
+        "pkce": "S256"
+      }
+    }
+  }
 ]

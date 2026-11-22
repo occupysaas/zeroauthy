@@ -3,6 +3,7 @@ package protection_test
 import (
 	"context"
 	"errors"
+	"sync"
 	"testing"
 	"time"
 
@@ -11,45 +12,101 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/store"
 )
 
-type eventRecorder struct{ events []logs.Event }
+type eventRecorder struct {
+	mu     sync.Mutex
+	events []logs.Event
+}
 
-func (c *eventRecorder) Record(_ context.Context, e logs.Event) { c.events = append(c.events, e) }
-func TestProtectionEvents(t *testing.T) {
-	s, tenant, conn := serviceFixture(t)
-	c := &eventRecorder{}
-	s.Recorder = c
-	a := protection.Attempt{Tenant: tenant, Connection: conn, Identifier: "person@example.test", IP: "192.0.2.1", Flow: "login"}
-	for range 2 {
-		d, e := s.Begin(context.Background(), a)
-		if e != nil {
-			t.Fatal(e)
+func (c *eventRecorder) Record(_ context.Context, e logs.Event) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.events = append(c.events, e)
+}
+
+func TestBruteForceLogsLimitWCOnce(t *testing.T) {
+	ctx := context.Background()
+	s, tn, conn := serviceFixture(t)
+	tn.ProtectionSettings.BruteForce.Mode = "count_per_identifier_and_ip"
+	tn.ProtectionSettings.SuspiciousIP.Enabled = false
+	if err := s.Store.Tenants().Update(ctx, tn); err != nil {
+		t.Fatal(err)
+	}
+	capture := &eventRecorder{}
+	s.Recorder = capture
+	other := &protection.Service{Store: s.Store, Now: s.Now, Recorder: capture}
+	a := protection.Attempt{Tenant: tn, Connection: conn, Identifier: "person@example.test", IP: "192.0.2.1", Flow: "login"}
+	reserve := func() protection.Decision {
+		t.Helper()
+		d, err := s.Begin(ctx, a)
+		if err != nil || !d.Allowed {
+			t.Fatalf("expected admission: %+v, %v", d, err)
 		}
-		if e = s.Finish(context.Background(), d.Receipt, "failure"); e != nil {
-			t.Fatal(e)
+		return d
+	}
+	fail := func(d protection.Decision) {
+		t.Helper()
+		if err := s.Finish(ctx, d.Receipt, "failure"); err != nil {
+			t.Fatal(err)
 		}
 	}
-	d, e := s.Begin(context.Background(), a)
-	if e != nil || d.Allowed {
-		t.Fatal(d, e)
-	}
-	if len(c.events) == 0 {
-		t.Fatal("no blocking event")
-	}
-	for _, e := range c.events {
-		if e.Type != "limit_wc" && e.Type != "limit_sul" {
-			t.Fatalf("event=%+v", e)
-		}
-		if e.TenantID != "t" || e.ConnectionID != "c" || e.IP != "192.0.2.1" || e.Description == "" {
-			t.Fatalf("event=%+v", e)
+	deny := func(svc *protection.Service) {
+		t.Helper()
+		if d, err := svc.Begin(ctx, a); err != nil || d.Allowed {
+			t.Errorf("expected denial: %+v, %v", d, err)
 		}
 	}
+	checkEvents := func(stage string, want int) {
+		t.Helper()
+		if len(capture.events) != want {
+			t.Errorf("%s: got %d events, want %d: %+v", stage, len(capture.events), want, capture.events)
+		}
+		for _, e := range capture.events {
+			if e.Type != "limit_wc" || e.TenantID != "t" || e.ConnectionID != "c" || e.IP != "192.0.2.1" || e.Description == "" {
+				t.Errorf("%s: unexpected event %+v", stage, e)
+			}
+		}
+	}
+
+	fail(reserve())
+	pending := reserve()
+	deny(other)
+	checkEvents("in-flight reservation denial", 0)
+	fail(pending)
+	checkEvents("settled failure without denial", 0)
+	deny(other)
+	checkEvents("first durable denial", 1)
+	deny(s)
+	deny(other)
+	checkEvents("repeat denials", 1)
+
+	filter := store.ProtectionFilter{Kind: store.ProtectionBruteForce, ConnectionID: conn.ID, Identifier: a.Identifier, IP: a.IP}
+	if err := s.Store.Protection().Clear(ctx, tn.ID, filter); err != nil {
+		t.Fatal(err)
+	}
+	fail(reserve())
+	fail(reserve())
+	start := make(chan struct{})
+	var wg sync.WaitGroup
+	for i := range 8 {
+		svc := s
+		if i%2 == 0 {
+			svc = other
+		}
+		wg.Go(func() {
+			<-start
+			deny(svc)
+		})
+	}
+	close(start)
+	wg.Wait()
+	checkEvents("concurrent first denials after unblock", 2)
 }
 
 func TestProtectionDecisionEvents(t *testing.T) {
 	for _, tc := range []struct {
 		name, mode, flow, code string
 		monitor                bool
-	}{{"brute-force per ip", "count_per_identifier_and_ip", "login", "limit_sul", false}, {"brute-force account", "count_per_identifier", "login", "limit_wc", false}, {"suspicious login", "", "login", "limit_mu", false}, {"suspicious registration", "", "signup", "limit_mu", false}, {"monitor only", "count_per_identifier", "login", "", true}} {
+	}{{"brute-force per ip", "count_per_identifier_and_ip", "login", "limit_wc", false}, {"brute-force account", "count_per_identifier", "login", "limit_wc", false}, {"suspicious login", "", "login", "limit_mu", false}, {"suspicious registration", "", "signup", "limit_mu", false}, {"monitor only", "count_per_identifier", "login", "", true}} {
 		t.Run(tc.name, func(t *testing.T) {
 			s, tn, conn := serviceFixture(t)
 			capture := &eventRecorder{}
@@ -90,17 +147,20 @@ func TestProtectionDecisionEvents(t *testing.T) {
 			if second.Allowed {
 				t.Fatal("expected denial")
 			}
-			found := false
-			for _, event := range capture.events {
-				if event.Type == tc.code {
-					found = true
+			want := 1
+			if tc.mode == "" {
+				if repeated, err := s.Begin(context.Background(), a); err != nil || repeated.Allowed {
+					t.Fatal(repeated, err)
 				}
-				if event.ConnectionID != "c" || event.Connection != "db" || event.Strategy != "auth0" || event.StrategyType != "database" || event.Description == "" {
+				want = 2
+			}
+			if len(capture.events) != want {
+				t.Fatalf("got events %+v; want %d %s events", capture.events, want, tc.code)
+			}
+			for _, event := range capture.events {
+				if event.Type != tc.code || event.ConnectionID != "c" || event.Connection != "db" || event.Strategy != "auth0" || event.StrategyType != "database" || event.Description == "" {
 					t.Fatalf("event=%+v", event)
 				}
-			}
-			if !found {
-				t.Fatalf("missing %s in %+v", tc.code, capture.events)
 			}
 		})
 	}
@@ -150,37 +210,65 @@ func TestDeniedEventDoesNotReadForLogging(t *testing.T) {
 	}
 }
 
-type legacyAdmissionStore struct{ store.Store }
-
-func (s legacyAdmissionStore) Protection() store.Protection {
-	return legacyAdmissionProtection{s.Store.Protection()}
+type legacyAdmissionStore struct {
+	store.Store
+	omitDeniedKinds bool
 }
 
-type legacyAdmissionProtection struct{ store.Protection }
+func (s legacyAdmissionStore) Protection() store.Protection {
+	return legacyAdmissionProtection{s.Store.Protection(), s.omitDeniedKinds}
+}
+
+type legacyAdmissionProtection struct {
+	store.Protection
+	omitDeniedKinds bool
+}
 
 func (p legacyAdmissionProtection) Reserve(ctx context.Context, limits []store.ProtectionLimit, now time.Time) (store.ProtectionAdmission, error) {
 	decision, err := p.Protection.Reserve(ctx, limits, now)
-	decision.DeniedKinds = nil
+	decision.FirstBruteForceDenial = false
+	if p.omitDeniedKinds {
+		decision.DeniedKinds = nil
+	}
 	return decision, err
 }
 func TestLegacyAdmissionOmitsUncertainEvent(t *testing.T) {
-	s, tn, conn := serviceFixture(t)
-	s.Store = legacyAdmissionStore{s.Store}
-	capture := &eventRecorder{}
-	s.Recorder = capture
-	a := protection.Attempt{Tenant: tn, Connection: conn, Identifier: "person@example.test", IP: "192.0.2.1", Flow: "login"}
-	for range 2 {
-		d, err := s.Begin(context.Background(), a)
-		if err != nil {
-			t.Fatal(err)
-		}
-		if err = s.Finish(context.Background(), d.Receipt, "failure"); err != nil {
-			t.Fatal(err)
-		}
-	}
-	denied, err := s.Begin(context.Background(), a)
-	if err != nil || denied.Allowed || len(capture.events) != 0 {
-		t.Fatal(denied, err, capture.events)
+	for _, tc := range []struct {
+		name            string
+		omitDeniedKinds bool
+		wantEvents      int
+	}{
+		{name: "no attribution", omitDeniedKinds: true},
+		{name: "attribution without a brute-force claim", wantEvents: 1},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			ctx := context.Background()
+			s, tn, conn := serviceFixture(t)
+			tn.ProtectionSettings.SuspiciousIP.Stage.PreLogin.MaxAttempts = 2
+			if err := s.Store.Tenants().Update(ctx, tn); err != nil {
+				t.Fatal(err)
+			}
+			s.Store = legacyAdmissionStore{s.Store, tc.omitDeniedKinds}
+			capture := &eventRecorder{}
+			s.Recorder = capture
+			a := protection.Attempt{Tenant: tn, Connection: conn, Identifier: "person@example.test", IP: "192.0.2.1", Flow: "login"}
+			for range 2 {
+				d, err := s.Begin(ctx, a)
+				if err != nil || !d.Allowed {
+					t.Fatal(d, err)
+				}
+				if err = s.Finish(ctx, d.Receipt, "failure"); err != nil {
+					t.Fatal(err)
+				}
+			}
+			denied, err := s.Begin(ctx, a)
+			if err != nil || denied.Allowed || len(capture.events) != tc.wantEvents {
+				t.Fatal(denied, err, capture.events)
+			}
+			if tc.wantEvents > 0 && capture.events[0].Type != "limit_mu" {
+				t.Fatal(capture.events)
+			}
+		})
 	}
 }
 

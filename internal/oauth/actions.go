@@ -39,11 +39,13 @@ func requestInfoFrom(ctx context.Context) actions.RequestInfo {
 
 // loginFlow is a token-endpoint grant that runs the post-login flow.
 type loginFlow struct {
-	session        *store.LoginSession
-	organizationID string
-	connectionID   string // original connection of an organization refresh family
-	user           *store.User
-	connection     *store.Connection // nil when unknown
+	pendingMembership bool
+	session           *store.LoginSession
+	refreshToken      *store.RefreshToken
+	organizationID    string
+	connectionID      string // original connection of an organization refresh family
+	user              *store.User
+	connection        *store.Connection // nil when unknown
 	// userConnection resolves the pinned connectionID, or the first identity
 	// for individual grants, only when Actions are bound.
 	userConnection bool
@@ -63,7 +65,7 @@ func (h *Handlers) postLogin(ctx context.Context, res tenant.Resolved, c *store.
 		return nil, nil
 	}
 	in := actions.PostLoginInput{
-		Session: f.session, OrganizationID: f.organizationID, Tenant: res, Client: c, User: f.user, Connection: f.connection, Request: requestInfoFrom(ctx),
+		PendingMembership: f.pendingMembership, Session: f.session, RefreshToken: f.refreshToken, OrganizationID: f.organizationID, Tenant: res, Client: c, User: f.user, Connection: f.connection, Request: requestInfoFrom(ctx),
 		Protocol: f.protocol, RequestedScopes: f.requested, TargetScopes: f.target, ResourceServer: f.rs,
 	}
 	if f.userConnection {
@@ -93,6 +95,23 @@ func (h *Handlers) postLogin(ctx context.Context, res tenant.Resolved, c *store.
 			h.log().ErrorContext(ctx, "run post-login Actions", "tenant", res.Tenant.ID, "err", err)
 		}
 		return nil, serverError()
+	}
+	if result.Effects.RefreshTokenRevoke && f.refreshToken != nil {
+		var e error
+		if f.refreshToken.Access == "online" {
+			e = h.endOnlineSession(ctx, res, f.refreshToken)
+		} else {
+			e = h.Store.WithTx(ctx, func(tx store.Store) error {
+				if _, e := tx.Users().GetForUpdate(ctx, res.Tenant.ID, f.refreshToken.UserID); e != nil {
+					return e
+				}
+				return tx.RefreshTokens().RevokeFamily(ctx, res.Tenant.ID, f.refreshToken.FamilyID, h.now().UTC())
+			})
+		}
+		if e != nil {
+			return nil, serverError()
+		}
+		return nil, invalidGrant("the refresh token was revoked")
 	}
 	if d := result.Denied; d != nil {
 		return nil, &Error{Status: http.StatusForbidden, Code: d.Code, Description: d.Reason}
@@ -161,6 +180,10 @@ func (h *Handlers) openEffects(ctx context.Context, tenantID, purpose, hash stri
 // others are dropped silently, as policy-filtered scopes are. First-party
 // clients that skip consent are not limited.
 func (h *Handlers) consentedAdditions(ctx context.Context, tenantID string, c *store.Client, userID string, rs *store.ResourceServer, before, target []string) ([]string, *Error) {
+	return h.consentedAdditionsWithStore(ctx, h.Store, tenantID, c, userID, rs, before, target)
+}
+
+func (h *Handlers) consentedAdditionsWithStore(ctx context.Context, st store.Store, tenantID string, c *store.Client, userID string, rs *store.ResourceServer, before, target []string) ([]string, *Error) {
 	var added []string
 	for _, s := range target {
 		if !slices.Contains(before, s) {
@@ -178,7 +201,7 @@ func (h *Handlers) consentedAdditions(ctx context.Context, tenantID string, c *s
 		return actions.CeilingOf(target, before), nil
 	}
 	var granted []string
-	g, err := h.Store.UserGrants().Find(ctx, tenantID, c.ClientID, userID, audience)
+	g, err := st.UserGrants().Find(ctx, tenantID, c.ClientID, userID, audience)
 	switch {
 	case err == nil:
 		granted = g.Scopes

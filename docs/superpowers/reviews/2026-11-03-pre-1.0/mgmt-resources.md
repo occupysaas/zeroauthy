@@ -30,6 +30,7 @@ Findings: 0 critical, 0 high, 2 medium, 6 low. **1 is fix-before-1.0** (F1: RBAC
 - Verdict: CONFIRMED
 - Recommendation: defer-to-Plan-45 (or a small users follow-up)
 - Suggested fix: allow `null` for `name`/`nickname`/`picture`/`phone_number`/`username` and apply the same clearing rules as `given_name`. Accept `verify_phone_number`, as a no-op or by sending the phone verification.
+- Status: fixed by Plan 45b Task 7 (D-0270). The eight supported attributes clear with `null` subject to the connection's identifier rules. `verify_phone_number: true` sends the Plan 34 verification code and `false` sends nothing. Auth0's runtime behavior for B2 and B3 remains unobserved.
 
 ### F4 [low] [parity-gap] `organization_id` refused on `POST /jobs/verification-email` and `POST /tickets/email-verification`
 - Where: internal/mgmt/jobs.go:214-216 (stale comment "organization_id included: there are no organizations"); internal/mgmt/tickets.go:346 (allowed list without `organization_id`)
@@ -46,6 +47,7 @@ Findings: 0 critical, 0 high, 2 medium, 6 low. **1 is fix-before-1.0** (F1: RBAC
 - Verdict: CONFIRMED (against the current OAS); PLAUSIBLE that an older docs page listed both
 - Recommendation: defer-to-Plan-45
 - Suggested fix: require `read:organizations` and `read:organization_members` respectively (keeping the `fields=roles` check), or cite the source for the broader set in D-0055.
+- Fixed by Plan 45b Task 9 (D-0270 LR45b-2). The routes and published contract now require the documented scopes, with the additional roles scope for the member projection.
 
 ### F6 [low] [parity-gap] `GET /users?connection=` filters under search engine v2/v3
 - Where: internal/mgmt/users.go:203-210
@@ -54,6 +56,7 @@ Findings: 0 critical, 0 high, 2 medium, 6 low. **1 is fix-before-1.0** (F1: RBAC
 - Verdict: CONFIRMED
 - Recommendation: defer-to-Plan-45
 - Suggested fix: ignore `connection` under v2/v3 (still applying `checkQueryText`), or record the deviation in D-0043 and `docs/user-search.md`.
+- Fixed by Plan 45b Task 10 (D-0043). The supported search engines validate and ignore `connection`. The console's operator-only selector applies separately after the server parses `q`.
 
 ### F7 [low] [docs-drift] Scope table in `docs/management-api.md` misstates `read:users_app_metadata`
 - Where: docs/management-api.md:89 ("`app_metadata` is included with `read:users` or `read:users_app_metadata`")

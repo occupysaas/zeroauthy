@@ -8,7 +8,8 @@ import Button from '../../../ui/Button.vue'
 import Field from '../../../ui/Field.vue'
 import ScriptEditor from './ScriptEditor.vue'
 import MicrosoftOptions from './MicrosoftOptions.vue'
-import { applePEM, APPLE_IDENTIFIER, callbackURLs, optionsOf, type Options } from './social'
+import GitHubOptions from './GitHubOptions.vue'
+import { applePEM, githubFlagOptions, githubFlagsOf, githubScopeFlags, APPLE_IDENTIFIER, callbackURLs, optionsOf, type Options } from './social'
 
 const { t } = useI18n()
 const props = defineProps<{ tenant: SystemTenant; connection: Connection }>()
@@ -20,7 +21,7 @@ const syncModes = ['on_each_login', 'on_first_login', 'never_on_login'] as const
 // The editable draft. It is reset from the connection only when another
 // connection is shown or after a save of ours: a failed reload in the parent
 // never discards edits.
-const draft = reactive({ displayName: '', showAsButton: true, active: true, sync: 'on_each_login', scope: '', scopes: '', email: true, profile: true, newSecret: '', appleTeam: '', appleKID: '', appleName: true })
+const draft = reactive({ displayName: '', showAsButton: true, active: true, sync: 'on_each_login', scope: '', scopes: '', email: true, githubFlags: {} as Record<string, boolean>, profile: true, newSecret: '', appleTeam: '', appleKID: '', appleName: true })
 const errors = reactive<Record<string, string>>({})
 const general = ref('')
 const status = ref('')
@@ -46,6 +47,7 @@ function reset(c: Connection) {
   draft.scopes = typeof o.scopes === 'string' ? o.scopes : ''
   draft.email = o.email !== false
   draft.profile = o.profile !== false
+  draft.githubFlags = githubFlagsOf(o)
   draft.appleName = o.name !== false
   draft.appleTeam = typeof o.team_id === 'string' ? o.team_id : ''
   draft.appleKID = typeof o.kid === 'string' ? o.kid : ''
@@ -84,6 +86,11 @@ async function save() {
   if (strategy.value === 'google-oauth2') {
     opts.email = draft.email
     opts.profile = draft.profile
+    delete opts.scope
+  }
+  if (strategy.value === 'github') {
+    for (const f of githubScopeFlags) delete opts[f.option]
+    Object.assign(opts, githubFlagOptions(draft.email, draft.githubFlags))
     delete opts.scope
   }
   if (strategy.value === 'apple') {
@@ -151,6 +158,7 @@ function fixed(key: string): string {
     </template>
     <MicrosoftOptions v-if="strategy === 'windowslive' || strategy === 'waad'" :strategy="strategy" :mode="options.useCommonEndpoint === true ? 'organizations' : 'single'" :tenant-domain="fixed('tenant_domain')" readonly />
 
+    <GitHubOptions v-if="strategy === 'github'" v-model:email="draft.email" v-model:flags="draft.githubFlags" />
     <template v-if="strategy === 'google-oauth2'">
       <label class="check"><input v-model="draft.email" type="checkbox" /> <span>{{ t('social.googleEmail') }}</span></label>
       <label class="check"><input v-model="draft.profile" type="checkbox" /> <span>{{ t('social.googleProfile') }}</span></label>
@@ -185,6 +193,7 @@ function fixed(key: string): string {
     <section class="stack" aria-labelledby="social-callbacks">
       <h2 id="social-callbacks" class="m-0 text-base">{{ t('social.callbacks') }}</h2>
       <p class="muted">{{ t('social.callbacksHint') }}</p>
+      <p v-if="strategy === 'github'" class="muted" data-testid="github-callbacks">{{ t('social.githubCallbacks') }}</p>
       <ul class="m-0 break-all" data-testid="callbacks">
         <li v-for="u in callbacks" :key="u"><code>{{ u }}</code></li>
       </ul>

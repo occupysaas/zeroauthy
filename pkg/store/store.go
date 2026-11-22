@@ -10,6 +10,16 @@ import (
 )
 
 type (
+	OIDCLogout                     = store.OIDCLogout
+	OIDCSupport                    = store.OIDCSupport
+	OIDCLogoutSupporter            = store.OIDCLogoutSupporter
+	GlobalRevocationStore          = store.GlobalRevocationStore
+	SessionOrganizationRecorder    = store.SessionOrganizationRecorder
+	SessionExpiryLister            = store.SessionExpiryLister
+	ConnectionKey                  = store.ConnectionKey
+	ConnectionKeys                 = store.ConnectionKeys
+	ConnectionKeysSupporter        = store.ConnectionKeysSupporter
+	UnimplementedConnectionKeys    = store.UnimplementedConnectionKeys
 	MFASupporter                   = store.MFASupporter
 	PhoneSupporter                 = store.PhoneSupporter
 	WebAuthnSupporter              = store.WebAuthnSupporter
@@ -117,6 +127,7 @@ type (
 	HostedLogins                 = store.HostedLogins
 	UnimplementedHostedLogins    = store.UnimplementedHostedLogins
 	MicrosoftFederationSupporter = store.MicrosoftFederationSupporter
+	GitHubFederationSupporter    = store.GitHubFederationSupporter
 	Federation                   = store.Federation
 	FederationAttempt            = store.FederationAttempt
 	FederationEndpoints          = store.FederationEndpoints
@@ -322,6 +333,7 @@ const (
 )
 
 var ErrProtectionUnimplemented = store.ErrProtectionUnimplemented
+var CloneMRRTPolicies = store.CloneMRRTPolicies
 var CloneSettings = store.CloneSettings
 
 // ValidateProtectionSecrets rejects accidental plaintext CAPTCHA persistence.
@@ -404,3 +416,25 @@ var ErrClientCredentialsUnavailable = store.ErrClientCredentialsUnavailable
 
 // ErrWebAuthnUnavailable means the driver lacks the webauthn.v1 capability.
 var ErrWebAuthnUnavailable = store.ErrWebAuthnUnavailable
+
+var ErrConnectionKeysUnavailable = store.ErrConnectionKeysUnavailable
+
+type (
+	RefreshTokensIISupporter = store.RefreshTokensIISupporter
+	DPoP                     = store.DPoP
+	TokenQuotas              = store.TokenQuotas
+	TokenQuota               = store.TokenQuota
+	DefaultTokenQuota        = store.DefaultTokenQuota
+	QuotaSubject             = store.QuotaSubject
+	QuotaState               = store.QuotaState
+	QuotaBucket              = store.QuotaBucket
+	MRRTPolicy               = store.MRRTPolicy
+	ProofOfPossession        = store.ProofOfPossession
+	RefreshTokenDevice       = store.RefreshTokenDevice
+)
+
+var ErrRefreshTokensIISupportLost = store.ErrRefreshTokensIISupportLost
+
+var ErrRefreshTokensIIUnavailable = store.ErrRefreshTokensIIUnavailable
+
+var ErrOIDCLogoutUnavailable = store.ErrOIDCLogoutUnavailable

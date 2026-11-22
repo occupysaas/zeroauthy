@@ -351,7 +351,7 @@ test("SQLite journey first: signup QR, recovery acknowledgement, challenge, reme
   }
 });
 
-test("verified email enrollment arrives at the configured mailbox and gates browser tokens", async ({
+test("verified email MFA precedes partner consent and login recording", async ({
   browser,
 }) => {
   test.setTimeout(90000);
@@ -359,7 +359,7 @@ test("verified email enrollment arrives at the configured mailbox and gates brow
   await m.guardian.factors.set("otp", { enabled: false });
   await m.guardian.factors.set("email", { enabled: true });
   const email = "browser-email-mfa@e2e.local";
-  await m.users.create({
+  const user = await m.users.create({
     connection: "Username-Password-Authentication",
     email,
     password,
@@ -384,7 +384,7 @@ test("verified email enrollment arrives at the configured mailbox and gates brow
   );
   try {
     const f = authorization({
-      client: "m33-spa",
+      client: "m33-consent",
       connection: "Username-Password-Authentication",
     });
     await page.goto(f.url);
@@ -393,6 +393,8 @@ test("verified email enrollment arrives at the configured mailbox and gates brow
     await page.locator("button[type=submit]").first().click();
     await expect(page.locator("#code")).toBeVisible();
     expect(new URL(page.url()).host).toBe("sdk.e2e.test");
+    const profile = () => m.users.get(user.user_id);
+    expect((await profile()).logins_count ?? 0).toBe(0);
     const { mailbox } = await import("./m33-mfa-node.mjs");
     await page.fill("#code", await mailbox(email));
     await page.locator("button[type=submit]").first().click();
@@ -403,7 +405,11 @@ test("verified email enrollment arrives at the configured mailbox and gates brow
     expect(recovery).toMatch(/^[A-Z0-9]{24}$/);
     await page.locator("[name=ack]").check();
     await page.locator("button[type=submit]").first().click();
+    await expect(page).toHaveURL(/\/u\/consent/);
+    expect((await profile()).logins_count ?? 0).toBe(0);
+    await page.locator("button[value=accept]").click();
     expect((await complete(page, f)).claims.amr).toEqual(["mfa"]);
+    expect((await profile()).logins_count).toBe(1);
   } finally {
     await context.close();
     await Promise.all(pending);

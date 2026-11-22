@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, reactive, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { Api, type Connection, type ConnectionCreate } from '../../api/client'
+import type { Connection, ConnectionCreate } from '../../api/client'
 import { errorMessage, useServices, useTenant } from '../../context'
 import { useMfaScope } from '../security/scope'
 import ClientsTab from './ClientsTab.vue'
@@ -48,7 +48,7 @@ const token = ref(''),
   secret = ref(''),
   client = ref(''),
   to = ref(''),
-  send = ref('code')
+  send = ref<'code' | 'link'>('code')
 function apply(c?: Connection) {
   connection.value = c
   const o = c ? optionsOf(c) : {},
@@ -191,18 +191,16 @@ async function save() {
 }
 async function testSend() {
   const c = capture()
-  if (!c || busy.value) return
+  const id = connection.value?.id
+  if (!c || !id || busy.value) return
   busy.value = true
   error.value = ''
   notice.value = ''
   try {
-    await api.request(Api.tenantOrigin(c.tenant), 'POST', '/passwordless/start', {
-      body: {
-        client_id: client.value,
-        connection: props.strategy,
-        send: props.strategy === 'email' ? send.value : 'code',
-        ...(props.strategy === 'email' ? { email: to.value } : { phone_number: to.value }),
-      },
+    await api.tryConnectionPasswordless(c.tenant, id, {
+      client_id: client.value,
+      send: props.strategy === 'email' ? send.value : 'code',
+      ...(props.strategy === 'email' ? { email: to.value } : { phone_number: to.value }),
     })
     if (current(c)) notice.value = t('phone.accepted')
   } catch (e) {

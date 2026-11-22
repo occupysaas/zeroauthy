@@ -12,6 +12,7 @@ import (
 // Tenant is an isolated identity domain with its own clients, users,
 // connections and signing keys.
 type Tenant struct {
+	DefaultTokenQuota *DefaultTokenQuota
 	// DomainRPIDs maps an operator alias host (seed domains) to its WebAuthn
 	// relying party ID override (Plan 33b R2); absent hosts use themselves.
 	DomainRPIDs map[string]string
@@ -138,6 +139,11 @@ type ClientSecret struct {
 
 // Client is an application registered in a tenant.
 type Client struct {
+	OIDCSupport              *OIDCSupport
+	OIDCLogout               *OIDCLogout
+	IDTokenAlg               string // Empty means RS256.
+	RequireProofOfPossession bool
+	TokenQuota               *TokenQuota
 	// NativeSocialLogin stores provider-specific native exchange switches.
 	NativeSocialLogin map[string]bool
 	// Mobile holds native app identities for passkey association files.
@@ -232,9 +238,20 @@ type Scope struct {
 	Description string
 }
 
+// ProofOfPossession configures sender constraints for an API.
+type ProofOfPossession struct {
+	Mechanism   string `json:"mechanism" yaml:"mechanism"`
+	Required    bool   `json:"required" yaml:"required"`
+	RequiredFor string `json:"required_for,omitempty" yaml:"required_for"`
+}
+
 // ResourceServer is an API that access tokens are issued for. Identifier
 // is the value of the audience parameter and aud claim.
 type ResourceServer struct {
+	ProofOfPossession                      *ProofOfPossession
+	AllowOnlineAccess                      bool
+	AllowOnlineAccessWithEphemeralSessions bool
+
 	EnforcePolicies bool
 	TokenDialect    string
 	TenantID        string
@@ -821,7 +838,11 @@ type User struct {
 
 // LoginSession is a browser's authenticated session with a tenant.
 type LoginSession struct {
-	MFAAt time.Time
+	// ClientOrganizations binds each participant to its latest validated organization.
+	// An empty value denotes a non-organization authorization.
+	ClientOrganizations map[string]string
+	Metadata            map[string]string
+	MFAAt               time.Time
 	// Origin pins the browser issuer/host; legacy empty values mean canonical origin.
 	Origin string
 	// CookieMode is persisted at creation; later tenant edits do not change it.
@@ -864,6 +885,7 @@ const (
 
 // AuthTransaction holds an /authorize request while the user logs in.
 type AuthTransaction struct {
+	DPoPJKT string
 	// Origin pins the browser issuer/host; legacy empty values mean canonical origin.
 	Origin      string
 	HostedState HostedLoginState
@@ -879,6 +901,9 @@ type AuthTransaction struct {
 
 // AuthCode is an issued authorization code.
 type AuthCode struct {
+	UserInfoClaims string // Authorized session-derived UserInfo claim names.
+	ACR            string
+	DPoPJKT        string
 	// Origin pins the browser issuer/host; legacy empty values mean canonical origin.
 	Origin              string
 	TenantID            string
@@ -893,6 +918,7 @@ type AuthCode struct {
 	CodeChallenge       string
 	CodeChallengeMethod string
 	AuthTime            time.Time
+	MFAAt               time.Time // Session proof at issue; zero (including legacy codes) omits ID token amr.
 	ExpiresAt           time.Time
 	CreatedAt           time.Time
 	UsedAt              *time.Time
@@ -998,6 +1024,13 @@ type DevicePoll struct {
 // by rotating it form a family that shares FamilyID; reuse of a rotated
 // token revokes the whole family.
 type RefreshToken struct {
+	UserInfoClaims    string // Preserved target-specific session claims.
+	ACR               string
+	DPoPJKT, ParentID string
+	Access            string // "offline" (including legacy empty values) or "online"
+	Metadata          map[string]string
+	Device            *RefreshTokenDevice
+	LastExchangedAt   *time.Time
 	// Origin pins the browser issuer/host; legacy empty values mean canonical origin.
 	Origin    string
 	TenantID  string
@@ -1027,9 +1060,28 @@ type RefreshToken struct {
 	OrganizationConnectionID string
 }
 
+// RefreshTokenDevice records issue and exchange device details.
+type RefreshTokenDevice struct{ InitialIP, InitialASN, InitialUserAgent, LastIP, LastASN, LastUserAgent string }
+
+// MRRTPolicy grants refresh access to the listed scopes at another audience.
+type MRRTPolicy struct {
+	Audience string
+	Scope    []string
+}
+
+// CloneMRRTPolicies preserves the distinction between null and an empty list.
+func CloneMRRTPolicies(policies []MRRTPolicy) []MRRTPolicy {
+	out := slices.Clone(policies)
+	for i := range out {
+		out[i].Scope = slices.Clone(out[i].Scope)
+	}
+	return out
+}
+
 // RefreshTokenPolicy configures the refresh tokens issued to a client.
 // Field meanings follow Auth0's public application settings.
 type RefreshTokenPolicy struct {
+	Policies []MRRTPolicy
 	// Rotating issues a new refresh token on every exchange; presenting a
 	// rotated token again (after Leeway) revokes its whole family.
 	Rotating bool
@@ -1100,6 +1152,8 @@ type PasswordResetTicket struct {
 // EmailVerificationTicket is an issued email verification link (Auth0's
 // email verification ticket).
 type EmailVerificationTicket struct {
+	// OrganizationID binds the ticket to an organization for presentation.
+	OrganizationID string
 	// Origin pins the browser issuer/host; legacy empty values mean canonical origin.
 	Origin     string
 	TenantID   string
@@ -1270,6 +1324,18 @@ func (t *Tenant) Clone() *Tenant {
 		return nil
 	}
 	c := *t
+	if t.DefaultTokenQuota != nil {
+		q := *t.DefaultTokenQuota
+		if q.Clients != nil {
+			clients := *q.Clients
+			q.Clients = &clients
+		}
+		if q.Organizations != nil {
+			organizations := *q.Organizations
+			q.Organizations = &organizations
+		}
+		c.DefaultTokenQuota = &q
+	}
 	c.Domains = slices.Clone(t.Domains)
 	c.AllowedLogoutURLs = slices.Clone(t.AllowedLogoutURLs)
 	c.EnabledLocales = slices.Clone(t.EnabledLocales)
@@ -1294,4 +1360,14 @@ func (p ProtectionSettings) Clone() ProtectionSettings {
 	p.Bot.Allowlist = slices.Clone(p.Bot.Allowlist)
 	p.CAPTCHA.SimpleCaptcha = CloneSettings(p.CAPTCHA.SimpleCaptcha)
 	return p
+}
+
+// ValidSuccessor binds the stored owner and proof key. Legacy empty origins
+// can acquire their canonical origin after the OAuth handler verifies it.
+func (old *RefreshToken) ValidSuccessor(next *RefreshToken) bool {
+	return next != nil && old.TenantID == next.TenantID && old.ClientID == next.ClientID &&
+		old.UserID == next.UserID && old.Audience == next.Audience && old.SessionID == next.SessionID &&
+		old.OrganizationID == next.OrganizationID && old.OrganizationConnectionID == next.OrganizationConnectionID &&
+		(old.Origin == "" || old.Origin == next.Origin) && old.DPoPJKT == next.DPoPJKT &&
+		(next.Access == old.Access || old.Access == "offline" && next.Access == "")
 }

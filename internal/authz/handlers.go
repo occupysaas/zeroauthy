@@ -4,6 +4,7 @@ package authz
 import (
 	"context"
 	"errors"
+	"github.com/zeroauthy/zeroauthy/internal/claims"
 	"log/slog"
 	"mime"
 	"net/http"
@@ -15,6 +16,7 @@ import (
 
 	"github.com/zeroauthy/zeroauthy/internal/access"
 	"github.com/zeroauthy/zeroauthy/internal/actions"
+	"github.com/zeroauthy/zeroauthy/internal/compat"
 	"github.com/zeroauthy/zeroauthy/internal/connrules"
 	"github.com/zeroauthy/zeroauthy/internal/httpx"
 	"github.com/zeroauthy/zeroauthy/internal/i18n"
@@ -40,6 +42,7 @@ const (
 )
 
 type Handlers struct {
+	Compat compat.Switches
 	// Passkeys decides post-MFA enrollment prompts.
 	Passkeys *passkey.Service
 	MFA      *mfa.Service
@@ -143,6 +146,8 @@ func (h *Handlers) Authorize(w http.ResponseWriter, r *http.Request) {
 		ctx = logscrub.WithCredentials(ctx, req.Invitation)
 		*r = *r.WithContext(ctx)
 	}
+	req.IgnoreClaimsParameter = h.Compat.IgnoreClaimsParameter
+	req.OptionalRedirectURI = h.Compat.OptionalRedirectURI
 	client, verr, redirectable := ValidateRequest(ctx, h.Store, res.Tenant, &req)
 	if verr != nil {
 		if !redirectable {
@@ -360,6 +365,13 @@ func (h *Handlers) startTxn(w http.ResponseWriter, r *http.Request, res tenant.R
 // startTxnWith is startTxn with createTxn's prepare.
 func (h *Handlers) startTxnWith(w http.ResponseWriter, r *http.Request, res tenant.Resolved, client *store.Client, fr flowReq, params map[string]string, page string,
 	prepare func(string, map[string]string) error) {
+	if p, _ := r.Context().Value(pendingLoginKey{}).(*pendingLogin); p != nil {
+		params[pendingRootParam] = p.Transaction.ID
+	}
+	if choice, ok := r.Context().Value(rememberChoiceKey{}).(rememberChoice); ok {
+		params["za_remember_epoch"] = strconv.Itoa(choice.Epoch)
+		params["za_remember_user"] = choice.UserID
+	}
 	txn, err := h.createTxn(w, r, res, client.ClientID, params, "/u", prepare)
 	if err != nil {
 		h.log().ErrorContext(r.Context(), "create login transaction", "tenant", res.Tenant.ID, "err", err)
@@ -390,24 +402,31 @@ func (h *Handlers) Resume(w http.ResponseWriter, r *http.Request, res tenant.Res
 		h.refuse(w, r, res, client, fr, verr)
 		return
 	}
+	p, err := h.pendingLogin(r.Context(), r, res)
+	if err != nil {
+		h.invalidTxn(w, r, res, txn)
+		return
+	}
+	if p == nil || p.Transaction.ID != txn.ID {
+		if txn.Params[orglogin.InvitationIDParam] != "" {
+			*r = *r.WithContext(context.WithValue(r.Context(), completionTxnKey{}, txn))
+		} else {
+			h.EndTxn(w, r, res, txn)
+		}
+	}
 	if txn.Params[orglogin.InvitationIDParam] != "" {
-		if err := h.acceptInvitation(r.Context(), txn, sess); err != nil {
+		current, e := h.Store.AuthTransactions().Get(r.Context(), res.Tenant.ID, txn.ID)
+		if e == nil {
+			_, e = orglogin.PreviewInvitation(r.Context(), h.Store, current, sess, h.now())
+		}
+		if e != nil {
 			description := "the invitation can no longer be accepted"
-			if errors.Is(err, orglogin.ErrInvitationIdentity) {
-				description = orglogin.ErrInvitationIdentity.Error()
+			if errors.Is(e, orglogin.ErrInvitationIdentity) {
+				description = e.Error()
 			}
 			h.refuse(w, r, res, client, fr, errAccessDenied(description))
 			return
 		}
-	}
-	if txn.Params[orglogin.InvitationIDParam] != "" {
-		if err := h.claimInvitationCompletion(r.Context(), txn, sess); err != nil {
-			h.refuse(w, r, res, client, fr, errAccessDenied("the invitation transaction has already completed"))
-			return
-		}
-		h.clearTxnCookie(w, txn)
-	} else {
-		h.EndTxn(w, r, res, txn)
 	}
 	hint, _ := r.Context().Value(passkeyLoginKey{}).(PasskeyLoginHint)
 	hint.Fresh = true
@@ -417,30 +436,7 @@ func (h *Handlers) Resume(w http.ResponseWriter, r *http.Request, res tenant.Res
 }
 
 func (h *Handlers) issueCode(w http.ResponseWriter, r *http.Request, res tenant.Resolved, client *store.Client, req Request, sess *store.LoginSession, scopes []string, eff *actions.Effects) {
-	// Post-login Actions can wait on external work. Recheck immediately before
-	// minting rather than relying on the decision made before that wait.
-	fr := flowReq{Request: req}
-	if hosted, e := h.organizationSession(w, r, res, client, &fr, sess); e != nil {
-		h.deny(w, r, res, client, req, e)
-		return
-	} else if hosted {
-		h.deny(w, r, res, client, req, errAccessDenied("an organization must be selected before issuing a code"))
-		return
-	}
-	req = fr.Request
-	ctx := r.Context()
-	code, err := h.createCode(ctx, res, client, req, sess, scopes, eff)
-	if err != nil {
-		h.log().ErrorContext(ctx, "issue authorization code", "tenant", res.Tenant.ID, "err", err)
-		h.deny(w, r, res, client, req, errServer())
-		return
-	}
-	h.loginSucceeded(w, r, res, client, flowReq{Request: req}, sess)
-	params := url.Values{"code": {code}}
-	if req.State != "" {
-		params.Set("state", req.State)
-	}
-	writeResponse(w, r, req, params)
+	h.approve(w, r, res, client, flowReq{Request: req}, sess, scopes, eff)
 }
 
 func (h *Handlers) createCode(ctx context.Context, res tenant.Resolved, client *store.Client, req Request, sess *store.LoginSession, scopes []string, eff *actions.Effects) (string, error) {
@@ -459,6 +455,8 @@ func (h *Handlers) createCode(ctx context.Context, res tenant.Resolved, client *
 		connectionID = conn.ID
 	}
 	ac := &store.AuthCode{
+		UserInfoClaims: claims.RequestedUserInfoSessionClaims(req.Claims),
+		DPoPJKT:        req.DPoPJKT,
 		OrganizationID: req.OrgID, OrganizationConnectionID: connectionID,
 		ActionEffects:       sealed,
 		Origin:              res.Origin(),
@@ -474,13 +472,18 @@ func (h *Handlers) createCode(ctx context.Context, res tenant.Resolved, client *
 		CodeChallenge:       req.CodeChallenge,
 		CodeChallengeMethod: req.CodeChallengeMethod,
 		AuthTime:            sess.AuthenticatedAt,
+		MFAAt:               sess.MFAAt,
 		ExpiresAt:           now.Add(CodeLifetime),
 		CreatedAt:           now,
 	}
+	if !sess.MFAAt.IsZero() {
+		ac.ACR = requestedACR(req, res.Tenant)
+	}
+
 	if err := h.Store.AuthCodes().Create(ctx, ac); err != nil {
 		return "", err
 	}
-	if err := h.Sessions.AddClient(ctx, sess, client.ClientID); err != nil {
+	if err := h.Sessions.AddClientOrganization(ctx, sess, client, req.OrgID); err != nil {
 		return "", err
 	}
 	return code, nil
@@ -613,14 +616,10 @@ func (h *Handlers) finish(w http.ResponseWriter, r *http.Request, res tenant.Res
 		if in.UserGrant != nil {
 			existing = in.UserGrant.Scopes
 		}
-		if _, err := h.Store.UserGrants().Upsert(ctx, &store.UserGrant{
+		r = r.WithContext(context.WithValue(r.Context(), consentGrantKey{}, &store.UserGrant{
 			TenantID: res.Tenant.ID, ID: "ugr_" + secrets.RandomString(24), ClientID: client.ClientID, UserID: sess.UserID,
 			Audience: audienceKey, Scopes: access.GrantScopes(existing, d.Scopes), CreatedAt: now, UpdatedAt: now,
-		}); err != nil {
-			h.log().ErrorContext(ctx, "store user grant", "tenant", res.Tenant.ID, "err", err)
-			h.refuse(w, r, res, client, fr, errServer())
-			return
-		}
+		}))
 	}
 	if eff != nil && eff.Target != nil {
 		// The refresh family's ceiling is the issued (edited, consented)

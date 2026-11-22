@@ -14,11 +14,11 @@
     "build": "vite build"
   },
   "dependencies": {
-    "pinia": "3.0.4",
+    "pinia": "4.1.0",
     "reka-ui": "2.11.0",
     "vue": "3.5.45",
     "vue-i18n": "11.4.18",
-    "vue-router": "4.6.4"
+    "vue-router": "5.5.0"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",
@@ -27,12 +27,12 @@
     "@vue/test-utils": "2.5.1",
     "eslint": "10.14.0",
     "eslint-plugin-vue": "10.12.1",
-    "happy-dom": "20.14.5",
+    "happy-dom": "21.0.4",
     "openapi-typescript": "7.13.0",
     "tailwindcss": "4.3.5",
     "typescript": "5.9.3",
     "typescript-eslint": "8.72.2",
-    "vite": "8.3.7",
+    "vite": "8.3.8",
     "vitest": "5.1.0",
     "vue-eslint-parser": "10.4.2",
     "vue-tsc": "3.3.14"

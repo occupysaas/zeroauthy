@@ -1239,6 +1239,90 @@ func (e ClientGrantSettingsOrganizationUsage) Valid() bool {
 	}
 }
 
+// Defines values for ClientOIDCLogoutBackchannelLogoutInitiatorsMode.
+const (
+	ClientOIDCLogoutBackchannelLogoutInitiatorsModeAll    ClientOIDCLogoutBackchannelLogoutInitiatorsMode = "all"
+	ClientOIDCLogoutBackchannelLogoutInitiatorsModeCustom ClientOIDCLogoutBackchannelLogoutInitiatorsMode = "custom"
+)
+
+// Valid indicates whether the value is a known member of the ClientOIDCLogoutBackchannelLogoutInitiatorsMode enum.
+func (e ClientOIDCLogoutBackchannelLogoutInitiatorsMode) Valid() bool {
+	switch e {
+	case ClientOIDCLogoutBackchannelLogoutInitiatorsModeAll:
+		return true
+	case ClientOIDCLogoutBackchannelLogoutInitiatorsModeCustom:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ClientOIDCLogoutBackchannelLogoutInitiatorsSelectedInitiators.
+const (
+	AccountDeactivated     ClientOIDCLogoutBackchannelLogoutInitiatorsSelectedInitiators = "account-deactivated"
+	AccountDeleted         ClientOIDCLogoutBackchannelLogoutInitiatorsSelectedInitiators = "account-deleted"
+	EmailIdentifierChanged ClientOIDCLogoutBackchannelLogoutInitiatorsSelectedInitiators = "email-identifier-changed"
+	IdpLogout              ClientOIDCLogoutBackchannelLogoutInitiatorsSelectedInitiators = "idp-logout"
+	MfaPhoneUnenrolled     ClientOIDCLogoutBackchannelLogoutInitiatorsSelectedInitiators = "mfa-phone-unenrolled"
+	PasswordChanged        ClientOIDCLogoutBackchannelLogoutInitiatorsSelectedInitiators = "password-changed"
+	ProfileChanged         ClientOIDCLogoutBackchannelLogoutInitiatorsSelectedInitiators = "profile-changed"
+	RpLogout               ClientOIDCLogoutBackchannelLogoutInitiatorsSelectedInitiators = "rp-logout"
+	SessionExpired         ClientOIDCLogoutBackchannelLogoutInitiatorsSelectedInitiators = "session-expired"
+	SessionRevoked         ClientOIDCLogoutBackchannelLogoutInitiatorsSelectedInitiators = "session-revoked"
+)
+
+// Valid indicates whether the value is a known member of the ClientOIDCLogoutBackchannelLogoutInitiatorsSelectedInitiators enum.
+func (e ClientOIDCLogoutBackchannelLogoutInitiatorsSelectedInitiators) Valid() bool {
+	switch e {
+	case AccountDeactivated:
+		return true
+	case AccountDeleted:
+		return true
+	case EmailIdentifierChanged:
+		return true
+	case IdpLogout:
+		return true
+	case MfaPhoneUnenrolled:
+		return true
+	case PasswordChanged:
+		return true
+	case ProfileChanged:
+		return true
+	case RpLogout:
+		return true
+	case SessionExpired:
+		return true
+	case SessionRevoked:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ClientOIDCSupportAllowedScopes.
+const (
+	ClientOIDCSupportAllowedScopesAddress ClientOIDCSupportAllowedScopes = "address"
+	ClientOIDCSupportAllowedScopesEmail   ClientOIDCSupportAllowedScopes = "email"
+	ClientOIDCSupportAllowedScopesPhone   ClientOIDCSupportAllowedScopes = "phone"
+	ClientOIDCSupportAllowedScopesProfile ClientOIDCSupportAllowedScopes = "profile"
+)
+
+// Valid indicates whether the value is a known member of the ClientOIDCSupportAllowedScopes enum.
+func (e ClientOIDCSupportAllowedScopes) Valid() bool {
+	switch e {
+	case ClientOIDCSupportAllowedScopesAddress:
+		return true
+	case ClientOIDCSupportAllowedScopesEmail:
+		return true
+	case ClientOIDCSupportAllowedScopesPhone:
+		return true
+	case ClientOIDCSupportAllowedScopesProfile:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for ClientSettingsOrganizationDiscoveryMethods.
 const (
 	ClientSettingsOrganizationDiscoveryMethodsEmail            ClientSettingsOrganizationDiscoveryMethods = "email"
@@ -1445,9 +1529,11 @@ const (
 	ConnectionCreateStrategyApple        ConnectionCreateStrategy = "apple"
 	ConnectionCreateStrategyAuth0        ConnectionCreateStrategy = "auth0"
 	ConnectionCreateStrategyEmail        ConnectionCreateStrategy = "email"
+	ConnectionCreateStrategyGithub       ConnectionCreateStrategy = "github"
 	ConnectionCreateStrategyGoogleOauth2 ConnectionCreateStrategy = "google-oauth2"
 	ConnectionCreateStrategyOauth2       ConnectionCreateStrategy = "oauth2"
 	ConnectionCreateStrategyOidc         ConnectionCreateStrategy = "oidc"
+	ConnectionCreateStrategyOkta         ConnectionCreateStrategy = "okta"
 	ConnectionCreateStrategySms          ConnectionCreateStrategy = "sms"
 	ConnectionCreateStrategyWaad         ConnectionCreateStrategy = "waad"
 	ConnectionCreateStrategyWindowslive  ConnectionCreateStrategy = "windowslive"
@@ -1462,17 +1548,39 @@ func (e ConnectionCreateStrategy) Valid() bool {
 		return true
 	case ConnectionCreateStrategyEmail:
 		return true
+	case ConnectionCreateStrategyGithub:
+		return true
 	case ConnectionCreateStrategyGoogleOauth2:
 		return true
 	case ConnectionCreateStrategyOauth2:
 		return true
 	case ConnectionCreateStrategyOidc:
 		return true
+	case ConnectionCreateStrategyOkta:
+		return true
 	case ConnectionCreateStrategySms:
 		return true
 	case ConnectionCreateStrategyWaad:
 		return true
 	case ConnectionCreateStrategyWindowslive:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ConnectionKeyKeyUse.
+const (
+	ConnectionKeyKeyUseEncryption ConnectionKeyKeyUse = "encryption"
+	ConnectionKeyKeyUseSigning    ConnectionKeyKeyUse = "signing"
+)
+
+// Valid indicates whether the value is a known member of the ConnectionKeyKeyUse enum.
+func (e ConnectionKeyKeyUse) Valid() bool {
+	switch e {
+	case ConnectionKeyKeyUseEncryption:
+		return true
+	case ConnectionKeyKeyUseSigning:
 		return true
 	default:
 		return false
@@ -1499,19 +1607,19 @@ func (e ConnectionOptionsAppleFreeformScopes) Valid() bool {
 
 // Defines values for ConnectionOptionsAppleSetUserRootAttributes.
 const (
-	NeverOnLogin ConnectionOptionsAppleSetUserRootAttributes = "never_on_login"
-	OnEachLogin  ConnectionOptionsAppleSetUserRootAttributes = "on_each_login"
-	OnFirstLogin ConnectionOptionsAppleSetUserRootAttributes = "on_first_login"
+	ConnectionOptionsAppleSetUserRootAttributesNeverOnLogin ConnectionOptionsAppleSetUserRootAttributes = "never_on_login"
+	ConnectionOptionsAppleSetUserRootAttributesOnEachLogin  ConnectionOptionsAppleSetUserRootAttributes = "on_each_login"
+	ConnectionOptionsAppleSetUserRootAttributesOnFirstLogin ConnectionOptionsAppleSetUserRootAttributes = "on_first_login"
 )
 
 // Valid indicates whether the value is a known member of the ConnectionOptionsAppleSetUserRootAttributes enum.
 func (e ConnectionOptionsAppleSetUserRootAttributes) Valid() bool {
 	switch e {
-	case NeverOnLogin:
+	case ConnectionOptionsAppleSetUserRootAttributesNeverOnLogin:
 		return true
-	case OnEachLogin:
+	case ConnectionOptionsAppleSetUserRootAttributesOnEachLogin:
 		return true
-	case OnFirstLogin:
+	case ConnectionOptionsAppleSetUserRootAttributesOnFirstLogin:
 		return true
 	default:
 		return false
@@ -1527,6 +1635,354 @@ const (
 func (e ConnectionOptionsEmailEmailSyntax) Valid() bool {
 	switch e {
 	case ConnectionOptionsEmailEmailSyntaxLiquid:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ConnectionOptionsGitHubSetUserRootAttributes.
+const (
+	ConnectionOptionsGitHubSetUserRootAttributesNeverOnLogin ConnectionOptionsGitHubSetUserRootAttributes = "never_on_login"
+	ConnectionOptionsGitHubSetUserRootAttributesOnEachLogin  ConnectionOptionsGitHubSetUserRootAttributes = "on_each_login"
+	ConnectionOptionsGitHubSetUserRootAttributesOnFirstLogin ConnectionOptionsGitHubSetUserRootAttributes = "on_first_login"
+)
+
+// Valid indicates whether the value is a known member of the ConnectionOptionsGitHubSetUserRootAttributes enum.
+func (e ConnectionOptionsGitHubSetUserRootAttributes) Valid() bool {
+	switch e {
+	case ConnectionOptionsGitHubSetUserRootAttributesNeverOnLogin:
+		return true
+	case ConnectionOptionsGitHubSetUserRootAttributesOnEachLogin:
+		return true
+	case ConnectionOptionsGitHubSetUserRootAttributesOnFirstLogin:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ConnectionOptionsOIDCAttributeMapMappingMode.
+const (
+	ConnectionOptionsOIDCAttributeMapMappingModeBindAll ConnectionOptionsOIDCAttributeMapMappingMode = "bind_all"
+	ConnectionOptionsOIDCAttributeMapMappingModeUseMap  ConnectionOptionsOIDCAttributeMapMappingMode = "use_map"
+)
+
+// Valid indicates whether the value is a known member of the ConnectionOptionsOIDCAttributeMapMappingMode enum.
+func (e ConnectionOptionsOIDCAttributeMapMappingMode) Valid() bool {
+	switch e {
+	case ConnectionOptionsOIDCAttributeMapMappingModeBindAll:
+		return true
+	case ConnectionOptionsOIDCAttributeMapMappingModeUseMap:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ConnectionOptionsOIDCConnectionSettingsPkce.
+const (
+	ConnectionOptionsOIDCConnectionSettingsPkceAuto     ConnectionOptionsOIDCConnectionSettingsPkce = "auto"
+	ConnectionOptionsOIDCConnectionSettingsPkceDisabled ConnectionOptionsOIDCConnectionSettingsPkce = "disabled"
+	ConnectionOptionsOIDCConnectionSettingsPkcePlain    ConnectionOptionsOIDCConnectionSettingsPkce = "plain"
+	ConnectionOptionsOIDCConnectionSettingsPkceS256     ConnectionOptionsOIDCConnectionSettingsPkce = "S256"
+	ConnectionOptionsOIDCConnectionSettingsPkceS2561    ConnectionOptionsOIDCConnectionSettingsPkce = "s256"
+)
+
+// Valid indicates whether the value is a known member of the ConnectionOptionsOIDCConnectionSettingsPkce enum.
+func (e ConnectionOptionsOIDCConnectionSettingsPkce) Valid() bool {
+	switch e {
+	case ConnectionOptionsOIDCConnectionSettingsPkceAuto:
+		return true
+	case ConnectionOptionsOIDCConnectionSettingsPkceDisabled:
+		return true
+	case ConnectionOptionsOIDCConnectionSettingsPkcePlain:
+		return true
+	case ConnectionOptionsOIDCConnectionSettingsPkceS256:
+		return true
+	case ConnectionOptionsOIDCConnectionSettingsPkceS2561:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ConnectionOptionsOIDCIdTokenEncryptedResponseAlg.
+const (
+	ConnectionOptionsOIDCIdTokenEncryptedResponseAlgECDHES       ConnectionOptionsOIDCIdTokenEncryptedResponseAlg = "ECDH-ES"
+	ConnectionOptionsOIDCIdTokenEncryptedResponseAlgECDHESA128KW ConnectionOptionsOIDCIdTokenEncryptedResponseAlg = "ECDH-ES+A128KW"
+	ConnectionOptionsOIDCIdTokenEncryptedResponseAlgECDHESA192KW ConnectionOptionsOIDCIdTokenEncryptedResponseAlg = "ECDH-ES+A192KW"
+	ConnectionOptionsOIDCIdTokenEncryptedResponseAlgECDHESA256KW ConnectionOptionsOIDCIdTokenEncryptedResponseAlg = "ECDH-ES+A256KW"
+	ConnectionOptionsOIDCIdTokenEncryptedResponseAlgRSAOAEP256   ConnectionOptionsOIDCIdTokenEncryptedResponseAlg = "RSA-OAEP-256"
+	ConnectionOptionsOIDCIdTokenEncryptedResponseAlgRSAOAEP384   ConnectionOptionsOIDCIdTokenEncryptedResponseAlg = "RSA-OAEP-384"
+	ConnectionOptionsOIDCIdTokenEncryptedResponseAlgRSAOAEP512   ConnectionOptionsOIDCIdTokenEncryptedResponseAlg = "RSA-OAEP-512"
+)
+
+// Valid indicates whether the value is a known member of the ConnectionOptionsOIDCIdTokenEncryptedResponseAlg enum.
+func (e ConnectionOptionsOIDCIdTokenEncryptedResponseAlg) Valid() bool {
+	switch e {
+	case ConnectionOptionsOIDCIdTokenEncryptedResponseAlgECDHES:
+		return true
+	case ConnectionOptionsOIDCIdTokenEncryptedResponseAlgECDHESA128KW:
+		return true
+	case ConnectionOptionsOIDCIdTokenEncryptedResponseAlgECDHESA192KW:
+		return true
+	case ConnectionOptionsOIDCIdTokenEncryptedResponseAlgECDHESA256KW:
+		return true
+	case ConnectionOptionsOIDCIdTokenEncryptedResponseAlgRSAOAEP256:
+		return true
+	case ConnectionOptionsOIDCIdTokenEncryptedResponseAlgRSAOAEP384:
+		return true
+	case ConnectionOptionsOIDCIdTokenEncryptedResponseAlgRSAOAEP512:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ConnectionOptionsOIDCTokenEndpointAuthMethod.
+const (
+	ConnectionOptionsOIDCTokenEndpointAuthMethodClientSecretPost ConnectionOptionsOIDCTokenEndpointAuthMethod = "client_secret_post"
+	ConnectionOptionsOIDCTokenEndpointAuthMethodPrivateKeyJwt    ConnectionOptionsOIDCTokenEndpointAuthMethod = "private_key_jwt"
+)
+
+// Valid indicates whether the value is a known member of the ConnectionOptionsOIDCTokenEndpointAuthMethod enum.
+func (e ConnectionOptionsOIDCTokenEndpointAuthMethod) Valid() bool {
+	switch e {
+	case ConnectionOptionsOIDCTokenEndpointAuthMethodClientSecretPost:
+		return true
+	case ConnectionOptionsOIDCTokenEndpointAuthMethodPrivateKeyJwt:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ConnectionOptionsOIDCTokenEndpointAuthSigningAlg.
+const (
+	ConnectionOptionsOIDCTokenEndpointAuthSigningAlgES256 ConnectionOptionsOIDCTokenEndpointAuthSigningAlg = "ES256"
+	ConnectionOptionsOIDCTokenEndpointAuthSigningAlgES384 ConnectionOptionsOIDCTokenEndpointAuthSigningAlg = "ES384"
+	ConnectionOptionsOIDCTokenEndpointAuthSigningAlgPS256 ConnectionOptionsOIDCTokenEndpointAuthSigningAlg = "PS256"
+	ConnectionOptionsOIDCTokenEndpointAuthSigningAlgPS384 ConnectionOptionsOIDCTokenEndpointAuthSigningAlg = "PS384"
+	ConnectionOptionsOIDCTokenEndpointAuthSigningAlgRS256 ConnectionOptionsOIDCTokenEndpointAuthSigningAlg = "RS256"
+	ConnectionOptionsOIDCTokenEndpointAuthSigningAlgRS384 ConnectionOptionsOIDCTokenEndpointAuthSigningAlg = "RS384"
+	ConnectionOptionsOIDCTokenEndpointAuthSigningAlgRS512 ConnectionOptionsOIDCTokenEndpointAuthSigningAlg = "RS512"
+)
+
+// Valid indicates whether the value is a known member of the ConnectionOptionsOIDCTokenEndpointAuthSigningAlg enum.
+func (e ConnectionOptionsOIDCTokenEndpointAuthSigningAlg) Valid() bool {
+	switch e {
+	case ConnectionOptionsOIDCTokenEndpointAuthSigningAlgES256:
+		return true
+	case ConnectionOptionsOIDCTokenEndpointAuthSigningAlgES384:
+		return true
+	case ConnectionOptionsOIDCTokenEndpointAuthSigningAlgPS256:
+		return true
+	case ConnectionOptionsOIDCTokenEndpointAuthSigningAlgPS384:
+		return true
+	case ConnectionOptionsOIDCTokenEndpointAuthSigningAlgRS256:
+		return true
+	case ConnectionOptionsOIDCTokenEndpointAuthSigningAlgRS384:
+		return true
+	case ConnectionOptionsOIDCTokenEndpointAuthSigningAlgRS512:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ConnectionOptionsOIDCTokenEndpointJwtcaAudFormat.
+const (
+	ConnectionOptionsOIDCTokenEndpointJwtcaAudFormatIssuer        ConnectionOptionsOIDCTokenEndpointJwtcaAudFormat = "issuer"
+	ConnectionOptionsOIDCTokenEndpointJwtcaAudFormatTokenEndpoint ConnectionOptionsOIDCTokenEndpointJwtcaAudFormat = "token_endpoint"
+)
+
+// Valid indicates whether the value is a known member of the ConnectionOptionsOIDCTokenEndpointJwtcaAudFormat enum.
+func (e ConnectionOptionsOIDCTokenEndpointJwtcaAudFormat) Valid() bool {
+	switch e {
+	case ConnectionOptionsOIDCTokenEndpointJwtcaAudFormatIssuer:
+		return true
+	case ConnectionOptionsOIDCTokenEndpointJwtcaAudFormatTokenEndpoint:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ConnectionOptionsOIDCType.
+const (
+	ConnectionOptionsOIDCTypeBackChannel  ConnectionOptionsOIDCType = "back_channel"
+	ConnectionOptionsOIDCTypeFrontChannel ConnectionOptionsOIDCType = "front_channel"
+)
+
+// Valid indicates whether the value is a known member of the ConnectionOptionsOIDCType enum.
+func (e ConnectionOptionsOIDCType) Valid() bool {
+	switch e {
+	case ConnectionOptionsOIDCTypeBackChannel:
+		return true
+	case ConnectionOptionsOIDCTypeFrontChannel:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ConnectionOptionsOktaAttributeMapMappingMode.
+const (
+	ConnectionOptionsOktaAttributeMapMappingModeBasicProfile ConnectionOptionsOktaAttributeMapMappingMode = "basic_profile"
+	ConnectionOptionsOktaAttributeMapMappingModeUseMap       ConnectionOptionsOktaAttributeMapMappingMode = "use_map"
+)
+
+// Valid indicates whether the value is a known member of the ConnectionOptionsOktaAttributeMapMappingMode enum.
+func (e ConnectionOptionsOktaAttributeMapMappingMode) Valid() bool {
+	switch e {
+	case ConnectionOptionsOktaAttributeMapMappingModeBasicProfile:
+		return true
+	case ConnectionOptionsOktaAttributeMapMappingModeUseMap:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ConnectionOptionsOktaConnectionSettingsPkce.
+const (
+	ConnectionOptionsOktaConnectionSettingsPkceAuto     ConnectionOptionsOktaConnectionSettingsPkce = "auto"
+	ConnectionOptionsOktaConnectionSettingsPkceDisabled ConnectionOptionsOktaConnectionSettingsPkce = "disabled"
+	ConnectionOptionsOktaConnectionSettingsPkcePlain    ConnectionOptionsOktaConnectionSettingsPkce = "plain"
+	ConnectionOptionsOktaConnectionSettingsPkceS256     ConnectionOptionsOktaConnectionSettingsPkce = "S256"
+	ConnectionOptionsOktaConnectionSettingsPkceS2561    ConnectionOptionsOktaConnectionSettingsPkce = "s256"
+)
+
+// Valid indicates whether the value is a known member of the ConnectionOptionsOktaConnectionSettingsPkce enum.
+func (e ConnectionOptionsOktaConnectionSettingsPkce) Valid() bool {
+	switch e {
+	case ConnectionOptionsOktaConnectionSettingsPkceAuto:
+		return true
+	case ConnectionOptionsOktaConnectionSettingsPkceDisabled:
+		return true
+	case ConnectionOptionsOktaConnectionSettingsPkcePlain:
+		return true
+	case ConnectionOptionsOktaConnectionSettingsPkceS256:
+		return true
+	case ConnectionOptionsOktaConnectionSettingsPkceS2561:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ConnectionOptionsOktaIdTokenEncryptedResponseAlg.
+const (
+	ConnectionOptionsOktaIdTokenEncryptedResponseAlgECDHES       ConnectionOptionsOktaIdTokenEncryptedResponseAlg = "ECDH-ES"
+	ConnectionOptionsOktaIdTokenEncryptedResponseAlgECDHESA128KW ConnectionOptionsOktaIdTokenEncryptedResponseAlg = "ECDH-ES+A128KW"
+	ConnectionOptionsOktaIdTokenEncryptedResponseAlgECDHESA192KW ConnectionOptionsOktaIdTokenEncryptedResponseAlg = "ECDH-ES+A192KW"
+	ConnectionOptionsOktaIdTokenEncryptedResponseAlgECDHESA256KW ConnectionOptionsOktaIdTokenEncryptedResponseAlg = "ECDH-ES+A256KW"
+	ConnectionOptionsOktaIdTokenEncryptedResponseAlgRSAOAEP256   ConnectionOptionsOktaIdTokenEncryptedResponseAlg = "RSA-OAEP-256"
+	ConnectionOptionsOktaIdTokenEncryptedResponseAlgRSAOAEP384   ConnectionOptionsOktaIdTokenEncryptedResponseAlg = "RSA-OAEP-384"
+	ConnectionOptionsOktaIdTokenEncryptedResponseAlgRSAOAEP512   ConnectionOptionsOktaIdTokenEncryptedResponseAlg = "RSA-OAEP-512"
+)
+
+// Valid indicates whether the value is a known member of the ConnectionOptionsOktaIdTokenEncryptedResponseAlg enum.
+func (e ConnectionOptionsOktaIdTokenEncryptedResponseAlg) Valid() bool {
+	switch e {
+	case ConnectionOptionsOktaIdTokenEncryptedResponseAlgECDHES:
+		return true
+	case ConnectionOptionsOktaIdTokenEncryptedResponseAlgECDHESA128KW:
+		return true
+	case ConnectionOptionsOktaIdTokenEncryptedResponseAlgECDHESA192KW:
+		return true
+	case ConnectionOptionsOktaIdTokenEncryptedResponseAlgECDHESA256KW:
+		return true
+	case ConnectionOptionsOktaIdTokenEncryptedResponseAlgRSAOAEP256:
+		return true
+	case ConnectionOptionsOktaIdTokenEncryptedResponseAlgRSAOAEP384:
+		return true
+	case ConnectionOptionsOktaIdTokenEncryptedResponseAlgRSAOAEP512:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ConnectionOptionsOktaTokenEndpointAuthMethod.
+const (
+	ConnectionOptionsOktaTokenEndpointAuthMethodClientSecretPost ConnectionOptionsOktaTokenEndpointAuthMethod = "client_secret_post"
+	ConnectionOptionsOktaTokenEndpointAuthMethodPrivateKeyJwt    ConnectionOptionsOktaTokenEndpointAuthMethod = "private_key_jwt"
+)
+
+// Valid indicates whether the value is a known member of the ConnectionOptionsOktaTokenEndpointAuthMethod enum.
+func (e ConnectionOptionsOktaTokenEndpointAuthMethod) Valid() bool {
+	switch e {
+	case ConnectionOptionsOktaTokenEndpointAuthMethodClientSecretPost:
+		return true
+	case ConnectionOptionsOktaTokenEndpointAuthMethodPrivateKeyJwt:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ConnectionOptionsOktaTokenEndpointAuthSigningAlg.
+const (
+	ConnectionOptionsOktaTokenEndpointAuthSigningAlgES256 ConnectionOptionsOktaTokenEndpointAuthSigningAlg = "ES256"
+	ConnectionOptionsOktaTokenEndpointAuthSigningAlgES384 ConnectionOptionsOktaTokenEndpointAuthSigningAlg = "ES384"
+	ConnectionOptionsOktaTokenEndpointAuthSigningAlgPS256 ConnectionOptionsOktaTokenEndpointAuthSigningAlg = "PS256"
+	ConnectionOptionsOktaTokenEndpointAuthSigningAlgPS384 ConnectionOptionsOktaTokenEndpointAuthSigningAlg = "PS384"
+	ConnectionOptionsOktaTokenEndpointAuthSigningAlgRS256 ConnectionOptionsOktaTokenEndpointAuthSigningAlg = "RS256"
+	ConnectionOptionsOktaTokenEndpointAuthSigningAlgRS384 ConnectionOptionsOktaTokenEndpointAuthSigningAlg = "RS384"
+	ConnectionOptionsOktaTokenEndpointAuthSigningAlgRS512 ConnectionOptionsOktaTokenEndpointAuthSigningAlg = "RS512"
+)
+
+// Valid indicates whether the value is a known member of the ConnectionOptionsOktaTokenEndpointAuthSigningAlg enum.
+func (e ConnectionOptionsOktaTokenEndpointAuthSigningAlg) Valid() bool {
+	switch e {
+	case ConnectionOptionsOktaTokenEndpointAuthSigningAlgES256:
+		return true
+	case ConnectionOptionsOktaTokenEndpointAuthSigningAlgES384:
+		return true
+	case ConnectionOptionsOktaTokenEndpointAuthSigningAlgPS256:
+		return true
+	case ConnectionOptionsOktaTokenEndpointAuthSigningAlgPS384:
+		return true
+	case ConnectionOptionsOktaTokenEndpointAuthSigningAlgRS256:
+		return true
+	case ConnectionOptionsOktaTokenEndpointAuthSigningAlgRS384:
+		return true
+	case ConnectionOptionsOktaTokenEndpointAuthSigningAlgRS512:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ConnectionOptionsOktaTokenEndpointJwtcaAudFormat.
+const (
+	ConnectionOptionsOktaTokenEndpointJwtcaAudFormatIssuer        ConnectionOptionsOktaTokenEndpointJwtcaAudFormat = "issuer"
+	ConnectionOptionsOktaTokenEndpointJwtcaAudFormatTokenEndpoint ConnectionOptionsOktaTokenEndpointJwtcaAudFormat = "token_endpoint"
+)
+
+// Valid indicates whether the value is a known member of the ConnectionOptionsOktaTokenEndpointJwtcaAudFormat enum.
+func (e ConnectionOptionsOktaTokenEndpointJwtcaAudFormat) Valid() bool {
+	switch e {
+	case ConnectionOptionsOktaTokenEndpointJwtcaAudFormatIssuer:
+		return true
+	case ConnectionOptionsOktaTokenEndpointJwtcaAudFormatTokenEndpoint:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ConnectionOptionsOktaType.
+const (
+	ConnectionOptionsOktaTypeBackChannel ConnectionOptionsOktaType = "back_channel"
+)
+
+// Valid indicates whether the value is a known member of the ConnectionOptionsOktaType enum.
+func (e ConnectionOptionsOktaType) Valid() bool {
+	switch e {
+	case ConnectionOptionsOktaTypeBackChannel:
 		return true
 	default:
 		return false
@@ -1911,6 +2367,42 @@ func (e CustomDomainVerifiedType) Valid() bool {
 	case CustomDomainVerifiedTypeAuth0ManagedCerts:
 		return true
 	case CustomDomainVerifiedTypeSelfManagedCerts:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for DPoPPolicyMechanism.
+const (
+	DPoPPolicyMechanismDpop DPoPPolicyMechanism = "dpop"
+	DPoPPolicyMechanismNone DPoPPolicyMechanism = "none"
+)
+
+// Valid indicates whether the value is a known member of the DPoPPolicyMechanism enum.
+func (e DPoPPolicyMechanism) Valid() bool {
+	switch e {
+	case DPoPPolicyMechanismDpop:
+		return true
+	case DPoPPolicyMechanismNone:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for DPoPPolicyRequiredFor.
+const (
+	AllClients    DPoPPolicyRequiredFor = "all_clients"
+	PublicClients DPoPPolicyRequiredFor = "public_clients"
+)
+
+// Valid indicates whether the value is a known member of the DPoPPolicyRequiredFor enum.
+func (e DPoPPolicyRequiredFor) Valid() bool {
+	switch e {
+	case AllClients:
+		return true
+	case PublicClients:
 		return true
 	default:
 		return false
@@ -2306,16 +2798,16 @@ func (e EventsEventStreamEventTypeEnum) Valid() bool {
 
 // Defines values for EventsEventStreamStatusEnum.
 const (
-	Disabled EventsEventStreamStatusEnum = "disabled"
-	Enabled  EventsEventStreamStatusEnum = "enabled"
+	EventsEventStreamStatusEnumDisabled EventsEventStreamStatusEnum = "disabled"
+	EventsEventStreamStatusEnumEnabled  EventsEventStreamStatusEnum = "enabled"
 )
 
 // Valid indicates whether the value is a known member of the EventsEventStreamStatusEnum enum.
 func (e EventsEventStreamStatusEnum) Valid() bool {
 	switch e {
-	case Disabled:
+	case EventsEventStreamStatusEnumDisabled:
 		return true
-	case Enabled:
+	case EventsEventStreamStatusEnumEnabled:
 		return true
 	default:
 		return false
@@ -2924,12 +3416,18 @@ func (e JobType) Valid() bool {
 
 // Defines values for JwtConfigurationAlg.
 const (
+	JwtConfigurationAlgHS256 JwtConfigurationAlg = "HS256"
+	JwtConfigurationAlgPS256 JwtConfigurationAlg = "PS256"
 	JwtConfigurationAlgRS256 JwtConfigurationAlg = "RS256"
 )
 
 // Valid indicates whether the value is a known member of the JwtConfigurationAlg enum.
 func (e JwtConfigurationAlg) Valid() bool {
 	switch e {
+	case JwtConfigurationAlgHS256:
+		return true
+	case JwtConfigurationAlgPS256:
+		return true
 	case JwtConfigurationAlgRS256:
 		return true
 	default:
@@ -5520,6 +6018,24 @@ func (e OrganizationEffectiveRoleSources) Valid() bool {
 	}
 }
 
+// Defines values for PasswordlessTryRequestSend.
+const (
+	Code PasswordlessTryRequestSend = "code"
+	Link PasswordlessTryRequestSend = "link"
+)
+
+// Valid indicates whether the value is a known member of the PasswordlessTryRequestSend enum.
+func (e PasswordlessTryRequestSend) Valid() bool {
+	switch e {
+	case Code:
+		return true
+	case Link:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for PhoneProviderChannel.
 const (
 	PhoneProviderChannelPhone PhoneProviderChannel = "phone"
@@ -5673,6 +6189,90 @@ func (e PhoneTestRequestDeliveryMethod) Valid() bool {
 	case PhoneTestRequestDeliveryMethodText:
 		return true
 	case PhoneTestRequestDeliveryMethodVoice:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for PostConnectionKeysRequestContentEncryptionAlg.
+const (
+	PostConnectionKeysRequestContentEncryptionAlgECDHES       PostConnectionKeysRequestContentEncryptionAlg = "ECDH-ES"
+	PostConnectionKeysRequestContentEncryptionAlgECDHESA128KW PostConnectionKeysRequestContentEncryptionAlg = "ECDH-ES+A128KW"
+	PostConnectionKeysRequestContentEncryptionAlgECDHESA192KW PostConnectionKeysRequestContentEncryptionAlg = "ECDH-ES+A192KW"
+	PostConnectionKeysRequestContentEncryptionAlgECDHESA256KW PostConnectionKeysRequestContentEncryptionAlg = "ECDH-ES+A256KW"
+	PostConnectionKeysRequestContentEncryptionAlgRSAOAEP256   PostConnectionKeysRequestContentEncryptionAlg = "RSA-OAEP-256"
+	PostConnectionKeysRequestContentEncryptionAlgRSAOAEP384   PostConnectionKeysRequestContentEncryptionAlg = "RSA-OAEP-384"
+	PostConnectionKeysRequestContentEncryptionAlgRSAOAEP512   PostConnectionKeysRequestContentEncryptionAlg = "RSA-OAEP-512"
+)
+
+// Valid indicates whether the value is a known member of the PostConnectionKeysRequestContentEncryptionAlg enum.
+func (e PostConnectionKeysRequestContentEncryptionAlg) Valid() bool {
+	switch e {
+	case PostConnectionKeysRequestContentEncryptionAlgECDHES:
+		return true
+	case PostConnectionKeysRequestContentEncryptionAlgECDHESA128KW:
+		return true
+	case PostConnectionKeysRequestContentEncryptionAlgECDHESA192KW:
+		return true
+	case PostConnectionKeysRequestContentEncryptionAlgECDHESA256KW:
+		return true
+	case PostConnectionKeysRequestContentEncryptionAlgRSAOAEP256:
+		return true
+	case PostConnectionKeysRequestContentEncryptionAlgRSAOAEP384:
+		return true
+	case PostConnectionKeysRequestContentEncryptionAlgRSAOAEP512:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for PostConnectionKeysRequestContentKeyUse.
+const (
+	PostConnectionKeysRequestContentKeyUseEncryption PostConnectionKeysRequestContentKeyUse = "encryption"
+	PostConnectionKeysRequestContentKeyUseSigning    PostConnectionKeysRequestContentKeyUse = "signing"
+)
+
+// Valid indicates whether the value is a known member of the PostConnectionKeysRequestContentKeyUse enum.
+func (e PostConnectionKeysRequestContentKeyUse) Valid() bool {
+	switch e {
+	case PostConnectionKeysRequestContentKeyUseEncryption:
+		return true
+	case PostConnectionKeysRequestContentKeyUseSigning:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for PostConnectionKeysRequestContentSigningAlg.
+const (
+	PostConnectionKeysRequestContentSigningAlgES256 PostConnectionKeysRequestContentSigningAlg = "ES256"
+	PostConnectionKeysRequestContentSigningAlgES384 PostConnectionKeysRequestContentSigningAlg = "ES384"
+	PostConnectionKeysRequestContentSigningAlgPS256 PostConnectionKeysRequestContentSigningAlg = "PS256"
+	PostConnectionKeysRequestContentSigningAlgPS384 PostConnectionKeysRequestContentSigningAlg = "PS384"
+	PostConnectionKeysRequestContentSigningAlgRS256 PostConnectionKeysRequestContentSigningAlg = "RS256"
+	PostConnectionKeysRequestContentSigningAlgRS384 PostConnectionKeysRequestContentSigningAlg = "RS384"
+	PostConnectionKeysRequestContentSigningAlgRS512 PostConnectionKeysRequestContentSigningAlg = "RS512"
+)
+
+// Valid indicates whether the value is a known member of the PostConnectionKeysRequestContentSigningAlg enum.
+func (e PostConnectionKeysRequestContentSigningAlg) Valid() bool {
+	switch e {
+	case PostConnectionKeysRequestContentSigningAlgES256:
+		return true
+	case PostConnectionKeysRequestContentSigningAlgES384:
+		return true
+	case PostConnectionKeysRequestContentSigningAlgPS256:
+		return true
+	case PostConnectionKeysRequestContentSigningAlgPS384:
+		return true
+	case PostConnectionKeysRequestContentSigningAlgRS256:
+		return true
+	case PostConnectionKeysRequestContentSigningAlgRS384:
+		return true
+	case PostConnectionKeysRequestContentSigningAlgRS512:
 		return true
 	default:
 		return false
@@ -7618,6 +8218,10 @@ type Client struct {
 	// Facebook and Google enforcement belongs to Plan 39b.
 	NativeSocialLogin *NativeSocialLogin   `json:"native_social_login,omitempty"`
 	OidcConformant    ClientOidcConformant `json:"oidc_conformant"`
+	OidcLogout        *ClientOIDCLogout    `json:"oidc_logout,omitempty"`
+
+	// OidcSupport OIDC and scope restrictions. Null restores OIDC with all scopes. allow_all_scopes and allowed_scopes cannot both be supplied (D-0080).
+	OidcSupport *ClientOIDCSupport `json:"oidc_support,omitempty"`
 
 	// OrganizationDiscoveryMethods Left out when unset.
 	OrganizationDiscoveryMethods *[]ClientOrganizationDiscoveryMethods `json:"organization_discovery_methods,omitempty"`
@@ -7631,6 +8235,7 @@ type Client struct {
 
 	// RefreshToken The refresh tokens the application receives.
 	RefreshToken                       RefreshTokenSettings `json:"refresh_token"`
+	RequireProofOfPossession           *bool                `json:"require_proof_of_possession,omitempty"`
 	RequirePushedAuthorizationRequests bool                 `json:"require_pushed_authorization_requests"`
 
 	// SignedRequestObject JAR settings. Prefer a different key from `private_key_jwt` (advice, not enforced).
@@ -7646,7 +8251,10 @@ type Client struct {
 
 	// TokenExchange Only first-party, OIDC-conformant applications may set it (LR35-6, C5).
 	TokenExchange *ClientTokenExchange `json:"token_exchange,omitempty"`
-	WebOrigins    []string             `json:"web_origins"`
+
+	// TokenQuota Application or organization quota for the client-credentials grant. Null removes the override.
+	TokenQuota *IITokenQuota `json:"token_quota,omitempty"`
+	WebOrigins []string      `json:"web_origins"`
 }
 
 // ClientCallbackUrlTemplate defines model for Client.CallbackUrlTemplate.
@@ -7772,7 +8380,11 @@ type ClientCreate struct {
 	NativeSocialLogin *NativeSocialLogin `json:"native_social_login,omitempty"`
 
 	// OidcConformant zeroauthy is always OIDC-conformant; `false` is refused.
-	OidcConformant *bool `json:"oidc_conformant,omitempty"`
+	OidcConformant *bool             `json:"oidc_conformant,omitempty"`
+	OidcLogout     *ClientOIDCLogout `json:"oidc_logout,omitempty"`
+
+	// OidcSupport OIDC and scope restrictions. Null restores OIDC with all scopes. allow_all_scopes and allowed_scopes cannot both be supplied (D-0080).
+	OidcSupport *ClientOIDCSupport `json:"oidc_support,omitempty"`
 
 	// OrganizationDiscoveryMethods How the organization prompt finds the organization (Early Access
 	// upstream). Only with `organization_require_behavior`
@@ -7795,7 +8407,8 @@ type ClientCreate struct {
 	RedirectionPolicy *ClientCreateRedirectionPolicy `json:"redirection_policy,omitempty"`
 
 	// RefreshToken The refresh tokens the application receives.
-	RefreshToken *RefreshTokenSettings `json:"refresh_token,omitempty"`
+	RefreshToken             *RefreshTokenSettings `json:"refresh_token,omitempty"`
+	RequireProofOfPossession *bool                 `json:"require_proof_of_possession,omitempty"`
 
 	// RequirePushedAuthorizationRequests Refuse authorization requests that were not pushed (confidential first-party applications of a tenant that allows PAR).
 	RequirePushedAuthorizationRequests *bool `json:"require_pushed_authorization_requests,omitempty"`
@@ -7822,6 +8435,9 @@ type ClientCreate struct {
 
 	// TokenExchange Only first-party, OIDC-conformant applications may set it (LR35-6, C5).
 	TokenExchange *ClientTokenExchange `json:"token_exchange,omitempty"`
+
+	// TokenQuota Application or organization quota for the client-credentials grant. Null removes the override.
+	TokenQuota *IITokenQuota `json:"token_quota,omitempty"`
 
 	// WebOrigins Origins allowed for web message and silent authentication.
 	WebOrigins *[]string `json:"web_origins,omitempty"`
@@ -8050,6 +8666,37 @@ type ClientMobileIOS struct {
 	AdditionalProperties map[string]interface{} `json:"-"`
 }
 
+// ClientOIDCLogout defines model for ClientOIDCLogout.
+type ClientOIDCLogout struct {
+	// BackchannelLogoutInitiators Custom mode requires selected_initiators including rp-logout and idp-logout. Absent defaults to those two initiators.
+	BackchannelLogoutInitiators *struct {
+		Mode               ClientOIDCLogoutBackchannelLogoutInitiatorsMode                  `json:"mode"`
+		SelectedInitiators *[]ClientOIDCLogoutBackchannelLogoutInitiatorsSelectedInitiators `json:"selected_initiators,omitempty"`
+	} `json:"backchannel_logout_initiators,omitempty"`
+	BackchannelLogoutSessionMetadata *struct {
+		Include *bool `json:"include,omitempty"`
+	} `json:"backchannel_logout_session_metadata,omitempty"`
+
+	// BackchannelLogoutUrls Public HTTPS receiver. Organization ID and name placeholders are supported (D-0080).
+	BackchannelLogoutUrls *[]string `json:"backchannel_logout_urls,omitempty"`
+}
+
+// ClientOIDCLogoutBackchannelLogoutInitiatorsMode defines model for ClientOIDCLogout.BackchannelLogoutInitiators.Mode.
+type ClientOIDCLogoutBackchannelLogoutInitiatorsMode string
+
+// ClientOIDCLogoutBackchannelLogoutInitiatorsSelectedInitiators defines model for ClientOIDCLogout.BackchannelLogoutInitiators.SelectedInitiators.
+type ClientOIDCLogoutBackchannelLogoutInitiatorsSelectedInitiators string
+
+// ClientOIDCSupport OIDC and scope restrictions. Null restores OIDC with all scopes. allow_all_scopes and allowed_scopes cannot both be supplied (D-0080).
+type ClientOIDCSupport struct {
+	AllowAllScopes *bool                             `json:"allow_all_scopes,omitempty"`
+	AllowedScopes  *[]ClientOIDCSupportAllowedScopes `json:"allowed_scopes,omitempty"`
+	IsAllowed      bool                              `json:"is_allowed"`
+}
+
+// ClientOIDCSupportAllowedScopes defines model for ClientOIDCSupport.AllowedScopes.
+type ClientOIDCSupportAllowedScopes string
+
 // ClientPage A page of applications with `include_totals=true`.
 type ClientPage struct {
 	Clients []Client `json:"clients"`
@@ -8144,7 +8791,11 @@ type ClientSettings struct {
 	NativeSocialLogin *NativeSocialLogin `json:"native_social_login,omitempty"`
 
 	// OidcConformant zeroauthy is always OIDC-conformant; `false` is refused.
-	OidcConformant *bool `json:"oidc_conformant,omitempty"`
+	OidcConformant *bool             `json:"oidc_conformant,omitempty"`
+	OidcLogout     *ClientOIDCLogout `json:"oidc_logout,omitempty"`
+
+	// OidcSupport OIDC and scope restrictions. Null restores OIDC with all scopes. allow_all_scopes and allowed_scopes cannot both be supplied (D-0080).
+	OidcSupport *ClientOIDCSupport `json:"oidc_support,omitempty"`
 
 	// OrganizationDiscoveryMethods How the organization prompt finds the organization (Early Access
 	// upstream). Only with `organization_require_behavior`
@@ -8167,7 +8818,8 @@ type ClientSettings struct {
 	RedirectionPolicy *ClientSettingsRedirectionPolicy `json:"redirection_policy,omitempty"`
 
 	// RefreshToken The refresh tokens the application receives.
-	RefreshToken *RefreshTokenSettings `json:"refresh_token,omitempty"`
+	RefreshToken             *RefreshTokenSettings `json:"refresh_token,omitempty"`
+	RequireProofOfPossession *bool                 `json:"require_proof_of_possession,omitempty"`
 
 	// RequirePushedAuthorizationRequests Refuse authorization requests that were not pushed (confidential first-party applications of a tenant that allows PAR).
 	RequirePushedAuthorizationRequests *bool `json:"require_pushed_authorization_requests,omitempty"`
@@ -8191,6 +8843,9 @@ type ClientSettings struct {
 
 	// TokenExchange Only first-party, OIDC-conformant applications may set it (LR35-6, C5).
 	TokenExchange *ClientTokenExchange `json:"token_exchange,omitempty"`
+
+	// TokenQuota Application or organization quota for the client-credentials grant. Null removes the override.
+	TokenQuota *IITokenQuota `json:"token_quota,omitempty"`
 
 	// WebOrigins Origins allowed for web message and silent authentication.
 	WebOrigins *[]string `json:"web_origins,omitempty"`
@@ -8307,7 +8962,11 @@ type ClientUpdate struct {
 	NativeSocialLogin *NativeSocialLogin `json:"native_social_login,omitempty"`
 
 	// OidcConformant zeroauthy is always OIDC-conformant; `false` is refused.
-	OidcConformant *bool `json:"oidc_conformant,omitempty"`
+	OidcConformant *bool             `json:"oidc_conformant,omitempty"`
+	OidcLogout     *ClientOIDCLogout `json:"oidc_logout,omitempty"`
+
+	// OidcSupport OIDC and scope restrictions. Null restores OIDC with all scopes. allow_all_scopes and allowed_scopes cannot both be supplied (D-0080).
+	OidcSupport *ClientOIDCSupport `json:"oidc_support,omitempty"`
 
 	// OrganizationDiscoveryMethods How the organization prompt finds the organization (Early Access
 	// upstream). Only with `organization_require_behavior`
@@ -8330,7 +8989,8 @@ type ClientUpdate struct {
 	RedirectionPolicy *ClientUpdateRedirectionPolicy `json:"redirection_policy,omitempty"`
 
 	// RefreshToken The refresh tokens the application receives.
-	RefreshToken *RefreshTokenSettings `json:"refresh_token,omitempty"`
+	RefreshToken             *RefreshTokenSettings `json:"refresh_token,omitempty"`
+	RequireProofOfPossession *bool                 `json:"require_proof_of_possession,omitempty"`
 
 	// RequirePushedAuthorizationRequests Refuse authorization requests that were not pushed (confidential first-party applications of a tenant that allows PAR).
 	RequirePushedAuthorizationRequests *bool `json:"require_pushed_authorization_requests,omitempty"`
@@ -8355,6 +9015,9 @@ type ClientUpdate struct {
 
 	// TokenExchange Only first-party, OIDC-conformant applications may set it (LR35-6, C5).
 	TokenExchange *ClientTokenExchange `json:"token_exchange,omitempty"`
+
+	// TokenQuota Application or organization quota for the client-credentials grant. Null removes the override.
+	TokenQuota *IITokenQuota `json:"token_quota,omitempty"`
 
 	// WebOrigins Origins allowed for web message and silent authentication.
 	WebOrigins *[]string `json:"web_origins,omitempty"`
@@ -8385,7 +9048,7 @@ type ClientUpdateThirdPartySecurityMode string
 // Connection A connection. `options.configuration` values are opaque blobs, never
 // plaintext. `enabled_clients` is returned by create only. `fields`
 // can leave out any property but `id` and `is_domain_connection`.
-// For `google-oauth2`, `oauth2`, `oidc`, `windowslive` and `waad` connections
+// For `google-oauth2`, `github`, `oauth2`, `oidc`, `windowslive` and `waad` connections
 // `options.client_secret` is write-only: it is sealed when written and
 // never returned.
 // Microsoft connections require GUID client IDs and request exactly
@@ -8465,17 +9128,36 @@ type ConnectionCreate struct {
 	Realms       *[]string               `json:"realms,omitempty"`
 	ShowAsButton *bool                   `json:"show_as_button,omitempty"`
 
-	// Strategy `email` and `sms` are passwordless connections whose name must equal the strategy; options follow ConnectionOptionsEmail and ConnectionOptionsSMS (Plan 34). `apple` follows ConnectionOptionsApple; web/native login is active (D-0170).
+	// Strategy `email` and `sms` are passwordless connections whose name must equal the strategy; options follow ConnectionOptionsEmail and ConnectionOptionsSMS (Plan 34). `apple` follows ConnectionOptionsApple; web/native login is active (D-0170). `github` follows ConnectionOptionsGitHub (Plan 39c).
 	Strategy ConnectionCreateStrategy `json:"strategy"`
 }
 
-// ConnectionCreateStrategy `email` and `sms` are passwordless connections whose name must equal the strategy; options follow ConnectionOptionsEmail and ConnectionOptionsSMS (Plan 34). `apple` follows ConnectionOptionsApple; web/native login is active (D-0170).
+// ConnectionCreateStrategy `email` and `sms` are passwordless connections whose name must equal the strategy; options follow ConnectionOptionsEmail and ConnectionOptionsSMS (Plan 34). `apple` follows ConnectionOptionsApple; web/native login is active (D-0170). `github` follows ConnectionOptionsGitHub (Plan 39c).
 type ConnectionCreateStrategy string
 
 // ConnectionDeleted defines model for ConnectionDeleted.
 type ConnectionDeleted struct {
 	DeletedAt time.Time `json:"deleted_at"`
 }
+
+// ConnectionKey defines model for ConnectionKey.
+type ConnectionKey struct {
+	Algorithm    *string              `json:"algorithm,omitempty"`
+	Cert         string               `json:"cert"`
+	Current      *bool                `json:"current,omitempty"`
+	CurrentSince *time.Time           `json:"current_since,omitempty"`
+	Fingerprint  string               `json:"fingerprint"`
+	KeyUse       *ConnectionKeyKeyUse `json:"key_use,omitempty"`
+	Kid          string               `json:"kid"`
+	Next         *bool                `json:"next,omitempty"`
+	Pkcs         *string              `json:"pkcs,omitempty"`
+	Previous     *bool                `json:"previous,omitempty"`
+	SubjectDn    *string              `json:"subject_dn,omitempty"`
+	Thumbprint   string               `json:"thumbprint"`
+}
+
+// ConnectionKeyKeyUse defines model for ConnectionKey.KeyUse.
+type ConnectionKeyKeyUse string
 
 // ConnectionOptionsApple Apple web and native connection contract (D-0170). Create requires client_id (Services ID), team_id, kid and
 // app_secret; no developer credentials are supplied. The Services ID
@@ -8544,6 +9226,228 @@ type ConnectionOptionsEmail struct {
 
 // ConnectionOptionsEmailEmailSyntax defines model for ConnectionOptionsEmail.Email.Syntax.
 type ConnectionOptionsEmailEmailSyntax string
+
+// ConnectionOptionsGitHub GitHub connection contract (Plan 39c, D-0181). Create requires client_id and
+// client_secret of a GitHub OAuth App; the secret is sealed and never
+// returned. PATCH omitting client_secret preserves it; empty or null is
+// refused. client_id is immutable. The endpoints are fixed to github.com
+// and api.github.com: GitHub Enterprise hosts, endpoint overrides, the
+// device flow and connected_accounts.active are rejected.
+// The requested scope is computed from the flags: user:email when
+// `email` is on (the default), then each true scope flag. `scope` is
+// returned on read as that effective array. An input `scope` is accepted
+// only when it equals the effective scope as a set; otherwise the request
+// is `400` naming the expected scope. `profile` is stored and returned
+// only: login always reads the GitHub user for the subject.
+// Rotating client_secret or changing the scope increments FederationRevision.
+type ConnectionOptionsGitHub struct {
+	// AdminOrg Requests the GitHub `admin:org` scope.
+	AdminOrg *bool `json:"admin_org,omitempty"`
+
+	// AdminPublicKey Requests the GitHub `admin:public_key` scope.
+	AdminPublicKey *bool `json:"admin_public_key,omitempty"`
+
+	// AdminRepoHook Requests the GitHub `admin:repo_hook` scope.
+	AdminRepoHook *bool `json:"admin_repo_hook,omitempty"`
+
+	// ClientId GitHub OAuth App client ID; immutable after creation.
+	ClientId *string `json:"client_id,omitempty"`
+
+	// ClientSecret Sealed at write and never returned, logged or exported.
+	ClientSecret *string `json:"client_secret,omitempty"`
+
+	// DeleteRepo Requests the GitHub `delete_repo` scope.
+	DeleteRepo *bool `json:"delete_repo,omitempty"`
+
+	// Email Requests user:email and reads the verified primary email; false creates users without an email.
+	Email *bool `json:"email,omitempty"`
+
+	// Follow Requests the GitHub `user:follow` scope.
+	Follow *bool `json:"follow,omitempty"`
+
+	// FreeformScopes Only absent or empty is accepted.
+	FreeformScopes *[]string `json:"freeform_scopes,omitempty"`
+
+	// Gist Requests the GitHub `gist` scope.
+	Gist *bool `json:"gist,omitempty"`
+
+	// NonPersistentAttrs Stored only.
+	NonPersistentAttrs *[]string `json:"non_persistent_attrs,omitempty"`
+
+	// Notifications Requests the GitHub `notifications` scope.
+	Notifications *bool `json:"notifications,omitempty"`
+
+	// Profile Stored and returned only; login always maps the GitHub user profile.
+	Profile *bool `json:"profile,omitempty"`
+
+	// PublicRepo Requests the GitHub `public_repo` scope.
+	PublicRepo *bool `json:"public_repo,omitempty"`
+
+	// ReadOrg Requests the GitHub `read:org` scope.
+	ReadOrg *bool `json:"read_org,omitempty"`
+
+	// ReadPublicKey Requests the GitHub `read:public_key` scope.
+	ReadPublicKey *bool `json:"read_public_key,omitempty"`
+
+	// ReadRepoHook Requests the GitHub `read:repo_hook` scope.
+	ReadRepoHook *bool `json:"read_repo_hook,omitempty"`
+
+	// ReadUser Requests the GitHub `read:user` scope.
+	ReadUser *bool `json:"read_user,omitempty"`
+
+	// Repo Requests the GitHub `repo` scope.
+	Repo *bool `json:"repo,omitempty"`
+
+	// RepoDeployment Requests the GitHub `repo_deployment` scope.
+	RepoDeployment *bool `json:"repo_deployment,omitempty"`
+
+	// RepoStatus Requests the GitHub `repo:status` scope.
+	RepoStatus *bool `json:"repo_status,omitempty"`
+
+	// Scope Effective scope computed from the flags. Input must equal it as a set.
+	Scope                 *[]string                                     `json:"scope,omitempty"`
+	SetUserRootAttributes *ConnectionOptionsGitHubSetUserRootAttributes `json:"set_user_root_attributes,omitempty"`
+
+	// UpstreamParams Stored only; reserved protocol and security overrides are refused (Plan 24 policy).
+	UpstreamParams *map[string]interface{} `json:"upstream_params,omitempty"`
+
+	// WriteOrg Requests the GitHub `write:org` scope.
+	WriteOrg *bool `json:"write_org,omitempty"`
+
+	// WritePublicKey Requests the GitHub `write:public_key` scope.
+	WritePublicKey *bool `json:"write_public_key,omitempty"`
+
+	// WriteRepoHook Requests the GitHub `write:repo_hook` scope.
+	WriteRepoHook        *bool                  `json:"write_repo_hook,omitempty"`
+	AdditionalProperties map[string]interface{} `json:"-"`
+}
+
+// ConnectionOptionsGitHubSetUserRootAttributes defines model for ConnectionOptionsGitHub.SetUserRootAttributes.
+type ConnectionOptionsGitHubSetUserRootAttributes string
+
+// ConnectionOptionsOIDC defines model for ConnectionOptionsOIDC.
+type ConnectionOptionsOIDC struct {
+	AttributeMap *struct {
+		Attributes    *map[string]string                            `json:"attributes,omitempty"`
+		MappingMode   *ConnectionOptionsOIDCAttributeMapMappingMode `json:"mapping_mode,omitempty"`
+		UserinfoScope *string                                       `json:"userinfo_scope,omitempty"`
+	} `json:"attribute_map,omitempty"`
+	AuthorizationEndpoint *string `json:"authorization_endpoint,omitempty"`
+	ClientId              string  `json:"client_id"`
+	ClientSecret          *string `json:"client_secret,omitempty"`
+	ConnectionSettings    *struct {
+		Pkce *ConnectionOptionsOIDCConnectionSettingsPkce `json:"pkce,omitempty"`
+	} `json:"connection_settings,omitempty"`
+	DiscoveryUrl                       *string                                           `json:"discovery_url,omitempty"`
+	DomainAliases                      *[]string                                         `json:"domain_aliases,omitempty"`
+	DpopSigningAlg                     *string                                           `json:"dpop_signing_alg,omitempty"`
+	EnablePushedAuthorizationRequests  *bool                                             `json:"enable_pushed_authorization_requests,omitempty"`
+	IconUrl                            *string                                           `json:"icon_url,omitempty"`
+	IdTokenEncryptedResponseAlg        *ConnectionOptionsOIDCIdTokenEncryptedResponseAlg `json:"id_token_encrypted_response_alg,omitempty"`
+	IdTokenEncryptedResponseEncs       *[]string                                         `json:"id_token_encrypted_response_encs,omitempty"`
+	IdTokenSessionExpirySupported      *bool                                             `json:"id_token_session_expiry_supported,omitempty"`
+	IdTokenSignedResponseAlgs          *[]string                                         `json:"id_token_signed_response_algs,omitempty"`
+	Issuer                             *string                                           `json:"issuer,omitempty"`
+	JwksUri                            *string                                           `json:"jwks_uri,omitempty"`
+	NonPersistentAttrs                 *[]string                                         `json:"non_persistent_attrs,omitempty"`
+	OidcMetadata                       *map[string]interface{}                           `json:"oidc_metadata,omitempty"`
+	PushedAuthorizationRequestEndpoint *string                                           `json:"pushed_authorization_request_endpoint,omitempty"`
+	Scope                              *string                                           `json:"scope,omitempty"`
+	Scopes                             *string                                           `json:"scopes,omitempty"`
+	SendBackChannelNonce               *bool                                             `json:"send_back_channel_nonce,omitempty"`
+	SetUserRootAttributes              *string                                           `json:"set_user_root_attributes,omitempty"`
+	TenantDomain                       *string                                           `json:"tenant_domain,omitempty"`
+	TokenEndpoint                      *string                                           `json:"token_endpoint,omitempty"`
+	TokenEndpointAuthMethod            *ConnectionOptionsOIDCTokenEndpointAuthMethod     `json:"token_endpoint_auth_method,omitempty"`
+	TokenEndpointAuthSigningAlg        *ConnectionOptionsOIDCTokenEndpointAuthSigningAlg `json:"token_endpoint_auth_signing_alg,omitempty"`
+	TokenEndpointJwtcaAudFormat        *ConnectionOptionsOIDCTokenEndpointJwtcaAudFormat `json:"token_endpoint_jwtca_aud_format,omitempty"`
+	Type                               *ConnectionOptionsOIDCType                        `json:"type,omitempty"`
+	UseOauthSpecScope                  *bool                                             `json:"useOauthSpecScope,omitempty"`
+	UserinfoEndpoint                   *string                                           `json:"userinfo_endpoint,omitempty"`
+}
+
+// ConnectionOptionsOIDCAttributeMapMappingMode defines model for ConnectionOptionsOIDC.AttributeMap.MappingMode.
+type ConnectionOptionsOIDCAttributeMapMappingMode string
+
+// ConnectionOptionsOIDCConnectionSettingsPkce defines model for ConnectionOptionsOIDC.ConnectionSettings.Pkce.
+type ConnectionOptionsOIDCConnectionSettingsPkce string
+
+// ConnectionOptionsOIDCIdTokenEncryptedResponseAlg defines model for ConnectionOptionsOIDC.IdTokenEncryptedResponseAlg.
+type ConnectionOptionsOIDCIdTokenEncryptedResponseAlg string
+
+// ConnectionOptionsOIDCTokenEndpointAuthMethod defines model for ConnectionOptionsOIDC.TokenEndpointAuthMethod.
+type ConnectionOptionsOIDCTokenEndpointAuthMethod string
+
+// ConnectionOptionsOIDCTokenEndpointAuthSigningAlg defines model for ConnectionOptionsOIDC.TokenEndpointAuthSigningAlg.
+type ConnectionOptionsOIDCTokenEndpointAuthSigningAlg string
+
+// ConnectionOptionsOIDCTokenEndpointJwtcaAudFormat defines model for ConnectionOptionsOIDC.TokenEndpointJwtcaAudFormat.
+type ConnectionOptionsOIDCTokenEndpointJwtcaAudFormat string
+
+// ConnectionOptionsOIDCType defines model for ConnectionOptionsOIDC.Type.
+type ConnectionOptionsOIDCType string
+
+// ConnectionOptionsOkta defines model for ConnectionOptionsOkta.
+type ConnectionOptionsOkta struct {
+	AttributeMap *struct {
+		Attributes    *map[string]string                            `json:"attributes,omitempty"`
+		MappingMode   *ConnectionOptionsOktaAttributeMapMappingMode `json:"mapping_mode,omitempty"`
+		UserinfoScope *string                                       `json:"userinfo_scope,omitempty"`
+	} `json:"attribute_map,omitempty"`
+	AuthorizationEndpoint *string `json:"authorization_endpoint,omitempty"`
+	ClientId              string  `json:"client_id"`
+	ClientSecret          *string `json:"client_secret,omitempty"`
+	ConnectionSettings    *struct {
+		Pkce *ConnectionOptionsOktaConnectionSettingsPkce `json:"pkce,omitempty"`
+	} `json:"connection_settings,omitempty"`
+	Domain                             string                                            `json:"domain"`
+	DomainAliases                      *[]string                                         `json:"domain_aliases,omitempty"`
+	DpopSigningAlg                     *string                                           `json:"dpop_signing_alg,omitempty"`
+	EnablePushedAuthorizationRequests  *bool                                             `json:"enable_pushed_authorization_requests,omitempty"`
+	IconUrl                            *string                                           `json:"icon_url,omitempty"`
+	IdTokenEncryptedResponseAlg        *ConnectionOptionsOktaIdTokenEncryptedResponseAlg `json:"id_token_encrypted_response_alg,omitempty"`
+	IdTokenEncryptedResponseEncs       *[]string                                         `json:"id_token_encrypted_response_encs,omitempty"`
+	IdTokenSessionExpirySupported      *bool                                             `json:"id_token_session_expiry_supported,omitempty"`
+	IdTokenSignedResponseAlgs          *[]string                                         `json:"id_token_signed_response_algs,omitempty"`
+	Issuer                             *string                                           `json:"issuer,omitempty"`
+	JwksUri                            *string                                           `json:"jwks_uri,omitempty"`
+	NonPersistentAttrs                 *[]string                                         `json:"non_persistent_attrs,omitempty"`
+	OidcMetadata                       *map[string]interface{}                           `json:"oidc_metadata,omitempty"`
+	PushedAuthorizationRequestEndpoint *string                                           `json:"pushed_authorization_request_endpoint,omitempty"`
+	Scope                              *string                                           `json:"scope,omitempty"`
+	Scopes                             *string                                           `json:"scopes,omitempty"`
+	SendBackChannelNonce               *bool                                             `json:"send_back_channel_nonce,omitempty"`
+	SetUserRootAttributes              *string                                           `json:"set_user_root_attributes,omitempty"`
+	TenantDomain                       *string                                           `json:"tenant_domain,omitempty"`
+	TokenEndpoint                      *string                                           `json:"token_endpoint,omitempty"`
+	TokenEndpointAuthMethod            *ConnectionOptionsOktaTokenEndpointAuthMethod     `json:"token_endpoint_auth_method,omitempty"`
+	TokenEndpointAuthSigningAlg        *ConnectionOptionsOktaTokenEndpointAuthSigningAlg `json:"token_endpoint_auth_signing_alg,omitempty"`
+	TokenEndpointJwtcaAudFormat        *ConnectionOptionsOktaTokenEndpointJwtcaAudFormat `json:"token_endpoint_jwtca_aud_format,omitempty"`
+	Type                               *ConnectionOptionsOktaType                        `json:"type,omitempty"`
+	UseOauthSpecScope                  *bool                                             `json:"useOauthSpecScope,omitempty"`
+	UserinfoEndpoint                   *string                                           `json:"userinfo_endpoint,omitempty"`
+}
+
+// ConnectionOptionsOktaAttributeMapMappingMode defines model for ConnectionOptionsOkta.AttributeMap.MappingMode.
+type ConnectionOptionsOktaAttributeMapMappingMode string
+
+// ConnectionOptionsOktaConnectionSettingsPkce defines model for ConnectionOptionsOkta.ConnectionSettings.Pkce.
+type ConnectionOptionsOktaConnectionSettingsPkce string
+
+// ConnectionOptionsOktaIdTokenEncryptedResponseAlg defines model for ConnectionOptionsOkta.IdTokenEncryptedResponseAlg.
+type ConnectionOptionsOktaIdTokenEncryptedResponseAlg string
+
+// ConnectionOptionsOktaTokenEndpointAuthMethod defines model for ConnectionOptionsOkta.TokenEndpointAuthMethod.
+type ConnectionOptionsOktaTokenEndpointAuthMethod string
+
+// ConnectionOptionsOktaTokenEndpointAuthSigningAlg defines model for ConnectionOptionsOkta.TokenEndpointAuthSigningAlg.
+type ConnectionOptionsOktaTokenEndpointAuthSigningAlg string
+
+// ConnectionOptionsOktaTokenEndpointJwtcaAudFormat defines model for ConnectionOptionsOkta.TokenEndpointJwtcaAudFormat.
+type ConnectionOptionsOktaTokenEndpointJwtcaAudFormat string
+
+// ConnectionOptionsOktaType defines model for ConnectionOptionsOkta.Type.
+type ConnectionOptionsOktaType string
 
 // ConnectionOptionsSMS Options of the `sms` passwordless connection (name `sms`).
 // `twilio_token` and `gateway_authentication.secret` are sealed,
@@ -8808,6 +9712,31 @@ type CustomSigningJWKS struct {
 	Keys []map[string]interface{} `json:"keys"`
 }
 
+// DPoPPolicy defines model for DPoPPolicy.
+type DPoPPolicy struct {
+	Mechanism   DPoPPolicyMechanism    `json:"mechanism"`
+	Required    bool                   `json:"required"`
+	RequiredFor *DPoPPolicyRequiredFor `json:"required_for,omitempty"`
+}
+
+// DPoPPolicyMechanism defines model for DPoPPolicy.Mechanism.
+type DPoPPolicyMechanism string
+
+// DPoPPolicyRequiredFor defines model for DPoPPolicy.RequiredFor.
+type DPoPPolicyRequiredFor string
+
+// DefaultTokenQuota Fallback quotas for clients and organizations that have no override. Null removes the defaults.
+type DefaultTokenQuota struct {
+	Clients       *DefaultTokenQuotaSubject `json:"clients,omitempty"`
+	Organizations *DefaultTokenQuotaSubject `json:"organizations,omitempty"`
+}
+
+// DefaultTokenQuotaSubject defines model for DefaultTokenQuotaSubject.
+type DefaultTokenQuotaSubject struct {
+	ClientCredentials    IITokenQuotaClientCredentials `json:"client_credentials"`
+	AdditionalProperties map[string]interface{}        `json:"-"`
+}
+
 // EmailPreview defines model for EmailPreview.
 type EmailPreview struct {
 	From      string `json:"from"`
@@ -8831,9 +9760,16 @@ type EmailPreviewRequest struct {
 
 // EmailProvider defines model for EmailProvider.
 type EmailProvider struct {
+	Credentials *struct {
+		ApiUser  *string `json:"api_user,omitempty"`
+		Region   *string `json:"region,omitempty"`
+		SmtpHost *string `json:"smtp_host,omitempty"`
+		SmtpPort *int    `json:"smtp_port,omitempty"`
+		SmtpUser *string `json:"smtp_user,omitempty"`
+	} `json:"credentials,omitempty"`
 	DefaultFromAddress *string                 `json:"default_from_address,omitempty"`
-	Enabled            bool                    `json:"enabled"`
-	Name               string                  `json:"name"`
+	Enabled            *bool                   `json:"enabled,omitempty"`
+	Name               *string                 `json:"name,omitempty"`
 	Settings           *map[string]interface{} `json:"settings,omitempty"`
 }
 
@@ -8891,7 +9827,10 @@ type EmailVerificationTicketCreate struct {
 	Identity               *TicketIdentity `json:"identity,omitempty"`
 	IncludeEmailInRedirect *bool           `json:"includeEmailInRedirect,omitempty"`
 
-	// ResultUrl Where the page redirects after opening. Not with `client_id`.
+	// OrganizationId The organization whose branding the result page uses. The user must be a member.
+	OrganizationId *string `json:"organization_id,omitempty"`
+
+	// ResultUrl Where the page redirects after opening. Not with `client_id` or `organization_id`.
 	ResultUrl *string `json:"result_url,omitempty"`
 
 	// TtlSec Seconds the ticket is valid; 0 or absent is 432000 (5 days).
@@ -9502,8 +10441,10 @@ type IIOrganization struct {
 	Metadata               *IIOrganizationMetadata                   `json:"metadata,omitempty"`
 	Name                   *string                                   `json:"name,omitempty"`
 	ThirdPartyClientAccess *IIOrganizationThirdPartyClientAccessEnum `json:"third_party_client_access,omitempty"`
-	TokenQuota             *IITokenQuota                             `json:"token_quota,omitempty"`
-	AdditionalProperties   map[string]interface{}                    `json:"-"`
+
+	// TokenQuota Application or organization quota for the client-credentials grant. Null removes the override.
+	TokenQuota           *IITokenQuota          `json:"token_quota,omitempty"`
+	AdditionalProperties map[string]interface{} `json:"-"`
 }
 
 // IIOrganizationAccessLevelEnum defines model for IIOrganizationAccessLevelEnum.
@@ -9611,8 +10552,10 @@ type IISearchOrganization struct {
 	IsAppEntitlementActive *bool                                     `json:"is_app_entitlement_active,omitempty"`
 	Name                   *string                                   `json:"name,omitempty"`
 	ThirdPartyClientAccess *IIOrganizationThirdPartyClientAccessEnum `json:"third_party_client_access,omitempty"`
-	TokenQuota             *IITokenQuota                             `json:"token_quota,omitempty"`
-	AdditionalProperties   map[string]interface{}                    `json:"-"`
+
+	// TokenQuota Application or organization quota for the client-credentials grant. Null removes the override.
+	TokenQuota           *IITokenQuota          `json:"token_quota,omitempty"`
+	AdditionalProperties map[string]interface{} `json:"-"`
 }
 
 // IISearchOrganizationsPaginatedResponseContent defines model for IISearchOrganizationsPaginatedResponseContent.
@@ -9624,7 +10567,7 @@ type IISearchOrganizationsPaginatedResponseContent struct {
 // IISearchParserEnum defines model for IISearchParserEnum.
 type IISearchParserEnum string
 
-// IITokenQuota defines model for IITokenQuota.
+// IITokenQuota Application or organization quota for the client-credentials grant. Null removes the override.
 type IITokenQuota struct {
 	ClientCredentials IITokenQuotaClientCredentials `json:"client_credentials"`
 }
@@ -9762,17 +10705,17 @@ type JobPage struct {
 
 // JwtConfiguration ID token settings.
 type JwtConfiguration struct {
-	// Alg The signing algorithm; zeroauthy signs with RS256 only.
+	// Alg ID token algorithm. HS256 requires a confidential client with a usable client secret (D-0080).
 	Alg *JwtConfigurationAlg `json:"alg,omitempty"`
 
 	// LifetimeInSeconds ID token lifetime; 36000 by default.
 	LifetimeInSeconds *int `json:"lifetime_in_seconds,omitempty"`
 
-	// SecretEncoded Accepted and ignored (HS256 is not offered).
+	// SecretEncoded Legacy setting, accepted and ignored. HS256 uses the client secret UTF-8 bytes (D-0080).
 	SecretEncoded *bool `json:"secret_encoded,omitempty"`
 }
 
-// JwtConfigurationAlg The signing algorithm; zeroauthy signs with RS256 only.
+// JwtConfigurationAlg ID token algorithm. HS256 requires a confidential client with a usable client secret (D-0080).
 type JwtConfigurationAlg string
 
 // ListTotals The paging members of a list returned with `include_totals=true`; the
@@ -11380,6 +12323,9 @@ type Organization struct {
 
 	// ThirdPartyClientAccess `block` (default) or `allow`.
 	ThirdPartyClientAccess string `json:"third_party_client_access"`
+
+	// TokenQuota Application or organization quota for the client-credentials grant. Null removes the override.
+	TokenQuota *IITokenQuota `json:"token_quota,omitempty"`
 }
 
 // OrganizationBranding defines model for OrganizationBranding.
@@ -11473,6 +12419,9 @@ type OrganizationCreate struct {
 
 	// ThirdPartyClientAccess `block` (default) or `allow`.
 	ThirdPartyClientAccess *string `json:"third_party_client_access,omitempty"`
+
+	// TokenQuota Application or organization quota for the client-credentials grant. Null removes the override.
+	TokenQuota *IITokenQuota `json:"token_quota,omitempty"`
 }
 
 // OrganizationCreated The create response, which alone echoes the enabled connections.
@@ -11491,6 +12440,9 @@ type OrganizationCreated struct {
 
 	// ThirdPartyClientAccess `block` (default) or `allow`.
 	ThirdPartyClientAccess string `json:"third_party_client_access"`
+
+	// TokenQuota Application or organization quota for the client-credentials grant. Null removes the override.
+	TokenQuota *IITokenQuota `json:"token_quota,omitempty"`
 }
 
 // OrganizationDiscoveryDomain defines model for OrganizationDiscoveryDomain.
@@ -11663,6 +12615,9 @@ type OrganizationUpdate struct {
 
 	// ThirdPartyClientAccess `block` (default) or `allow`.
 	ThirdPartyClientAccess *string `json:"third_party_client_access,omitempty"`
+
+	// TokenQuota Application or organization quota for the client-credentials grant. Null removes the override.
+	TokenQuota *IITokenQuota `json:"token_quota,omitempty"`
 }
 
 // OrganizationsCheckpoint A checkpoint page; `next` is present while more remain.
@@ -11703,6 +12658,23 @@ type PasswordChangeTicketCreate struct {
 	TtlSec *int    `json:"ttl_sec,omitempty"`
 	UserId *string `json:"user_id,omitempty"`
 }
+
+// PasswordlessTryRequest defines model for PasswordlessTryRequest.
+type PasswordlessTryRequest struct {
+	ClientId string `json:"client_id"`
+
+	// Email Required for an email connection.
+	Email *openapi_types.Email `json:"email,omitempty"`
+
+	// PhoneNumber E.164 number required for an SMS connection.
+	PhoneNumber *string `json:"phone_number,omitempty"`
+
+	// Send Defaults to code for SMS and link for email.
+	Send *PasswordlessTryRequestSend `json:"send,omitempty"`
+}
+
+// PasswordlessTryRequestSend Defaults to code for SMS and link for email.
+type PasswordlessTryRequestSend string
 
 // PhoneDeliveryMethods defines model for PhoneDeliveryMethods.
 type PhoneDeliveryMethods = []string
@@ -11847,6 +12819,22 @@ type PhoneTestRequest struct {
 // PhoneTestRequestDeliveryMethod defines model for PhoneTestRequest.DeliveryMethod.
 type PhoneTestRequestDeliveryMethod string
 
+// PostConnectionKeysRequestContent defines model for PostConnectionKeysRequestContent.
+type PostConnectionKeysRequestContent struct {
+	EncryptionAlg *PostConnectionKeysRequestContentEncryptionAlg `json:"encryption_alg,omitempty"`
+	KeyUse        *PostConnectionKeysRequestContentKeyUse        `json:"key_use,omitempty"`
+	SigningAlg    *PostConnectionKeysRequestContentSigningAlg    `json:"signing_alg,omitempty"`
+}
+
+// PostConnectionKeysRequestContentEncryptionAlg defines model for PostConnectionKeysRequestContent.EncryptionAlg.
+type PostConnectionKeysRequestContentEncryptionAlg string
+
+// PostConnectionKeysRequestContentKeyUse defines model for PostConnectionKeysRequestContent.KeyUse.
+type PostConnectionKeysRequestContentKeyUse string
+
+// PostConnectionKeysRequestContentSigningAlg defines model for PostConnectionKeysRequestContent.SigningAlg.
+type PostConnectionKeysRequestContentSigningAlg string
+
 // RBACPermission defines model for RBACPermission.
 type RBACPermission struct {
 	Description              string                  `json:"description"`
@@ -11885,6 +12873,86 @@ type RBACPermissionSource struct {
 // RBACPermissionSourceSourceType defines model for RBACPermissionSource.SourceType.
 type RBACPermissionSourceSourceType string
 
+// RefreshToken defines model for RefreshToken.
+type RefreshToken struct {
+	ClientId  *string    `json:"client_id,omitempty"`
+	CreatedAt *time.Time `json:"created_at,omitempty"`
+
+	// Device Device details recorded when the refresh token was issued and last exchanged.
+	Device        *RefreshTokenDevice `json:"device,omitempty"`
+	ExpiresAt     *time.Time          `json:"expires_at,omitempty"`
+	Id            *string             `json:"id,omitempty"`
+	IdleExpiresAt *time.Time          `json:"idle_expires_at,omitempty"`
+
+	// LastExchangedAt The last successful exchange, or null before the first exchange.
+	LastExchangedAt      *time.Time            `json:"last_exchanged_at,omitempty"`
+	RefreshTokenMetadata *RefreshTokenMetadata `json:"refresh_token_metadata,omitempty"`
+
+	// ResourceServers The API the token is for with its space-separated scopes; the tenant's `/userinfo` audience when it has no API.
+	ResourceServers *[]struct {
+		Audience string `json:"audience"`
+		Scopes   string `json:"scopes"`
+	} `json:"resource_servers,omitempty"`
+	Rotating  *bool   `json:"rotating,omitempty"`
+	SessionId *string `json:"session_id,omitempty"`
+	UserId    *string `json:"user_id,omitempty"`
+}
+
+// RefreshTokenDevice Device details recorded when the refresh token was issued and last exchanged.
+type RefreshTokenDevice struct {
+	// InitialAsn Empty because ASN lookup is unavailable.
+	InitialAsn       *string `json:"initial_asn,omitempty"`
+	InitialIp        *string `json:"initial_ip,omitempty"`
+	InitialUserAgent *string `json:"initial_user_agent,omitempty"`
+
+	// LastAsn Empty because ASN lookup is unavailable.
+	LastAsn       *string `json:"last_asn,omitempty"`
+	LastIp        *string `json:"last_ip,omitempty"`
+	LastUserAgent *string `json:"last_user_agent,omitempty"`
+}
+
+// RefreshTokenMetadata defines model for RefreshTokenMetadata.
+type RefreshTokenMetadata map[string]string
+
+// RefreshTokenMetadataUpdate defines model for RefreshTokenMetadataUpdate.
+type RefreshTokenMetadataUpdate struct {
+	RefreshTokenMetadata *RefreshTokenMetadata `json:"refresh_token_metadata"`
+}
+
+// RefreshTokenPage defines model for RefreshTokenPage.
+type RefreshTokenPage struct {
+	// Next Cursor to pass as `from` on the next request.
+	Next          *string        `json:"next,omitempty"`
+	RefreshTokens []RefreshToken `json:"refresh_tokens"`
+}
+
+// RefreshTokenPolicy defines model for RefreshTokenPolicy.
+type RefreshTokenPolicy struct {
+	Audience string   `json:"audience"`
+	Scope    []string `json:"scope"`
+}
+
+// RefreshTokenRevocation defines model for RefreshTokenRevocation.
+type RefreshTokenRevocation struct {
+	Audience *string   `json:"audience,omitempty"`
+	ClientId *string   `json:"client_id,omitempty"`
+	Ids      *[]string `json:"ids,omitempty"`
+	UserId   *string   `json:"user_id,omitempty"`
+	union    json.RawMessage
+}
+
+// RefreshTokenRevocation0 defines model for RefreshTokenRevocation.0.
+type RefreshTokenRevocation0 = interface{}
+
+// RefreshTokenRevocation1 defines model for RefreshTokenRevocation.1.
+type RefreshTokenRevocation1 = interface{}
+
+// RefreshTokenRevocation2 defines model for RefreshTokenRevocation.2.
+type RefreshTokenRevocation2 = interface{}
+
+// RefreshTokenRevocation3 defines model for RefreshTokenRevocation.3.
+type RefreshTokenRevocation3 = interface{}
+
 // RefreshTokenSettings The refresh tokens the application receives.
 type RefreshTokenSettings struct {
 	ExpirationType *RefreshTokenSettingsExpirationType `json:"expiration_type,omitempty"`
@@ -11898,8 +12966,13 @@ type RefreshTokenSettings struct {
 	// InfiniteTokenLifetime True for non-expiring tokens; derived from `expiration_type`.
 	InfiniteTokenLifetime *bool `json:"infinite_token_lifetime,omitempty"`
 
-	// Leeway Seconds a rotated token may still be used.
-	Leeway       *int                              `json:"leeway,omitempty"`
+	// Leeway Seconds during which only the immediately previous rotating token may be exchanged again.
+	Leeway *int `json:"leeway,omitempty"`
+
+	// Policies API audiences and scopes available to this first-party application
+	// during refresh token exchange. Audience identifiers must be unique.
+	// The Management API is excluded. Null clears the policies.
+	Policies     *[]RefreshTokenPolicy             `json:"policies,omitempty"`
 	RotationType *RefreshTokenSettingsRotationType `json:"rotation_type,omitempty"`
 
 	// TokenLifetime Absolute lifetime in seconds.
@@ -11914,8 +12987,10 @@ type RefreshTokenSettingsRotationType string
 
 // ResourceServer An API.
 type ResourceServer struct {
-	AllowOfflineAccess bool `json:"allow_offline_access"`
-	EnforcePolicies    bool `json:"enforce_policies"`
+	AllowOfflineAccess                     bool  `json:"allow_offline_access"`
+	AllowOnlineAccess                      *bool `json:"allow_online_access,omitempty"`
+	AllowOnlineAccessWithEphemeralSessions *bool `json:"allow_online_access_with_ephemeral_sessions,omitempty"`
+	EnforcePolicies                        bool  `json:"enforce_policies"`
 
 	// Id The API's ID: 24 hexadecimal characters for APIs created through the API.
 	Id         string `json:"id"`
@@ -11925,7 +13000,8 @@ type ResourceServer struct {
 	IsSystem *bool `json:"is_system,omitempty"`
 
 	// Name Absent when the API has no name.
-	Name *string `json:"name,omitempty"`
+	Name              *string     `json:"name,omitempty"`
+	ProofOfPossession *DPoPPolicy `json:"proof_of_possession,omitempty"`
 
 	// Scopes Absent when the API defines none.
 	Scopes     *[]ResourceServerScope   `json:"scopes,omitempty"`
@@ -11971,6 +13047,12 @@ type ResourceServerCreate struct {
 	// AllowOfflineAccess Whether clients may get refresh tokens for the API.
 	AllowOfflineAccess *bool `json:"allow_offline_access,omitempty"`
 
+	// AllowOnlineAccess Allow clients to obtain session-bound refresh tokens for this API.
+	AllowOnlineAccess *bool `json:"allow_online_access,omitempty"`
+
+	// AllowOnlineAccessWithEphemeralSessions Allow online refresh token issuance for ephemeral sessions when online access is enabled.
+	AllowOnlineAccessWithEphemeralSessions *bool `json:"allow_online_access_with_ephemeral_sessions,omitempty"`
+
 	// AuthorizationDetails Only null or an empty list is accepted (rich authorization requests are not supported).
 	AuthorizationDetails interface{} `json:"authorization_details,omitempty"`
 
@@ -11984,10 +13066,8 @@ type ResourceServerCreate struct {
 	Identifier string `json:"identifier"`
 
 	// Name The API's name. Optional; absent when not given.
-	Name *string `json:"name,omitempty"`
-
-	// ProofOfPossession Only null is accepted (mTLS and DPoP are not supported).
-	ProofOfPossession interface{} `json:"proof_of_possession,omitempty"`
+	Name              *string     `json:"name,omitempty"`
+	ProofOfPossession *DPoPPolicy `json:"proof_of_possession,omitempty"`
 
 	// Scopes The API's permissions. Values are unique.
 	Scopes *[]ResourceServerScope `json:"scopes,omitempty"`
@@ -11998,7 +13078,7 @@ type ResourceServerCreate struct {
 	// (D-0063).
 	SigningAlg *ResourceServerCreateSigningAlg `json:"signing_alg,omitempty"`
 
-	// SigningSecret HS256 only: at least 16 characters (C15). Generated (32 random
+	// SigningSecret HS256 only: at least 32 characters on new writes (D-0080). Generated (32 random
 	// bytes, base64url) when an HS256 API is created without one; sent
 	// with `signing_alg` RS256 or PS256 it is refused (`invalid_body`).
 	SigningSecret                             *string `json:"signing_secret,omitempty"`
@@ -12059,6 +13139,12 @@ type ResourceServerSettings struct {
 	// AllowOfflineAccess Whether clients may get refresh tokens for the API.
 	AllowOfflineAccess *bool `json:"allow_offline_access,omitempty"`
 
+	// AllowOnlineAccess Allow clients to obtain session-bound refresh tokens for this API.
+	AllowOnlineAccess *bool `json:"allow_online_access,omitempty"`
+
+	// AllowOnlineAccessWithEphemeralSessions Allow online refresh token issuance for ephemeral sessions when online access is enabled.
+	AllowOnlineAccessWithEphemeralSessions *bool `json:"allow_online_access_with_ephemeral_sessions,omitempty"`
+
 	// AuthorizationDetails Only null or an empty list is accepted (rich authorization requests are not supported).
 	AuthorizationDetails interface{} `json:"authorization_details,omitempty"`
 
@@ -12069,10 +13155,8 @@ type ResourceServerSettings struct {
 	EnforcePolicies *bool `json:"enforce_policies,omitempty"`
 
 	// Name The API's name. Optional; absent when not given.
-	Name *string `json:"name,omitempty"`
-
-	// ProofOfPossession Only null is accepted (mTLS and DPoP are not supported).
-	ProofOfPossession interface{} `json:"proof_of_possession,omitempty"`
+	Name              *string     `json:"name,omitempty"`
+	ProofOfPossession *DPoPPolicy `json:"proof_of_possession,omitempty"`
 
 	// Scopes The API's permissions. Values are unique.
 	Scopes *[]ResourceServerScope `json:"scopes,omitempty"`
@@ -12083,7 +13167,7 @@ type ResourceServerSettings struct {
 	// (D-0063).
 	SigningAlg *ResourceServerSettingsSigningAlg `json:"signing_alg,omitempty"`
 
-	// SigningSecret HS256 only: at least 16 characters (C15). Generated (32 random
+	// SigningSecret HS256 only: at least 32 characters on new writes (D-0080). Generated (32 random
 	// bytes, base64url) when an HS256 API is created without one; sent
 	// with `signing_alg` RS256 or PS256 it is refused (`invalid_body`).
 	SigningSecret                             *string `json:"signing_secret,omitempty"`
@@ -12224,6 +13308,14 @@ type SessionDevice struct {
 	LastUserAgent    *string `json:"last_user_agent,omitempty"`
 }
 
+// SessionMetadata defines model for SessionMetadata.
+type SessionMetadata map[string]string
+
+// SessionMetadataUpdate defines model for SessionMetadataUpdate.
+type SessionMetadataUpdate struct {
+	SessionMetadata *SessionMetadata `json:"session_metadata"`
+}
+
 // SignedRequestObject JAR settings. Prefer a different key from `private_key_jwt` (advice, not enforced).
 type SignedRequestObject struct {
 	Credentials *[]ClientCredentialRef `json:"credentials,omitempty"`
@@ -12338,7 +13430,7 @@ type SystemTenant struct {
 	Domains      []string `json:"domains"`
 	FriendlyName string   `json:"friendly_name"`
 
-	// Host The tenant's canonical host, where the console calls its Management API.
+	// Host The tenant's canonical host. It serves the tenant's public Management API.
 	Host string `json:"host"`
 
 	// ManagementApiIdentifier The audience of the tenant's machine-to-machine Management API tokens.
@@ -12376,7 +13468,7 @@ type TenantSettings struct {
 		} `json:"claims_mapping,omitempty"`
 	} `json:"access_token,omitempty"`
 
-	// AcrValuesSupported Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
+	// AcrValuesSupported Effective discovery values are intersected with the supported multi-factor context. Absent or null uses the supported default; an empty list disables it (D-0080).
 	AcrValuesSupported *[]string `json:"acr_values_supported,omitempty"`
 
 	// AllowOrganizationNameInAuthenticationApi Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
@@ -12412,11 +13504,8 @@ type TenantSettings struct {
 	// DefaultRedirectionUri Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
 	DefaultRedirectionUri *string `json:"default_redirection_uri,omitempty"`
 
-	// DefaultTokenQuota Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
-	DefaultTokenQuota *struct {
-		Clients       *TenantSettings_DefaultTokenQuota_Clients       `json:"clients,omitempty"`
-		Organizations *TenantSettings_DefaultTokenQuota_Organizations `json:"organizations,omitempty"`
-	} `json:"default_token_quota,omitempty"`
+	// DefaultTokenQuota Fallback quotas for clients and organizations that have no override. Null removes the defaults.
+	DefaultTokenQuota *DefaultTokenQuota `json:"default_token_quota,omitempty"`
 
 	// DeviceFlow Shapes device codes. Empty mask uses the runtime default. A nonempty mask must satisfy runtime code entropy requirements before device authorization can issue a code.
 	DeviceFlow *struct {
@@ -12424,7 +13513,7 @@ type TenantSettings struct {
 		Mask    *string                          `json:"mask,omitempty"`
 	} `json:"device_flow,omitempty"`
 
-	// DpopStrictRefreshTokenBinding Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
+	// DpopStrictRefreshTokenBinding Bind refresh tokens to any supplied DPoP proof independently of API access-token settings. New tenants default to true; explicit false retains legacy per-API binding.
 	DpopStrictRefreshTokenBinding *bool `json:"dpop_strict_refresh_token_binding,omitempty"`
 
 	// DynamicClientRegistrationSecurityMode Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
@@ -12474,8 +13563,10 @@ type TenantSettings struct {
 		MfaShowFactorListOnEnrollment                  *bool `json:"mfa_show_factor_list_on_enrollment,omitempty"`
 		NoDiscloseEnterpriseConnections                *bool `json:"no_disclose_enterprise_connections,omitempty"`
 		RemoveAlgFromJwks                              *bool `json:"remove_alg_from_jwks,omitempty"`
-		RevokeRefreshTokenGrant                        *bool `json:"revoke_refresh_token_grant,omitempty"`
-		TrustAzureAdfsEmailVerifiedConnectionProperty  *bool `json:"trust_azure_adfs_email_verified_connection_property,omitempty"`
+
+		// RevokeRefreshTokenGrant Whether OAuth refresh token revocation also deletes the associated user grant.
+		RevokeRefreshTokenGrant                       *bool `json:"revoke_refresh_token_grant,omitempty"`
+		TrustAzureAdfsEmailVerifiedConnectionProperty *bool `json:"trust_azure_adfs_email_verified_connection_property,omitempty"`
 	} `json:"flags,omitempty"`
 	FriendlyName *string `json:"friendly_name,omitempty"`
 
@@ -12502,7 +13593,7 @@ type TenantSettings struct {
 		EnableEndpointAliases *bool `json:"enable_endpoint_aliases,omitempty"`
 	} `json:"mtls,omitempty"`
 
-	// OidcLogout Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
+	// OidcLogout Controls RP-initiated logout endpoint discovery. False hides its metadata entry without disabling the endpoint (D-0080).
 	OidcLogout *struct {
 		RpLogoutEndSessionEndpointDiscovery *bool `json:"rp_logout_end_session_endpoint_discovery,omitempty"`
 	} `json:"oidc_logout,omitempty"`
@@ -12512,7 +13603,7 @@ type TenantSettings struct {
 	PictureUrl                           *string `json:"picture_url,omitempty"`
 	PushedAuthorizationRequestsSupported *bool   `json:"pushed_authorization_requests_supported,omitempty"`
 
-	// ResourceParameterProfile Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
+	// ResourceParameterProfile Audience profile ignores resource; compatibility uses one resource as an audience alias and rejects conflicting or multiple values (D-0080).
 	ResourceParameterProfile *TenantSettingsResourceParameterProfile `json:"resource_parameter_profile,omitempty"`
 
 	// SandboxVersion Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
@@ -12574,26 +13665,6 @@ type TenantSettings struct {
 // TenantSettingsCountryCodesMode defines model for TenantSettings.CountryCodes.Mode.
 type TenantSettingsCountryCodesMode string
 
-// TenantSettings_DefaultTokenQuota_Clients defines model for TenantSettings.DefaultTokenQuota.Clients.
-type TenantSettings_DefaultTokenQuota_Clients struct {
-	ClientCredentials struct {
-		Enforce *bool `json:"enforce,omitempty"`
-		PerDay  *int  `json:"per_day,omitempty"`
-		PerHour *int  `json:"per_hour,omitempty"`
-	} `json:"client_credentials"`
-	AdditionalProperties map[string]interface{} `json:"-"`
-}
-
-// TenantSettings_DefaultTokenQuota_Organizations defines model for TenantSettings.DefaultTokenQuota.Organizations.
-type TenantSettings_DefaultTokenQuota_Organizations struct {
-	ClientCredentials struct {
-		Enforce *bool `json:"enforce,omitempty"`
-		PerDay  *int  `json:"per_day,omitempty"`
-		PerHour *int  `json:"per_hour,omitempty"`
-	} `json:"client_credentials"`
-	AdditionalProperties map[string]interface{} `json:"-"`
-}
-
 // TenantSettingsDeviceFlowCharset defines model for TenantSettings.DeviceFlow.Charset.
 type TenantSettingsDeviceFlowCharset string
 
@@ -12603,7 +13674,7 @@ type TenantSettingsDynamicClientRegistrationSecurityMode string
 // TenantSettingsEnabledLocales defines model for TenantSettings.EnabledLocales.
 type TenantSettingsEnabledLocales string
 
-// TenantSettingsResourceParameterProfile Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
+// TenantSettingsResourceParameterProfile Audience profile ignores resource; compatibility uses one resource as an audience alias and rejects conflicting or multiple values (D-0080).
 type TenantSettingsResourceParameterProfile string
 
 // TenantSettingsSecurityHeadersContentSecurityPolicyPoliciesFlags defines model for TenantSettings.SecurityHeaders.ContentSecurityPolicy.Policies.Flags.
@@ -12630,7 +13701,7 @@ type TenantSettingsPatch struct {
 		} `json:"claims_mapping,omitempty"`
 	} `json:"access_token,omitempty"`
 
-	// AcrValuesSupported Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
+	// AcrValuesSupported Effective discovery values are intersected with the supported multi-factor context. Absent or null uses the supported default; an empty list disables it (D-0080).
 	AcrValuesSupported *[]string `json:"acr_values_supported,omitempty"`
 
 	// AllowOrganizationNameInAuthenticationApi Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
@@ -12666,11 +13737,8 @@ type TenantSettingsPatch struct {
 	// DefaultRedirectionUri Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
 	DefaultRedirectionUri *string `json:"default_redirection_uri,omitempty"`
 
-	// DefaultTokenQuota Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
-	DefaultTokenQuota *struct {
-		Clients       *TenantSettingsPatch_DefaultTokenQuota_Clients       `json:"clients,omitempty"`
-		Organizations *TenantSettingsPatch_DefaultTokenQuota_Organizations `json:"organizations,omitempty"`
-	} `json:"default_token_quota,omitempty"`
+	// DefaultTokenQuota Fallback quotas for clients and organizations that have no override. Null removes the defaults.
+	DefaultTokenQuota *DefaultTokenQuota `json:"default_token_quota,omitempty"`
 
 	// DeviceFlow Shapes device codes. Empty mask uses the runtime default. A nonempty mask must satisfy runtime code entropy requirements before device authorization can issue a code.
 	DeviceFlow *struct {
@@ -12678,7 +13746,7 @@ type TenantSettingsPatch struct {
 		Mask    *string                               `json:"mask,omitempty"`
 	} `json:"device_flow,omitempty"`
 
-	// DpopStrictRefreshTokenBinding Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
+	// DpopStrictRefreshTokenBinding Bind refresh tokens to any supplied DPoP proof independently of API access-token settings. New tenants default to true; explicit false retains legacy per-API binding.
 	DpopStrictRefreshTokenBinding *bool `json:"dpop_strict_refresh_token_binding,omitempty"`
 
 	// DynamicClientRegistrationSecurityMode Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
@@ -12731,8 +13799,10 @@ type TenantSettingsPatch struct {
 		MfaShowFactorListOnEnrollment                  *bool `json:"mfa_show_factor_list_on_enrollment,omitempty"`
 		NoDiscloseEnterpriseConnections                *bool `json:"no_disclose_enterprise_connections,omitempty"`
 		RemoveAlgFromJwks                              *bool `json:"remove_alg_from_jwks,omitempty"`
-		RevokeRefreshTokenGrant                        *bool `json:"revoke_refresh_token_grant,omitempty"`
-		TrustAzureAdfsEmailVerifiedConnectionProperty  *bool `json:"trust_azure_adfs_email_verified_connection_property,omitempty"`
+
+		// RevokeRefreshTokenGrant Whether OAuth refresh token revocation also deletes the associated user grant.
+		RevokeRefreshTokenGrant                       *bool `json:"revoke_refresh_token_grant,omitempty"`
+		TrustAzureAdfsEmailVerifiedConnectionProperty *bool `json:"trust_azure_adfs_email_verified_connection_property,omitempty"`
 	} `json:"flags,omitempty"`
 	FriendlyName *string `json:"friendly_name,omitempty"`
 
@@ -12765,7 +13835,7 @@ type TenantSettingsPatch struct {
 		EnableEndpointAliases *bool `json:"enable_endpoint_aliases,omitempty"`
 	} `json:"mtls,omitempty"`
 
-	// OidcLogout Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
+	// OidcLogout Controls RP-initiated logout endpoint discovery. False hides its metadata entry without disabling the endpoint (D-0080).
 	OidcLogout *struct {
 		RpLogoutEndSessionEndpointDiscovery *bool `json:"rp_logout_end_session_endpoint_discovery,omitempty"`
 	} `json:"oidc_logout,omitempty"`
@@ -12775,7 +13845,7 @@ type TenantSettingsPatch struct {
 	PictureUrl                           *string `json:"picture_url,omitempty"`
 	PushedAuthorizationRequestsSupported *bool   `json:"pushed_authorization_requests_supported,omitempty"`
 
-	// ResourceParameterProfile Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
+	// ResourceParameterProfile Audience profile ignores resource; compatibility uses one resource as an audience alias and rejects conflicting or multiple values (D-0080).
 	ResourceParameterProfile *TenantSettingsPatchResourceParameterProfile `json:"resource_parameter_profile,omitempty"`
 
 	// SandboxVersion Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
@@ -12837,26 +13907,6 @@ type TenantSettingsPatch struct {
 // TenantSettingsPatchCountryCodesMode defines model for TenantSettingsPatch.CountryCodes.Mode.
 type TenantSettingsPatchCountryCodesMode string
 
-// TenantSettingsPatch_DefaultTokenQuota_Clients defines model for TenantSettingsPatch.DefaultTokenQuota.Clients.
-type TenantSettingsPatch_DefaultTokenQuota_Clients struct {
-	ClientCredentials struct {
-		Enforce *bool `json:"enforce,omitempty"`
-		PerDay  *int  `json:"per_day,omitempty"`
-		PerHour *int  `json:"per_hour,omitempty"`
-	} `json:"client_credentials"`
-	AdditionalProperties map[string]interface{} `json:"-"`
-}
-
-// TenantSettingsPatch_DefaultTokenQuota_Organizations defines model for TenantSettingsPatch.DefaultTokenQuota.Organizations.
-type TenantSettingsPatch_DefaultTokenQuota_Organizations struct {
-	ClientCredentials struct {
-		Enforce *bool `json:"enforce,omitempty"`
-		PerDay  *int  `json:"per_day,omitempty"`
-		PerHour *int  `json:"per_hour,omitempty"`
-	} `json:"client_credentials"`
-	AdditionalProperties map[string]interface{} `json:"-"`
-}
-
 // TenantSettingsPatchDeviceFlowCharset defines model for TenantSettingsPatch.DeviceFlow.Charset.
 type TenantSettingsPatchDeviceFlowCharset string
 
@@ -12866,7 +13916,7 @@ type TenantSettingsPatchDynamicClientRegistrationSecurityMode string
 // TenantSettingsPatchEnabledLocales defines model for TenantSettingsPatch.EnabledLocales.
 type TenantSettingsPatchEnabledLocales string
 
-// TenantSettingsPatchResourceParameterProfile Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
+// TenantSettingsPatchResourceParameterProfile Audience profile ignores resource; compatibility uses one resource as an audience alias and rejects conflicting or multiple values (D-0080).
 type TenantSettingsPatchResourceParameterProfile string
 
 // TenantSettingsPatchSecurityHeadersContentSecurityPolicyPoliciesFlags defines model for TenantSettingsPatch.SecurityHeaders.ContentSecurityPolicy.Policies.Flags.
@@ -13122,12 +14172,15 @@ type UserRefreshToken struct {
 	ClientId  string    `json:"client_id"`
 	CreatedAt time.Time `json:"created_at"`
 
-	// Device The IP addresses and user agents of the session; there are no ASN keys.
-	Device          *SessionDevice `json:"device,omitempty"`
-	ExpiresAt       *time.Time     `json:"expires_at"`
-	Id              string         `json:"id"`
-	IdleExpiresAt   *time.Time     `json:"idle_expires_at"`
-	LastExchangedAt *time.Time     `json:"last_exchanged_at"`
+	// Device Device details recorded when the refresh token was issued and last exchanged.
+	Device        *RefreshTokenDevice `json:"device,omitempty"`
+	ExpiresAt     *time.Time          `json:"expires_at"`
+	Id            string              `json:"id"`
+	IdleExpiresAt *time.Time          `json:"idle_expires_at"`
+
+	// LastExchangedAt The last successful exchange, or null before the first exchange.
+	LastExchangedAt      *time.Time            `json:"last_exchanged_at"`
+	RefreshTokenMetadata *RefreshTokenMetadata `json:"refresh_token_metadata,omitempty"`
 
 	// ResourceServers The API the token is for with its space-separated scopes; the tenant's `/userinfo` audience when it has no API.
 	ResourceServers []struct {
@@ -13173,13 +14226,14 @@ type UserSession struct {
 	CreatedAt time.Time `json:"created_at"`
 
 	// Device The IP addresses and user agents of the session; there are no ASN keys.
-	Device           SessionDevice `json:"device"`
-	ExpiresAt        time.Time     `json:"expires_at"`
-	Id               string        `json:"id"`
-	IdleExpiresAt    time.Time     `json:"idle_expires_at"`
-	LastInteractedAt time.Time     `json:"last_interacted_at"`
-	UpdatedAt        time.Time     `json:"updated_at"`
-	UserId           string        `json:"user_id"`
+	Device           SessionDevice    `json:"device"`
+	ExpiresAt        time.Time        `json:"expires_at"`
+	Id               string           `json:"id"`
+	IdleExpiresAt    time.Time        `json:"idle_expires_at"`
+	LastInteractedAt time.Time        `json:"last_interacted_at"`
+	SessionMetadata  *SessionMetadata `json:"session_metadata,omitempty"`
+	UpdatedAt        time.Time        `json:"updated_at"`
+	UserId           string           `json:"user_id"`
 }
 
 // UserSessionCookieMode defines model for UserSession.Cookie.Mode.
@@ -13215,6 +14269,9 @@ type UserUpdate struct {
 
 	// VerifyEmail Send the verification email.
 	VerifyEmail *bool `json:"verify_email,omitempty"`
+
+	// VerifyPhoneNumber Send a text verification code to the resulting phone number when true.
+	VerifyPhoneNumber *bool `json:"verify_phone_number,omitempty"`
 }
 
 // UsersExportJobCreate Unknown properties are `400 invalid_body`.
@@ -13266,6 +14323,9 @@ type VerificationEmailJobCreate struct {
 		UserId *string `json:"user_id,omitempty"`
 	} `json:"identity,omitempty"`
 
+	// OrganizationId The organization whose branding the verification uses. The user must be a member.
+	OrganizationId *string `json:"organization_id,omitempty"`
+
 	// UserId The user to send the email to.
 	UserId string `json:"user_id"`
 }
@@ -13314,6 +14374,9 @@ type OrganizationsUnavailable = ManagementError
 
 // PayloadTooLarge Auth0's Management API error shape.
 type PayloadTooLarge = ManagementError
+
+// RefreshTokensUnavailable Auth0's Management API error shape.
+type RefreshTokensUnavailable = ManagementError
 
 // ScriptRuntimeUnavailable Auth0's Management API error shape.
 type ScriptRuntimeUnavailable = ManagementError
@@ -13611,6 +14674,11 @@ type GetConnectionClientsParams struct {
 // UpdateConnectionClientsJSONBody defines parameters for UpdateConnectionClients.
 type UpdateConnectionClientsJSONBody = []ConnectionClientStatus
 
+// DeleteConnectionUsersByEmailParams defines parameters for DeleteConnectionUsersByEmail.
+type DeleteConnectionUsersByEmailParams struct {
+	Email string `form:"email" json:"email"`
+}
+
 // GetCustomDomainsParams defines parameters for GetCustomDomains.
 type GetCustomDomainsParams struct {
 	Q *string `form:"q,omitempty" json:"q,omitempty"`
@@ -13621,6 +14689,15 @@ type GetCustomDomainsParams struct {
 	// IncludeFields Whether `fields` lists the fields to include (true) or to leave out (false).
 	IncludeFields *IncludeFields `form:"include_fields,omitempty" json:"include_fields,omitempty"`
 	Sort          *string        `form:"sort,omitempty" json:"sort,omitempty"`
+}
+
+// GetEmailProviderParams defines parameters for GetEmailProvider.
+type GetEmailProviderParams struct {
+	// Fields Comma-separated public fields to select. An empty list returns all public fields.
+	Fields *string `form:"fields,omitempty" json:"fields,omitempty"`
+
+	// IncludeFields Whether `fields` lists the fields to include (true) or to leave out (false).
+	IncludeFields *IncludeFields `form:"include_fields,omitempty" json:"include_fields,omitempty"`
 }
 
 // ListEventStreamsParams defines parameters for ListEventStreams.
@@ -13971,6 +15048,27 @@ type PutPromptCustomTextJSONBody map[string]interface{}
 // PutPromptPartialsJSONBody defines parameters for PutPromptPartials.
 type PutPromptPartialsJSONBody map[string]interface{}
 
+// GetRefreshTokensParams defines parameters for GetRefreshTokens.
+type GetRefreshTokensParams struct {
+	// UserId The user whose refresh tokens to list.
+	UserId string `form:"user_id" json:"user_id"`
+
+	// ClientId Only return refresh tokens issued to this application.
+	ClientId *string `form:"client_id,omitempty" json:"client_id,omitempty"`
+
+	// From The `next` cursor from the previous page.
+	From *string `form:"from,omitempty" json:"from,omitempty"`
+
+	// Take Page size.
+	Take *int `form:"take,omitempty" json:"take,omitempty"`
+
+	// Fields Comma-separated fields to include or exclude from each refresh token.
+	Fields *string `form:"fields,omitempty" json:"fields,omitempty"`
+
+	// IncludeFields Whether `fields` lists the fields to include (true) or to leave out (false).
+	IncludeFields *IncludeFields `form:"include_fields,omitempty" json:"include_fields,omitempty"`
+}
+
 // GetResourceServersParams defines parameters for GetResourceServers.
 type GetResourceServersParams struct {
 	// Page Page index of the results, from 0.
@@ -14135,7 +15233,8 @@ type GetUsersParams struct {
 	// Sort `field:1` (ascending) or `field:-1` (descending).
 	Sort *string `form:"sort,omitempty" json:"sort,omitempty"`
 
-	// Connection Only users with an identity on this connection.
+	// Connection This Auth0 v1-only parameter is ignored by zeroauthy. It must be
+	// valid UTF-8 without NUL characters. Use `q` to filter by connection.
 	Connection *string `form:"connection,omitempty" json:"connection,omitempty"`
 
 	// Fields Comma-separated fields to include or, with `include_fields=false`, to leave out.
@@ -14297,6 +15396,9 @@ type UpdateTenantJSONRequestBody = TenantUpdate
 // PreviewTenantBrandingJSONRequestBody defines body for PreviewTenantBranding for application/json ContentType.
 type PreviewTenantBrandingJSONRequestBody PreviewTenantBrandingJSONBody
 
+// TryConnectionPasswordlessJSONRequestBody defines body for TryConnectionPasswordless for application/json ContentType.
+type TryConnectionPasswordlessJSONRequestBody = PasswordlessTryRequest
+
 // TryConnectionScriptJSONRequestBody defines body for TryConnectionScript for application/json ContentType.
 type TryConnectionScriptJSONRequestBody = ScriptTry
 
@@ -14413,6 +15515,12 @@ type UpdateConnectionJSONRequestBody = ConnectionUpdate
 
 // UpdateConnectionClientsJSONRequestBody defines body for UpdateConnectionClients for application/json ContentType.
 type UpdateConnectionClientsJSONRequestBody = UpdateConnectionClientsJSONBody
+
+// PostConnectionKeysJSONRequestBody defines body for PostConnectionKeys for application/json ContentType.
+type PostConnectionKeysJSONRequestBody = PostConnectionKeysRequestContent
+
+// PostConnectionKeysRotateJSONRequestBody defines body for PostConnectionKeysRotate for application/json ContentType.
+type PostConnectionKeysRotateJSONRequestBody = PostConnectionKeysRequestContent
 
 // CreateCustomDomainJSONRequestBody defines body for CreateCustomDomain for application/json ContentType.
 type CreateCustomDomainJSONRequestBody = CustomDomainCreate
@@ -14600,6 +15708,12 @@ type PutPromptCustomTextJSONRequestBody PutPromptCustomTextJSONBody
 // PutPromptPartialsJSONRequestBody defines body for PutPromptPartials for application/json ContentType.
 type PutPromptPartialsJSONRequestBody PutPromptPartialsJSONBody
 
+// RevokeRefreshTokensJSONRequestBody defines body for RevokeRefreshTokens for application/json ContentType.
+type RevokeRefreshTokensJSONRequestBody = RefreshTokenRevocation
+
+// UpdateRefreshTokenJSONRequestBody defines body for UpdateRefreshToken for application/json ContentType.
+type UpdateRefreshTokenJSONRequestBody = RefreshTokenMetadataUpdate
+
 // CreateResourceServerJSONRequestBody defines body for CreateResourceServer for application/json ContentType.
 type CreateResourceServerJSONRequestBody = ResourceServerCreate
 
@@ -14620,6 +15734,9 @@ type PostRolePermissionsJSONRequestBody = RBACPermissionBatch
 
 // PostRoleUsersJSONRequestBody defines body for PostRoleUsers for application/json ContentType.
 type PostRoleUsersJSONRequestBody = RoleUserBatch
+
+// UpdateSessionJSONRequestBody defines body for UpdateSession for application/json ContentType.
+type UpdateSessionJSONRequestBody = SessionMetadataUpdate
 
 // UpdateTenantSettingsJSONRequestBody defines body for UpdateTenantSettings for application/json ContentType.
 type UpdateTenantSettingsJSONRequestBody = TenantSettingsPatch
@@ -15291,6 +16408,464 @@ func (a ConnectionOptionsEmail) MarshalJSON() ([]byte, error) {
 	return json.Marshal(object)
 }
 
+// Getter for additional properties for ConnectionOptionsGitHub. Returns the specified
+// element and whether it was found
+func (a ConnectionOptionsGitHub) Get(fieldName string) (value interface{}, found bool) {
+	if a.AdditionalProperties != nil {
+		value, found = a.AdditionalProperties[fieldName]
+	}
+	return
+}
+
+// Setter for additional properties for ConnectionOptionsGitHub
+func (a *ConnectionOptionsGitHub) Set(fieldName string, value interface{}) {
+	if a.AdditionalProperties == nil {
+		a.AdditionalProperties = make(map[string]interface{})
+	}
+	a.AdditionalProperties[fieldName] = value
+}
+
+// Override default JSON handling for ConnectionOptionsGitHub to handle AdditionalProperties
+func (a *ConnectionOptionsGitHub) UnmarshalJSON(b []byte) error {
+	object := make(map[string]json.RawMessage)
+	err := json.Unmarshal(b, &object)
+	if err != nil {
+		return err
+	}
+
+	if raw, found := object["admin_org"]; found {
+		err = json.Unmarshal(raw, &a.AdminOrg)
+		if err != nil {
+			return fmt.Errorf("error reading 'admin_org': %w", err)
+		}
+		delete(object, "admin_org")
+	}
+
+	if raw, found := object["admin_public_key"]; found {
+		err = json.Unmarshal(raw, &a.AdminPublicKey)
+		if err != nil {
+			return fmt.Errorf("error reading 'admin_public_key': %w", err)
+		}
+		delete(object, "admin_public_key")
+	}
+
+	if raw, found := object["admin_repo_hook"]; found {
+		err = json.Unmarshal(raw, &a.AdminRepoHook)
+		if err != nil {
+			return fmt.Errorf("error reading 'admin_repo_hook': %w", err)
+		}
+		delete(object, "admin_repo_hook")
+	}
+
+	if raw, found := object["client_id"]; found {
+		err = json.Unmarshal(raw, &a.ClientId)
+		if err != nil {
+			return fmt.Errorf("error reading 'client_id': %w", err)
+		}
+		delete(object, "client_id")
+	}
+
+	if raw, found := object["client_secret"]; found {
+		err = json.Unmarshal(raw, &a.ClientSecret)
+		if err != nil {
+			return fmt.Errorf("error reading 'client_secret': %w", err)
+		}
+		delete(object, "client_secret")
+	}
+
+	if raw, found := object["delete_repo"]; found {
+		err = json.Unmarshal(raw, &a.DeleteRepo)
+		if err != nil {
+			return fmt.Errorf("error reading 'delete_repo': %w", err)
+		}
+		delete(object, "delete_repo")
+	}
+
+	if raw, found := object["email"]; found {
+		err = json.Unmarshal(raw, &a.Email)
+		if err != nil {
+			return fmt.Errorf("error reading 'email': %w", err)
+		}
+		delete(object, "email")
+	}
+
+	if raw, found := object["follow"]; found {
+		err = json.Unmarshal(raw, &a.Follow)
+		if err != nil {
+			return fmt.Errorf("error reading 'follow': %w", err)
+		}
+		delete(object, "follow")
+	}
+
+	if raw, found := object["freeform_scopes"]; found {
+		err = json.Unmarshal(raw, &a.FreeformScopes)
+		if err != nil {
+			return fmt.Errorf("error reading 'freeform_scopes': %w", err)
+		}
+		delete(object, "freeform_scopes")
+	}
+
+	if raw, found := object["gist"]; found {
+		err = json.Unmarshal(raw, &a.Gist)
+		if err != nil {
+			return fmt.Errorf("error reading 'gist': %w", err)
+		}
+		delete(object, "gist")
+	}
+
+	if raw, found := object["non_persistent_attrs"]; found {
+		err = json.Unmarshal(raw, &a.NonPersistentAttrs)
+		if err != nil {
+			return fmt.Errorf("error reading 'non_persistent_attrs': %w", err)
+		}
+		delete(object, "non_persistent_attrs")
+	}
+
+	if raw, found := object["notifications"]; found {
+		err = json.Unmarshal(raw, &a.Notifications)
+		if err != nil {
+			return fmt.Errorf("error reading 'notifications': %w", err)
+		}
+		delete(object, "notifications")
+	}
+
+	if raw, found := object["profile"]; found {
+		err = json.Unmarshal(raw, &a.Profile)
+		if err != nil {
+			return fmt.Errorf("error reading 'profile': %w", err)
+		}
+		delete(object, "profile")
+	}
+
+	if raw, found := object["public_repo"]; found {
+		err = json.Unmarshal(raw, &a.PublicRepo)
+		if err != nil {
+			return fmt.Errorf("error reading 'public_repo': %w", err)
+		}
+		delete(object, "public_repo")
+	}
+
+	if raw, found := object["read_org"]; found {
+		err = json.Unmarshal(raw, &a.ReadOrg)
+		if err != nil {
+			return fmt.Errorf("error reading 'read_org': %w", err)
+		}
+		delete(object, "read_org")
+	}
+
+	if raw, found := object["read_public_key"]; found {
+		err = json.Unmarshal(raw, &a.ReadPublicKey)
+		if err != nil {
+			return fmt.Errorf("error reading 'read_public_key': %w", err)
+		}
+		delete(object, "read_public_key")
+	}
+
+	if raw, found := object["read_repo_hook"]; found {
+		err = json.Unmarshal(raw, &a.ReadRepoHook)
+		if err != nil {
+			return fmt.Errorf("error reading 'read_repo_hook': %w", err)
+		}
+		delete(object, "read_repo_hook")
+	}
+
+	if raw, found := object["read_user"]; found {
+		err = json.Unmarshal(raw, &a.ReadUser)
+		if err != nil {
+			return fmt.Errorf("error reading 'read_user': %w", err)
+		}
+		delete(object, "read_user")
+	}
+
+	if raw, found := object["repo"]; found {
+		err = json.Unmarshal(raw, &a.Repo)
+		if err != nil {
+			return fmt.Errorf("error reading 'repo': %w", err)
+		}
+		delete(object, "repo")
+	}
+
+	if raw, found := object["repo_deployment"]; found {
+		err = json.Unmarshal(raw, &a.RepoDeployment)
+		if err != nil {
+			return fmt.Errorf("error reading 'repo_deployment': %w", err)
+		}
+		delete(object, "repo_deployment")
+	}
+
+	if raw, found := object["repo_status"]; found {
+		err = json.Unmarshal(raw, &a.RepoStatus)
+		if err != nil {
+			return fmt.Errorf("error reading 'repo_status': %w", err)
+		}
+		delete(object, "repo_status")
+	}
+
+	if raw, found := object["scope"]; found {
+		err = json.Unmarshal(raw, &a.Scope)
+		if err != nil {
+			return fmt.Errorf("error reading 'scope': %w", err)
+		}
+		delete(object, "scope")
+	}
+
+	if raw, found := object["set_user_root_attributes"]; found {
+		err = json.Unmarshal(raw, &a.SetUserRootAttributes)
+		if err != nil {
+			return fmt.Errorf("error reading 'set_user_root_attributes': %w", err)
+		}
+		delete(object, "set_user_root_attributes")
+	}
+
+	if raw, found := object["upstream_params"]; found {
+		err = json.Unmarshal(raw, &a.UpstreamParams)
+		if err != nil {
+			return fmt.Errorf("error reading 'upstream_params': %w", err)
+		}
+		delete(object, "upstream_params")
+	}
+
+	if raw, found := object["write_org"]; found {
+		err = json.Unmarshal(raw, &a.WriteOrg)
+		if err != nil {
+			return fmt.Errorf("error reading 'write_org': %w", err)
+		}
+		delete(object, "write_org")
+	}
+
+	if raw, found := object["write_public_key"]; found {
+		err = json.Unmarshal(raw, &a.WritePublicKey)
+		if err != nil {
+			return fmt.Errorf("error reading 'write_public_key': %w", err)
+		}
+		delete(object, "write_public_key")
+	}
+
+	if raw, found := object["write_repo_hook"]; found {
+		err = json.Unmarshal(raw, &a.WriteRepoHook)
+		if err != nil {
+			return fmt.Errorf("error reading 'write_repo_hook': %w", err)
+		}
+		delete(object, "write_repo_hook")
+	}
+
+	if len(object) != 0 {
+		a.AdditionalProperties = make(map[string]interface{})
+		for fieldName, fieldBuf := range object {
+			var fieldVal interface{}
+			err := json.Unmarshal(fieldBuf, &fieldVal)
+			if err != nil {
+				return fmt.Errorf("error unmarshaling field %s: %w", fieldName, err)
+			}
+			a.AdditionalProperties[fieldName] = fieldVal
+		}
+	}
+	return nil
+}
+
+// Override default JSON handling for ConnectionOptionsGitHub to handle AdditionalProperties
+func (a ConnectionOptionsGitHub) MarshalJSON() ([]byte, error) {
+	var err error
+	object := make(map[string]json.RawMessage)
+
+	if a.AdminOrg != nil {
+		object["admin_org"], err = json.Marshal(a.AdminOrg)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'admin_org': %w", err)
+		}
+	}
+
+	if a.AdminPublicKey != nil {
+		object["admin_public_key"], err = json.Marshal(a.AdminPublicKey)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'admin_public_key': %w", err)
+		}
+	}
+
+	if a.AdminRepoHook != nil {
+		object["admin_repo_hook"], err = json.Marshal(a.AdminRepoHook)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'admin_repo_hook': %w", err)
+		}
+	}
+
+	if a.ClientId != nil {
+		object["client_id"], err = json.Marshal(a.ClientId)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'client_id': %w", err)
+		}
+	}
+
+	if a.ClientSecret != nil {
+		object["client_secret"], err = json.Marshal(a.ClientSecret)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'client_secret': %w", err)
+		}
+	}
+
+	if a.DeleteRepo != nil {
+		object["delete_repo"], err = json.Marshal(a.DeleteRepo)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'delete_repo': %w", err)
+		}
+	}
+
+	if a.Email != nil {
+		object["email"], err = json.Marshal(a.Email)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'email': %w", err)
+		}
+	}
+
+	if a.Follow != nil {
+		object["follow"], err = json.Marshal(a.Follow)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'follow': %w", err)
+		}
+	}
+
+	if a.FreeformScopes != nil {
+		object["freeform_scopes"], err = json.Marshal(a.FreeformScopes)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'freeform_scopes': %w", err)
+		}
+	}
+
+	if a.Gist != nil {
+		object["gist"], err = json.Marshal(a.Gist)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'gist': %w", err)
+		}
+	}
+
+	if a.NonPersistentAttrs != nil {
+		object["non_persistent_attrs"], err = json.Marshal(a.NonPersistentAttrs)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'non_persistent_attrs': %w", err)
+		}
+	}
+
+	if a.Notifications != nil {
+		object["notifications"], err = json.Marshal(a.Notifications)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'notifications': %w", err)
+		}
+	}
+
+	if a.Profile != nil {
+		object["profile"], err = json.Marshal(a.Profile)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'profile': %w", err)
+		}
+	}
+
+	if a.PublicRepo != nil {
+		object["public_repo"], err = json.Marshal(a.PublicRepo)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'public_repo': %w", err)
+		}
+	}
+
+	if a.ReadOrg != nil {
+		object["read_org"], err = json.Marshal(a.ReadOrg)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'read_org': %w", err)
+		}
+	}
+
+	if a.ReadPublicKey != nil {
+		object["read_public_key"], err = json.Marshal(a.ReadPublicKey)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'read_public_key': %w", err)
+		}
+	}
+
+	if a.ReadRepoHook != nil {
+		object["read_repo_hook"], err = json.Marshal(a.ReadRepoHook)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'read_repo_hook': %w", err)
+		}
+	}
+
+	if a.ReadUser != nil {
+		object["read_user"], err = json.Marshal(a.ReadUser)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'read_user': %w", err)
+		}
+	}
+
+	if a.Repo != nil {
+		object["repo"], err = json.Marshal(a.Repo)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'repo': %w", err)
+		}
+	}
+
+	if a.RepoDeployment != nil {
+		object["repo_deployment"], err = json.Marshal(a.RepoDeployment)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'repo_deployment': %w", err)
+		}
+	}
+
+	if a.RepoStatus != nil {
+		object["repo_status"], err = json.Marshal(a.RepoStatus)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'repo_status': %w", err)
+		}
+	}
+
+	if a.Scope != nil {
+		object["scope"], err = json.Marshal(a.Scope)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'scope': %w", err)
+		}
+	}
+
+	if a.SetUserRootAttributes != nil {
+		object["set_user_root_attributes"], err = json.Marshal(a.SetUserRootAttributes)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'set_user_root_attributes': %w", err)
+		}
+	}
+
+	if a.UpstreamParams != nil {
+		object["upstream_params"], err = json.Marshal(a.UpstreamParams)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'upstream_params': %w", err)
+		}
+	}
+
+	if a.WriteOrg != nil {
+		object["write_org"], err = json.Marshal(a.WriteOrg)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'write_org': %w", err)
+		}
+	}
+
+	if a.WritePublicKey != nil {
+		object["write_public_key"], err = json.Marshal(a.WritePublicKey)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'write_public_key': %w", err)
+		}
+	}
+
+	if a.WriteRepoHook != nil {
+		object["write_repo_hook"], err = json.Marshal(a.WriteRepoHook)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'write_repo_hook': %w", err)
+		}
+	}
+
+	for fieldName, field := range a.AdditionalProperties {
+		object[fieldName], err = json.Marshal(field)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling '%s': %w", fieldName, err)
+		}
+	}
+	return json.Marshal(object)
+}
+
 // Getter for additional properties for ConnectionOptionsSMS. Returns the specified
 // element and whether it was found
 func (a ConnectionOptionsSMS) Get(fieldName string) (value interface{}, found bool) {
@@ -15680,6 +17255,72 @@ func (a ConnectionOptionsSMS_GatewayAuthentication) MarshalJSON() ([]byte, error
 		if err != nil {
 			return nil, fmt.Errorf("error marshaling 'subject': %w", err)
 		}
+	}
+
+	for fieldName, field := range a.AdditionalProperties {
+		object[fieldName], err = json.Marshal(field)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling '%s': %w", fieldName, err)
+		}
+	}
+	return json.Marshal(object)
+}
+
+// Getter for additional properties for DefaultTokenQuotaSubject. Returns the specified
+// element and whether it was found
+func (a DefaultTokenQuotaSubject) Get(fieldName string) (value interface{}, found bool) {
+	if a.AdditionalProperties != nil {
+		value, found = a.AdditionalProperties[fieldName]
+	}
+	return
+}
+
+// Setter for additional properties for DefaultTokenQuotaSubject
+func (a *DefaultTokenQuotaSubject) Set(fieldName string, value interface{}) {
+	if a.AdditionalProperties == nil {
+		a.AdditionalProperties = make(map[string]interface{})
+	}
+	a.AdditionalProperties[fieldName] = value
+}
+
+// Override default JSON handling for DefaultTokenQuotaSubject to handle AdditionalProperties
+func (a *DefaultTokenQuotaSubject) UnmarshalJSON(b []byte) error {
+	object := make(map[string]json.RawMessage)
+	err := json.Unmarshal(b, &object)
+	if err != nil {
+		return err
+	}
+
+	if raw, found := object["client_credentials"]; found {
+		err = json.Unmarshal(raw, &a.ClientCredentials)
+		if err != nil {
+			return fmt.Errorf("error reading 'client_credentials': %w", err)
+		}
+		delete(object, "client_credentials")
+	}
+
+	if len(object) != 0 {
+		a.AdditionalProperties = make(map[string]interface{})
+		for fieldName, fieldBuf := range object {
+			var fieldVal interface{}
+			err := json.Unmarshal(fieldBuf, &fieldVal)
+			if err != nil {
+				return fmt.Errorf("error unmarshaling field %s: %w", fieldName, err)
+			}
+			a.AdditionalProperties[fieldName] = fieldVal
+		}
+	}
+	return nil
+}
+
+// Override default JSON handling for DefaultTokenQuotaSubject to handle AdditionalProperties
+func (a DefaultTokenQuotaSubject) MarshalJSON() ([]byte, error) {
+	var err error
+	object := make(map[string]json.RawMessage)
+
+	object["client_credentials"], err = json.Marshal(a.ClientCredentials)
+	if err != nil {
+		return nil, fmt.Errorf("error marshaling 'client_credentials': %w", err)
 	}
 
 	for fieldName, field := range a.AdditionalProperties {
@@ -17367,270 +19008,6 @@ func (a MFASetAuthenticationMethodsResponse_AuthenticationMethods_Item) MarshalJ
 		if err != nil {
 			return nil, fmt.Errorf("error marshaling 'type': %w", err)
 		}
-	}
-
-	for fieldName, field := range a.AdditionalProperties {
-		object[fieldName], err = json.Marshal(field)
-		if err != nil {
-			return nil, fmt.Errorf("error marshaling '%s': %w", fieldName, err)
-		}
-	}
-	return json.Marshal(object)
-}
-
-// Getter for additional properties for TenantSettings_DefaultTokenQuota_Clients. Returns the specified
-// element and whether it was found
-func (a TenantSettings_DefaultTokenQuota_Clients) Get(fieldName string) (value interface{}, found bool) {
-	if a.AdditionalProperties != nil {
-		value, found = a.AdditionalProperties[fieldName]
-	}
-	return
-}
-
-// Setter for additional properties for TenantSettings_DefaultTokenQuota_Clients
-func (a *TenantSettings_DefaultTokenQuota_Clients) Set(fieldName string, value interface{}) {
-	if a.AdditionalProperties == nil {
-		a.AdditionalProperties = make(map[string]interface{})
-	}
-	a.AdditionalProperties[fieldName] = value
-}
-
-// Override default JSON handling for TenantSettings_DefaultTokenQuota_Clients to handle AdditionalProperties
-func (a *TenantSettings_DefaultTokenQuota_Clients) UnmarshalJSON(b []byte) error {
-	object := make(map[string]json.RawMessage)
-	err := json.Unmarshal(b, &object)
-	if err != nil {
-		return err
-	}
-
-	if raw, found := object["client_credentials"]; found {
-		err = json.Unmarshal(raw, &a.ClientCredentials)
-		if err != nil {
-			return fmt.Errorf("error reading 'client_credentials': %w", err)
-		}
-		delete(object, "client_credentials")
-	}
-
-	if len(object) != 0 {
-		a.AdditionalProperties = make(map[string]interface{})
-		for fieldName, fieldBuf := range object {
-			var fieldVal interface{}
-			err := json.Unmarshal(fieldBuf, &fieldVal)
-			if err != nil {
-				return fmt.Errorf("error unmarshaling field %s: %w", fieldName, err)
-			}
-			a.AdditionalProperties[fieldName] = fieldVal
-		}
-	}
-	return nil
-}
-
-// Override default JSON handling for TenantSettings_DefaultTokenQuota_Clients to handle AdditionalProperties
-func (a TenantSettings_DefaultTokenQuota_Clients) MarshalJSON() ([]byte, error) {
-	var err error
-	object := make(map[string]json.RawMessage)
-
-	object["client_credentials"], err = json.Marshal(a.ClientCredentials)
-	if err != nil {
-		return nil, fmt.Errorf("error marshaling 'client_credentials': %w", err)
-	}
-
-	for fieldName, field := range a.AdditionalProperties {
-		object[fieldName], err = json.Marshal(field)
-		if err != nil {
-			return nil, fmt.Errorf("error marshaling '%s': %w", fieldName, err)
-		}
-	}
-	return json.Marshal(object)
-}
-
-// Getter for additional properties for TenantSettings_DefaultTokenQuota_Organizations. Returns the specified
-// element and whether it was found
-func (a TenantSettings_DefaultTokenQuota_Organizations) Get(fieldName string) (value interface{}, found bool) {
-	if a.AdditionalProperties != nil {
-		value, found = a.AdditionalProperties[fieldName]
-	}
-	return
-}
-
-// Setter for additional properties for TenantSettings_DefaultTokenQuota_Organizations
-func (a *TenantSettings_DefaultTokenQuota_Organizations) Set(fieldName string, value interface{}) {
-	if a.AdditionalProperties == nil {
-		a.AdditionalProperties = make(map[string]interface{})
-	}
-	a.AdditionalProperties[fieldName] = value
-}
-
-// Override default JSON handling for TenantSettings_DefaultTokenQuota_Organizations to handle AdditionalProperties
-func (a *TenantSettings_DefaultTokenQuota_Organizations) UnmarshalJSON(b []byte) error {
-	object := make(map[string]json.RawMessage)
-	err := json.Unmarshal(b, &object)
-	if err != nil {
-		return err
-	}
-
-	if raw, found := object["client_credentials"]; found {
-		err = json.Unmarshal(raw, &a.ClientCredentials)
-		if err != nil {
-			return fmt.Errorf("error reading 'client_credentials': %w", err)
-		}
-		delete(object, "client_credentials")
-	}
-
-	if len(object) != 0 {
-		a.AdditionalProperties = make(map[string]interface{})
-		for fieldName, fieldBuf := range object {
-			var fieldVal interface{}
-			err := json.Unmarshal(fieldBuf, &fieldVal)
-			if err != nil {
-				return fmt.Errorf("error unmarshaling field %s: %w", fieldName, err)
-			}
-			a.AdditionalProperties[fieldName] = fieldVal
-		}
-	}
-	return nil
-}
-
-// Override default JSON handling for TenantSettings_DefaultTokenQuota_Organizations to handle AdditionalProperties
-func (a TenantSettings_DefaultTokenQuota_Organizations) MarshalJSON() ([]byte, error) {
-	var err error
-	object := make(map[string]json.RawMessage)
-
-	object["client_credentials"], err = json.Marshal(a.ClientCredentials)
-	if err != nil {
-		return nil, fmt.Errorf("error marshaling 'client_credentials': %w", err)
-	}
-
-	for fieldName, field := range a.AdditionalProperties {
-		object[fieldName], err = json.Marshal(field)
-		if err != nil {
-			return nil, fmt.Errorf("error marshaling '%s': %w", fieldName, err)
-		}
-	}
-	return json.Marshal(object)
-}
-
-// Getter for additional properties for TenantSettingsPatch_DefaultTokenQuota_Clients. Returns the specified
-// element and whether it was found
-func (a TenantSettingsPatch_DefaultTokenQuota_Clients) Get(fieldName string) (value interface{}, found bool) {
-	if a.AdditionalProperties != nil {
-		value, found = a.AdditionalProperties[fieldName]
-	}
-	return
-}
-
-// Setter for additional properties for TenantSettingsPatch_DefaultTokenQuota_Clients
-func (a *TenantSettingsPatch_DefaultTokenQuota_Clients) Set(fieldName string, value interface{}) {
-	if a.AdditionalProperties == nil {
-		a.AdditionalProperties = make(map[string]interface{})
-	}
-	a.AdditionalProperties[fieldName] = value
-}
-
-// Override default JSON handling for TenantSettingsPatch_DefaultTokenQuota_Clients to handle AdditionalProperties
-func (a *TenantSettingsPatch_DefaultTokenQuota_Clients) UnmarshalJSON(b []byte) error {
-	object := make(map[string]json.RawMessage)
-	err := json.Unmarshal(b, &object)
-	if err != nil {
-		return err
-	}
-
-	if raw, found := object["client_credentials"]; found {
-		err = json.Unmarshal(raw, &a.ClientCredentials)
-		if err != nil {
-			return fmt.Errorf("error reading 'client_credentials': %w", err)
-		}
-		delete(object, "client_credentials")
-	}
-
-	if len(object) != 0 {
-		a.AdditionalProperties = make(map[string]interface{})
-		for fieldName, fieldBuf := range object {
-			var fieldVal interface{}
-			err := json.Unmarshal(fieldBuf, &fieldVal)
-			if err != nil {
-				return fmt.Errorf("error unmarshaling field %s: %w", fieldName, err)
-			}
-			a.AdditionalProperties[fieldName] = fieldVal
-		}
-	}
-	return nil
-}
-
-// Override default JSON handling for TenantSettingsPatch_DefaultTokenQuota_Clients to handle AdditionalProperties
-func (a TenantSettingsPatch_DefaultTokenQuota_Clients) MarshalJSON() ([]byte, error) {
-	var err error
-	object := make(map[string]json.RawMessage)
-
-	object["client_credentials"], err = json.Marshal(a.ClientCredentials)
-	if err != nil {
-		return nil, fmt.Errorf("error marshaling 'client_credentials': %w", err)
-	}
-
-	for fieldName, field := range a.AdditionalProperties {
-		object[fieldName], err = json.Marshal(field)
-		if err != nil {
-			return nil, fmt.Errorf("error marshaling '%s': %w", fieldName, err)
-		}
-	}
-	return json.Marshal(object)
-}
-
-// Getter for additional properties for TenantSettingsPatch_DefaultTokenQuota_Organizations. Returns the specified
-// element and whether it was found
-func (a TenantSettingsPatch_DefaultTokenQuota_Organizations) Get(fieldName string) (value interface{}, found bool) {
-	if a.AdditionalProperties != nil {
-		value, found = a.AdditionalProperties[fieldName]
-	}
-	return
-}
-
-// Setter for additional properties for TenantSettingsPatch_DefaultTokenQuota_Organizations
-func (a *TenantSettingsPatch_DefaultTokenQuota_Organizations) Set(fieldName string, value interface{}) {
-	if a.AdditionalProperties == nil {
-		a.AdditionalProperties = make(map[string]interface{})
-	}
-	a.AdditionalProperties[fieldName] = value
-}
-
-// Override default JSON handling for TenantSettingsPatch_DefaultTokenQuota_Organizations to handle AdditionalProperties
-func (a *TenantSettingsPatch_DefaultTokenQuota_Organizations) UnmarshalJSON(b []byte) error {
-	object := make(map[string]json.RawMessage)
-	err := json.Unmarshal(b, &object)
-	if err != nil {
-		return err
-	}
-
-	if raw, found := object["client_credentials"]; found {
-		err = json.Unmarshal(raw, &a.ClientCredentials)
-		if err != nil {
-			return fmt.Errorf("error reading 'client_credentials': %w", err)
-		}
-		delete(object, "client_credentials")
-	}
-
-	if len(object) != 0 {
-		a.AdditionalProperties = make(map[string]interface{})
-		for fieldName, fieldBuf := range object {
-			var fieldVal interface{}
-			err := json.Unmarshal(fieldBuf, &fieldVal)
-			if err != nil {
-				return fmt.Errorf("error unmarshaling field %s: %w", fieldName, err)
-			}
-			a.AdditionalProperties[fieldName] = fieldVal
-		}
-	}
-	return nil
-}
-
-// Override default JSON handling for TenantSettingsPatch_DefaultTokenQuota_Organizations to handle AdditionalProperties
-func (a TenantSettingsPatch_DefaultTokenQuota_Organizations) MarshalJSON() ([]byte, error) {
-	var err error
-	object := make(map[string]json.RawMessage)
-
-	object["client_credentials"], err = json.Marshal(a.ClientCredentials)
-	if err != nil {
-		return nil, fmt.Errorf("error marshaling 'client_credentials': %w", err)
 	}
 
 	for fieldName, field := range a.AdditionalProperties {
@@ -19584,6 +20961,196 @@ func (t *MFAGetAuthenticationMethodsResponse) UnmarshalJSON(b []byte) error {
 	return err
 }
 
+// AsRefreshTokenRevocation0 returns the union data inside the RefreshTokenRevocation as a RefreshTokenRevocation0
+func (t RefreshTokenRevocation) AsRefreshTokenRevocation0() (RefreshTokenRevocation0, error) {
+	var body RefreshTokenRevocation0
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromRefreshTokenRevocation0 overwrites any union data inside the RefreshTokenRevocation as the provided RefreshTokenRevocation0
+func (t *RefreshTokenRevocation) FromRefreshTokenRevocation0(v RefreshTokenRevocation0) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeRefreshTokenRevocation0 performs a merge with any union data inside the RefreshTokenRevocation, using the provided RefreshTokenRevocation0
+func (t *RefreshTokenRevocation) MergeRefreshTokenRevocation0(v RefreshTokenRevocation0) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsRefreshTokenRevocation1 returns the union data inside the RefreshTokenRevocation as a RefreshTokenRevocation1
+func (t RefreshTokenRevocation) AsRefreshTokenRevocation1() (RefreshTokenRevocation1, error) {
+	var body RefreshTokenRevocation1
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromRefreshTokenRevocation1 overwrites any union data inside the RefreshTokenRevocation as the provided RefreshTokenRevocation1
+func (t *RefreshTokenRevocation) FromRefreshTokenRevocation1(v RefreshTokenRevocation1) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeRefreshTokenRevocation1 performs a merge with any union data inside the RefreshTokenRevocation, using the provided RefreshTokenRevocation1
+func (t *RefreshTokenRevocation) MergeRefreshTokenRevocation1(v RefreshTokenRevocation1) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsRefreshTokenRevocation2 returns the union data inside the RefreshTokenRevocation as a RefreshTokenRevocation2
+func (t RefreshTokenRevocation) AsRefreshTokenRevocation2() (RefreshTokenRevocation2, error) {
+	var body RefreshTokenRevocation2
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromRefreshTokenRevocation2 overwrites any union data inside the RefreshTokenRevocation as the provided RefreshTokenRevocation2
+func (t *RefreshTokenRevocation) FromRefreshTokenRevocation2(v RefreshTokenRevocation2) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeRefreshTokenRevocation2 performs a merge with any union data inside the RefreshTokenRevocation, using the provided RefreshTokenRevocation2
+func (t *RefreshTokenRevocation) MergeRefreshTokenRevocation2(v RefreshTokenRevocation2) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsRefreshTokenRevocation3 returns the union data inside the RefreshTokenRevocation as a RefreshTokenRevocation3
+func (t RefreshTokenRevocation) AsRefreshTokenRevocation3() (RefreshTokenRevocation3, error) {
+	var body RefreshTokenRevocation3
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromRefreshTokenRevocation3 overwrites any union data inside the RefreshTokenRevocation as the provided RefreshTokenRevocation3
+func (t *RefreshTokenRevocation) FromRefreshTokenRevocation3(v RefreshTokenRevocation3) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeRefreshTokenRevocation3 performs a merge with any union data inside the RefreshTokenRevocation, using the provided RefreshTokenRevocation3
+func (t *RefreshTokenRevocation) MergeRefreshTokenRevocation3(v RefreshTokenRevocation3) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t RefreshTokenRevocation) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	if err != nil {
+		return nil, err
+	}
+	object := make(map[string]json.RawMessage)
+	if t.union != nil {
+		err = json.Unmarshal(b, &object)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if t.Audience != nil {
+		object["audience"], err = json.Marshal(t.Audience)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'audience': %w", err)
+		}
+	}
+
+	if t.ClientId != nil {
+		object["client_id"], err = json.Marshal(t.ClientId)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'client_id': %w", err)
+		}
+	}
+
+	if t.Ids != nil {
+		object["ids"], err = json.Marshal(t.Ids)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'ids': %w", err)
+		}
+	}
+
+	if t.UserId != nil {
+		object["user_id"], err = json.Marshal(t.UserId)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'user_id': %w", err)
+		}
+	}
+	b, err = json.Marshal(object)
+	return b, err
+}
+
+func (t *RefreshTokenRevocation) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	if err != nil {
+		return err
+	}
+	object := make(map[string]json.RawMessage)
+	err = json.Unmarshal(b, &object)
+	if err != nil {
+		return err
+	}
+
+	if raw, found := object["audience"]; found {
+		err = json.Unmarshal(raw, &t.Audience)
+		if err != nil {
+			return fmt.Errorf("error reading 'audience': %w", err)
+		}
+	}
+
+	if raw, found := object["client_id"]; found {
+		err = json.Unmarshal(raw, &t.ClientId)
+		if err != nil {
+			return fmt.Errorf("error reading 'client_id': %w", err)
+		}
+	}
+
+	if raw, found := object["ids"]; found {
+		err = json.Unmarshal(raw, &t.Ids)
+		if err != nil {
+			return fmt.Errorf("error reading 'ids': %w", err)
+		}
+	}
+
+	if raw, found := object["user_id"]; found {
+		err = json.Unmarshal(raw, &t.UserId)
+		if err != nil {
+			return fmt.Errorf("error reading 'user_id': %w", err)
+		}
+	}
+
+	return err
+}
+
 // AsUserIdentityLinkUserId0 returns the union data inside the UserIdentityLink_UserId as a UserIdentityLinkUserId0
 func (t UserIdentityLink_UserId) AsUserIdentityLinkUserId0() (UserIdentityLinkUserId0, error) {
 	var body UserIdentityLinkUserId0
@@ -21050,6 +22617,9 @@ type ServerInterface interface {
 	// GetTenantPasskeyPrerequisites Read the prerequisites for passkey login
 	// (GET /api/system/tenants/{tenant}/connections/{id}/passkey-prerequisites)
 	GetTenantPasskeyPrerequisites(w http.ResponseWriter, r *http.Request, tenant string, id string)
+	// TryConnectionPasswordless Send a test code or magic link through a saved passwordless connection.
+	// (POST /api/system/tenants/{tenant}/connections/{id}/passwordless/try)
+	TryConnectionPasswordless(w http.ResponseWriter, r *http.Request, tenant string, id string)
 	// TryConnectionScript Try a custom database script
 	// (POST /api/system/tenants/{tenant}/connections/{id}/scripts/{name}/try)
 	TryConnectionScript(w http.ResponseWriter, r *http.Request, tenant string, id string, name string)
@@ -21335,6 +22905,21 @@ type ServerInterface interface {
 	// UpdateConnectionClients Enable or disable applications on a connection
 	// (PATCH /api/v2/connections/{id}/clients)
 	UpdateConnectionClients(w http.ResponseWriter, r *http.Request, id string)
+	// GetConnectionKeys getConnectionKeys
+	// (GET /api/v2/connections/{id}/keys)
+	GetConnectionKeys(w http.ResponseWriter, r *http.Request, id string)
+	// PostConnectionKeys postConnectionKeys
+	// (POST /api/v2/connections/{id}/keys)
+	PostConnectionKeys(w http.ResponseWriter, r *http.Request, id string)
+	// PostConnectionKeysRotate postConnectionKeysRotate
+	// (POST /api/v2/connections/{id}/keys/rotate)
+	PostConnectionKeysRotate(w http.ResponseWriter, r *http.Request, id string)
+	// GetConnectionStatus getConnectionStatus
+	// (GET /api/v2/connections/{id}/status)
+	GetConnectionStatus(w http.ResponseWriter, r *http.Request, id string)
+	// DeleteConnectionUsersByEmail deleteConnectionUsersByEmail
+	// (DELETE /api/v2/connections/{id}/users)
+	DeleteConnectionUsersByEmail(w http.ResponseWriter, r *http.Request, id string, params DeleteConnectionUsersByEmailParams)
 	// GetCustomDomains List custom domains
 	// (GET /api/v2/custom-domains)
 	GetCustomDomains(w http.ResponseWriter, r *http.Request, params GetCustomDomainsParams)
@@ -21377,9 +22962,9 @@ type ServerInterface interface {
 	// DeleteEmailProvider Delete the tenant email provider.
 	// (DELETE /api/v2/emails/provider)
 	DeleteEmailProvider(w http.ResponseWriter, r *http.Request)
-	// GetEmailProvider Get the tenant email provider without credentials.
+	// GetEmailProvider Get the tenant email provider and its public credentials.
 	// (GET /api/v2/emails/provider)
-	GetEmailProvider(w http.ResponseWriter, r *http.Request)
+	GetEmailProvider(w http.ResponseWriter, r *http.Request, params GetEmailProviderParams)
 	// PatchEmailProvider Partially update the tenant email provider.
 	// (PATCH /api/v2/emails/provider)
 	PatchEmailProvider(w http.ResponseWriter, r *http.Request)
@@ -21761,12 +23346,21 @@ type ServerInterface interface {
 	// PutPromptPartials PutPromptPartials addressed to the current tenant
 	// (PUT /api/v2/prompts/{prompt}/partials)
 	PutPromptPartials(w http.ResponseWriter, r *http.Request, prompt string)
+	// GetRefreshTokens List refresh tokens by user
+	// (GET /api/v2/refresh-tokens)
+	GetRefreshTokens(w http.ResponseWriter, r *http.Request, params GetRefreshTokensParams)
+	// RevokeRefreshTokens Revoke refresh tokens in bulk
+	// (POST /api/v2/refresh-tokens/revoke)
+	RevokeRefreshTokens(w http.ResponseWriter, r *http.Request)
 	// DeleteRefreshToken Delete a refresh token
 	// (DELETE /api/v2/refresh-tokens/{id})
 	DeleteRefreshToken(w http.ResponseWriter, r *http.Request, id string)
 	// GetRefreshToken Get a refresh token
 	// (GET /api/v2/refresh-tokens/{id})
 	GetRefreshToken(w http.ResponseWriter, r *http.Request, id string)
+	// UpdateRefreshToken Update refresh token metadata
+	// (PATCH /api/v2/refresh-tokens/{id})
+	UpdateRefreshToken(w http.ResponseWriter, r *http.Request, id string)
 	// GetResourceServers List APIs
 	// (GET /api/v2/resource-servers)
 	GetResourceServers(w http.ResponseWriter, r *http.Request, params GetResourceServersParams)
@@ -21824,6 +23418,12 @@ type ServerInterface interface {
 	// GetSession Get a session
 	// (GET /api/v2/sessions/{id})
 	GetSession(w http.ResponseWriter, r *http.Request, id string)
+	// UpdateSession Update session metadata
+	// (PATCH /api/v2/sessions/{id})
+	UpdateSession(w http.ResponseWriter, r *http.Request, id string)
+	// RevokeSession Revoke a session and its refresh tokens
+	// (POST /api/v2/sessions/{id}/revoke)
+	RevokeSession(w http.ResponseWriter, r *http.Request, id string)
 	// GetActiveUsers Count users active within thirty days
 	// (GET /api/v2/stats/active-users)
 	GetActiveUsers(w http.ResponseWriter, r *http.Request)
@@ -22052,6 +23652,12 @@ func (_ Unimplemented) PreviewTenantBranding(w http.ResponseWriter, r *http.Requ
 // GetTenantPasskeyPrerequisites Read the prerequisites for passkey login
 // (GET /api/system/tenants/{tenant}/connections/{id}/passkey-prerequisites)
 func (_ Unimplemented) GetTenantPasskeyPrerequisites(w http.ResponseWriter, r *http.Request, tenant string, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// TryConnectionPasswordless Send a test code or magic link through a saved passwordless connection.
+// (POST /api/system/tenants/{tenant}/connections/{id}/passwordless/try)
+func (_ Unimplemented) TryConnectionPasswordless(w http.ResponseWriter, r *http.Request, tenant string, id string) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -22625,6 +24231,36 @@ func (_ Unimplemented) UpdateConnectionClients(w http.ResponseWriter, r *http.Re
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// GetConnectionKeys getConnectionKeys
+// (GET /api/v2/connections/{id}/keys)
+func (_ Unimplemented) GetConnectionKeys(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// PostConnectionKeys postConnectionKeys
+// (POST /api/v2/connections/{id}/keys)
+func (_ Unimplemented) PostConnectionKeys(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// PostConnectionKeysRotate postConnectionKeysRotate
+// (POST /api/v2/connections/{id}/keys/rotate)
+func (_ Unimplemented) PostConnectionKeysRotate(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetConnectionStatus getConnectionStatus
+// (GET /api/v2/connections/{id}/status)
+func (_ Unimplemented) GetConnectionStatus(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// DeleteConnectionUsersByEmail deleteConnectionUsersByEmail
+// (DELETE /api/v2/connections/{id}/users)
+func (_ Unimplemented) DeleteConnectionUsersByEmail(w http.ResponseWriter, r *http.Request, id string, params DeleteConnectionUsersByEmailParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
 // GetCustomDomains List custom domains
 // (GET /api/v2/custom-domains)
 func (_ Unimplemented) GetCustomDomains(w http.ResponseWriter, r *http.Request, params GetCustomDomainsParams) {
@@ -22709,9 +24345,9 @@ func (_ Unimplemented) DeleteEmailProvider(w http.ResponseWriter, r *http.Reques
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-// GetEmailProvider Get the tenant email provider without credentials.
+// GetEmailProvider Get the tenant email provider and its public credentials.
 // (GET /api/v2/emails/provider)
-func (_ Unimplemented) GetEmailProvider(w http.ResponseWriter, r *http.Request) {
+func (_ Unimplemented) GetEmailProvider(w http.ResponseWriter, r *http.Request, params GetEmailProviderParams) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -23477,6 +25113,18 @@ func (_ Unimplemented) PutPromptPartials(w http.ResponseWriter, r *http.Request,
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// GetRefreshTokens List refresh tokens by user
+// (GET /api/v2/refresh-tokens)
+func (_ Unimplemented) GetRefreshTokens(w http.ResponseWriter, r *http.Request, params GetRefreshTokensParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// RevokeRefreshTokens Revoke refresh tokens in bulk
+// (POST /api/v2/refresh-tokens/revoke)
+func (_ Unimplemented) RevokeRefreshTokens(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
 // DeleteRefreshToken Delete a refresh token
 // (DELETE /api/v2/refresh-tokens/{id})
 func (_ Unimplemented) DeleteRefreshToken(w http.ResponseWriter, r *http.Request, id string) {
@@ -23486,6 +25134,12 @@ func (_ Unimplemented) DeleteRefreshToken(w http.ResponseWriter, r *http.Request
 // GetRefreshToken Get a refresh token
 // (GET /api/v2/refresh-tokens/{id})
 func (_ Unimplemented) GetRefreshToken(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// UpdateRefreshToken Update refresh token metadata
+// (PATCH /api/v2/refresh-tokens/{id})
+func (_ Unimplemented) UpdateRefreshToken(w http.ResponseWriter, r *http.Request, id string) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -23600,6 +25254,18 @@ func (_ Unimplemented) DeleteSession(w http.ResponseWriter, r *http.Request, id 
 // GetSession Get a session
 // (GET /api/v2/sessions/{id})
 func (_ Unimplemented) GetSession(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// UpdateSession Update session metadata
+// (PATCH /api/v2/sessions/{id})
+func (_ Unimplemented) UpdateSession(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// RevokeSession Revoke a session and its refresh tokens
+// (POST /api/v2/sessions/{id}/revoke)
+func (_ Unimplemented) RevokeSession(w http.ResponseWriter, r *http.Request, id string) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -24287,6 +25953,41 @@ func (siw *ServerInterfaceWrapper) GetTenantPasskeyPrerequisites(w http.Response
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetTenantPasskeyPrerequisites(w, r, tenant, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// TryConnectionPasswordless operation middleware
+func (siw *ServerInterfaceWrapper) TryConnectionPasswordless(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "tenant" -------------
+	var tenant string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "tenant", chi.URLParam(r, "tenant"), &tenant, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "tenant", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.TryConnectionPasswordless(w, r, tenant, id)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -27283,6 +28984,152 @@ func (siw *ServerInterfaceWrapper) UpdateConnectionClients(w http.ResponseWriter
 	handler.ServeHTTP(w, r)
 }
 
+// GetConnectionKeys operation middleware
+func (siw *ServerInterfaceWrapper) GetConnectionKeys(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetConnectionKeys(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// PostConnectionKeys operation middleware
+func (siw *ServerInterfaceWrapper) PostConnectionKeys(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.PostConnectionKeys(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// PostConnectionKeysRotate operation middleware
+func (siw *ServerInterfaceWrapper) PostConnectionKeysRotate(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.PostConnectionKeysRotate(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetConnectionStatus operation middleware
+func (siw *ServerInterfaceWrapper) GetConnectionStatus(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetConnectionStatus(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteConnectionUsersByEmail operation middleware
+func (siw *ServerInterfaceWrapper) DeleteConnectionUsersByEmail(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params DeleteConnectionUsersByEmailParams
+
+	// ------------- Required query parameter "email" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, true, "email", r.URL.Query(), &params.Email, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "email"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "email", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteConnectionUsersByEmail(w, r, id, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // GetCustomDomains operation middleware
 func (siw *ServerInterfaceWrapper) GetCustomDomains(w http.ResponseWriter, r *http.Request) {
 
@@ -27636,8 +29483,40 @@ func (siw *ServerInterfaceWrapper) DeleteEmailProvider(w http.ResponseWriter, r 
 // GetEmailProvider operation middleware
 func (siw *ServerInterfaceWrapper) GetEmailProvider(w http.ResponseWriter, r *http.Request) {
 
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetEmailProviderParams
+
+	// ------------- Optional query parameter "fields" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "fields", r.URL.Query(), &params.Fields, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "fields"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "fields", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "include_fields" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "include_fields", r.URL.Query(), &params.IncludeFields, runtime.BindQueryParameterOptions{Type: "boolean", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "include_fields"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "include_fields", Err: err})
+		}
+		return
+	}
+
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.GetEmailProvider(w, r)
+		siw.Handler.GetEmailProvider(w, r, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -31748,6 +33627,118 @@ func (siw *ServerInterfaceWrapper) PutPromptPartials(w http.ResponseWriter, r *h
 	handler.ServeHTTP(w, r)
 }
 
+// GetRefreshTokens operation middleware
+func (siw *ServerInterfaceWrapper) GetRefreshTokens(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetRefreshTokensParams
+
+	// ------------- Required query parameter "user_id" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, true, "user_id", r.URL.Query(), &params.UserId, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "user_id"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "user_id", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "client_id" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "client_id", r.URL.Query(), &params.ClientId, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "client_id"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "client_id", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "from" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "from", r.URL.Query(), &params.From, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "from"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "from", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "take" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "take", r.URL.Query(), &params.Take, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "take"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "take", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "fields" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "fields", r.URL.Query(), &params.Fields, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "fields"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "fields", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "include_fields" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "include_fields", r.URL.Query(), &params.IncludeFields, runtime.BindQueryParameterOptions{Type: "boolean", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "include_fields"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "include_fields", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetRefreshTokens(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// RevokeRefreshTokens operation middleware
+func (siw *ServerInterfaceWrapper) RevokeRefreshTokens(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.RevokeRefreshTokens(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // DeleteRefreshToken operation middleware
 func (siw *ServerInterfaceWrapper) DeleteRefreshToken(w http.ResponseWriter, r *http.Request) {
 
@@ -31791,6 +33782,32 @@ func (siw *ServerInterfaceWrapper) GetRefreshToken(w http.ResponseWriter, r *htt
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetRefreshToken(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdateRefreshToken operation middleware
+func (siw *ServerInterfaceWrapper) UpdateRefreshToken(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateRefreshToken(w, r, id)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -32591,6 +34608,58 @@ func (siw *ServerInterfaceWrapper) GetSession(w http.ResponseWriter, r *http.Req
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetSession(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdateSession operation middleware
+func (siw *ServerInterfaceWrapper) UpdateSession(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateSession(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// RevokeSession operation middleware
+func (siw *ServerInterfaceWrapper) RevokeSession(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.RevokeSession(w, r, id)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -34846,6 +36915,21 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Patch(options.BaseURL+"/api/v2/connections/{id}", wrapper.UpdateConnection)
 	})
 	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/connections/{id}/keys", wrapper.GetConnectionKeys)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/v2/connections/{id}/keys", wrapper.PostConnectionKeys)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/v2/connections/{id}/keys/rotate", wrapper.PostConnectionKeysRotate)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/connections/{id}/status", wrapper.GetConnectionStatus)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/v2/connections/{id}/users", wrapper.DeleteConnectionUsersByEmail)
+	})
+	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/v2/connections/{id}/clients", wrapper.GetConnectionClients)
 	})
 	r.Group(func(r chi.Router) {
@@ -34891,10 +36975,25 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Get(options.BaseURL+"/api/v2/sessions/{id}", wrapper.GetSession)
 	})
 	r.Group(func(r chi.Router) {
+		r.Patch(options.BaseURL+"/api/v2/sessions/{id}", wrapper.UpdateSession)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/v2/sessions/{id}/revoke", wrapper.RevokeSession)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/refresh-tokens", wrapper.GetRefreshTokens)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/v2/refresh-tokens/revoke", wrapper.RevokeRefreshTokens)
+	})
+	r.Group(func(r chi.Router) {
 		r.Delete(options.BaseURL+"/api/v2/refresh-tokens/{id}", wrapper.DeleteRefreshToken)
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/v2/refresh-tokens/{id}", wrapper.GetRefreshToken)
+	})
+	r.Group(func(r chi.Router) {
+		r.Patch(options.BaseURL+"/api/v2/refresh-tokens/{id}", wrapper.UpdateRefreshToken)
 	})
 	r.Group(func(r chi.Router) {
 		r.Delete(options.BaseURL+"/api/v2/grants", wrapper.DeleteGrantsByUser)
@@ -35024,6 +37123,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/api/system/tenants/{tenant}/emails/test", wrapper.TestTenantEmail)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/system/tenants/{tenant}/connections/{id}/passwordless/try", wrapper.TryConnectionPasswordless)
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/api/system/tenants/{tenant}/connections/{id}/scripts/{name}/try", wrapper.TryConnectionScript)

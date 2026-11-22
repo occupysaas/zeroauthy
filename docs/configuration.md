@@ -299,7 +299,7 @@ mount a certificate. The [quickstart](quickstart.md) shows a full `docker run`.
 | Key | Environment variable | Type | Default | Description |
 | --- | --- | --- | --- | --- |
 | `logs.streams.allow_insecure_http` | `ZEROAUTHY_LOGS__STREAMS__ALLOW_INSECURE_HTTP` | bool | `false` | `logs.streams.allow_insecure_http` permits plain-HTTP log stream targets; for tests and development only. |
-| `logs.streams.allow_private_networks` | `ZEROAUTHY_LOGS__STREAMS__ALLOW_PRIVATE_NETWORKS` | bool | `false` | `logs.streams.allow_private_networks` permits log stream targets on private, loopback and link-local addresses, which are refused by default. |
+| `logs.streams.allow_private_networks` | `ZEROAUTHY_LOGS__STREAMS__ALLOW_PRIVATE_NETWORKS` | bool | `false` | `logs.streams.allow_private_networks` permits log stream and back-channel logout targets on private, loopback and link-local addresses, refused by default. |
 
 ### `events`
 

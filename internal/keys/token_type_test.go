@@ -36,3 +36,21 @@ func TestRBACSigningType(t *testing.T) {
 		}
 	}
 }
+
+func TestLogoutSigningType(t *testing.T) {
+	m, _ := newManager(t)
+	if err := m.Ensure(t.Context(), "ten_a"); err != nil {
+		t.Fatal(err)
+	}
+	raw, err := m.SignWithType(t.Context(), "ten_a", map[string]any{"sub": "u"}, "logout+jwt")
+	if err != nil {
+		t.Fatal(err)
+	}
+	parsed, err := jwt.ParseSigned(raw, []jose.SignatureAlgorithm{jose.RS256})
+	if err != nil || parsed.Headers[0].ExtraHeaders[jose.HeaderType] != "logout+jwt" {
+		t.Fatal("wrong logout signing type")
+	}
+	if _, err := m.SignWithAlg(t.Context(), "ten_a", map[string]any{}, "logout+jwt", jose.PS256); err == nil {
+		t.Fatal("logout token accepted non-RS256 algorithm")
+	}
+}

@@ -255,7 +255,7 @@ func (h *Handlers) CompletePasskeyPrompt(w http.ResponseWriter, r *http.Request,
 		if _, err := tx.Users().GetForUpdate(r.Context(), res.Tenant.ID, sess.UserID); err != nil {
 			return err
 		}
-		current, err := local.ActiveSession(r.Context(), r, res)
+		current, err := local.FlowSession(r.Context(), r, res)
 		if err != nil || current == nil || current.ID != sess.ID {
 			return store.ErrInvalid
 		}

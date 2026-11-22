@@ -7,7 +7,7 @@ the docs. [SECURITY.md](SECURITY.md) defines what is in scope for reports;
 [INCIDENT_RESPONSE.md](INCIDENT_RESPONSE.md) says what we do when something
 goes wrong.
 
-Last reviewed: 2026-11-15
+Last reviewed: 2026-11-18 (Plan 36 enterprise federation additions)
 
 ## What we protect
 
@@ -70,6 +70,40 @@ limits), **Operator** (depends on deployment configuration), **Gap**
 | **Elevation of privilege:** a tenant token reaching other tenants or the system API | Management and system APIs | Audience bound to the tenant's own API; system API takes operator tokens only | Mitigated |
 | **Elevation of privilege:** pull requests gaining CI privileges | GitHub Actions | `pull_request` only (no `pull_request_target`), least-privilege tokens, no persisted credentials, zizmor in CI | Mitigated |
 | **Elevation of privilege:** access kept after a block or password change | Sessions, tokens | Refresh and password grants refused for blocked users; sessions and refresh tokens can be revoked through the Management API | Gap: neither a password change nor a block ends sessions or refresh tokens by itself, and issued access tokens stay valid until they expire ([Management API](docs/management-api.md)) |
+
+## Enterprise federation boundaries
+
+OIDC/Okta connections accept either authorization codes or a front-channel ID
+token bound to one single-use attempt and browser cookie. Front-channel tokens
+require the pinned issuer, audience, nonce, permitted asymmetric signature and
+valid times. Endpoint snapshots stay on the attempt; changing effective
+connection settings invalidates pending attempts. Discovery, PAR, token and
+userinfo requests use the guarded HTTPS transport.
+
+Connection signing and decryption keys are tenant/connection scoped and sealed
+with authenticated context including key ID, use and algorithm. APIs return
+public certificates only. Rotation retains current/next/previous states
+atomically. The plugin capability fails closed for key-dependent operations.
+Mapped claims cannot overwrite identity ownership or server authorization
+fields. Identity lookup remains connection plus upstream subject, never email.
+Userinfo subject must match the signed ID token. Sensitive provider values are
+registered with request log scrubbing even when mapped into a profile field.
+
+## DPoP boundary
+
+Downstream DPoP validates bounded ES256/RS256 proofs against embedded public
+keys without outbound key fetches. Proofs bind the resolved public origin,
+method and endpoint; UserInfo also verifies the access-token hash and signed
+`cnf.jkt`. Replay claims use tenant/origin/key isolation in the shared store.
+Authorization-server and UserInfo nonces use distinct authenticated purposes.
+Key mismatch and nonce challenges occur before code or refresh mutation.
+Storage support loss and transport failures refuse protected processing.
+
+API sender constraints are opt-in; external APIs must validate the proof and
+`cnf.jkt` themselves. Management and operator APIs remain Bearer-only and
+refuse bound tokens. A compromised application that can use its private key
+can still send proofs; DPoP does not isolate malicious application code.
+See [DPoP](docs/dpop.md) for settings and validation responsibilities.
 
 ## Other documented gaps
 

@@ -191,5 +191,4 @@ and all four actual Deploy CLI cells. An earlier local Apple attempt failed
 because it overlapped the general runner's `npm ci` against shared
 `node_modules`; that orchestration failure and its exact exits/artifacts are
 retained in the report. No production fix was required. Test-only integration
-changes do not require another broad Go run. This fix still requires review
-and a new green plan-branch CI run before merge approval.
+changes do not require another broad Go run. Review and green plan-branch CI subsequently completed before integration into `main`.

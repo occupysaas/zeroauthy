@@ -14,11 +14,30 @@ func SealEmailProvider(w Wrapper, tenantID, provider string, plaintext []byte) (
 	if w == nil || tenantID == "" || provider == "" {
 		return nil, errEmailProviderEnvelope
 	}
-	sealed, err := w.Wrap(plaintext, emailProviderAAD(tenantID, provider))
+	sealed, err := w.Wrap(plaintext, emailProviderAAD("email-provider/v1", tenantID, provider))
 	if err != nil {
 		return nil, errEmailProviderEnvelope
 	}
 	return sealed, nil
+}
+
+// A tagged envelope seals only private credentials. The marker is longer than
+// a legacy GCM nonce, and its version is also bound by the authenticated data.
+const splitEmailProviderTag = "zeroauthy/email-provider/v2\x00"
+
+func EmailProviderSecretsOnly(sealed []byte) bool {
+	return bytes.HasPrefix(sealed, []byte(splitEmailProviderTag))
+}
+
+func SealEmailProviderSecrets(w Wrapper, tenantID, provider string, plaintext []byte) ([]byte, error) {
+	if w == nil || tenantID == "" || provider == "" {
+		return nil, errEmailProviderEnvelope
+	}
+	sealed, err := w.Wrap(plaintext, emailProviderAAD(splitEmailProviderTag, tenantID, provider))
+	if err != nil {
+		return nil, errEmailProviderEnvelope
+	}
+	return append([]byte(splitEmailProviderTag), sealed...), nil
 }
 
 // OpenEmailProvider decrypts credentials only under the exact tenant and
@@ -27,16 +46,21 @@ func OpenEmailProvider(w Wrapper, tenantID, provider string, sealed []byte) ([]b
 	if w == nil || tenantID == "" || provider == "" {
 		return nil, errEmailProviderEnvelope
 	}
-	plaintext, err := w.Unwrap(sealed, emailProviderAAD(tenantID, provider))
+	label := "email-provider/v1"
+	if EmailProviderSecretsOnly(sealed) {
+		label = splitEmailProviderTag
+		sealed = sealed[len(splitEmailProviderTag):]
+	}
+	plaintext, err := w.Unwrap(sealed, emailProviderAAD(label, tenantID, provider))
 	if err != nil {
 		return nil, errEmailProviderEnvelope
 	}
 	return plaintext, nil
 }
 
-func emailProviderAAD(tenantID, provider string) []byte {
+func emailProviderAAD(label, tenantID, provider string) []byte {
 	var b bytes.Buffer
-	for _, part := range []string{"email-provider/v1", tenantID, provider} {
+	for _, part := range []string{label, tenantID, provider} {
 		_ = binary.Write(&b, binary.BigEndian, uint32(len(part)))
 		b.WriteString(part)
 	}

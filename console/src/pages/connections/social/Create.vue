@@ -10,7 +10,8 @@ import Button from '../../../ui/Button.vue'
 import Field from '../../../ui/Field.vue'
 import ScriptEditor from './ScriptEditor.vue'
 import MicrosoftOptions from './MicrosoftOptions.vue'
-import { applePEM, APPLE_IDENTIFIER, callbackURLs, defaultScript, httpsURL, MAX_SCRIPT_BYTES, NAME, socialStrategies, enterpriseStrategies, MICROSOFT_GUID, microsoftTenant, utf8Bytes, type Options, type FederatedStrategy } from './social'
+import GitHubOptions from './GitHubOptions.vue'
+import { applePEM, githubFlagOptions, APPLE_IDENTIFIER, callbackURLs, defaultScript, httpsURL, MAX_SCRIPT_BYTES, NAME, socialStrategies, enterpriseStrategies, MICROSOFT_GUID, microsoftTenant, utf8Bytes, type Options, type FederatedStrategy } from './social'
 
 const { t } = useI18n()
 const { api } = useServices()
@@ -31,12 +32,15 @@ const draft = reactive({
   clientSecret: '',
   appleTeam: '', appleKID: '', appleKey: '', appleName: true,
   email: true,
+  githubFlags: {} as Record<string, boolean>,
   profile: true,
   authorizationURL: '',
   tokenURL: '',
   scope: '',
   script: defaultScript,
   discoveryURL: '',
+  channel: 'back_channel',
+  oktaDomain: '',
   scopes: 'openid profile email',
   microsoftMode: 'single',
   tenantDomain: '',
@@ -80,7 +84,7 @@ function validate(): boolean {
     if (!APPLE_IDENTIFIER.test(draft.appleTeam)) errors.appleTeam = t('social.appleIdentifier')
     if (!APPLE_IDENTIFIER.test(draft.appleKID)) errors.appleKID = t('social.appleIdentifier')
     if (!applePEM(draft.appleKey)) errors.appleKey = t('social.applePEM')
-  } else need('clientSecret', draft.clientSecret)
+  } else if (draft.strategy !== 'oidc' || draft.channel === 'back_channel') need('clientSecret', draft.clientSecret)
   if (draft.strategy === 'windowslive' || draft.strategy === 'waad') {
     if (!MICROSOFT_GUID.test(draft.clientId.trim())) errors.clientId = t('social.microsoftClientId')
     if (draft.strategy === 'waad' && draft.microsoftMode === 'single' && !microsoftTenant(draft.tenantDomain)) errors.tenantDomain = t('social.microsoftTenantInvalid')
@@ -97,6 +101,7 @@ function validate(): boolean {
     if (!httpsURL(draft.discoveryURL.trim())) errors.discoveryURL = t('social.httpsRequired')
     if (!draft.scopes.split(/\s+/).includes('openid')) errors.scopes = t('social.openidRequired')
   }
+  if (draft.strategy === 'okta' && (!draft.oktaDomain || draft.oktaDomain.length > 253 || !draft.oktaDomain.toLowerCase().split('.').every(label => /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(label)))) errors.oktaDomain = 'Enter a DNS host name without a scheme, port or path.'
   return Object.keys(errors).length === 0
 }
 
@@ -106,6 +111,9 @@ function body(): ConnectionCreate {
     case 'apple':
       delete options.client_secret
       Object.assign(options, { team_id: draft.appleTeam, kid: draft.appleKID, app_secret: draft.appleKey, name: draft.appleName, email: draft.email })
+      break
+    case 'github':
+      Object.assign(options, githubFlagOptions(draft.email, draft.githubFlags))
       break
     case 'windowslive':
       options.client_id = draft.clientId.trim().toLowerCase()
@@ -123,7 +131,11 @@ function body(): ConnectionCreate {
       Object.assign(options, { authorizationURL: draft.authorizationURL.trim(), tokenURL: draft.tokenURL.trim(), scope: draft.scope.trim(), scripts: { fetchUserProfile: draft.script } })
       break
     case 'oidc':
-      Object.assign(options, { type: 'back_channel', discovery_url: draft.discoveryURL.trim(), scopes: draft.scopes.trim() })
+      Object.assign(options, { type: draft.channel, discovery_url: draft.discoveryURL.trim(), scopes: draft.scopes.trim() })
+      if (draft.channel === 'front_channel') delete options.client_secret
+      break
+    case 'okta':
+      Object.assign(options, { type: 'back_channel', domain: draft.oktaDomain.toLowerCase(), scope: draft.scopes.trim() })
       break
   }
   const b: Record<string, unknown> = { name: draft.name.trim(), strategy: draft.strategy, options, enabled_clients: chosen.value }
@@ -184,7 +196,7 @@ function describedBy(id: string, key: string, hint = false): string {
       <Field id="social-client-id" :label="t(draft.strategy === 'apple' ? 'social.appleServices' : 'social.clientId')" :error="errors.clientId">
         <input id="social-client-id" v-model="draft.clientId" type="text" autocomplete="off" spellcheck="false" :aria-invalid="!!errors.clientId" :aria-describedby="describedBy('social-client-id', 'clientId')" />
       </Field>
-      <Field v-if="draft.strategy !== 'apple'" id="social-client-secret" :label="t('social.clientSecret')" :hint="t('social.clientSecretNew')" :error="errors.clientSecret">
+      <Field v-if="draft.strategy !== 'apple' && (draft.strategy !== 'oidc' || draft.channel === 'back_channel')" id="social-client-secret" :label="t('social.clientSecret')" :hint="t('social.clientSecretNew')" :error="errors.clientSecret">
         <input id="social-client-secret" v-model="draft.clientSecret" type="password" autocomplete="new-password" spellcheck="false" :aria-invalid="!!errors.clientSecret" :aria-describedby="describedBy('social-client-secret', 'clientSecret', true)" />
       </Field>
       <template v-if="draft.strategy === 'apple'">
@@ -194,6 +206,7 @@ function describedBy(id: string, key: string, hint = false): string {
         <label class="check"><input id="apple-name" v-model="draft.appleName" type="checkbox" /> {{ t('social.appleName') }}</label>
         <label class="check"><input id="apple-email" v-model="draft.email" type="checkbox" /> {{ t('social.googleEmail') }}</label>
       </template>
+      <GitHubOptions v-if="draft.strategy === 'github'" v-model:email="draft.email" v-model:flags="draft.githubFlags" />
       <template v-if="draft.strategy === 'google-oauth2'">
         <label class="check"><input v-model="draft.email" type="checkbox" /> <span>{{ t('social.googleEmail') }}</span></label>
         <label class="check"><input v-model="draft.profile" type="checkbox" /> <span>{{ t('social.googleProfile') }}</span></label>
@@ -210,7 +223,9 @@ function describedBy(id: string, key: string, hint = false): string {
         </Field>
         <ScriptEditor id="social-script" v-model="draft.script" :label="t('social.script')" :error="errors.script" />
       </template>
+      <Field v-if="draft.strategy === 'okta'" id="okta-domain" label="Okta domain" :error="errors.oktaDomain"><input id="okta-domain" v-model="draft.oktaDomain" maxlength="253" autocomplete="off" :aria-invalid="!!errors.oktaDomain" /></Field>
       <template v-if="draft.strategy === 'oidc'">
+        <Field id="oidc-channel" label="Login channel"><select id="oidc-channel" v-model="draft.channel"><option value="back_channel">Authorization code (back channel)</option><option value="front_channel">ID token form post (front channel)</option></select></Field>
         <Field id="social-discovery" :label="t('social.discoveryURL')" :error="errors.discoveryURL">
           <input id="social-discovery" v-model="draft.discoveryURL" type="url" autocomplete="off" spellcheck="false" :aria-invalid="!!errors.discoveryURL" :aria-describedby="describedBy('social-discovery', 'discoveryURL')" />
         </Field>
@@ -221,6 +236,7 @@ function describedBy(id: string, key: string, hint = false): string {
       <section class="stack" aria-labelledby="social-callbacks">
         <h2 id="social-callbacks" class="m-0 text-base">{{ t('social.callbacks') }}</h2>
         <p class="muted">{{ t('social.callbacksHint') }}</p>
+        <p v-if="draft.strategy === 'github'" class="muted" data-testid="github-callbacks">{{ t('social.githubCallbacks') }}</p>
         <ul class="m-0 break-all" data-testid="callbacks">
           <li v-for="u in callbacks" :key="u"><code>{{ u }}</code></li>
         </ul>
