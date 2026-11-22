@@ -434,28 +434,37 @@ type capabilityStore struct {
 	sentinel error
 }
 
-func (s capabilityStore) CheckRBACSupport(context.Context) error             { return s.sentinel }
-func (s capabilityStore) CheckActionsSupport(context.Context) error          { return s.sentinel }
-func (s capabilityStore) CheckOrganizationsSupport(context.Context) error    { return s.sentinel }
-func (s capabilityStore) OrganizationsSupported() bool                       { return false }
-func (s capabilityStore) CheckOrganizationsIISupport(context.Context) error  { return s.sentinel }
-func (s capabilityStore) OrganizationsIISupported() bool                     { return false }
-func (s capabilityStore) CheckLogsSupport(context.Context) error             { return s.sentinel }
-func (s capabilityStore) LogsSupported() bool                                { return false }
-func (s capabilityStore) MicrosoftFederationSupported(context.Context) error { return s.sentinel }
-func (s capabilityStore) CheckEventsSupport(context.Context) error           { return s.sentinel }
-func (s capabilityStore) EventsSupported() bool                              { return false }
-func (s capabilityStore) CheckSAMLSupport(context.Context) error             { return s.sentinel }
+func (s capabilityStore) CheckRBACSupport(context.Context) error              { return s.sentinel }
+func (s capabilityStore) CheckActionsSupport(context.Context) error           { return s.sentinel }
+func (s capabilityStore) CheckOrganizationsSupport(context.Context) error     { return s.sentinel }
+func (s capabilityStore) OrganizationsSupported() bool                        { return false }
+func (s capabilityStore) CheckOrganizationsIISupport(context.Context) error   { return s.sentinel }
+func (s capabilityStore) OrganizationsIISupported() bool                      { return false }
+func (s capabilityStore) CheckLogsSupport(context.Context) error              { return s.sentinel }
+func (s capabilityStore) LogsSupported() bool                                 { return false }
+func (s capabilityStore) MicrosoftFederationSupported(context.Context) error  { return s.sentinel }
+func (s capabilityStore) CheckEventsSupport(context.Context) error            { return s.sentinel }
+func (s capabilityStore) EventsSupported() bool                               { return false }
+func (s capabilityStore) CheckSAMLSupport(context.Context) error              { return s.sentinel }
+func (s capabilityStore) CheckOIDCLogoutSupport(context.Context) error        { return s.sentinel }
+func (s capabilityStore) CheckClientCredentialsSupport(context.Context) error { return s.sentinel }
+func (s capabilityStore) ClientCredentialsSupported() bool                    { return false }
+func (s capabilityStore) CheckMFASupport(context.Context) error               { return s.sentinel }
+func (s capabilityStore) MFASupported() bool                                  { return false }
+func (s capabilityStore) CheckPhoneSupport(context.Context) error             { return s.sentinel }
+func (s capabilityStore) PhoneSupported() bool                                { return false }
+func (s capabilityStore) ConnectionKeysSupported() bool                       { return false }
 func TestDecoratorForwardsCapabilities(t *testing.T) {
 	ctx := context.Background()
 	sentinel := errors.New("capability failure")
 	s := events.Wrap(capabilityStore{Store: memory.New(), sentinel: sentinel}, events.Config{})
-	for name, probe := range map[string]func(context.Context) error{"rbac": s.(store.RBACSupporter).CheckRBACSupport, "actions": s.(store.ActionsSupporter).CheckActionsSupport, "organizations": s.(store.OrganizationsSupporter).CheckOrganizationsSupport, "organizationsII": s.(store.OrganizationsIISupporter).CheckOrganizationsIISupport, "logs": s.(store.LogsSupporter).CheckLogsSupport, "microsoft": s.(store.MicrosoftFederationSupporter).MicrosoftFederationSupported, "events": s.(store.EventsSupporter).CheckEventsSupport, "saml": s.(store.SAMLSupporter).CheckSAMLSupport} {
+	for name, probe := range map[string]func(context.Context) error{"rbac": s.(store.RBACSupporter).CheckRBACSupport, "actions": s.(store.ActionsSupporter).CheckActionsSupport, "organizations": s.(store.OrganizationsSupporter).CheckOrganizationsSupport, "organizationsII": s.(store.OrganizationsIISupporter).CheckOrganizationsIISupport, "logs": s.(store.LogsSupporter).CheckLogsSupport, "microsoft": s.(store.MicrosoftFederationSupporter).MicrosoftFederationSupported, "events": s.(store.EventsSupporter).CheckEventsSupport, "saml": s.(store.SAMLSupporter).CheckSAMLSupport, "oidcLogout": s.(store.OIDCLogoutSupporter).CheckOIDCLogoutSupport, "clientCredentials": s.(store.ClientCredentialsSupporter).CheckClientCredentialsSupport, "mfa": s.(store.MFASupporter).CheckMFASupport, "phone": s.(store.PhoneSupporter).CheckPhoneSupport} {
 		if err := probe(ctx); !errors.Is(err, sentinel) {
 			t.Fatalf("%s lost error: %v", name, err)
 		}
 	}
-	if s.(store.OrganizationsSupporter).OrganizationsSupported() || s.(store.OrganizationsIISupporter).OrganizationsIISupported() || s.(store.LogsSupporter).LogsSupported() || s.(store.EventsSupporter).EventsSupported() {
+	if s.(store.OrganizationsSupporter).OrganizationsSupported() || s.(store.OrganizationsIISupporter).OrganizationsIISupported() || s.(store.LogsSupporter).LogsSupported() || s.(store.EventsSupporter).EventsSupported() ||
+		s.(store.ClientCredentialsSupporter).ClientCredentialsSupported() || s.(store.MFASupporter).MFASupported() || s.(store.PhoneSupporter).PhoneSupported() || s.(store.ConnectionKeysSupporter).ConnectionKeysSupported() {
 		t.Fatal("unsupported capability became supported")
 	}
 	if err := s.Users().Create(ctx, user("u")); !errors.Is(err, sentinel) {
@@ -713,5 +722,35 @@ func TestDecoratorForwardsSAMLReplay(t *testing.T) {
 	}
 	if n, err := s.(store.SAMLReplayStore).PurgeSAMLAssertions(ctx, now.Add(time.Hour), 10); err != nil || n != 1 {
 		t.Fatalf("purge through the decorator: %d %v", n, err)
+	}
+}
+
+// The production store is always wrapped by the decorator, so capability
+// checks and optional repositories must survive it, inside transactions too.
+func TestDecoratorForwardsGlobalRevocation(t *testing.T) {
+	ctx := context.Background()
+	s := events.Wrap(memory.New(), events.Config{})
+	now := time.Now()
+	use := func(st store.Store) error {
+		repo, ok := st.(store.GlobalRevocationStore)
+		if !ok {
+			t.Fatalf("%T hides GlobalRevocationStore", st)
+		}
+		return repo.UseGlobalRevocationJTI(ctx, "t", "c", "j1", now.Add(time.Minute), now)
+	}
+	if err := s.WithTx(ctx, use); err != nil {
+		t.Fatal(err)
+	}
+	if err := use(s); !errors.Is(err, store.ErrConflict) {
+		t.Fatalf("replay through the decorator: %v", err)
+	}
+	if n, err := s.(store.GlobalRevocationStore).PurgeGlobalRevocationJTIs(ctx, now.Add(time.Hour), 10); err != nil || n != 1 {
+		t.Fatalf("purge through the decorator: %d %v", n, err)
+	}
+	if _, err := s.(store.GlobalRevocationStore).FindByFederatedEmail(ctx, "t", "c", "nobody@example.test"); !errors.Is(err, store.ErrNotFound) {
+		t.Fatalf("lookup through the decorator: %v", err)
+	}
+	if store.CheckOIDCLogoutSupport(ctx, s) != nil || !store.ClientCredentialsAvailable(ctx, s) || !s.(store.ConnectionKeysSupporter).ConnectionKeysSupported() {
+		t.Fatal("decorator reports a supported capability as unavailable")
 	}
 }
