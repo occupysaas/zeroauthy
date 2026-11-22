@@ -13,6 +13,7 @@ import (
 
 	"github.com/zeroauthy/zeroauthy/internal/gen/mgmtapi"
 	"github.com/zeroauthy/zeroauthy/internal/logout"
+	"github.com/zeroauthy/zeroauthy/internal/logout/logouttest"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 )
 
@@ -699,9 +700,10 @@ func TestSessionRevocationBackchannel(t *testing.T) {
 		t.Fatalf("bulk revoke status=%d", status)
 	}
 	jobs, err := e.st.Actions().ClaimJobs(t.Context(), now, time.Minute, 10)
-	if err != nil || len(jobs) != 2 {
-		t.Fatalf("revocation jobs=%d err=%v", len(jobs), err)
+	if err != nil {
+		t.Fatal(err)
 	}
+	logouttest.RequireInitiator(t, e.w, jobs, 2, logout.SessionRevoked)
 }
 
 func TestRevokeSessionBackchannel(t *testing.T) {
@@ -718,9 +720,10 @@ func TestRevokeSessionBackchannel(t *testing.T) {
 		t.Fatalf("revoke status=%d", status)
 	}
 	jobs, err := e.st.Actions().ClaimJobs(t.Context(), now, time.Minute, 10)
-	if err != nil || len(jobs) != 1 {
-		t.Fatalf("revoke jobs=%d err=%v", len(jobs), err)
+	if err != nil {
+		t.Fatal(err)
 	}
+	logouttest.RequireInitiator(t, e.w, jobs, 1, logout.SessionRevoked)
 }
 
 func TestAccountDeletionBackchannel(t *testing.T) {
@@ -736,13 +739,14 @@ func TestAccountDeletionBackchannel(t *testing.T) {
 		t.Fatalf("delete user status=%d", status)
 	}
 	jobs, err := e.st.Actions().ClaimJobs(t.Context(), now, time.Minute, 10)
-	if err != nil || len(jobs) != 1 {
-		t.Fatalf("delete-user jobs=%d err=%v", len(jobs), err)
+	if err != nil {
+		t.Fatal(err)
 	}
+	logouttest.RequireInitiator(t, e.w, jobs, 1, logout.AccountDeleted)
 }
 
 func TestUserProfileChangeBackchannel(t *testing.T) {
-	for _, field := range []string{"email", "password"} {
+	for field, want := range map[string]logout.Initiator{"email": logout.EmailIdentifierChanged, "password": logout.PasswordChanged} {
 		t.Run(field, func(t *testing.T) {
 			e := newUsersEnv(t)
 			e.h.Logout = &logout.Service{Store: e.st, Wrapper: e.w, Now: func() time.Time { return now }}
@@ -760,12 +764,37 @@ func TestUserProfileChangeBackchannel(t *testing.T) {
 				t.Fatalf("%s update status=%d", field, rec.Code)
 			}
 			jobs, err := e.st.Actions().ClaimJobs(t.Context(), now, time.Minute, 10)
-			if err != nil || len(jobs) != 1 {
-				t.Fatalf("%s notifications=%d err=%v", field, len(jobs), err)
+			if err != nil {
+				t.Fatal(err)
 			}
+			logouttest.RequireInitiator(t, e.w, jobs, 1, want)
 			if _, err := e.st.Sessions().Get(t.Context(), e.tn.ID, "changed"); !errors.Is(err, store.ErrNotFound) {
 				t.Fatal("changed credential session remained active")
 			}
 		})
+	}
+}
+
+// TestEmailAndPasswordChangeRefused: as in Auth0, one PATCH cannot change
+// both email and password, so a single back-channel reason always applies.
+// The refused update ends no session and queues no notice.
+func TestEmailAndPasswordChangeRefused(t *testing.T) {
+	e := newUsersEnv(t)
+	e.h.Logout = &logout.Service{Store: e.st, Wrapper: e.w, Now: func() time.Time { return now }}
+	if err := e.st.Clients().Create(t.Context(), &store.Client{TenantID: e.tn.ID, ClientID: "logout-rp", OIDCLogout: &store.OIDCLogout{BackchannelURLs: []string{"https://rp.example/logout"}, InitiatorsMode: "all"}}); err != nil {
+		t.Fatal(err)
+	}
+	user := e.mustCreate(t, map[string]any{"email": "both@example.test", "password": "A-original-password-9"})["user_id"].(string)
+	e.addSession(t, "changed-both", user, now, func(s *store.LoginSession) { s.ClientIDs = []string{"logout-rp"} })
+	rec, _ := e.patch(t, user, map[string]any{"email": "both-changed@example.test", "password": "A-replacement-password-9"}, "update:users")
+	if rec.Code != 400 || !strings.Contains(rec.Body.String(), "operation_not_supported") {
+		t.Fatalf("update status=%d body=%s", rec.Code, rec.Body)
+	}
+	if _, err := e.st.Sessions().Get(t.Context(), e.tn.ID, "changed-both"); err != nil {
+		t.Fatal("refused update ended the session")
+	}
+	jobs, err := e.st.Actions().ClaimJobs(t.Context(), now, time.Minute, 10)
+	if err != nil || len(jobs) != 0 {
+		t.Fatalf("refused update queued %d notices (err %v)", len(jobs), err)
 	}
 }

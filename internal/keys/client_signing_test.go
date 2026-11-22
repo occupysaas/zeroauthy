@@ -36,4 +36,27 @@ func TestClientSigningSecret(t *testing.T) {
 			t.Fatal("unusable client secret accepted")
 		}
 	}
+
+	// Slice order does not decide: the newest CreatedAt wins.
+	reversed := base
+	reversed.Secrets = []store.ClientSecret{base.Secrets[1], base.Secrets[0]}
+	if key, err := ClientSigningSecret(w, &reversed, at); err != nil || !bytes.Equal(key, []byte(newest)) {
+		t.Fatal("selection depends on slice order")
+	}
+
+	// An expired newer secret is skipped in favour of the older active one.
+	expired := at
+	fallback := base
+	fallback.Secrets = []store.ClientSecret{{Sealed: sealed, CreatedAt: at.Add(-time.Hour)}, {Sealed: current, CreatedAt: at, ExpiresAt: &expired}}
+	if key, err := ClientSigningSecret(w, &fallback, at); err != nil || !bytes.Equal(key, []byte(old)) {
+		t.Fatal("expired newest secret was used or active older secret ignored")
+	}
+
+	// A secret shorter than 32 bytes is never an HS256 key, even when newest.
+	short, _ := SealClientSecret(w, "t", "c", secrets.RandomString(31))
+	weak := base
+	weak.Secrets = []store.ClientSecret{{Sealed: sealed, CreatedAt: at.Add(-time.Hour)}, {Sealed: short, CreatedAt: at}}
+	if _, err := ClientSigningSecret(w, &weak, at); err == nil {
+		t.Fatal("31-byte secret accepted as HS256 key")
+	}
 }

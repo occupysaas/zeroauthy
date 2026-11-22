@@ -15,6 +15,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/email"
 	"github.com/zeroauthy/zeroauthy/internal/keys"
 	"github.com/zeroauthy/zeroauthy/internal/logout"
+	"github.com/zeroauthy/zeroauthy/internal/logout/logouttest"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/session"
 	"github.com/zeroauthy/zeroauthy/internal/store"
@@ -727,7 +728,8 @@ func TestPasswordResetBackchannel(t *testing.T) {
 		t.Fatalf("reset submit status=%d", rec.Code)
 	}
 	jobs, err := e.st.Actions().ClaimJobs(t.Context(), fixedNow(), time.Minute, 10)
-	if err != nil || len(jobs) != 1 || jobs[0].Trigger != logout.JobKind {
-		t.Fatalf("reset notifications=%d err=%v", len(jobs), err)
+	if err != nil {
+		t.Fatal(err)
 	}
+	logouttest.RequireInitiator(t, wrapper, jobs, 1, logout.PasswordChanged)
 }

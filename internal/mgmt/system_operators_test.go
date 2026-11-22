@@ -13,8 +13,8 @@ import (
 
 	"github.com/zeroauthy/zeroauthy/internal/keys"
 	"github.com/zeroauthy/zeroauthy/internal/logout"
+	"github.com/zeroauthy/zeroauthy/internal/logout/logouttest"
 	"github.com/zeroauthy/zeroauthy/internal/mgmt"
-	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/tenant"
 )
@@ -33,7 +33,7 @@ func operatorEnv(t *testing.T, withLogout ...bool) (*env, string) {
 	e := newEnv(t)
 	h := &mgmt.Handlers{Store: e.st, BaseDomain: base, SystemHost: systemHost, Now: func() time.Time { return now }}
 	if len(withLogout) > 0 && withLogout[0] {
-		wrapper, err := keys.NewLocalWrapper([]byte(secrets.RandomString(32)))
+		wrapper, err := operatorLogoutWrapper()
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -258,7 +258,18 @@ func TestOperatorRemovalEnqueuesSessionFanout(t *testing.T) {
 		t.Fatalf("remove operator: %d", rec.Code)
 	}
 	jobs, err := e.st.Actions().ClaimJobs(t.Context(), now, time.Minute, 10)
-	if err != nil || len(jobs) != 1 {
-		t.Fatalf("operator fanout absent: jobs=%d err=%v", len(jobs), err)
+	if err != nil {
+		t.Fatal(err)
 	}
+	wrapper, err := operatorLogoutWrapper()
+	if err != nil {
+		t.Fatal(err)
+	}
+	logouttest.RequireInitiator(t, wrapper, jobs, 1, logout.SessionRevoked)
+}
+
+// operatorLogoutWrapper is deterministic so a test can open the jobs the
+// operator handlers seal.
+func operatorLogoutWrapper() (keys.Wrapper, error) {
+	return keys.NewLocalWrapper(bytes.Repeat([]byte{7}, 32))
 }
