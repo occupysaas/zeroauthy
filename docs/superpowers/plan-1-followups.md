@@ -839,3 +839,20 @@ Recorded under [D-0130](../compat/decisions.md); observe on a live tenant when o
 - **S37-16** `signingCert` forms: the Deploy CLI exports base64 of the
   PEM and imports it unchanged, so zeroauthy accepts that form beside PEM
   and base64 DER, and stores what it is sent.
+
+## Plan 37b observation points
+
+Recorded under [D-0140](../compat/decisions.md); observe on a live tenant when one is available.
+
+- **W1** Entra ID `use_wsfed`: not documented for new connections
+  (2026-11-22), so it stays refused.
+- **W2** `api.samlResponse` applies to WS-Fed tokens (documented on the
+  WS-Fed application page); whether every setter (lifetime, algorithms,
+  NameID format) applies.
+- **W3** ADFS user ID format and the default claim order behind
+  `user_id_attribute` ("prepended to the default user_id mapping list").
+- **W4** Whether Auth0 ever issues SAML 2.0 tokens on the WS-Fed IdP side
+  (its metadata offers both; `node-wsfed` issues SAML 1.1 only).
+- **W5** WS-Fed endpoint paths beyond the documented ones (realm-only
+  `/wsfed?wtrealm=`, per-application metadata), the default `wreply`, and
+  the sign-out (`wsignout1.0`, `wsignoutcleanup1.0`) responses.

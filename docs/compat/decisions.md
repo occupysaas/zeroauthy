@@ -3789,3 +3789,61 @@ Implementation rulings (recorded in the
 
 Observation points S37-1…S37-16 are listed in
 [plan-1-followups.md](../superpowers/plan-1-followups.md#plan-37a-observation-points).
+
+## D-0140: WS-Federation identity provider and ADFS connections (Plan 37b)
+
+**Contract frozen 2026-11-22.** The
+[spec](../superpowers/specs/2026-11-16-zeroauthy-ws-federation-design.md) and
+[plan](../superpowers/plans/2026-11-16-zeroauthy-plan-37b-ws-federation.md)
+reserve D-0140–0149. No live Auth0 tenant was observed by the implementer.
+The XML core, signature policy (RSA-SHA1 and SHA-1 only when selected
+explicitly) and replay store are Plan 37a's (D-0130).
+
+Sources: [WS-Fed protocol](https://auth0.com/docs/authenticate/protocols/ws-fed-protocol),
+[Configure WS-Fed applications](https://auth0.com/docs/get-started/applications/configure-ws-fed-applications),
+[ADFS connections](https://auth0.com/docs/authenticate/identity-providers/enterprise-identity-providers/adfs),
+[Management OpenAPI](https://auth0.com/docs/oas/management/v2/management-api-oas.json)
+(`ClientAddonWSFed`, `client_aliases`, `form_template`,
+`ConnectionOptionsADFS`, read 2026-11-22), OASIS WS-Federation 1.2 (passive
+requestor profile), SAML 1.1.
+
+What the Auth0 documentation fixes: the endpoint `/wsfed/{client_id}`, the
+metadata URL `/wsfed/FederationMetadata/2007-06/FederationMetadata.xml`, the
+parameters `wa` (`wsignin1.0`, `wsignout1.0`), `wreply`, `wctx`, `whr`
+(connection) and `wfresh=0` (re-authenticate), the add-on's "Application
+Callback URL" (a callback) and "Realm" (`client_aliases`), claim
+customisation only through `api.samlResponse` in a post-login Action with
+the `…/ws/2005/05/identity/claims/*` claim types, and for ADFS the
+callback `https://{domain}/login/callback`, the relying party identifier
+`urn:auth0:…`, metadata from a URL (checked daily) or a file (at most
+128 KB), and claim types email, name, name ID (UPN), given name and surname.
+Entra ID's `use_wsfed` is not documented for new connections (W1): it stays
+refused.
+
+**`node-wsfed` defaults** (MIT, `auth0/node-wsfed` at
+`3bd751a1749d8746b981ce0e8daabe9eaec654b0`, archived November 2026; and
+its SAML 1.1 template in `auth0/node-saml`; read 2026-11-22, studied, not
+copied):
+
+| Default | Value | Source |
+|---|---|---|
+| Token | SAML 1.1 assertion (`MajorVersion="1" MinorVersion="1"`), bearer confirmation, `AuthenticationMethod` `urn:oasis:names:tc:SAML:1.0:am:password`, NameIdentifier format `urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified` | `node-saml` `lib/saml11.template`, `lib/saml11.js` |
+| Lifetime | 8 hours (28800 s) | `lib/wsfed.js` |
+| Signature, digest | `rsa-sha256`, `sha256`; enveloped signature over the Assertion (`AssertionID`), exclusive c14n | `lib/wsfed.js`, `node-saml` `lib/saml11.js` |
+| Audience | `wtrealm`, else `wreply`; values without `http:`, `https:` or `urn:` get `urn:` prepended | `lib/wsfed.js` |
+| Response | `<t:RequestSecurityTokenResponse Context="{wctx}" xmlns:t="http://schemas.xmlsoap.org/ws/2005/02/trust"><t:RequestedSecurityToken>{assertion}</t:RequestedSecurityToken></t:RequestSecurityTokenResponse>` posted by an auto-submitting form with `wa=wsignin1.0`, `wresult`, `wctx` | `lib/wsfed.js`, `templates/form.ejs` |
+| Attributes | the claim type split at its last `/` into `AttributeNamespace` and `AttributeName` | `node-saml` `lib/saml11.js` |
+| Metadata | `EntityDescriptor` with a `RoleDescriptor` of type `fed:SecurityTokenServiceType` (`protocolSupportEnumeration` `http://docs.oasis-open.org/wsfed/federation/200706`), signing `KeyDescriptor`, `fed:TokenTypesOffered` (SAML 2.0 and 1.0), `fed:ClaimTypesOffered` (emailaddress, givenname, name, surname, nameidentifier, all optional), `fed:PassiveRequestorEndpoint` | `templates/metadata.ejs`, `lib/metadata.js` |
+| Sign-out | not implemented by the library | `lib/index.js` |
+
+| Local ruling | Contract |
+|---|---|
+| LR37b-1 | No WS-Trust active endpoints (`/trust/13/usernamemixed`). |
+| LR37b-2 | No JWT tokens in WS-Fed (`node-wsfed` `jwt` mode is undocumented by Auth0). |
+| LR37b-3 | `client_aliases` are unique per tenant; a write that reuses another application's alias is refused with `409`. `wtrealm` resolves to exactly one application (its client ID or alias). |
+| LR37b-4 | `addons.wsfed` enables the add-on; its own properties are stored and returned unchanged (at most 4 KiB) and have no effect, as Auth0 keeps the configuration in `callbacks` and `client_aliases`. Both `samlp` and `wsfed` may be enabled; each endpoint uses its own add-on (Auth0 calls the combination unsupported). |
+| LR37b-5 | `form_template` is stored and returned only; zeroauthy always posts with its own form. |
+| LR37b-6 | ADFS `upstream_params` is stored only. |
+
+Observation points W1–W5 (spec §4) and later W-n are listed in
+[plan-1-followups.md](../superpowers/plan-1-followups.md#plan-37b-observation-points).

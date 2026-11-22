@@ -585,3 +585,19 @@ func (a authAPI) SamlpIdPLogout(w http.ResponseWriter, r *http.Request, clientID
 func (a authAPI) SamlpIdPLogoutPost(w http.ResponseWriter, r *http.Request, clientID string) {
 	a.saml.Logout(w, r, clientID)
 }
+
+// WS-Federation routes (Plan 37b). Until the handlers land these answer 501
+// so the generated router compiles and the contract is routable.
+func wsfedNotImplemented(w http.ResponseWriter) {
+	httpx.WriteError(w, http.StatusNotImplemented, "not_implemented", "WS-Federation is not implemented yet")
+}
+func (authAPI) WsfedSignIn(w http.ResponseWriter, _ *http.Request, _ authapi.WsfedSignInParams) {
+	wsfedNotImplemented(w)
+}
+func (authAPI) WsfedMetadata(w http.ResponseWriter, _ *http.Request) { wsfedNotImplemented(w) }
+func (authAPI) WsfedClientSignIn(w http.ResponseWriter, _ *http.Request, _ string, _ authapi.WsfedClientSignInParams) {
+	wsfedNotImplemented(w)
+}
+func (authAPI) WsfedClientMetadata(w http.ResponseWriter, _ *http.Request, _ string) {
+	wsfedNotImplemented(w)
+}

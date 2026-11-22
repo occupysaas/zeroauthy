@@ -4982,6 +4982,58 @@ export interface components {
             [key: string]: unknown;
         };
         /**
+         * @description ADFS connection (`adfs`, Plan 37b, D-0140): zeroauthy is a
+         *     WS-Federation relying party of an ADFS server or any WS-Fed identity
+         *     provider. Exactly one of `adfs_server` (federation metadata host or
+         *     HTTPS URL, fetched through the federation outbound policy and
+         *     refreshed daily) and `fedMetadataXml` is required. `signInEndpoint`
+         *     and `thumbprints` are taken from the metadata; `thumbprints`,
+         *     `thumbprints_sha384` and `prev_thumbprints` are computed on write
+         *     and read-only. `entityId` (sent as `wtrealm`) defaults to
+         *     `urn:auth0:{tenant}:{connection}`. Tokens are posted as `wresult` to
+         *     `POST /login/callback`; SAML 1.1 and SAML 2.0 assertions are
+         *     accepted. `upstream_params` is stored only.
+         */
+        ConnectionOptionsADFS: {
+            /** @description ADFS federation metadata host (the metadata path `/FederationMetadata/2007-06/FederationMetadata.xml` is added) or HTTPS metadata URL. Refused together with fedMetadataXml. */
+            adfs_server?: string;
+            /** @description Inline federation metadata. Refused together with adfs_server. */
+            fedMetadataXml?: string;
+            /** @description Passive requestor (WS-Fed) sign-in endpoint discovered from the metadata. */
+            readonly signInEndpoint?: string;
+            /** @description SHA-1 thumbprints of the signing certificates in the metadata. */
+            readonly thumbprints?: string[];
+            /** @description Thumbprints from before the latest metadata change, still trusted until the next change. */
+            readonly prev_thumbprints?: string[];
+            /** @description SHA-384 thumbprints of the signing certificates. */
+            readonly thumbprints_sha384?: string[];
+            /** @description Relying party identifier sent as `wtrealm` and required as the token audience; defaults to `urn:auth0:{tenant}:{connection}`. */
+            entityId?: string;
+            /** @description Claim used first as the user ID; then the name identifier, UPN and email claims (LR37b-7). */
+            user_id_attribute?: string;
+            /**
+             * @default never_set_emails_as_verified
+             * @enum {string}
+             */
+            should_trust_email_verified_connection?: "never_set_emails_as_verified" | "always_set_emails_as_verified";
+            /**
+             * @default on_each_login
+             * @enum {string}
+             */
+            set_user_root_attributes?: "on_each_login" | "on_first_login" | "never_on_login";
+            /** @description Email domains for home realm discovery. */
+            domain_aliases?: string[];
+            tenant_domain?: string;
+            icon_url?: string;
+            non_persistent_attrs?: string[];
+            /** @description Stored only (LR37b-6). */
+            upstream_params?: {
+                [key: string]: unknown;
+            };
+        } & {
+            [key: string]: unknown;
+        };
+        /**
          * @description SAML service-provider connection (`samlp`, Plan 37a, D-0130). The
          *     identity provider is configured from `metadataUrl` (fetched through
          *     the federation outbound policy and refreshed daily), `metadataXml`,
@@ -8390,12 +8442,25 @@ export interface components {
             allowed_scopes?: ("profile" | "email" | "address" | "phone")[];
         } | null;
         /**
-         * @description Application add-ons. Only `samlp` (SAML2 Web App, Plan 37a) is
-         *     supported; any other add-on key is refused with `400`. `null` removes
-         *     an add-on.
+         * @description Application add-ons. `samlp` (SAML2 Web App, Plan 37a) and `wsfed`
+         *     (WS-Fed Web App, Plan 37b) are supported; any other add-on key is
+         *     refused with `400`. `null` removes an add-on.
          */
         ClientAddons: {
             samlp?: components["schemas"]["ClientAddonSAML"] | null;
+            wsfed?: components["schemas"]["ClientAddonWSFed"] | null;
+        };
+        /**
+         * @description WS-Fed (WIF) add-on indicator (Plan 37b, D-0140): its presence lets
+         *     the application sign users in at `/wsfed/{client_id}` with a SAML 1.1
+         *     token. As in Auth0, the configuration is stored in `callbacks` (the
+         *     allowed `wreply` URLs) and `client_aliases` (realms accepted as
+         *     `wtrealm`); the object's own properties are stored and returned
+         *     unchanged (at most 4 KiB of JSON) and have no effect (LR37b-4).
+         *     Claims are customised with `api.samlResponse` in a post-login Action.
+         */
+        ClientAddonWSFed: {
+            [key: string]: unknown;
         };
         /**
          * @description SAML2 Web App add-on (Plan 37a, D-0130): zeroauthy acts as the SAML
@@ -8652,6 +8717,15 @@ export interface components {
             oidc_logout?: components["schemas"]["ClientOIDCLogout"];
             oidc_support?: components["schemas"]["ClientOIDCSupport"];
             addons?: components["schemas"]["ClientAddons"];
+            /**
+             * @description Realms (`wtrealm` values) and audiences accepted for the `wsfed`
+             *     add-on, besides the client ID (Plan 37b). Each alias is unique
+             *     within the tenant: an alias another application uses is refused
+             *     with `409` (LR37b-3).
+             */
+            client_aliases?: string[];
+            /** @description HTML form template for WS-Federation. Stored and returned only; zeroauthy always posts with its own form (LR37b-5). */
+            form_template?: string;
             jwt_configuration?: components["schemas"]["JwtConfiguration"];
             refresh_token?: components["schemas"]["RefreshTokenSettings"];
             token_quota?: components["schemas"]["IITokenQuota"];
@@ -8790,6 +8864,15 @@ export interface components {
             oidc_logout?: components["schemas"]["ClientOIDCLogout"];
             oidc_support?: components["schemas"]["ClientOIDCSupport"];
             addons?: components["schemas"]["ClientAddons"];
+            /**
+             * @description Realms (`wtrealm` values) and audiences accepted for the `wsfed`
+             *     add-on, besides the client ID (Plan 37b). Each alias is unique
+             *     within the tenant: an alias another application uses is refused
+             *     with `409` (LR37b-3).
+             */
+            client_aliases?: string[];
+            /** @description HTML form template for WS-Federation. Stored and returned only; zeroauthy always posts with its own form (LR37b-5). */
+            form_template?: string;
             jwt_configuration: components["schemas"]["JwtConfiguration"];
             refresh_token: components["schemas"]["RefreshTokenSettings"];
             token_quota?: components["schemas"]["IITokenQuota"];
@@ -9187,10 +9270,10 @@ export interface components {
             /** @description Letters and digits with single hyphens between them. */
             name: string;
             /**
-             * @description `samlp` follows ConnectionOptionsSAML (Plan 37a). `email` and `sms` are passwordless connections whose name must equal the strategy; options follow ConnectionOptionsEmail and ConnectionOptionsSMS (Plan 34). `apple` follows ConnectionOptionsApple; web/native login is active (D-0170). `github` follows ConnectionOptionsGitHub (Plan 39c).
+             * @description `samlp` follows ConnectionOptionsSAML (Plan 37a). `adfs` follows ConnectionOptionsADFS (Plan 37b). `email` and `sms` are passwordless connections whose name must equal the strategy; options follow ConnectionOptionsEmail and ConnectionOptionsSMS (Plan 34). `apple` follows ConnectionOptionsApple; web/native login is active (D-0170). `github` follows ConnectionOptionsGitHub (Plan 39c).
              * @enum {string}
              */
-            strategy: "auth0" | "google-oauth2" | "oauth2" | "oidc" | "windowslive" | "waad" | "email" | "sms" | "apple" | "github" | "okta" | "samlp";
+            strategy: "auth0" | "google-oauth2" | "oauth2" | "oidc" | "windowslive" | "waad" | "email" | "sms" | "apple" | "github" | "okta" | "samlp" | "adfs";
             /** @description Applications to enable on the connection; accepted on create only. */
             enabled_clients?: string[];
         };
