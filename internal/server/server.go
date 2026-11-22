@@ -561,8 +561,8 @@ func (authAPI) SamlpSPLogout(w http.ResponseWriter, _ *http.Request, _ authapi.S
 func (authAPI) SamlpSPLogoutPost(w http.ResponseWriter, _ *http.Request, _ authapi.SamlpSPLogoutPostParams) {
 	samlNotImplemented(w)
 }
-func (authAPI) SamlpIdPMetadata(w http.ResponseWriter, _ *http.Request, _ string) {
-	samlNotImplemented(w)
+func (a authAPI) SamlpIdPMetadata(w http.ResponseWriter, r *http.Request, clientID string) {
+	a.saml.Metadata(w, r, clientID)
 }
 func (a authAPI) SamlpSSO(w http.ResponseWriter, r *http.Request, clientID string, p authapi.SamlpSSOParams) {
 	a.saml.SSO(w, r, clientID, deref(p.Connection), deref(p.Organization))

@@ -307,3 +307,56 @@ func TestSAMLBindingNotInjectable(t *testing.T) {
 		t.Fatal("code flow with an injected za_saml did not complete normally")
 	}
 }
+
+func TestSAMLIdPMetadata(t *testing.T) {
+	e, tn := samlEnv(t, &store.SAMLAddon{})
+	resp, body := fetch(t, e.client(t), e.base+"/samlp/metadata/saml-sp")
+	if resp.StatusCode != 200 || !strings.Contains(resp.Header.Get("Content-Type"), "xml") {
+		t.Fatalf("metadata: %d %s", resp.StatusCode, resp.Header.Get("Content-Type"))
+	}
+	md, err := samlcore.ParseMetadata([]byte(body))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if md.EntityID != "urn:"+strings.TrimPrefix(e.base, "https://") || md.IdP == nil {
+		t.Fatalf("entity %+v", md)
+	}
+	if md.IdP.SSOLocation(samlcore.BindingRedirect) != e.base+"/samlp/saml-sp" || md.IdP.SSOLocation(samlcore.BindingPOST) != e.base+"/samlp/saml-sp" ||
+		md.IdP.SLOLocation(samlcore.BindingRedirect) != e.base+"/samlp/saml-sp/logout" {
+		t.Fatalf("endpoints %+v", md.IdP)
+	}
+	want := tenantCerts(t, e, tn.ID)
+	if len(md.IdP.SigningCerts) == 0 || len(md.IdP.SigningCerts) > len(want) {
+		t.Fatalf("certificates: %d of %d", len(md.IdP.SigningCerts), len(want))
+	}
+	if resp, _ := fetch(t, e.client(t), e.base+"/samlp/metadata/nope"); resp.StatusCode != 404 {
+		t.Fatalf("unknown application metadata: %d", resp.StatusCode)
+	}
+}
+
+// IdP-initiated SSO: no AuthnRequest; the unsolicited response goes to the
+// add-on recipient with no InResponseTo.
+func TestSAMLIdPInitiated(t *testing.T) {
+	e, tn := samlEnv(t, &store.SAMLAddon{Recipient: "https://sp.flow.test/acs"})
+	resp, page := e.follow(t, e.client(t), e.base+"/samlp/saml-sp?RelayState=deep-link")
+	if resp.StatusCode != 200 {
+		t.Fatalf("status %d", resp.StatusCode)
+	}
+	action, fields := postedResponse(t, page)
+	doc, err := samlcore.DecodePOST(fields.Get("SAMLResponse"))
+	if err != nil || action != "https://sp.flow.test/acs" || fields.Get("RelayState") != "deep-link" {
+		t.Fatalf("delivery %s %v", action, err)
+	}
+	v, err := samlcore.VerifyResponse(doc, samlcore.Trust{Certs: tenantCerts(t, e, tn.ID)}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	a, _ := samlcore.ParseAssertion(v.Assertion)
+	env, _ := samlcore.ParseResponseEnvelope(v.Response)
+	if a.InResponseTo != "" || env.InResponseTo != "" {
+		t.Fatal("unsolicited response answers a request")
+	}
+	if err := a.Check(samlcore.Expect{Now: time.Now(), Skew: time.Minute, Audience: "https://sp.flow.test/acs", Recipient: "https://sp.flow.test/acs", AllowUnsolicited: true}); err != nil {
+		t.Fatal(err)
+	}
+}
