@@ -881,7 +881,9 @@ const (
 	TxnFlowDevice = "device"
 	// TxnParamOrgID holds the organization resolved at /authorize or PAR,
 	// and TxnParamOrgMode how the request uses organizations (D-0055).
-	TxnParamOrgID   = "za_org_id"
+	TxnParamOrgID = "za_org_id"
+	// TxnParamSAML holds the SAML IdP binding of a samlp transaction (Plan 37a).
+	TxnParamSAML    = "za_saml"
 	TxnParamOrgMode = "za_org_mode"
 )
 

@@ -300,6 +300,11 @@ func (h *Handlers) CreateClient(w http.ResponseWriter, r *http.Request) {
 				return err
 			}
 		}
+		if body["addons"] != nil || store.ClientNeedsSAML(c) {
+			if err := checkSAMLWrite(r.Context(), tx); err != nil {
+				return err
+			}
+		}
 		if in.policiesSet || c.RequireProofOfPossession || c.TokenQuota != nil {
 			if err := checkMRRTSupport(r.Context(), tx); err != nil {
 				return err
@@ -380,6 +385,11 @@ func (h *Handlers) UpdateClient(w http.ResponseWriter, r *http.Request, id strin
 		}
 		if body["oidc_support"] != nil || body["oidc_logout"] != nil || spec.OIDCSupport != nil || spec.OIDCLogout != nil || spec.IDTokenAlg != "" && spec.IDTokenAlg != "RS256" {
 			if err := checkOIDCSupportWrite(r.Context(), tx); err != nil {
+				return err
+			}
+		}
+		if body["addons"] != nil || spec.Addons != nil {
+			if err := checkSAMLWrite(r.Context(), tx); err != nil {
 				return err
 			}
 		}
@@ -601,6 +611,12 @@ func (h *Handlers) clientView(ctx context.Context, tn *store.Tenant, c *store.Cl
 		},
 		RequirePushedAuthorizationRequests: c.RequirePushedAuthorizationRequests, RequireProofOfPossession: &c.RequireProofOfPossession,
 		CreatedAt: &created,
+	}
+	if c.Addons != nil {
+		raw, _ := json.Marshal(clientrules.PublicAddons(c.Addons))
+		var addons mgmtapi.ClientAddons
+		_ = json.Unmarshal(raw, &addons)
+		v.Addons = &addons
 	}
 	if c.OIDCLogout != nil {
 		raw, _ := json.Marshal(clientrules.PublicOIDCLogout(c.OIDCLogout))
@@ -861,6 +877,8 @@ func readClientBody(body map[string]json.RawMessage, s *clientrules.Spec) (clien
 			}
 		case "oidc_logout":
 			s.OIDCLogout, err = clientrules.ParseOIDCLogout(raw)
+		case "addons":
+			s.Addons, err = clientrules.ParseAddons(raw)
 		case "oidc_support":
 			s.OIDCSupport, err = clientrules.ParseOIDCSupport(raw)
 		case "jwt_configuration":
@@ -1015,6 +1033,15 @@ func checkMRRTSupport(ctx context.Context, st store.Store) error {
 	err := store.CheckRefreshTokensIISupport(ctx, st)
 	if errors.Is(err, store.ErrRefreshTokensIIUnavailable) && !errors.Is(err, store.ErrRefreshTokensIISupportLost) {
 		return badBody("refresh token policies require storage support")
+	}
+	return err
+}
+
+// checkSAMLWrite refuses add-on writes (and clears) on a plugin without saml.v1.
+func checkSAMLWrite(ctx context.Context, st store.Store) error {
+	err := store.CheckSAMLSupport(ctx, st)
+	if errors.Is(err, store.ErrSAMLUnavailable) {
+		return badBody("storage plugin lacks saml.v1")
 	}
 	return err
 }

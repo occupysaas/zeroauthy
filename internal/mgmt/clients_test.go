@@ -804,3 +804,60 @@ func TestClientOIDCLogout(t *testing.T) {
 		t.Fatalf("logout clear status=%d", rec.Code)
 	}
 }
+
+type noSAMLStore struct{ store.Store }
+
+func (noSAMLStore) CheckSAMLSupport(context.Context) error { return store.ErrSAMLUnavailable }
+func (s noSAMLStore) WithTx(ctx context.Context, fn func(store.Store) error) error {
+	return s.Store.WithTx(ctx, func(tx store.Store) error { return fn(noSAMLStore{tx}) })
+}
+
+// TestClientSAMLAddon is Plan 37a: the samlp add-on is validated, stored,
+// returned (single mappings as strings), replaced and removed by PATCH, and
+// refused by a storage plugin without saml.v1.
+func TestClientSAMLAddon(t *testing.T) {
+	e := newClientsEnv(t)
+	caller := m2mCaller(allClientScopes...)
+	rec, created := e.create(t, caller, map[string]any{"name": "sp", "callbacks": []string{"https://sp.example.test/acs"},
+		"addons": map[string]any{"samlp": map[string]any{"audience": "urn:sp", "mappings": map[string]any{"email": "mail", "groups": []string{"memberOf", "groups"}}, "signResponse": true}}})
+	if rec.Code != 201 {
+		t.Fatalf("create status=%d body=%s", rec.Code, rec.Body)
+	}
+	samlp := created["addons"].(map[string]any)["samlp"].(map[string]any)
+	if samlp["audience"] != "urn:sp" || samlp["signResponse"] != true || samlp["mappings"].(map[string]any)["email"] != "mail" {
+		t.Fatalf("returned add-on %v", samlp)
+	}
+	id := created["client_id"].(string)
+	stored, err := e.st.Clients().Get(t.Context(), e.tn.ID, id)
+	if err != nil || stored.Addons == nil || stored.Addons.SAMLP.Audience != "urn:sp" {
+		t.Fatalf("stored add-on %+v %v", stored, err)
+	}
+	// PATCH replaces the whole addons object.
+	rec, patched := e.patch(t, caller, id, map[string]any{"addons": map[string]any{"samlp": map[string]any{"recipient": "https://sp.example.test/acs"}}})
+	if rec.Code != 200 {
+		t.Fatalf("patch status=%d", rec.Code)
+	}
+	if got := patched["addons"].(map[string]any)["samlp"].(map[string]any); got["audience"] != nil || got["recipient"] != "https://sp.example.test/acs" {
+		t.Fatalf("patch did not replace: %v", got)
+	}
+	for _, bad := range []map[string]any{
+		{"addons": map[string]any{"aws": map[string]any{}}},
+		{"addons": map[string]any{"samlp": map[string]any{"signatureAlgorithm": "rsa-md5"}}},
+		{"addons": "samlp"},
+	} {
+		if rec, _ := e.patch(t, caller, id, bad); rec.Code != 400 {
+			t.Fatalf("invalid add-on %v status=%d", bad, rec.Code)
+		}
+	}
+	rec, cleared := e.patch(t, caller, id, map[string]any{"addons": nil})
+	if rec.Code != 200 || cleared["addons"] != nil {
+		t.Fatalf("clear status=%d addons=%v", rec.Code, cleared["addons"])
+	}
+	e.h.Store = noSAMLStore{e.st}
+	if rec, _ := e.create(t, caller, map[string]any{"name": "sp2", "addons": map[string]any{"samlp": map[string]any{}}}); rec.Code != 400 {
+		t.Fatalf("plugin without saml.v1 create status=%d", rec.Code)
+	}
+	if rec, _ := e.create(t, caller, map[string]any{"name": "plain"}); rec.Code != 201 {
+		t.Fatalf("plain create without saml.v1 status=%d", rec.Code)
+	}
+}

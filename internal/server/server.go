@@ -3,6 +3,7 @@ package server
 
 import (
 	"context"
+	"github.com/zeroauthy/zeroauthy/internal/samlidp"
 	"io/fs"
 	"log/slog"
 	"net/http"
@@ -155,6 +156,7 @@ type authAPI struct {
 	oauth  *oauth.Handlers
 	authz  *authz.Handlers
 	dbconn *dbconn.Handlers
+	saml   *samlidp.Handler
 
 	passwordless *passwordless.Handlers
 }
@@ -267,6 +269,8 @@ func New(d Deps) http.Handler {
 
 	az := &authz.Handlers{Compat: d.Compat, Passkeys: d.Passkeys, MFA: d.MFA, Store: d.Store, Sessions: d.Sessions, Log: d.Log,
 		Actions: d.Actions, Wrapper: d.Wrapper, TrustProxyHeaders: d.TrustProxyHeaders}
+	samlIdP := &samlidp.Handler{Store: d.Store, Keys: d.Keys, Authz: az, Log: d.Log}
+	az.SAML = samlIdP
 	db := &identity.Database{Store: d.Store, Scripts: d.Scripts, Log: d.Log}
 	// One mailer sends every verification email: after a signup (API and
 	// hosted page) and for the Management API's verify_email.
@@ -348,6 +352,7 @@ func New(d Deps) http.Handler {
 				Passwordless:            pwl,
 			},
 			authz:        az,
+			saml:         samlIdP,
 			dbconn:       dbconnHandlers,
 			passwordless: &passwordless.Handlers{Service: pwl, Authz: az, Sessions: d.Sessions, TrustProxyHeaders: d.TrustProxyHeaders, Log: d.Log},
 		}, authapi.ChiServerOptions{
@@ -559,11 +564,18 @@ func (authAPI) SamlpSPLogoutPost(w http.ResponseWriter, _ *http.Request, _ autha
 func (authAPI) SamlpIdPMetadata(w http.ResponseWriter, _ *http.Request, _ string) {
 	samlNotImplemented(w)
 }
-func (authAPI) SamlpSSO(w http.ResponseWriter, _ *http.Request, _ string, _ authapi.SamlpSSOParams) {
-	samlNotImplemented(w)
+func (a authAPI) SamlpSSO(w http.ResponseWriter, r *http.Request, clientID string, p authapi.SamlpSSOParams) {
+	a.saml.SSO(w, r, clientID, deref(p.Connection), deref(p.Organization))
 }
-func (authAPI) SamlpSSOPost(w http.ResponseWriter, _ *http.Request, _ string, _ authapi.SamlpSSOPostParams) {
-	samlNotImplemented(w)
+func (a authAPI) SamlpSSOPost(w http.ResponseWriter, r *http.Request, clientID string, p authapi.SamlpSSOPostParams) {
+	a.saml.SSO(w, r, clientID, deref(p.Connection), deref(p.Organization))
+}
+
+func deref(s *string) string {
+	if s == nil {
+		return ""
+	}
+	return *s
 }
 func (authAPI) SamlpIdPLogout(w http.ResponseWriter, _ *http.Request, _ string, _ authapi.SamlpIdPLogoutParams) {
 	samlNotImplemented(w)

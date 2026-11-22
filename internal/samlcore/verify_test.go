@@ -2,6 +2,7 @@ package samlcore
 
 import (
 	"crypto/x509"
+	"errors"
 	"strings"
 	"testing"
 	"time"
@@ -113,4 +114,25 @@ func moveSignatureIntoSubject(signed string) string {
 	sig := signatureOf(signed)
 	out := strings.Replace(signed, sig, "", 1)
 	return strings.Replace(out, "<saml:Subject>", "<saml:Subject>"+sig, 1)
+}
+
+// A signed Response containing a signed Assertion ("sign both") verifies;
+// a nested signature that claims the outer element is still refused.
+func TestVerifyResponseBothSigned(t *testing.T) {
+	idp := newIdentity(t, "idp", time.Now().Add(time.Hour))
+	trust := Trust{Certs: []*x509.Certificate{idp.cert}}
+	signer := Signer{Key: idp.key, Cert: idp.cert}
+	resp, err := signer.SignEnveloped(mustRoot(t, responseXML("_r", signedAssertion(t, idp, "_a", "both@example.test"))))
+	if err != nil {
+		t.Fatal(err)
+	}
+	v, err := verifyRaw(t, serialize(t, resp), trust)
+	if err != nil || !v.ResponseSigned || !v.AssertionSigned || NameID(v.Assertion) != "both@example.test" {
+		t.Fatalf("sign both: %+v %v", v, err)
+	}
+	nested := mustRoot(t, strings.Replace(assertionXML("_a", "x"), "<saml:Subject>", "<saml:Subject>"+sigXML("#_a"), 1))
+	nested.FindElement("./Issuer").Parent().InsertChildAt(1, mustRoot(t, sigXML("#_a")))
+	if _, err := VerifyEnveloped(nested, trust); !errors.Is(err, ErrStructure) {
+		t.Fatalf("nested signature claiming the element: %v", err)
+	}
 }

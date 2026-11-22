@@ -183,8 +183,24 @@ func VerifyEnveloped(el *etree.Element, t Trust) (*etree.Element, error) {
 		return nil, err
 	}
 	sigs := directChildren(standalone, NSDSig, "Signature")
-	if len(sigs) != 1 || len(descendants(standalone, NSDSig, "Signature")) != 1 {
+	if len(sigs) != 1 {
 		return nil, ErrStructure
+	}
+	// A nested signature (a signed Assertion inside a signed Response) is
+	// allowed, but none may claim to cover this element: goxmldsig would
+	// accept any signature in the subtree that references its ID.
+	id := standalone.SelectAttrValue("ID", "")
+	for _, nested := range descendants(standalone, NSDSig, "Signature") {
+		if nested == sigs[0] {
+			continue
+		}
+		for _, si := range directChildren(nested, NSDSig, "SignedInfo") {
+			for _, ref := range directChildren(si, NSDSig, "Reference") {
+				if uri := ref.SelectAttrValue("URI", ""); uri == "" || uri == "#"+id {
+					return nil, ErrStructure
+				}
+			}
+		}
 	}
 	if err := checkSignatureShape(standalone, sigs[0], t); err != nil {
 		return nil, err

@@ -41,8 +41,17 @@ const (
 	CodeLifetime    = 60 * time.Second
 )
 
+// SAMLResponder completes and fails SAML IdP transactions (Plan 37a). It is
+// internal/samlidp; binding is the opaque Request.SAML value.
+type SAMLResponder interface {
+	Respond(w http.ResponseWriter, r *http.Request, res tenant.Resolved, client *store.Client, binding, orgID string, sess *store.LoginSession, eff *actions.Effects)
+	Fail(w http.ResponseWriter, r *http.Request, res tenant.Resolved, client *store.Client, binding, code, description string)
+}
+
 type Handlers struct {
 	Compat compat.Switches
+	// SAML completes samlp transactions; nil disables the SAML IdP.
+	SAML SAMLResponder
 	// Passkeys decides post-MFA enrollment prompts.
 	Passkeys *passkey.Service
 	MFA      *mfa.Service
@@ -148,6 +157,24 @@ func (h *Handlers) Authorize(w http.ResponseWriter, r *http.Request) {
 	}
 	req.IgnoreClaimsParameter = h.Compat.IgnoreClaimsParameter
 	req.OptionalRedirectURI = h.Compat.OptionalRedirectURI
+	h.authorizeRequest(w, r, res, view, req)
+}
+
+// AuthorizeSAML runs a SAML IdP request (Plan 37a) through the authorization
+// flow. req carries the client, the validated ACS as RedirectURI and the
+// server-only SAML binding; the response is the SAML responder's, never a code.
+func (h *Handlers) AuthorizeSAML(w http.ResponseWriter, r *http.Request, req Request) {
+	res, ok := tenant.FromContext(r.Context())
+	if !ok || req.SAML == "" || h.SAML == nil {
+		http.Error(w, "internal error", http.StatusInternalServerError)
+		return
+	}
+	view := ui.RequestTenant(r, res.Tenant, i18n.ForRequest(res.Tenant, r, req.UILocales))
+	h.authorizeRequest(w, r, res, view, req)
+}
+
+func (h *Handlers) authorizeRequest(w http.ResponseWriter, r *http.Request, res tenant.Resolved, view ui.Tenant, req Request) {
+	ctx := r.Context()
 	client, verr, redirectable := ValidateRequest(ctx, h.Store, res.Tenant, &req)
 	if verr != nil {
 		if !redirectable {
@@ -505,6 +532,10 @@ func (h *Handlers) deny(w http.ResponseWriter, r *http.Request, res tenant.Resol
 			return
 		}
 		ui.RenderErrorDetail(w, http.StatusBadRequest, view, view.L.T(i18n.KeyErrAccessDenied), e.Description)
+		return
+	}
+	if req.SAML != "" && h.SAML != nil {
+		h.SAML.Fail(w, r, res, client, req.SAML, e.Code, e.Description)
 		return
 	}
 	writeResponse(w, r, req, errorParams(e, req.State))
