@@ -14,6 +14,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/i18n"
 	"github.com/zeroauthy/zeroauthy/internal/keys"
 	"github.com/zeroauthy/zeroauthy/internal/samlcore"
+	"github.com/zeroauthy/zeroauthy/internal/session"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/tenant"
 	"github.com/zeroauthy/zeroauthy/internal/third_party/etree"
@@ -29,11 +30,13 @@ const (
 // Handler serves the SAML IdP endpoints and completes samlp transactions
 // (authz.SAMLResponder).
 type Handler struct {
-	Store store.Store
-	Keys  *keys.Manager
-	Authz *authz.Handlers
-	Now   func() time.Time
-	Log   *slog.Logger
+	Store    store.Store
+	Keys     *keys.Manager
+	Sessions *session.Manager
+	Wrapper  keys.Wrapper
+	Authz    *authz.Handlers
+	Now      func() time.Time
+	Log      *slog.Logger
 }
 
 func (h *Handler) now() time.Time {

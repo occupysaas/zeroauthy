@@ -360,3 +360,101 @@ func TestSAMLIdPInitiated(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+func addSAMLClient(t *testing.T, e *flowEnv, tid, id, acs string, addon *store.SAMLAddon) {
+	t.Helper()
+	c := &store.Client{TenantID: tid, ClientID: id, Name: id, AppType: store.AppTypeRegularWeb, IsFirstParty: true,
+		Callbacks: []string{acs}, Addons: &store.ClientAddons{SAMLP: addon}}
+	if err := e.st.Clients().Create(t.Context(), c); err != nil {
+		t.Fatal(err)
+	}
+	conn, _ := e.st.Connections().GetByName(t.Context(), tid, "Username-Password-Authentication")
+	conn.EnabledClients = append(conn.EnabledClients, id)
+	if err := e.st.Connections().Update(t.Context(), conn); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func ssoAs(t *testing.T, e *flowEnv, c *http.Client, tid, clientID, acs string) *samlcore.Assertion {
+	t.Helper()
+	req, _ := samlcore.BuildAuthnRequest(samlcore.AuthnRequest{ID: "_" + clientID, IssueInstant: time.Now(), Issuer: "urn:" + clientID, ACSURL: acs}, "")
+	u, _ := samlcore.EncodeRedirect(e.base+"/samlp/"+clientID, samlcore.ParamRequest, req, "", nil)
+	_, page := e.follow(t, c, u)
+	_, fields := postedResponse(t, page)
+	doc, err := samlcore.DecodePOST(fields.Get("SAMLResponse"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	v, err := samlcore.VerifyResponse(doc, samlcore.Trust{Certs: tenantCerts(t, e, tid)}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	a, _ := samlcore.ParseAssertion(v.Assertion)
+	return a
+}
+
+func redirectMessage(t *testing.T, e *flowEnv, tid string, loc *url.URL) *samlcore.RedirectMessage {
+	t.Helper()
+	msg, err := samlcore.DecodeRedirect(loc.RawQuery)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := msg.Verify(samlcore.Trust{Certs: tenantCerts(t, e, tid)}); err != nil {
+		t.Fatalf("logout message not signed by the tenant: %v", err)
+	}
+	return msg
+}
+
+func TestSAMLIdPSingleLogout(t *testing.T) {
+	e, tn := samlEnv(t, &store.SAMLAddon{Logout: &store.SAMLAddonLogout{Callback: "https://sp.flow.test/slo"}})
+	addSAMLClient(t, e, tn.ID, "saml-sp2", "https://sp2.flow.test/acs", &store.SAMLAddon{Logout: &store.SAMLAddonLogout{Callback: "https://sp2.flow.test/slo"}})
+	c := e.client(t)
+	a1 := ssoAs(t, e, c, tn.ID, "saml-sp", "https://sp.flow.test/acs")
+	a2 := ssoAs(t, e, c, tn.ID, "saml-sp2", "https://sp2.flow.test/acs")
+	if a1.SessionIndex == "" || a1.SessionIndex != a2.SessionIndex {
+		t.Fatalf("session indexes %q %q", a1.SessionIndex, a2.SessionIndex)
+	}
+	// A LogoutRequest naming someone else ends nothing.
+	wrong := samlcore.BuildLogoutRequest(samlcore.LogoutRequest{ID: "_wrong", IssueInstant: time.Now(), Issuer: "urn:saml-sp", NameID: "auth0|someone-else", SessionIndex: a1.SessionIndex})
+	u, _ := samlcore.EncodeRedirect(e.base+"/samlp/saml-sp/logout", samlcore.ParamRequest, wrong, "", nil)
+	if resp, _ := fetch(t, c, u); resp.StatusCode != 302 {
+		t.Fatalf("mismatched logout: %d", resp.StatusCode)
+	}
+	if _, err := e.st.Sessions().Get(t.Context(), tn.ID, a1.SessionIndex); err != nil {
+		t.Fatal("a mismatched LogoutRequest ended the session")
+	}
+	// SP1 starts single logout.
+	lr := samlcore.BuildLogoutRequest(samlcore.LogoutRequest{ID: "_slo1", IssueInstant: time.Now(), Issuer: "urn:saml-sp", NameID: a1.NameID, NameIDFormat: a1.NameIDFormat, SessionIndex: a1.SessionIndex})
+	u, _ = samlcore.EncodeRedirect(e.base+"/samlp/saml-sp/logout", samlcore.ParamRequest, lr, "r1", nil)
+	resp, _ := fetch(t, c, u)
+	loc, _ := resp.Location()
+	if resp.StatusCode != 302 || loc == nil || loc.Host != "sp2.flow.test" || loc.Path != "/slo" {
+		t.Fatalf("propagation: %d %v", resp.StatusCode, loc)
+	}
+	if _, err := e.st.Sessions().Get(t.Context(), tn.ID, a1.SessionIndex); err == nil {
+		t.Fatal("session not ended")
+	}
+	msg := redirectMessage(t, e, tn.ID, loc)
+	prop, err := samlcore.ParseLogoutRequest(msg.Doc.Root())
+	if err != nil || prop.NameID != a2.NameID || prop.SessionIndex != a2.SessionIndex || prop.Destination != "https://sp2.flow.test/slo" {
+		t.Fatalf("propagated request %+v %v", prop, err)
+	}
+	// SP2 answers; zeroauthy answers SP1.
+	lresp := samlcore.BuildLogoutResponse(samlcore.LogoutResponse{ID: "_lr2", InResponseTo: prop.ID, IssueInstant: time.Now(), Issuer: "urn:saml-sp2", StatusCode: samlcore.StatusSuccess})
+	u, _ = samlcore.EncodeRedirect(e.base+"/samlp/saml-sp2/logout", samlcore.ParamResponse, lresp, msg.RelayState, nil)
+	resp, _ = fetch(t, c, u)
+	loc, _ = resp.Location()
+	if resp.StatusCode != 302 || loc == nil || loc.Host != "sp.flow.test" || loc.Path != "/slo" {
+		t.Fatalf("final response: %d %v", resp.StatusCode, loc)
+	}
+	msg = redirectMessage(t, e, tn.ID, loc)
+	final, err := samlcore.ParseLogoutResponse(msg.Doc.Root())
+	if err != nil || final.InResponseTo != "_slo1" || final.StatusCode != samlcore.StatusSuccess || msg.RelayState != "r1" {
+		t.Fatalf("final LogoutResponse %+v relay %q %v", final, msg.RelayState, err)
+	}
+	// The browser must log in again.
+	resp, page := fetch(t, c, samlRequestURL(t, e.base, "https://sp.flow.test/acs", "_again", ""))
+	if loc, _ := resp.Location(); resp.StatusCode != 302 || loc.Path != "/u/login" {
+		t.Fatalf("after logout: %d %s", resp.StatusCode, page[:min(len(page), 80)])
+	}
+}

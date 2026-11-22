@@ -108,6 +108,12 @@ func (h *Handler) Respond(w http.ResponseWriter, r *http.Request, res tenant.Res
 			return
 		}
 	}
+	if rec, ok := h.Store.Sessions().(store.SAMLSessionRecorder); ok {
+		p := store.SAMLParticipant{ClientID: client.ClientID, NameID: m.NameID, NameIDFormat: nameIDFormat, SessionIndex: sess.ID}
+		if err := rec.RecordSAMLParticipant(r.Context(), res.Tenant.ID, sess.ID, p); err != nil {
+			h.log().WarnContext(r.Context(), "saml: record session participant", "tenant", res.Tenant.ID, "err", err)
+		}
+	}
 	post(w, r, res, b.ACS, resp, b.RelayState)
 }
 

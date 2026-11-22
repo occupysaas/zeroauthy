@@ -269,7 +269,7 @@ func New(d Deps) http.Handler {
 
 	az := &authz.Handlers{Compat: d.Compat, Passkeys: d.Passkeys, MFA: d.MFA, Store: d.Store, Sessions: d.Sessions, Log: d.Log,
 		Actions: d.Actions, Wrapper: d.Wrapper, TrustProxyHeaders: d.TrustProxyHeaders}
-	samlIdP := &samlidp.Handler{Store: d.Store, Keys: d.Keys, Authz: az, Log: d.Log}
+	samlIdP := &samlidp.Handler{Store: d.Store, Keys: d.Keys, Sessions: d.Sessions, Wrapper: d.Wrapper, Authz: az, Log: d.Log}
 	az.SAML = samlIdP
 	db := &identity.Database{Store: d.Store, Scripts: d.Scripts, Log: d.Log}
 	// One mailer sends every verification email: after a signup (API and
@@ -577,9 +577,9 @@ func deref(s *string) string {
 	}
 	return *s
 }
-func (authAPI) SamlpIdPLogout(w http.ResponseWriter, _ *http.Request, _ string, _ authapi.SamlpIdPLogoutParams) {
-	samlNotImplemented(w)
+func (a authAPI) SamlpIdPLogout(w http.ResponseWriter, r *http.Request, clientID string, _ authapi.SamlpIdPLogoutParams) {
+	a.saml.Logout(w, r, clientID)
 }
-func (authAPI) SamlpIdPLogoutPost(w http.ResponseWriter, _ *http.Request, _ string) {
-	samlNotImplemented(w)
+func (a authAPI) SamlpIdPLogoutPost(w http.ResponseWriter, r *http.Request, clientID string) {
+	a.saml.Logout(w, r, clientID)
 }
