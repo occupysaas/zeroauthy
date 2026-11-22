@@ -32,3 +32,15 @@ beside the code. Modified: adds argon2d export (DKey) and Argon2 version
 0x10 support (KeyVersion, Version10; version 1.0 overwrites blocks on every
 pass instead of XOR-ing); the tests were not copied. Each change is marked in
 a comment in argon2.go.
+
+internal/third_party/etree/ is a copy of github.com/beevik/etree at v1.8.1
+(https://github.com/beevik/etree), licensed under the BSD 2-Clause License,
+Copyright 2015-2024 Brett Vickers; its LICENSE file is beside the code.
+Modified: none beyond the tests, examples and README not being copied.
+
+internal/third_party/goxmldsig/ is a copy of github.com/russellhaering/goxmldsig
+at v1.6.1 (https://github.com/russellhaering/goxmldsig), licensed under the
+Apache License, Version 2.0; its LICENSE file is beside the code. Modified:
+imports point at the vendored etree; clock.go no longer wraps
+github.com/jonboulle/clockwork and keeps only Now (marked in a comment);
+tls_keystore.go is gofmt-formatted; the tests were not copied.
