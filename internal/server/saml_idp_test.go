@@ -267,7 +267,8 @@ func TestSAMLIdPSignResponse(t *testing.T) {
 		t.Fatal(err)
 	}
 	v, err := samlcore.VerifyResponse(doc, samlcore.Trust{Certs: tenantCerts(t, e, tn.ID)}, nil)
-	if err != nil || !v.ResponseSigned || !v.AssertionSigned {
+	// Auth0: signResponse signs the whole Response instead of the Assertion.
+	if err != nil || !v.ResponseSigned || v.AssertionSigned {
 		t.Fatalf("signed response: %+v %v", v, err)
 	}
 	a, _ := samlcore.ParseAssertion(v.Assertion)

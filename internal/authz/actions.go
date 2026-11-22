@@ -49,10 +49,7 @@ func (h *Handlers) postLogin(w http.ResponseWriter, r *http.Request, res tenant.
 			query[k] = v
 		}
 	}
-	protocol := actions.ProtocolOIDCBasicProfile
-	if fr.device() {
-		protocol = actions.ProtocolDeviceCode
-	}
+	protocol := actionProtocol(fr)
 	locale := ""
 	if l := strings.Fields(fr.UILocales); len(l) > 0 {
 		locale = l[0]
@@ -235,4 +232,15 @@ func hasMetadataDeletion(eff *actions.Effects) bool {
 		}
 	}
 	return false
+}
+
+// actionProtocol is event.transaction.protocol for a flow.
+func actionProtocol(fr flowReq) string {
+	switch {
+	case fr.SAML != "":
+		return actions.ProtocolSAMLP
+	case fr.device():
+		return actions.ProtocolDeviceCode
+	}
+	return actions.ProtocolOIDCBasicProfile
 }

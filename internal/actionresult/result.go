@@ -42,6 +42,8 @@ type Effects struct {
 	// (spec §7) when it differs from the issued scopes. Nil: the issued
 	// scopes are the ceiling.
 	Ceiling []string
+	// SAML holds api.samlResponse.* settings for this SAML response (Plan 37a).
+	SAML *SAMLEffects
 }
 
 // Denial is access.deny or validation.error. Code is "access_denied" for a
@@ -94,4 +96,24 @@ func (e *Effects) ApplyScopes(base []string, filtered []string) []string {
 func (e *Effects) HasTokenEffects() bool {
 	return e != nil && (len(e.AccessClaims) > 0 || len(e.IDClaims) > 0 || len(e.AddScopes) > 0 || len(e.RemoveScopes) > 0 ||
 		e.Ceiling != nil || e.RBAC != nil)
+}
+
+// SAMLEffects are the api.samlResponse.* settings of one SAML response
+// (Plan 37a). Empty strings and nil pointers leave the add-on value. Key is
+// a PEM private key from the Action: sensitive, never logged.
+type SAMLEffects struct {
+	Attributes                                                               map[string][]string `json:"attributes,omitempty"`
+	RemovedAttributes                                                        []string            `json:"removed_attributes,omitempty"`
+	Audience, Recipient, Destination, Issuer                                 string              `json:",omitempty"`
+	RelayState                                                               *string             `json:",omitempty"`
+	CreateUpnClaim, PassthroughClaimsWithNoMapping, MapUnknownClaimsAsIs     *bool               `json:",omitempty"`
+	MapIdentities, SignResponse, IncludeAttributeNameFormat, TypedAttributes *bool               `json:",omitempty"`
+	SignatureAlgorithm, DigestAlgorithm, EncryptionAlgorithm                 string              `json:",omitempty"`
+	LifetimeInSeconds                                                        *int                `json:",omitempty"`
+	NameIdentifierFormat, AuthnContextClassRef, SigningCert                  string              `json:",omitempty"`
+	NameIdentifierProbes                                                     []string            `json:",omitempty"`
+	EncryptionCert, EncryptionPublicKey, Cert                                string              `json:",omitempty"`
+	// Key is the Action-supplied PEM private key; its JSON name is scrubbed
+	// from logs (logscrub "privatekey").
+	Key string `json:"private_key,omitempty"`
 }
