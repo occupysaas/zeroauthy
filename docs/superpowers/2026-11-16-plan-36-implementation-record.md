@@ -194,3 +194,21 @@ passed. Evidence: `ci-fix-e2e.*`; artifacts `/dev/shm/za36/tmp.cf9B8r5NNw`.
 No Go/console sources changed for this CI harness fix, so their completed
 local gates remain applicable. The corrected plan branch is pushed for full
 CI again, without rerunning a failed job in place.
+
+## Passwordless CI investigation
+
+Run 44382384199 attempt 1 completed: 25 jobs passed; only [e2e-passwordless](https://github.com/occupysaas/zeroauthy/actions/runs/44382384199/job/135078028111) failed (make exit 2). All eight browser tests and grants/SDK/CLI phases passed; its final privacy audit assertion failed. The original runner's matched server-log context was not retained, so the precise match cannot be confirmed.
+
+The same passwordless code passed on the preceding Plan 36 run at fec98154, and the intervening change only guarded the separate m36 browser spec and updated documentation. One unchanged local `make e2e-passwordless` run at e066ea0e passed (exit 0) on SQLite and memory: eight browser tests per backend, all grants/SDK/CLI phases, and both privacy audits (84 actual representative secrets absent from 12 captured sinks each). Private local evidence is retained; no scanner or production check was weakened.
+
+Evidence points to an intermittent audit match unrelated to the intervening change. Under the repository's single-job retry rule, only the failed passwordless job is being rerun once; the first failure remains recorded here. CI monitoring is handed to the developer, with no polling or watcher.
+
+Local evidence: `passwordless-investigation.log` / `.exit`; artifacts
+`/dev/shm/za36/plan34-Nt5ZXa`. Final completed-run snapshot:
+`ci-e066-final.json`; original failed-job log: `ci-passwordless-failed.log`.
+
+Single-job retry requested successfully: [attempt 2](https://github.com/occupysaas/zeroauthy/actions/runs/44382384199/attempts/2). Developer monitors Actions and says **continue** when finished; no watcher or polling started.
+
+## Completed CI verification
+
+[Run 44382384199 attempt 2](https://github.com/occupysaas/zeroauthy/actions/runs/44382384199/attempts/2) completed successfully at source head `e066ea0ed7e61116347e433d8acca260ecb13b97`. All current PR checks are green, including passwordless. Original failure and retry remain recorded above and in PR70. This local evidence update is not pushed, avoiding a documentation-only restart of full CI. Merge requires explicit maintainer approval.
