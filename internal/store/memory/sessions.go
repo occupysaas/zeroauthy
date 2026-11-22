@@ -218,3 +218,18 @@ func (r sessions) RecordClientOrganization(_ context.Context, tenantID, id, clie
 	s.ClientOrganizations[clientID] = orgID
 	return nil
 }
+
+// RecordSAMLParticipant implements store.SAMLSessionRecorder.
+func (r sessions) RecordSAMLParticipant(_ context.Context, tenantID, id string, p store.SAMLParticipant) error {
+	r.s.lock()
+	defer r.s.unlock()
+	s, ok := r.s.sessions[key{tenantID, id}]
+	if !ok {
+		return store.ErrNotFound
+	}
+	if p.ClientID != "" && !slices.Contains(s.ClientIDs, p.ClientID) {
+		s.ClientIDs = append(slices.Clone(s.ClientIDs), p.ClientID)
+	}
+	s.SAMLParticipants = store.UpsertSAMLParticipant(s.SAMLParticipants, p)
+	return nil
+}

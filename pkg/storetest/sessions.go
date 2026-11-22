@@ -354,3 +354,39 @@ func testSessionExpirySnapshots(t *testing.T, newStore Factory) {
 		t.Fatal("expiry omitted due rows or included live row")
 	}
 }
+
+// testSAMLSessionParticipants is Plan 37a: the SAML service providers a
+// session answered are recorded for single logout, one entry per client.
+func testSAMLSessionParticipants(t *testing.T, newStore Factory) {
+	ctx := t.Context()
+	s := open(t, newStore)
+	rec, ok := s.Sessions().(store.SAMLSessionRecorder)
+	if !ok {
+		t.Fatal("sessions do not record SAML participants")
+	}
+	mustNoErr(t, s.Sessions().Create(ctx, newSession("ten_a", "sid", "h-sid")))
+	mustNoErr(t, rec.RecordSAMLParticipant(ctx, "ten_a", "sid", store.SAMLParticipant{ClientID: "sp-a", NameID: "old", NameIDFormat: "urn:f", SessionIndex: "sid"}))
+	mustNoErr(t, rec.RecordSAMLParticipant(ctx, "ten_a", "sid", store.SAMLParticipant{ClientID: "sp-b", NameID: "bob", SessionIndex: "sid"}))
+	mustNoErr(t, rec.RecordSAMLParticipant(ctx, "ten_a", "sid", store.SAMLParticipant{ClientID: "sp-a", NameID: "alice", NameIDFormat: "urn:f", SessionIndex: "sid"}))
+	got, err := s.Sessions().Get(ctx, "ten_a", "sid")
+	mustNoErr(t, err)
+	want := []store.SAMLParticipant{{ClientID: "sp-b", NameID: "bob", SessionIndex: "sid"}, {ClientID: "sp-a", NameID: "alice", NameIDFormat: "urn:f", SessionIndex: "sid"}}
+	mustEqual(t, got.SAMLParticipants, want)
+	if !slices.Contains(got.ClientIDs, "sp-a") || !slices.Contains(got.ClientIDs, "sp-b") {
+		t.Fatalf("participants not added to the session's clients: %v", got.ClientIDs)
+	}
+	got.SAMLParticipants[0].NameID = "mutated"
+	again, err := s.Sessions().Get(ctx, "ten_a", "sid")
+	mustNoErr(t, err)
+	mustEqual(t, again.SAMLParticipants, want)
+	mustErrIs(t, rec.RecordSAMLParticipant(ctx, "ten_b", "sid", store.SAMLParticipant{ClientID: "x"}), store.ErrNotFound)
+	// An upstream IdP entry is kept beside the SPs and adds no client.
+	up := store.SAMLParticipant{ConnectionID: "con_up", NameID: "jdoe", SessionIndex: "idp-1"}
+	mustNoErr(t, rec.RecordSAMLParticipant(ctx, "ten_a", "sid", up))
+	got, err = s.Sessions().Get(ctx, "ten_a", "sid")
+	mustNoErr(t, err)
+	mustEqual(t, got.SAMLParticipants, append(want, up))
+	if slices.Contains(got.ClientIDs, "") {
+		t.Fatal("upstream entry added an empty client")
+	}
+}

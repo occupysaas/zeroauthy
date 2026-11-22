@@ -44,7 +44,7 @@ track order in the [parallel paths design](specs/2026-11-13-zeroauthy-parallel-p
 | Item | Plan | Spec | Implementation plan |
 |---|---|---|---|
 | F1 | 36 Enterprise OIDC | [spec](specs/2026-11-16-zeroauthy-enterprise-oidc-design.md) | [plan](plans/2026-11-16-zeroauthy-plan-36-enterprise-oidc.md) |
-| F2 | 37a SAML | [spec](specs/2026-11-16-zeroauthy-saml-design.md) | [plan](plans/2026-11-16-zeroauthy-plan-37a-saml.md) |
+| F2 | 37a SAML ([implementation and local verification complete](2026-11-16-plan-37a-implementation-record.md)) | [spec](specs/2026-11-16-zeroauthy-saml-design.md) | [plan](plans/2026-11-16-zeroauthy-plan-37a-saml.md) |
 | F3 | 37b WS-Federation and ADFS | [spec](specs/2026-11-16-zeroauthy-ws-federation-design.md) | [plan](plans/2026-11-16-zeroauthy-plan-37b-ws-federation.md) |
 | F4 | 37c SCIM, groups, self-service SSO | [spec](specs/2026-11-16-zeroauthy-scim-self-service-design.md) | [plan](plans/2026-11-16-zeroauthy-plan-37c-scim-self-service.md) |
 | F5 | 38a AD/LDAP | [spec](specs/2026-11-16-zeroauthy-ad-ldap-design.md) | [plan](plans/2026-11-16-zeroauthy-plan-38a-ad-ldap.md) |

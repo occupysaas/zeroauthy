@@ -1,7 +1,7 @@
 # Plan 37a — SAML 2.0 (identity provider addon and service-provider connections)
 
-**Date:** 2026-11-16. **Status:** design; not implemented; the XML
-signature dependency (§9.1) needs a maintainer ruling before Task 2.
+**Date:** 2026-11-16. **Status:** ruled 2026-11-21 (§11); implementation in
+progress on `plan-37a-saml`.
 
 **Roadmap entry:** [management roadmap, Plan 37](2026-10-19-zeroauthy-management-roadmap-design.md)
 (full; sub-project 4 of the core spec); [parallel paths](2026-11-13-zeroauthy-parallel-paths-design.md)
@@ -296,3 +296,15 @@ choice; **S37-9** back-channel initiator for SAML SLO; **S37-10**
 `slo_enabled` semantics; **S37-11** metadata refresh; **S37-12**
 `requestTemplate` variables; **S37-13** SAML user ID format; **S37-14**
 SP logout response endpoint.
+
+## 11. Maintainer rulings (2026-11-21)
+
+1. §9.1: vendor `russellhaering/goxmldsig` and `beevik/etree` into
+   `internal/third_party` (recommended option).
+2. §9.2: E2E pins `@node-saml/node-saml` (service provider) and `samlify`
+   (identity provider).
+3. §9.3: SHA-1 and RSA-1_5 only by explicit configuration.
+
+Implementation rulings LR37a-4…6 are in D-0130: the add-on `signingCert` is
+the SP's certificate (Auth0's OpenAPI meaning), other add-on keys are refused,
+and SAML global token revocation fields are stored only.

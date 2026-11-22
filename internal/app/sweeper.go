@@ -170,6 +170,7 @@ func sweep(ctx context.Context, st store.Store, now time.Time, notifications ...
 		{func(ctx context.Context, before time.Time) (int, error) {
 			return purgeGlobalRevocationJTIs(ctx, st, before)
 		}, now},
+		{func(ctx context.Context, before time.Time) (int, error) { return purgeSAMLAssertions(ctx, st, before) }, now},
 		{func(ctx context.Context, before time.Time) (int, error) {
 			n, err := st.Federation().DeleteExpired(ctx, before)
 			if errors.Is(err, store.ErrFederationUnavailable) {
@@ -219,6 +220,26 @@ func purgeGlobalRevocationJTIs(ctx context.Context, st store.Store, before time.
 	for range mfaPurgeBatches {
 		n, err := repo.PurgeGlobalRevocationJTIs(ctx, before, mfaPurgeBatch)
 		if errors.Is(err, store.ErrOIDCLogoutUnavailable) {
+			return total, nil
+		}
+		total += n
+		if err != nil || n < mfaPurgeBatch {
+			return total, err
+		}
+	}
+	return total, nil
+}
+
+// purgeSAMLAssertions removes expired SAML replay entries (Plan 37a).
+func purgeSAMLAssertions(ctx context.Context, st store.Store, before time.Time) (int, error) {
+	repo, ok := st.(store.SAMLReplayStore)
+	if !ok {
+		return 0, nil
+	}
+	total := 0
+	for range mfaPurgeBatches {
+		n, err := repo.PurgeSAMLAssertions(ctx, before, mfaPurgeBatch)
+		if errors.Is(err, store.ErrSAMLUnavailable) {
 			return total, nil
 		}
 		total += n

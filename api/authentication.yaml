@@ -26,6 +26,8 @@ servers:
 tags:
   - name: Discovery
     description: Metadata that lets clients configure themselves.
+  - name: SAML
+    description: SAML 2.0 identity provider (application add-on) and service provider (samlp connections), Plan 37a.
   - name: Tokens
     description: Obtain tokens.
   - name: Login
@@ -730,6 +732,258 @@ paths:
               schema: {type: string}
         "400":
           description: Unknown application or return URL not allowed. Not logged out.
+          content:
+            text/html:
+              schema: {type: string}
+        "404":
+          $ref: "#/components/responses/UnknownTenant"
+        "500":
+          description: Error page.
+          content:
+            text/html:
+              schema: {type: string}
+  /samlp/metadata:
+    get:
+      operationId: samlpSPMetadata
+      tags: [SAML]
+      summary: SAML service-provider metadata of a connection
+      description: The EntityDescriptor of a `samlp` connection (entity ID, ACS, signing and encryption certificates, SLO endpoint).
+      x-source:
+        - https://auth0.com/docs/authenticate/identity-providers/enterprise-identity-providers/saml
+        - https://docs.oasis-open.org/security/saml/v2.0/saml-bindings-2.0-os.pdf
+      parameters:
+        - {name: connection, in: query, required: true, schema: {type: string}, description: The samlp connection's name.}
+      responses:
+        "200":
+          description: SP metadata.
+          content:
+            application/samlmetadata+xml:
+              schema: {type: string}
+        "404":
+          description: Unknown connection or not a samlp connection.
+  /samlp/metadata/{client_id}:
+    get:
+      operationId: samlpIdPMetadata
+      tags: [SAML]
+      summary: SAML identity-provider metadata of an application
+      description: The IdP EntityDescriptor for an application with the samlp add-on (current and next signing certificates, SSO and SLO endpoints).
+      x-source:
+        - https://auth0.com/docs/authenticate/single-sign-on/outbound-single-sign-on/configure-auth0-saml-identity-provider
+        - https://docs.oasis-open.org/security/saml/v2.0/saml-bindings-2.0-os.pdf
+      parameters:
+        - {name: client_id, in: path, required: true, schema: {type: string}}
+      responses:
+        "200":
+          description: IdP metadata.
+          content:
+            application/samlmetadata+xml:
+              schema: {type: string}
+        "404":
+          description: Unknown application or the samlp add-on is not enabled.
+  /samlp/logout:
+    get:
+      operationId: samlpSPLogout
+      tags: [SAML]
+      summary: SAML service-provider single logout (HTTP-Redirect)
+      description: Receives the identity provider's LogoutResponse, or an IdP-initiated LogoutRequest that ends the session, for a samlp connection.
+      x-source:
+        - https://auth0.com/docs/authenticate/identity-providers/enterprise-identity-providers/saml
+        - https://docs.oasis-open.org/security/saml/v2.0/saml-bindings-2.0-os.pdf
+      parameters:
+        - {name: connection, in: query, required: true, schema: {type: string}}
+        - {name: SAMLRequest, in: query, schema: {type: string}, description: "Base64 (deflated on HTTP-Redirect) SAML request."}
+        - {name: SAMLResponse, in: query, schema: {type: string}, description: Base64 deflated SAML response (logout endpoints only).}
+        - {name: RelayState, in: query, schema: {type: string}, description: Returned unchanged to the service provider.}
+        - {name: SigAlg, in: query, schema: {type: string}, description: HTTP-Redirect binding signature algorithm.}
+        - {name: Signature, in: query, schema: {type: string}, description: HTTP-Redirect binding signature.}
+      responses:
+        "302":
+          description: Logout continues (to the requested return URL or a LogoutResponse to the identity provider).
+        "400":
+          description: Invalid SAML message or request; an error page, nothing is sent to the service provider.
+          content:
+            text/html:
+              schema: {type: string}
+        "404":
+          $ref: "#/components/responses/UnknownTenant"
+        "500":
+          description: Error page.
+          content:
+            text/html:
+              schema: {type: string}
+    post:
+      operationId: samlpSPLogoutPost
+      tags: [SAML]
+      summary: SAML service-provider single logout (HTTP-POST)
+      description: As `GET /samlp/logout` with the HTTP-POST binding.
+      x-source:
+        - https://auth0.com/docs/authenticate/identity-providers/enterprise-identity-providers/saml
+        - https://docs.oasis-open.org/security/saml/v2.0/saml-bindings-2.0-os.pdf
+      parameters:
+        - {name: connection, in: query, required: true, schema: {type: string}}
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              properties:
+                SAMLRequest: {type: string, description: Base64 SAML request.}
+                SAMLResponse: {type: string, description: Base64 SAML response.}
+                RelayState: {type: string}
+      responses:
+        "302":
+          description: Logout continues.
+        "400":
+          description: Invalid SAML message or request; an error page, nothing is sent to the service provider.
+          content:
+            text/html:
+              schema: {type: string}
+        "404":
+          $ref: "#/components/responses/UnknownTenant"
+        "500":
+          description: Error page.
+          content:
+            text/html:
+              schema: {type: string}
+  /samlp/{client_id}:
+    get:
+      operationId: samlpSSO
+      tags: [SAML]
+      summary: SAML identity-provider single sign-on (HTTP-Redirect)
+      description: |
+        Service-provider-initiated SSO with an AuthnRequest, or IdP-initiated SSO without one, for an application with the samlp add-on.
+        The ACS URL must be one of the application's callbacks or its add-on `recipient`.
+      x-source:
+        - https://auth0.com/docs/authenticate/single-sign-on/outbound-single-sign-on/configure-auth0-saml-identity-provider
+        - https://docs.oasis-open.org/security/saml/v2.0/saml-bindings-2.0-os.pdf
+      parameters:
+        - {name: client_id, in: path, required: true, schema: {type: string}}
+        - {name: SAMLRequest, in: query, schema: {type: string}, description: "Base64 (deflated on HTTP-Redirect) SAML request."}
+        - {name: SAMLResponse, in: query, schema: {type: string}, description: Base64 deflated SAML response (logout endpoints only).}
+        - {name: RelayState, in: query, schema: {type: string}, description: Returned unchanged to the service provider.}
+        - {name: SigAlg, in: query, schema: {type: string}, description: HTTP-Redirect binding signature algorithm.}
+        - {name: Signature, in: query, schema: {type: string}, description: HTTP-Redirect binding signature.}
+        - {name: connection, in: query, schema: {type: string}, description: Connection to log in with.}
+        - {name: organization, in: query, schema: {type: string}, description: Organization to log in to.}
+      responses:
+        "200":
+          description: Login page, or the auto-submitting form that posts the SAML response to the service provider's ACS.
+          content:
+            text/html:
+              schema: {type: string}
+        "302":
+          description: Redirect into the hosted login.
+        "400":
+          description: Invalid SAML message or request; an error page, nothing is sent to the service provider.
+          content:
+            text/html:
+              schema: {type: string}
+        "404":
+          $ref: "#/components/responses/UnknownTenant"
+        "500":
+          description: Error page.
+          content:
+            text/html:
+              schema: {type: string}
+    post:
+      operationId: samlpSSOPost
+      tags: [SAML]
+      summary: SAML identity-provider single sign-on (HTTP-POST)
+      description: As `GET /samlp/{client_id}` with the HTTP-POST binding.
+      x-source:
+        - https://auth0.com/docs/authenticate/single-sign-on/outbound-single-sign-on/configure-auth0-saml-identity-provider
+        - https://docs.oasis-open.org/security/saml/v2.0/saml-bindings-2.0-os.pdf
+      parameters:
+        - {name: client_id, in: path, required: true, schema: {type: string}}
+        - {name: connection, in: query, schema: {type: string}}
+        - {name: organization, in: query, schema: {type: string}}
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              properties:
+                SAMLRequest: {type: string, description: Base64 SAML request.}
+                SAMLResponse: {type: string, description: Base64 SAML response.}
+                RelayState: {type: string}
+      responses:
+        "200":
+          description: Login page, or the auto-submitting form that posts the SAML response to the service provider's ACS.
+          content:
+            text/html:
+              schema: {type: string}
+        "302":
+          description: Redirect into the hosted login.
+        "400":
+          description: Invalid SAML message or request; an error page, nothing is sent to the service provider.
+          content:
+            text/html:
+              schema: {type: string}
+        "404":
+          $ref: "#/components/responses/UnknownTenant"
+        "500":
+          description: Error page.
+          content:
+            text/html:
+              schema: {type: string}
+  /samlp/{client_id}/logout:
+    get:
+      operationId: samlpIdPLogout
+      tags: [SAML]
+      summary: SAML identity-provider single logout (HTTP-Redirect)
+      description: Accepts a service provider's LogoutRequest (or a LogoutResponse during propagation), ends the session, propagates to other SAML participants when `logout.slo_enabled`, and answers with a LogoutResponse.
+      x-source:
+        - https://auth0.com/docs/authenticate/single-sign-on/outbound-single-sign-on/configure-auth0-saml-identity-provider
+        - https://docs.oasis-open.org/security/saml/v2.0/saml-bindings-2.0-os.pdf
+      parameters:
+        - {name: client_id, in: path, required: true, schema: {type: string}}
+        - {name: SAMLRequest, in: query, schema: {type: string}, description: "Base64 (deflated on HTTP-Redirect) SAML request."}
+        - {name: SAMLResponse, in: query, schema: {type: string}, description: Base64 deflated SAML response (logout endpoints only).}
+        - {name: RelayState, in: query, schema: {type: string}, description: Returned unchanged to the service provider.}
+        - {name: SigAlg, in: query, schema: {type: string}, description: HTTP-Redirect binding signature algorithm.}
+        - {name: Signature, in: query, schema: {type: string}, description: HTTP-Redirect binding signature.}
+      responses:
+        "302":
+          description: LogoutResponse or the next propagation LogoutRequest, on the HTTP-Redirect binding.
+        "400":
+          description: Invalid SAML message or request; an error page, nothing is sent to the service provider.
+          content:
+            text/html:
+              schema: {type: string}
+        "404":
+          $ref: "#/components/responses/UnknownTenant"
+        "500":
+          description: Error page.
+          content:
+            text/html:
+              schema: {type: string}
+    post:
+      operationId: samlpIdPLogoutPost
+      tags: [SAML]
+      summary: SAML identity-provider single logout (HTTP-POST)
+      description: As `GET /samlp/{client_id}/logout` with the HTTP-POST binding.
+      x-source:
+        - https://auth0.com/docs/authenticate/single-sign-on/outbound-single-sign-on/configure-auth0-saml-identity-provider
+        - https://docs.oasis-open.org/security/saml/v2.0/saml-bindings-2.0-os.pdf
+      parameters:
+        - {name: client_id, in: path, required: true, schema: {type: string}}
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              properties:
+                SAMLRequest: {type: string, description: Base64 SAML request.}
+                SAMLResponse: {type: string, description: Base64 SAML response.}
+                RelayState: {type: string}
+      responses:
+        "302":
+          description: LogoutResponse or the next propagation request.
+        "400":
+          description: Invalid SAML message or request; an error page, nothing is sent to the service provider.
           content:
             text/html:
               schema: {type: string}

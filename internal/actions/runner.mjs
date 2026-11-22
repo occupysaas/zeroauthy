@@ -211,7 +211,7 @@ function json(op, v) {
   return JSON.parse(s);
 }
 
-const unsupportedNamespaces = ['session', 'refreshToken', 'authentication', 'multifactor', 'prompt', 'samlResponse'];
+const unsupportedNamespaces = ['session', 'refreshToken', 'authentication', 'multifactor', 'prompt'];
 
 const utf8Bytes = (s) => Buffer.byteLength(s, 'utf8');
 const cacheKeyMax = 64;
@@ -409,6 +409,8 @@ function buildApi(req, commands, event, parse) {
   for (const name of unsupportedNamespaces) api[name] = unsupported(name);
   api.refreshToken = ns('refreshToken', ['revoke']);
   api.multifactor = ns('multifactor', ['enable']);
+  // Plan 37a: api.samlResponse setters; the server validates each one.
+  api.samlResponse = ns('samlResponse', ['setAttribute', 'setAudience', 'setRecipient', 'setCreateUpnClaim', 'setPassthroughClaimsWithNoMapping', 'setMapUnknownClaimsAsIs', 'setMapIdentities', 'setSignatureAlgorithm', 'setDigestAlgorithm', 'setDestination', 'setLifetimeInSeconds', 'setSignResponse', 'setNameIdentifierFormat', 'setNameIdentifierProbes', 'setAuthnContextClassRef', 'setSigningCert', 'setIncludeAttributeNameFormat', 'setTypedAttributes', 'setEncryptionCert', 'setEncryptionPublicKey', 'setCert', 'setKey', 'setRelayState', 'setIssuer', 'setEncryptionAlgorithm']);
   api.authentication = ns('authentication', ['challengeWith', 'challengeWithAny', 'enrollWith', 'enrollWithAny', 'setUserById', 'setUserByConnection', 'setOrganization', 'setActor']);
 
   // Only capabilities sent by the server are exposed. The same frozen

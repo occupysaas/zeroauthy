@@ -11,6 +11,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"os/exec"
+	"slices"
 	"strings"
 	"sync"
 	"testing"
@@ -358,7 +359,7 @@ func TestEngineFailClosed(t *testing.T) {
 		"session.revoke":   `try { api.session.revoke("x"); } catch (e) {}`,
 		"multifactor":      `api.multifactor.enable("unknown");`,
 		"prompt.render":    `try { api.prompt.render("p"); } catch (e) {}`,
-		"samlResponse":     `api.samlResponse.setAttribute("a", "b");`,
+		"samlResponse":     `api.samlResponse.setLifetimeInSeconds("not a number");`,
 		"refreshToken":     `try { api.refreshToken.setExpiresAt(123); } catch (e) {}`,
 		"bad scope":        `api.accessToken.addScope(42);`,
 		"bad metadata":     `api.transaction.setMetadata("k", { nested: true });`,
@@ -944,4 +945,76 @@ func TestEngineNoUnixSockets(t *testing.T) {
 		t.Fatal(err)
 	}
 	tg.Check(t, []byte(mustJSON(t, r.Effects.AccessClaims["https://x.test/s"])))
+}
+
+// TestSAMLResponseSetters is Plan 37a: every documented api.samlResponse
+// setter records a validated effect for this SAML response.
+func TestSAMLResponseSetters(t *testing.T) {
+	h := newHarness(t)
+	a := h.action("t1", trigLogin, "saml", `exports.onExecutePostLogin = async (event, api) => {
+	  api.samlResponse.setAttribute("department", "R&D");
+	  api.samlResponse.setAttribute("roles", ["admin", "dev"]);
+	  api.samlResponse.setAttribute("removed", "x");
+	  api.samlResponse.setAttribute("removed", null);
+	  api.samlResponse.setAudience("urn:aud");
+	  api.samlResponse.setRecipient("https://sp.test/acs");
+	  api.samlResponse.setDestination("https://sp.test/dest");
+	  api.samlResponse.setIssuer("urn:issuer");
+	  api.samlResponse.setRelayState("relay");
+	  api.samlResponse.setCreateUpnClaim(false);
+	  api.samlResponse.setPassthroughClaimsWithNoMapping(false);
+	  api.samlResponse.setMapUnknownClaimsAsIs(true);
+	  api.samlResponse.setMapIdentities(false);
+	  api.samlResponse.setSignatureAlgorithm("rsa-sha1");
+	  api.samlResponse.setDigestAlgorithm("sha1");
+	  api.samlResponse.setLifetimeInSeconds(120);
+	  api.samlResponse.setSignResponse(true);
+	  api.samlResponse.setNameIdentifierFormat("urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress");
+	  api.samlResponse.setNameIdentifierProbes(["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress"]);
+	  api.samlResponse.setAuthnContextClassRef("urn:ctx");
+	  api.samlResponse.setSigningCert("SPCERT");
+	  api.samlResponse.setIncludeAttributeNameFormat(false);
+	  api.samlResponse.setTypedAttributes(false);
+	  api.samlResponse.setEncryptionCert("ENCCERT");
+	  api.samlResponse.setEncryptionPublicKey("ENCKEY");
+	  api.samlResponse.setEncryptionAlgorithm("aes256-cbc");
+	  api.samlResponse.setCert("SIGNCERT");
+	  api.samlResponse.setKey("SIGNKEY");
+	};`, nil, false)
+	h.bind("t1", trigLogin, a)
+	r := h.mustPostLogin("t1")
+	if r.Denied != nil || r.Effects.SAML == nil {
+		t.Fatalf("result = %+v", r)
+	}
+	s := r.Effects.SAML
+	if s.Attributes["department"][0] != "R&D" || strings.Join(s.Attributes["roles"], ",") != "admin,dev" || s.Attributes["removed"] != nil || !slices.Contains(s.RemovedAttributes, "removed") {
+		t.Fatalf("attributes %v removed %v", s.Attributes, s.RemovedAttributes)
+	}
+	if s.Audience != "urn:aud" || s.Recipient != "https://sp.test/acs" || s.Destination != "https://sp.test/dest" || s.Issuer != "urn:issuer" || s.RelayState == nil || *s.RelayState != "relay" ||
+		*s.CreateUpnClaim || *s.PassthroughClaimsWithNoMapping || !*s.MapUnknownClaimsAsIs || *s.MapIdentities || s.SignatureAlgorithm != "rsa-sha1" || s.DigestAlgorithm != "sha1" ||
+		*s.LifetimeInSeconds != 120 || !*s.SignResponse || s.NameIdentifierFormat == "" || len(s.NameIdentifierProbes) != 1 || s.AuthnContextClassRef != "urn:ctx" ||
+		s.SigningCert != "SPCERT" || *s.IncludeAttributeNameFormat || *s.TypedAttributes || s.EncryptionCert != "ENCCERT" || s.EncryptionPublicKey != "ENCKEY" ||
+		s.EncryptionAlgorithm != "aes256-cbc" || s.Cert != "SIGNCERT" || s.Key != "SIGNKEY" {
+		t.Fatalf("effects %+v", s)
+	}
+	for name, body := range map[string]string{
+		"bad algorithm":     `api.samlResponse.setSignatureAlgorithm("rsa-md5");`,
+		"bad digest":        `api.samlResponse.setDigestAlgorithm("md5");`,
+		"bad encryption":    `api.samlResponse.setEncryptionAlgorithm("des");`,
+		"lifetime string":   `api.samlResponse.setLifetimeInSeconds("10");`,
+		"lifetime zero":     `api.samlResponse.setLifetimeInSeconds(0);`,
+		"boolean as string": `api.samlResponse.setSignResponse("true");`,
+		"probes not array":  `api.samlResponse.setNameIdentifierProbes("x");`,
+		"attribute object":  `api.samlResponse.setAttribute("a", {nested: true});`,
+		"empty attribute":   `api.samlResponse.setAttribute("", "x");`,
+	} {
+		t.Run(name, func(t *testing.T) {
+			h := newHarness(t)
+			a := h.action("t1", trigLogin, "bad", "exports.onExecutePostLogin = async (event, api) => {\n"+body+"\n};", nil, false)
+			h.bind("t1", trigLogin, a)
+			if r, err := h.postLogin("t1"); err == nil && r.Denied == nil && r.Effects.SAML != nil {
+				t.Fatalf("accepted: %+v", r.Effects.SAML)
+			}
+		})
+	}
 }

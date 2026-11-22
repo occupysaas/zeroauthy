@@ -788,3 +788,76 @@ func TestOIDCExtrasSchemaValidation(t *testing.T) {
 		})
 	}
 }
+
+// TestSAMLContracts pins Plan 37a's contract (D-0130): the samlp client
+// addon, the samlp connection strategy and options, and the SAML IdP and SP
+// routes.
+func TestSAMLContracts(t *testing.T) {
+	m, err := openapi3.NewLoader().LoadFromData(ManagementYAML)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, name := range []string{"ClientSettings", "Client"} {
+		addons := m.Components.Schemas[name].Value.Properties["addons"]
+		if addons == nil || addons.Value.Properties["samlp"] == nil {
+			t.Errorf("%s missing addons.samlp", name)
+		}
+	}
+	addon := m.Components.Schemas["ClientAddonSAML"]
+	if addon == nil {
+		t.Fatal("missing ClientAddonSAML")
+	}
+	for _, field := range []string{"mappings", "audience", "recipient", "createUpnClaim", "mapUnknownClaimsAsIs",
+		"passthroughClaimsWithNoMapping", "mapIdentities", "signatureAlgorithm", "digestAlgorithm", "issuer",
+		"destination", "lifetimeInSeconds", "signResponse", "nameIdentifierFormat", "nameIdentifierProbes",
+		"authnContextClassRef", "logout", "binding", "typedAttributes", "includeAttributeNameFormat", "signingCert"} {
+		if addon.Value.Properties[field] == nil {
+			t.Errorf("ClientAddonSAML missing %s", field)
+		}
+	}
+	strategies := m.Components.Schemas["ConnectionCreate"].Value.AllOf[1].Value.Properties["strategy"].Value.Enum
+	if !slices.Contains(strategies, any("samlp")) {
+		t.Errorf("connection strategies %v lack samlp", strategies)
+	}
+	opts := m.Components.Schemas["ConnectionOptionsSAML"]
+	if opts == nil {
+		t.Fatal("missing ConnectionOptionsSAML")
+	}
+	for _, field := range []string{"cert", "signingCert", "thumbprints", "thumbprints_sha384", "metadataUrl", "metadataXml",
+		"signInEndpoint", "signOutEndpoint", "destinationUrl", "recipientUrl", "entityId", "protocolBinding",
+		"signSAMLRequest", "signatureAlgorithm", "digestAlgorithm", "deflate", "requestTemplate", "fieldsMap",
+		"user_id_attribute", "idpinitiated", "disableSignout", "decryptionKey", "assertion_decryption_settings",
+		"signing_key", "domain_aliases", "debug", "set_user_root_attributes", "non_persistent_attrs", "icon_url",
+		"global_token_revocation_jwt_iss", "global_token_revocation_jwt_sub"} {
+		if opts.Value.Properties[field] == nil {
+			t.Errorf("ConnectionOptionsSAML missing %s", field)
+		}
+	}
+	for _, field := range []string{"thumbprints", "thumbprints_sha384"} {
+		if !opts.Value.Properties[field].Value.ReadOnly {
+			t.Errorf("ConnectionOptionsSAML.%s must be read-only (computed from the certificates)", field)
+		}
+	}
+	a, err := openapi3.NewLoader().LoadFromData(AuthenticationYAML)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for path, methods := range map[string][]string{
+		"/samlp/{client_id}":          {"GET", "POST"},
+		"/samlp/{client_id}/logout":   {"GET", "POST"},
+		"/samlp/metadata/{client_id}": {"GET"},
+		"/samlp/metadata":             {"GET"},
+		"/samlp/logout":               {"GET", "POST"},
+	} {
+		item := a.Paths.Value(path)
+		if item == nil {
+			t.Errorf("route %s missing", path)
+			continue
+		}
+		for _, method := range methods {
+			if item.GetOperation(method) == nil {
+				t.Errorf("route %s %s missing", method, path)
+			}
+		}
+	}
+}

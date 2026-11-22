@@ -15,7 +15,7 @@ type sessions struct{ s *Store }
 func (s *Store) Sessions() store.Sessions { return sessions{s} }
 
 const sessionCols = `tenant_id, id, token_hash, user_id, connection, authenticated_at, client_ids, expires_at, idle_expires_at, created_at,
- updated_at, last_interacted_at, initial_ip, initial_user_agent, last_ip, last_user_agent, cookie_mode, origin, mfa_at, auth_methods, metadata, client_organizations`
+ updated_at, last_interacted_at, initial_ip, initial_user_agent, last_ip, last_user_agent, cookie_mode, origin, mfa_at, auth_methods, metadata, client_organizations, saml_participants`
 
 func (r sessions) Create(ctx context.Context, s *store.LoginSession) error {
 	clients, err := toJSON(s.ClientIDs)
@@ -26,10 +26,10 @@ func (r sessions) Create(ctx context.Context, s *store.LoginSession) error {
 	if err != nil {
 		return err
 	}
-	_, err = r.s.write(ctx, nil, `INSERT INTO sessions (`+sessionCols+`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+	_, err = r.s.write(ctx, nil, `INSERT INTO sessions (`+sessionCols+`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
 		s.TenantID, s.ID, s.TokenHash, s.UserID, s.Connection, micros(s.AuthenticatedAt), clients,
 		micros(s.ExpiresAt), micros(s.IdleExpiresAt), micros(s.CreatedAt),
-		micros(s.UpdatedAt), micros(s.LastInteractedAt), s.InitialIP, s.InitialUserAgent, s.LastIP, s.LastUserAgent, s.CookieMode, s.Origin, optionalMFATime(s.MFAAt), methods, jsonColumn{&s.Metadata}, jsonColumn{&s.ClientOrganizations})
+		micros(s.UpdatedAt), micros(s.LastInteractedAt), s.InitialIP, s.InitialUserAgent, s.LastIP, s.LastUserAgent, s.CookieMode, s.Origin, optionalMFATime(s.MFAAt), methods, jsonColumn{&s.Metadata}, jsonColumn{&s.ClientOrganizations}, jsonColumn{&s.SAMLParticipants})
 	return r.s.conflict(err)
 }
 
@@ -40,7 +40,7 @@ func scanSession(row scanner) (*store.LoginSession, error) {
 	var mfaAt sql.NullInt64
 	var methods sql.NullString
 	if err := row.Scan(&s.TenantID, &s.ID, &s.TokenHash, &s.UserID, &s.Connection, &authAt, &clients, &exp, &idle, &created,
-		&updated, &interacted, &s.InitialIP, &s.InitialUserAgent, &s.LastIP, &s.LastUserAgent, &s.CookieMode, &s.Origin, &mfaAt, &methods, jsonColumn{&s.Metadata}, jsonColumn{&s.ClientOrganizations}); err != nil {
+		&updated, &interacted, &s.InitialIP, &s.InitialUserAgent, &s.LastIP, &s.LastUserAgent, &s.CookieMode, &s.Origin, &mfaAt, &methods, jsonColumn{&s.Metadata}, jsonColumn{&s.ClientOrganizations}, jsonColumn{&s.SAMLParticipants}); err != nil {
 		return nil, err
 	}
 	if methods.Valid {
@@ -268,6 +268,26 @@ func (r sessions) RecordClientOrganization(ctx context.Context, tid, id, clientI
 			return err
 		}
 		_, err = tx.exec(ctx, `UPDATE sessions SET client_ids = ?, client_organizations = ? WHERE tenant_id = ? AND id = ?`, ids, jsonColumn{&current.ClientOrganizations}, tid, id)
+		return err
+	})
+}
+
+// RecordSAMLParticipant implements store.SAMLSessionRecorder.
+func (r sessions) RecordSAMLParticipant(ctx context.Context, tid, id string, p store.SAMLParticipant) error {
+	return r.s.atomicRetry(ctx, nil, func(tx *Store) error {
+		current, err := (sessions{tx}).GetForUpdate(ctx, tid, id)
+		if err != nil {
+			return err
+		}
+		current.SAMLParticipants = store.UpsertSAMLParticipant(current.SAMLParticipants, p)
+		if p.ClientID != "" && !slices.Contains(current.ClientIDs, p.ClientID) {
+			current.ClientIDs = append(current.ClientIDs, p.ClientID)
+		}
+		ids, err := toJSON(current.ClientIDs)
+		if err != nil {
+			return err
+		}
+		_, err = tx.exec(ctx, `UPDATE sessions SET client_ids = ?, saml_participants = ? WHERE tenant_id = ? AND id = ?`, ids, jsonColumn{&current.SAMLParticipants}, tid, id)
 		return err
 	})
 }

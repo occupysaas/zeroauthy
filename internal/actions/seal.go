@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/zeroauthy/zeroauthy/internal/actionresult"
 	"slices"
 
 	"github.com/zeroauthy/zeroauthy/internal/keys"
@@ -36,6 +37,8 @@ type sealedEffects struct {
 	RemoveScopes        []string       `json:"remove_scopes,omitempty"`
 	Target              *[]string      `json:"target,omitempty"`
 	Ceiling             *[]string      `json:"ceiling,omitempty"`
+	// SAML carries api.samlResponse.* settings across MFA and consent (Plan 37a).
+	SAML *actionresult.SAMLEffects `json:"saml,omitempty"`
 }
 
 // SealEffects envelope-encrypts e's token effects (custom claims may be
@@ -47,7 +50,7 @@ func SealEffects(w keys.Wrapper, tenantID, purpose string, e *Effects, bind ...s
 	}
 	var s sealedEffects
 	if e != nil {
-		s = sealedEffects{AccessClaims: e.AccessClaims, IDClaims: e.IDClaims, AddScopes: e.AddScopes, RemoveScopes: e.RemoveScopes, RBAC: e.RBAC}
+		s = sealedEffects{AccessClaims: e.AccessClaims, IDClaims: e.IDClaims, AddScopes: e.AddScopes, RemoveScopes: e.RemoveScopes, RBAC: e.RBAC, SAML: e.SAML}
 		if purpose == SealConsent {
 			s.MFA = e.MFA
 			for k, v := range e.AppMetadata {
@@ -91,7 +94,7 @@ func OpenEffects(w keys.Wrapper, tenantID, purpose string, sealed []byte, bind .
 	if err := json.Unmarshal(plain, &s); err != nil {
 		return nil, fmt.Errorf("actions: decoding effects: %w", err)
 	}
-	e := &Effects{MFA: s.MFA, AccessClaims: s.AccessClaims, IDClaims: s.IDClaims, AddScopes: s.AddScopes, RemoveScopes: s.RemoveScopes, RBAC: s.RBAC}
+	e := &Effects{MFA: s.MFA, AccessClaims: s.AccessClaims, IDClaims: s.IDClaims, AddScopes: s.AddScopes, RemoveScopes: s.RemoveScopes, RBAC: s.RBAC, SAML: s.SAML}
 	if purpose == SealConsent {
 		if len(s.DeletedAppMetadata) > 0 {
 			e.AppMetadata = map[string]any{}

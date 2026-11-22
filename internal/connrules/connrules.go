@@ -432,6 +432,11 @@ func normalizeFederated(s *Spec) []error {
 	errs = append(errs, normalizeExtra(o)...)
 	errs = append(errs, normalizePhoneAttributes(o)...)
 	settings, ruleErrs := rules.Parse(s.FederationInput())
+	if len(ruleErrs) == 0 && settings.SAML != nil {
+		// Thumbprints are computed from the certificates (read-only on the API).
+		s.Options.Extra["thumbprints"] = stringsToAny(settings.SAML.Thumbprints)
+		s.Options.Extra["thumbprints_sha384"] = stringsToAny(settings.SAML.Thumbprints384)
+	}
 	if len(ruleErrs) == 0 {
 		if settings.DomainAliases != nil {
 			s.Options.Extra["domain_aliases"] = settings.DomainAliases
@@ -792,4 +797,12 @@ func maxMinLength(api bool) int {
 		return 72
 	}
 	return identity.MaxPasswordBytes
+}
+
+func stringsToAny(in []string) []any {
+	out := make([]any, len(in))
+	for i, v := range in {
+		out[i] = v
+	}
+	return out
 }

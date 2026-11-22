@@ -24,7 +24,7 @@ func (h *Handlers) keyConnection(r *http.Request, id string) (*store.Connection,
 	if e != nil {
 		return nil, e
 	}
-	if c.Strategy != "oidc" && c.Strategy != "okta" {
+	if c.Strategy != "oidc" && c.Strategy != "okta" && c.Strategy != rules.SAMLP {
 		return nil, badBody("keys are not available for this connection")
 	}
 	if supporter, ok := h.Store.(store.ConnectionKeysSupporter); ok && !supporter.ConnectionKeysSupported() {

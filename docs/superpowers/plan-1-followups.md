@@ -807,3 +807,33 @@ records the local contracts. These gaps are not live-tenant observations.
 **New roadmap follow-up (LR41a-2):** Session Transfer Tokens (Native to Web
 SSO, client session_transfer) need their own scope, spec and plan. They are
 outside Plan 41a.
+
+## Plan 37a observation points
+
+Recorded under [D-0130](../compat/decisions.md); observe on a live tenant when one is available.
+
+- **S37-1** Add-on members beyond the OpenAPI list (`logout`, `binding`, `typedAttributes`, `includeAttributeNameFormat`, `signingCert`).
+- **S37-2** The ACS URL form (`/login/callback?connection=`).
+- **S37-3** Accepted key transport algorithms for encrypted assertions.
+- **S37-4** How Auth0 matches the SP issuer to the add-on `audience` or callbacks.
+- **S37-5** When Auth0 validates SP request signatures.
+- **S37-6** Default IdP issuer (`urn:{tenant domain}`).
+- **S37-7** Default `AuthnContextClassRef`.
+- **S37-8** Signing certificate choice (tenant key versus Action-supplied key).
+- **S37-9** Back-channel logout initiator for SAML SLO (`rp-logout`).
+- **S37-10** `logout.slo_enabled` semantics.
+- **S37-11** Metadata refresh interval.
+- **S37-12** Full `requestTemplate` variable list.
+- **S37-13** SAML user ID format (`samlp|{connection}|{id}`).
+- **S37-14** SP logout response endpoint.
+- **LR37a-6 follow-up:** global token revocation for `samlp` connections.
+- **S37-15** Whether Auth0 requires an `AuthnStatement` in an upstream
+  response. zeroauthy currently accepts a signed assertion without one
+  (found by the samlify E2E fixture); SAML Profiles §4.1.4.2 requires one.
+- **Review follow-ups (Plan 37a final review, minor):** an opt-in policy
+  for AES-CBC data encryption like RSA-1_5; freshness (`IssueInstant`
+  window), replay and `Issuer`/`Destination` checks for incoming
+  LogoutRequests.
+- **S37-16** `signingCert` forms: the Deploy CLI exports base64 of the
+  PEM and imports it unchanged, so zeroauthy accepts that form beside PEM
+  and base64 DER, and stores what it is sent.

@@ -11,7 +11,7 @@ import Field from '../../../ui/Field.vue'
 import ScriptEditor from './ScriptEditor.vue'
 import MicrosoftOptions from './MicrosoftOptions.vue'
 import GitHubOptions from './GitHubOptions.vue'
-import { applePEM, githubFlagOptions, APPLE_IDENTIFIER, callbackURLs, defaultScript, httpsURL, MAX_SCRIPT_BYTES, NAME, socialStrategies, enterpriseStrategies, MICROSOFT_GUID, microsoftTenant, utf8Bytes, type Options, type FederatedStrategy } from './social'
+import { applePEM, githubFlagOptions, samlACS, samlCertificate, APPLE_IDENTIFIER, callbackURLs, defaultScript, httpsURL, MAX_SCRIPT_BYTES, NAME, socialStrategies, enterpriseStrategies, MICROSOFT_GUID, microsoftTenant, utf8Bytes, type Options, type FederatedStrategy } from './social'
 
 const { t } = useI18n()
 const { api } = useServices()
@@ -44,6 +44,10 @@ const draft = reactive({
   scopes: 'openid profile email',
   microsoftMode: 'single',
   tenantDomain: '',
+  samlSource: 'metadata' as 'metadata' | 'manual',
+  samlMetadataURL: '',
+  samlSignIn: '',
+  samlCert: '',
 })
 const errors = reactive<Record<string, string>>({})
 const general = ref('')
@@ -79,6 +83,15 @@ function validate(): boolean {
   const n = draft.name.trim()
   if (!n) errors.name = t('social.nameRequired')
   else if (n.length > 128 || !NAME.test(n)) errors.name = t('social.nameInvalid')
+  if (draft.strategy === 'samlp') {
+    if (draft.samlSource === 'metadata') {
+      if (!httpsURL(draft.samlMetadataURL.trim())) errors.samlMetadataURL = t('social.httpsRequired')
+    } else {
+      if (!httpsURL(draft.samlSignIn.trim())) errors.samlSignIn = t('social.httpsRequired')
+      if (!samlCertificate(draft.samlCert)) errors.samlCert = t('saml37.certInvalid')
+    }
+    return Object.keys(errors).length === 0
+  }
   need('clientId', draft.clientId)
   if (draft.strategy === 'apple') {
     if (!APPLE_IDENTIFIER.test(draft.appleTeam)) errors.appleTeam = t('social.appleIdentifier')
@@ -106,8 +119,11 @@ function validate(): boolean {
 }
 
 function body(): ConnectionCreate {
-  const options: Options = { client_id: draft.clientId.trim(), client_secret: draft.clientSecret }
+  let options: Options = { client_id: draft.clientId.trim(), client_secret: draft.clientSecret }
   switch (draft.strategy) {
+    case 'samlp':
+      options = draft.samlSource === 'metadata' ? { metadataUrl: draft.samlMetadataURL.trim() } : { signInEndpoint: draft.samlSignIn.trim(), signingCert: draft.samlCert.trim() }
+      break
     case 'apple':
       delete options.client_secret
       Object.assign(options, { team_id: draft.appleTeam, kid: draft.appleKID, app_secret: draft.appleKey, name: draft.appleName, email: draft.email })
@@ -193,10 +209,19 @@ function describedBy(id: string, key: string, hint = false): string {
       <Field id="social-display" :label="t('social.displayName')" :hint="t('social.displayNameHint')">
         <input id="social-display" v-model="draft.displayName" type="text" maxlength="128" autocomplete="off" aria-describedby="social-display-hint" />
       </Field>
-      <Field id="social-client-id" :label="t(draft.strategy === 'apple' ? 'social.appleServices' : 'social.clientId')" :error="errors.clientId">
+      <template v-if="draft.strategy === 'samlp'">
+        <Field id="saml-source" :label="t('saml37.source')"><select id="saml-source" v-model="draft.samlSource"><option value="metadata">{{ t('saml37.fromMetadata') }}</option><option value="manual">{{ t('saml37.manual') }}</option></select></Field>
+        <Field v-if="draft.samlSource === 'metadata'" id="saml-metadata-url" :label="t('saml37.metadataURL')" :error="errors.samlMetadataURL"><input id="saml-metadata-url" v-model="draft.samlMetadataURL" type="url" autocomplete="off" spellcheck="false" :aria-invalid="!!errors.samlMetadataURL" /></Field>
+        <template v-else>
+          <Field id="saml-signin" :label="t('saml37.signIn')" :error="errors.samlSignIn"><input id="saml-signin" v-model="draft.samlSignIn" type="url" autocomplete="off" spellcheck="false" :aria-invalid="!!errors.samlSignIn" /></Field>
+          <Field id="saml-cert" :label="t('saml37.signingCert')" :hint="t('saml37.signingCertHint')" :error="errors.samlCert"><textarea id="saml-cert" v-model="draft.samlCert" rows="7" spellcheck="false" :aria-invalid="!!errors.samlCert" /></Field>
+        </template>
+        <p class="muted" data-testid="saml-acs">{{ t('saml37.acs') }} <code>{{ samlACS(tenant, draft.name.trim() || '{name}') }}</code></p>
+      </template>
+      <Field v-if="draft.strategy !== 'samlp'" id="social-client-id" :label="t(draft.strategy === 'apple' ? 'social.appleServices' : 'social.clientId')" :error="errors.clientId">
         <input id="social-client-id" v-model="draft.clientId" type="text" autocomplete="off" spellcheck="false" :aria-invalid="!!errors.clientId" :aria-describedby="describedBy('social-client-id', 'clientId')" />
       </Field>
-      <Field v-if="draft.strategy !== 'apple' && (draft.strategy !== 'oidc' || draft.channel === 'back_channel')" id="social-client-secret" :label="t('social.clientSecret')" :hint="t('social.clientSecretNew')" :error="errors.clientSecret">
+      <Field v-if="draft.strategy !== 'apple' && draft.strategy !== 'samlp' && (draft.strategy !== 'oidc' || draft.channel === 'back_channel')" id="social-client-secret" :label="t('social.clientSecret')" :hint="t('social.clientSecretNew')" :error="errors.clientSecret">
         <input id="social-client-secret" v-model="draft.clientSecret" type="password" autocomplete="new-password" spellcheck="false" :aria-invalid="!!errors.clientSecret" :aria-describedby="describedBy('social-client-secret', 'clientSecret', true)" />
       </Field>
       <template v-if="draft.strategy === 'apple'">
@@ -233,7 +258,7 @@ function describedBy(id: string, key: string, hint = false): string {
           <input id="social-scopes" v-model="draft.scopes" type="text" autocomplete="off" spellcheck="false" :aria-invalid="!!errors.scopes" :aria-describedby="describedBy('social-scopes', 'scopes', true)" />
         </Field>
       </template>
-      <section class="stack" aria-labelledby="social-callbacks">
+      <section v-if="draft.strategy !== 'samlp'" class="stack" aria-labelledby="social-callbacks">
         <h2 id="social-callbacks" class="m-0 text-base">{{ t('social.callbacks') }}</h2>
         <p class="muted">{{ t('social.callbacksHint') }}</p>
         <p v-if="draft.strategy === 'github'" class="muted" data-testid="github-callbacks">{{ t('social.githubCallbacks') }}</p>

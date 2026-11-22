@@ -71,6 +71,7 @@ var strictGrantTypes = []string{GrantAuthorizationCode, GrantRefreshToken, Grant
 // Spec is a client's settings. Empty strings and nil pointers mean "the
 // default", which Normalize fills in.
 type Spec struct {
+	Addons                   *store.ClientAddons
 	OIDCLogout               *store.OIDCLogout
 	IDTokenAlg               string
 	OIDCSupport              *store.OIDCSupport
@@ -408,6 +409,7 @@ func CheckImmutable(c *store.Client, s *Spec) error {
 // Apply copies a normalized s into c. It leaves the identity (tenant,
 // client ID, creation time, origin) and the secrets alone.
 func Apply(c *store.Client, s *Spec) {
+	c.Addons = s.Addons.Clone()
 	c.OIDCLogout = s.OIDCLogout.Clone()
 	c.IDTokenAlg = s.IDTokenAlg
 	c.OIDCSupport = s.OIDCSupport.Clone()
@@ -451,7 +453,7 @@ func Apply(c *store.Client, s *Spec) {
 func FromClient(c *store.Client) Spec {
 	firstParty := c.IsFirstParty
 	s := Spec{
-		OIDCLogout: c.OIDCLogout.Clone(), IDTokenAlg: c.IDTokenAlg, OIDCSupport: c.OIDCSupport.Clone(),
+		Addons: c.Addons.Clone(), OIDCLogout: c.OIDCLogout.Clone(), IDTokenAlg: c.IDTokenAlg, OIDCSupport: c.OIDCSupport.Clone(),
 		Mobile:            c.Mobile.Clone(),
 		TokenQuota:        cloneTokenQuota(c.TokenQuota),
 		NativeSocialLogin: maps.Clone(c.NativeSocialLogin),

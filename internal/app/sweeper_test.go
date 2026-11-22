@@ -392,3 +392,19 @@ func TestSessionExpiryDrainsMultipleBatches(t *testing.T) {
 		t.Fatalf("expiry backlog not drained: n=%d err=%v", n, err)
 	}
 }
+
+func TestSweepSAMLReplayState(t *testing.T) {
+	st := memory.New()
+	defer st.Close()
+	now := time.Now().UTC()
+	if err := st.UseSAMLAssertion(t.Context(), "t", "conn", "_a", now.Add(time.Minute), now); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := sweep(t.Context(), st, now.Add(2*time.Minute)); err != nil {
+		t.Fatal(err)
+	}
+	// The sweep already purged the expired entry: nothing is left to purge.
+	if n, err := st.PurgeSAMLAssertions(t.Context(), now.Add(time.Hour), 10); err != nil || n != 0 {
+		t.Fatalf("expired SAML replay state was not purged: %d left (%v)", n, err)
+	}
+}

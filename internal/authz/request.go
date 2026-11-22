@@ -20,6 +20,9 @@ import (
 // Request holds the /authorize parameters zeroauthy uses. Unknown
 // parameters (such as SDK telemetry) are ignored.
 type Request struct {
+	// SAML is the server-only SAML IdP binding (Plan 37a, internal/samlidp),
+	// persisted under store.TxnParamSAML; ParseRequest never reads it.
+	SAML                  string
 	Resources             []string
 	OptionalRedirectURI   bool // Server-only compatibility switch.
 	ACRValues             string
@@ -378,6 +381,9 @@ func (r Request) Params() map[string]string {
 	if r.OrgID != "" {
 		out[store.TxnParamOrgID] = r.OrgID
 	}
+	if r.SAML != "" {
+		out[store.TxnParamSAML] = r.SAML
+	}
 	if r.OrgMode != OrgNone {
 		out[store.TxnParamOrgMode] = string(r.OrgMode)
 	}
@@ -417,6 +423,7 @@ func RequestFromParams(p map[string]string) Request {
 	r.Pushed = p[pushedKey] == "1"
 	r.Signed = p[signedKey] == "1"
 	r.OrgID, r.OrgMode = p[store.TxnParamOrgID], OrgMode(p[store.TxnParamOrgMode])
+	r.SAML = p[store.TxnParamSAML]
 	return r
 }
 
