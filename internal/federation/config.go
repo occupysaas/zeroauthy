@@ -18,6 +18,8 @@ var ErrImmutable = errors.New("federation: immutable connection setting changed"
 // Config is a federated connection's validated runtime configuration. It
 // holds a reference to the sealed credentials, never the plaintext secret.
 type Config struct {
+	// SAML is set for samlp connections (Plan 37a).
+	SAML                       *rules.SAMLSettings
 	Channel                    string
 	Explicit                   *rules.ExplicitEndpoints
 	PKCE                       string
@@ -83,6 +85,7 @@ func ParseConfig(spec connrules.Spec) (Config, error) {
 		return Config{}, errors.Join(errs...)
 	}
 	c := Config{
+		SAML:          settings.SAML,
 		Channel:       settings.Channel,
 		Explicit:      settings.Explicit,
 		PKCE:          settings.PKCE,
