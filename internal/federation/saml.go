@@ -9,6 +9,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/access"
 	"github.com/zeroauthy/zeroauthy/internal/connrules"
 	"github.com/zeroauthy/zeroauthy/internal/logscrub"
+	"net/http"
 	"net/url"
 	"strings"
 	"time"
@@ -298,4 +299,30 @@ func (s *FlowService) CompleteSAMLUnsolicited(ctx context.Context, tenant *store
 	q, _ := url.ParseQuery(ip.AuthorizeQuery)
 	q.Set("client_id", client.ClientID)
 	return &SAMLUnsolicited{User: user, Connection: conn, ClientID: client.ClientID, Protocol: ip.Protocol, Query: q}, nil
+}
+
+// FetchSAMLMetadata reads an IdP metadata document through the federation
+// outbound policy (guarded HTTPS, no redirects to private addresses), at most
+// samlcore.MaxInputBytes.
+func (ps *Providers) FetchSAMLMetadata(ctx context.Context, u string) ([]byte, error) {
+	if err := rules.ValidateEndpoint(u, false); err != nil {
+		return nil, fmt.Errorf("%w: bad URL", ErrProviderResponse)
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u, nil)
+	if err != nil {
+		return nil, fmt.Errorf("%w: bad URL", ErrProviderResponse)
+	}
+	req.Header.Set("Accept", "application/samlmetadata+xml, application/xml, text/xml")
+	resp, err := ps.client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("%w: %w", ErrProviderResponse, redact(err))
+	}
+	body, err := readAll(resp)
+	if err != nil {
+		return nil, fmt.Errorf("%w: %w", ErrProviderResponse, err)
+	}
+	if resp.StatusCode != http.StatusOK || len(body) > samlcore.MaxInputBytes {
+		return nil, fmt.Errorf("%w: status %d", ErrProviderResponse, resp.StatusCode)
+	}
+	return body, nil
 }

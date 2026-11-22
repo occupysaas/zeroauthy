@@ -432,8 +432,13 @@ func New(d Deps) http.Handler {
 		systemOrigin = "https://" + tenant.NormalizeHost(d.SystemHost)
 	}
 	mr := chi.NewRouter()
+	var samlMetadata func(context.Context, string) ([]byte, error)
+	if d.Federation != nil && d.Federation.Providers != nil {
+		samlMetadata = d.Federation.Providers.FetchSAMLMetadata
+	}
 	mh := &mgmt.Handlers{
 		Logout:         d.Logout,
+		SAMLMetadata:   samlMetadata,
 		LogsConfig:     d.LogsConfig,
 		EventsConfig:   d.EventsConfig,
 		EventDeliverer: d.EventDeliverer,

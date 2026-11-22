@@ -7,7 +7,10 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/pem"
+	"errors"
+	"github.com/zeroauthy/zeroauthy/internal/samlcore"
 	"github.com/zeroauthy/zeroauthy/internal/store"
+	"github.com/zeroauthy/zeroauthy/internal/third_party/etree"
 	"math/big"
 	"net/http"
 	"strings"
@@ -177,5 +180,35 @@ func TestSAMLConnectionManagement(t *testing.T) {
 	r, keysOut := e.call(t, e.tn, m2mCaller(), "GET", "/keys", nil, func(w http.ResponseWriter, r *http.Request) { e.h.GetConnectionKeys(w, r, id) })
 	if r.Code != 200 {
 		t.Fatalf("keys API for samlp: %d %v", r.Code, keysOut)
+	}
+}
+
+// A samlp connection from metadataUrl takes its endpoints and signing
+// certificate from the fetched metadata (Plan 37a).
+func TestSAMLConnectionMetadataURL(t *testing.T) {
+	e := keysEnv(t)
+	cert := samlTestCert(t)
+	block, _ := pem.Decode([]byte(cert))
+	parsed, _ := x509.ParseCertificate(block.Bytes)
+	doc := etree.NewDocument()
+	doc.SetRoot(samlcore.BuildMetadata(samlcore.EntityDescriptor{EntityID: "https://idp.example.test", IdP: &samlcore.IdPDescriptor{SigningCerts: []*x509.Certificate{parsed},
+		SSO: []samlcore.Endpoint{{Binding: samlcore.BindingRedirect, Location: "https://idp.example.test/sso"}},
+		SLO: []samlcore.Endpoint{{Binding: samlcore.BindingRedirect, Location: "https://idp.example.test/slo"}}}}))
+	md, _ := doc.WriteToBytes()
+	var fetched string
+	e.h.SAMLMetadata = func(_ context.Context, u string) ([]byte, error) { fetched = u; return md, nil }
+	r, v := e.call(t, e.tn, m2mCaller(), "POST", "/connections", map[string]any{"name": "md-saml", "strategy": "samlp",
+		"options": map[string]any{"metadataUrl": "https://idp.example.test/metadata"}}, e.h.CreateConnection)
+	if r.Code != 201 || fetched != "https://idp.example.test/metadata" {
+		t.Fatalf("create from metadata: %d %v (fetched %q)", r.Code, v, fetched)
+	}
+	opts := v.(map[string]any)["options"].(map[string]any)
+	if opts["signInEndpoint"] != "https://idp.example.test/sso" || opts["signOutEndpoint"] != "https://idp.example.test/slo" || opts["signingCert"] == nil || len(opts["thumbprints"].([]any)) != 1 {
+		t.Fatalf("derived options %v", opts)
+	}
+	e.h.SAMLMetadata = func(context.Context, string) ([]byte, error) { return nil, errors.New("unreachable") }
+	if r, _ := e.call(t, e.tn, m2mCaller(), "POST", "/connections", map[string]any{"name": "md-saml-2", "strategy": "samlp",
+		"options": map[string]any{"metadataUrl": "https://idp.example.test/metadata"}}, e.h.CreateConnection); r.Code != 400 {
+		t.Fatalf("unreachable metadata: %d", r.Code)
 	}
 }

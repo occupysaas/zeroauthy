@@ -208,3 +208,52 @@ func TestIdPInitiatedPolicy(t *testing.T) {
 		t.Fatalf("after IdP-initiated login: %d %v", resp.StatusCode, loc)
 	}
 }
+
+// An assertion encrypted to the connection's current encryption key (the
+// keys API / SP metadata key) is decrypted at the ACS.
+func TestSAMLSPEncryptedAssertion(t *testing.T) {
+	e, tn, idp := samlConnEnv(t, nil)
+	conn, _ := e.st.Connections().GetByName(t.Context(), tn.ID, "corp-saml")
+	list, err := federation.EnsureKeys(t.Context(), e.st, e.w, conn, "encryption", "RSA-OAEP-256", "corp-saml", time.Now())
+	if err != nil {
+		t.Fatal(err)
+	}
+	var encCert *x509.Certificate
+	for _, k := range list {
+		if k.Use == "encryption" && k.State == "current" {
+			encCert, _ = x509.ParseCertificate(k.CertDER)
+		}
+	}
+	if encCert == nil {
+		t.Fatal("no current encryption key")
+	}
+	c := e.client(t)
+	ar, relay := startSAML(t, e, c)
+	acs := e.base + "/login/callback?connection=corp-saml"
+	now := time.Now()
+	a := samlcore.BuildAssertion(samlcore.AssertionSpec{ID: "_enc", IssueInstant: now, Issuer: "https://idp.saml.test", NameID: "encrypted-user",
+		Audience: "urn:auth0:flow:corp-saml", Recipient: acs, InResponseTo: ar.ID, NotBefore: now, NotOnOrAfter: now.Add(5 * time.Minute), AuthnInstant: now})
+	signed, err := samlcore.Signer{Key: idp.key, Cert: idp.cert}.SignEnveloped(a)
+	if err != nil {
+		t.Fatal(err)
+	}
+	enc, err := samlcore.EncryptAssertion(signed, encCert, samlcore.EncAES256CBC, samlcore.KeyRSAOAEP)
+	if err != nil {
+		t.Fatal(err)
+	}
+	raw := samlcore.EncodePOST(samlcore.BuildResponse(samlcore.ResponseSpec{ID: "_respenc", InResponseTo: ar.ID, Destination: acs, Issuer: "https://idp.saml.test", IssueInstant: now}, enc))
+	resp := postACS(t, e, c, raw, relay)
+	for i := 0; i < 5 && resp.StatusCode/100 == 3; i++ {
+		loc, _ := resp.Location()
+		if loc.Host == "app.flow.test" {
+			break
+		}
+		resp, _ = fetch(t, c, e.base+loc.RequestURI())
+	}
+	if loc, _ := resp.Location(); loc == nil || loc.Query().Get("code") == "" {
+		t.Fatalf("encrypted assertion login: %d %v", resp.StatusCode, loc)
+	}
+	if _, err := e.st.Users().Get(t.Context(), tn.ID, "samlp|corp-saml|encrypted-user"); err != nil {
+		t.Fatal("encrypted-assertion user not provisioned")
+	}
+}

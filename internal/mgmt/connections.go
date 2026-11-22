@@ -422,6 +422,10 @@ func (h *Handlers) CreateConnection(w http.ResponseWriter, r *http.Request) {
 	}
 	setPlainConfiguration(spec, plain)
 	connrules.CreateDefaults(spec)
+	if err := h.samlMetadata(r.Context(), spec); err != nil {
+		Fail(w, err)
+		return
+	}
 	if err := normalizeConnection(spec); err != nil {
 		Fail(w, err)
 		return
@@ -552,6 +556,9 @@ func (h *Handlers) UpdateConnection(w http.ResponseWriter, r *http.Request, id s
 			if spec.Passwordless() {
 				passwordlessCurrent = current
 			}
+		}
+		if err := h.samlMetadata(r.Context(), spec); err != nil {
+			return err
 		}
 		if err := normalizeConnection(spec); err != nil {
 			return err

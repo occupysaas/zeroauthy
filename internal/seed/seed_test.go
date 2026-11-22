@@ -314,7 +314,7 @@ func TestValidateConnectionsAndUsers(t *testing.T) {
 	base := `tenants: [{name: a, clients: [{client_id: spa, app_type: spa}], connections: [%s], users: [%s]}]`
 	conn := `{name: DB, enabled_clients: [spa]}`
 	cases := map[string]struct{ conns, users, want string }{
-		"unknown strategy":   {`{name: DB, strategy: samlp}`, ``, `strategy "samlp"`},
+		"unknown strategy":   {`{name: DB, strategy: nope}`, ``, `strategy "nope"`},
 		"unknown client":     {`{name: DB, enabled_clients: [nope]}`, ``, `unknown client "nope"`},
 		"dup connection":     {conn + `, ` + conn, ``, `duplicate connection "DB"`},
 		"bad policy":         {`{name: DB, password_policy: {require_character_classes: 5}}`, ``, "require_character_classes"},
@@ -1315,7 +1315,7 @@ func TestSeedPasswordOptionsRefusals(t *testing.T) {
 		"three of four":   {`{name: db, password_options: {complexity: {character_type_rule: three_of_four, character_types: [number]}}}`, "all four"},
 		"bad dictionary":  {`{name: db, password_options: {dictionary: {default: en_1m}}}`, "dictionary.default"},
 		"unknown key":     {`{name: db, password_options: {bogus: 1}}`, "bogus"},
-		"strategy":        {`{name: db, strategy: samlp}`, "not supported"},
+		"strategy":        {`{name: db, strategy: nope}`, "not supported"},
 	} {
 		t.Run(name, func(t *testing.T) {
 			_, err := Parse([]byte("tenants:\n  - name: a\n    connections: [" + tc.conn + "]\n"))

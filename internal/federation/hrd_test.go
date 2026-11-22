@@ -24,3 +24,11 @@ func TestHRDOrder(t *testing.T) {
 		t.Fatal(got)
 	}
 }
+
+// samlp connections take part in home realm discovery (Plan 37a).
+func TestMatchHomeRealmSAML(t *testing.T) {
+	c := &store.Connection{ID: "s", Name: "corp-saml", Strategy: "samlp", EnabledClients: []string{"client"}, Extra: map[string]any{"domain_aliases": []any{"saml.example"}}}
+	if got := MatchHomeRealm("a@saml.example", []*store.Connection{c}); got != c {
+		t.Fatalf("samlp HRD: %v", got)
+	}
+}

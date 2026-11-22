@@ -91,6 +91,9 @@ type Handlers struct {
 	// PhoneHTTP is the HTTP client of the phone provider try routes; nil uses
 	// phone.NewHTTPClient (SSRF-guarded).
 	PhoneHTTP *http.Client
+	// SAMLMetadata fetches samlp metadataUrl documents through the federation
+	// outbound policy (Plan 37a); nil refuses metadataUrl.
+	SAMLMetadata func(ctx context.Context, url string) ([]byte, error)
 	// PhoneActions runs the custom phone provider's Action for try; nil
 	// uses Actions.
 	PhoneActions phone.ActionRunner
