@@ -60,7 +60,7 @@ const (
 
 // IsFederated reports whether strategy is one of the federated strategies.
 func IsFederated(strategy string) bool {
-	return strategy == Apple || strategy == WindowsLive || strategy == WAAD || strategy == Google || strategy == GitHub || strategy == OAuth2 || strategy == OIDC || strategy == Okta
+	return strategy == Apple || strategy == WindowsLive || strategy == WAAD || strategy == Google || strategy == GitHub || strategy == OAuth2 || strategy == OIDC || strategy == Okta || strategy == SAMLP
 }
 
 // IsSocial reports whether identities of strategy are social (isSocial).
@@ -167,6 +167,8 @@ type Settings struct {
 	Script               string
 	ProfileSync          string
 	AuthenticationActive bool
+	// SAML is set for the samlp strategy (Plan 37a).
+	SAML *SAMLSettings
 }
 
 // ClientSecret returns the plaintext options.client_secret, and whether it is
@@ -182,6 +184,9 @@ func ClientSecret(options map[string]any) (string, bool) {
 
 // Parse validates in and returns its settings with every problem found.
 func Parse(in Input) (Settings, []error) {
+	if in.Strategy == SAMLP {
+		return parseSAML(in)
+	}
 	var errs []error
 	fail := func(format string, args ...any) { errs = append(errs, fmt.Errorf(format, args...)) }
 	out := Settings{Strategy: in.Strategy, AuthenticationActive: true}

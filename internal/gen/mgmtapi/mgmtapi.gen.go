@@ -957,6 +957,60 @@ func (e ClientThirdPartySecurityMode) Valid() bool {
 	}
 }
 
+// Defines values for ClientAddonSAMLBinding.
+const (
+	ClientAddonSAMLBindingUrnOasisNamesTcSAML20BindingsHTTPPOST     ClientAddonSAMLBinding = "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST"
+	ClientAddonSAMLBindingUrnOasisNamesTcSAML20BindingsHTTPRedirect ClientAddonSAMLBinding = "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect"
+)
+
+// Valid indicates whether the value is a known member of the ClientAddonSAMLBinding enum.
+func (e ClientAddonSAMLBinding) Valid() bool {
+	switch e {
+	case ClientAddonSAMLBindingUrnOasisNamesTcSAML20BindingsHTTPPOST:
+		return true
+	case ClientAddonSAMLBindingUrnOasisNamesTcSAML20BindingsHTTPRedirect:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ClientAddonSAMLDigestAlgorithm.
+const (
+	ClientAddonSAMLDigestAlgorithmSha1   ClientAddonSAMLDigestAlgorithm = "sha1"
+	ClientAddonSAMLDigestAlgorithmSha256 ClientAddonSAMLDigestAlgorithm = "sha256"
+)
+
+// Valid indicates whether the value is a known member of the ClientAddonSAMLDigestAlgorithm enum.
+func (e ClientAddonSAMLDigestAlgorithm) Valid() bool {
+	switch e {
+	case ClientAddonSAMLDigestAlgorithmSha1:
+		return true
+	case ClientAddonSAMLDigestAlgorithmSha256:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ClientAddonSAMLSignatureAlgorithm.
+const (
+	ClientAddonSAMLSignatureAlgorithmRsaSha1   ClientAddonSAMLSignatureAlgorithm = "rsa-sha1"
+	ClientAddonSAMLSignatureAlgorithmRsaSha256 ClientAddonSAMLSignatureAlgorithm = "rsa-sha256"
+)
+
+// Valid indicates whether the value is a known member of the ClientAddonSAMLSignatureAlgorithm enum.
+func (e ClientAddonSAMLSignatureAlgorithm) Valid() bool {
+	switch e {
+	case ClientAddonSAMLSignatureAlgorithmRsaSha1:
+		return true
+	case ClientAddonSAMLSignatureAlgorithmRsaSha256:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for ClientCreateOrganizationDiscoveryMethods.
 const (
 	ClientCreateOrganizationDiscoveryMethodsEmail            ClientCreateOrganizationDiscoveryMethods = "email"
@@ -1534,6 +1588,7 @@ const (
 	ConnectionCreateStrategyOauth2       ConnectionCreateStrategy = "oauth2"
 	ConnectionCreateStrategyOidc         ConnectionCreateStrategy = "oidc"
 	ConnectionCreateStrategyOkta         ConnectionCreateStrategy = "okta"
+	ConnectionCreateStrategySamlp        ConnectionCreateStrategy = "samlp"
 	ConnectionCreateStrategySms          ConnectionCreateStrategy = "sms"
 	ConnectionCreateStrategyWaad         ConnectionCreateStrategy = "waad"
 	ConnectionCreateStrategyWindowslive  ConnectionCreateStrategy = "windowslive"
@@ -1557,6 +1612,8 @@ func (e ConnectionCreateStrategy) Valid() bool {
 	case ConnectionCreateStrategyOidc:
 		return true
 	case ConnectionCreateStrategyOkta:
+		return true
+	case ConnectionCreateStrategySamlp:
 		return true
 	case ConnectionCreateStrategySms:
 		return true
@@ -1983,6 +2040,102 @@ const (
 func (e ConnectionOptionsOktaType) Valid() bool {
 	switch e {
 	case ConnectionOptionsOktaTypeBackChannel:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ConnectionOptionsSAMLDigestAlgorithm.
+const (
+	ConnectionOptionsSAMLDigestAlgorithmSha1   ConnectionOptionsSAMLDigestAlgorithm = "sha1"
+	ConnectionOptionsSAMLDigestAlgorithmSha256 ConnectionOptionsSAMLDigestAlgorithm = "sha256"
+)
+
+// Valid indicates whether the value is a known member of the ConnectionOptionsSAMLDigestAlgorithm enum.
+func (e ConnectionOptionsSAMLDigestAlgorithm) Valid() bool {
+	switch e {
+	case ConnectionOptionsSAMLDigestAlgorithmSha1:
+		return true
+	case ConnectionOptionsSAMLDigestAlgorithmSha256:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ConnectionOptionsSAMLIdpinitiatedClientProtocol.
+const (
+	ConnectionOptionsSAMLIdpinitiatedClientProtocolOidc  ConnectionOptionsSAMLIdpinitiatedClientProtocol = "oidc"
+	ConnectionOptionsSAMLIdpinitiatedClientProtocolSamlp ConnectionOptionsSAMLIdpinitiatedClientProtocol = "samlp"
+	ConnectionOptionsSAMLIdpinitiatedClientProtocolWsfed ConnectionOptionsSAMLIdpinitiatedClientProtocol = "wsfed"
+)
+
+// Valid indicates whether the value is a known member of the ConnectionOptionsSAMLIdpinitiatedClientProtocol enum.
+func (e ConnectionOptionsSAMLIdpinitiatedClientProtocol) Valid() bool {
+	switch e {
+	case ConnectionOptionsSAMLIdpinitiatedClientProtocolOidc:
+		return true
+	case ConnectionOptionsSAMLIdpinitiatedClientProtocolSamlp:
+		return true
+	case ConnectionOptionsSAMLIdpinitiatedClientProtocolWsfed:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ConnectionOptionsSAMLProtocolBinding.
+const (
+	ConnectionOptionsSAMLProtocolBindingUrnOasisNamesTcSAML20BindingsHTTPPOST     ConnectionOptionsSAMLProtocolBinding = "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST"
+	ConnectionOptionsSAMLProtocolBindingUrnOasisNamesTcSAML20BindingsHTTPRedirect ConnectionOptionsSAMLProtocolBinding = "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect"
+)
+
+// Valid indicates whether the value is a known member of the ConnectionOptionsSAMLProtocolBinding enum.
+func (e ConnectionOptionsSAMLProtocolBinding) Valid() bool {
+	switch e {
+	case ConnectionOptionsSAMLProtocolBindingUrnOasisNamesTcSAML20BindingsHTTPPOST:
+		return true
+	case ConnectionOptionsSAMLProtocolBindingUrnOasisNamesTcSAML20BindingsHTTPRedirect:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ConnectionOptionsSAMLSetUserRootAttributes.
+const (
+	ConnectionOptionsSAMLSetUserRootAttributesNeverOnLogin ConnectionOptionsSAMLSetUserRootAttributes = "never_on_login"
+	ConnectionOptionsSAMLSetUserRootAttributesOnEachLogin  ConnectionOptionsSAMLSetUserRootAttributes = "on_each_login"
+	ConnectionOptionsSAMLSetUserRootAttributesOnFirstLogin ConnectionOptionsSAMLSetUserRootAttributes = "on_first_login"
+)
+
+// Valid indicates whether the value is a known member of the ConnectionOptionsSAMLSetUserRootAttributes enum.
+func (e ConnectionOptionsSAMLSetUserRootAttributes) Valid() bool {
+	switch e {
+	case ConnectionOptionsSAMLSetUserRootAttributesNeverOnLogin:
+		return true
+	case ConnectionOptionsSAMLSetUserRootAttributesOnEachLogin:
+		return true
+	case ConnectionOptionsSAMLSetUserRootAttributesOnFirstLogin:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ConnectionOptionsSAMLSignatureAlgorithm.
+const (
+	ConnectionOptionsSAMLSignatureAlgorithmRsaSha1   ConnectionOptionsSAMLSignatureAlgorithm = "rsa-sha1"
+	ConnectionOptionsSAMLSignatureAlgorithmRsaSha256 ConnectionOptionsSAMLSignatureAlgorithm = "rsa-sha256"
+)
+
+// Valid indicates whether the value is a known member of the ConnectionOptionsSAMLSignatureAlgorithm enum.
+func (e ConnectionOptionsSAMLSignatureAlgorithm) Valid() bool {
+	switch e {
+	case ConnectionOptionsSAMLSignatureAlgorithmRsaSha1:
+		return true
+	case ConnectionOptionsSAMLSignatureAlgorithmRsaSha256:
 		return true
 	default:
 		return false
@@ -8177,8 +8330,12 @@ type CaptchaUpdateActiveProviderId string
 
 // Client An application.
 type Client struct {
-	AllowedLogoutUrls []string `json:"allowed_logout_urls"`
-	AllowedOrigins    []string `json:"allowed_origins"`
+	// Addons Application add-ons. Only `samlp` (SAML2 Web App, Plan 37a) is
+	// supported; any other add-on key is refused with `400`. `null` removes
+	// an add-on.
+	Addons            *ClientAddons `json:"addons,omitempty"`
+	AllowedLogoutUrls []string      `json:"allowed_logout_urls"`
+	AllowedOrigins    []string      `json:"allowed_origins"`
 
 	// AppType `native` (mobile and desktop), `spa` (single-page), `regular_web`
 	// (server-side web) or `non_interactive` (machine to machine).
@@ -8281,6 +8438,98 @@ type ClientRedirectionPolicy string
 // ClientThirdPartySecurityMode defines model for Client.ThirdPartySecurityMode.
 type ClientThirdPartySecurityMode string
 
+// ClientAddonSAML SAML2 Web App add-on (Plan 37a, D-0130): zeroauthy acts as the SAML
+// identity provider at `/samlp/{client_id}`. Defaults the Auth0
+// documentation leaves out follow Auth0's MIT `node-samlp` (D-0130).
+// SHA-1 signatures and digests are used only when selected explicitly.
+type ClientAddonSAML struct {
+	// Audience Audience of the assertion; defaults to the requesting service provider's issuer.
+	Audience             *string `json:"audience,omitempty"`
+	AuthnContextClassRef *string `json:"authnContextClassRef,omitempty"`
+
+	// Binding Binding for messages sent to the service provider (responses always use HTTP-POST).
+	Binding *ClientAddonSAMLBinding `json:"binding,omitempty"`
+
+	// CreateUpnClaim Add the UPN claim.
+	CreateUpnClaim *bool `json:"createUpnClaim,omitempty"`
+
+	// Destination Destination of the response; defaults to the ACS URL.
+	Destination     *string                         `json:"destination,omitempty"`
+	DigestAlgorithm *ClientAddonSAMLDigestAlgorithm `json:"digestAlgorithm,omitempty"`
+
+	// IncludeAttributeNameFormat Add NameFormat to attributes.
+	IncludeAttributeNameFormat *bool `json:"includeAttributeNameFormat,omitempty"`
+
+	// Issuer Issuer of the response; defaults to `urn:{tenant domain}`.
+	Issuer *string `json:"issuer,omitempty"`
+
+	// LifetimeInSeconds Assertion validity.
+	LifetimeInSeconds *int `json:"lifetimeInSeconds,omitempty"`
+	Logout            *struct {
+		// Callback Service provider SLO URL that receives LogoutRequest and LogoutResponse messages.
+		Callback *string `json:"callback,omitempty"`
+
+		// SloEnabled Propagate single logout to the other SAML session participants.
+		SloEnabled *bool `json:"slo_enabled,omitempty"`
+	} `json:"logout,omitempty"`
+
+	// MapIdentities Add the user's identities as attributes.
+	MapIdentities *bool `json:"mapIdentities,omitempty"`
+
+	// MapUnknownClaimsAsIs Send profile fields without a mapping under their own names.
+	MapUnknownClaimsAsIs *bool `json:"mapUnknownClaimsAsIs,omitempty"`
+
+	// Mappings User profile field to SAML attribute name, or to several names.
+	Mappings             *map[string]ClientAddonSAML_Mappings_AdditionalProperties `json:"mappings,omitempty"`
+	NameIdentifierFormat *string                                                   `json:"nameIdentifierFormat,omitempty"`
+
+	// NameIdentifierProbes Claims tried in order for the NameID; the first non-empty value wins.
+	NameIdentifierProbes *[]string `json:"nameIdentifierProbes,omitempty"`
+
+	// PassthroughClaimsWithNoMapping Send claims without a mapping using the default claim namespace.
+	PassthroughClaimsWithNoMapping *bool `json:"passthroughClaimsWithNoMapping,omitempty"`
+
+	// Recipient Recipient of the assertion (the ACS URL); defaults to the requested AssertionConsumerServiceURL.
+	Recipient *string `json:"recipient,omitempty"`
+
+	// SignResponse Sign the whole Response in addition to the Assertion.
+	SignResponse       *bool                              `json:"signResponse,omitempty"`
+	SignatureAlgorithm *ClientAddonSAMLSignatureAlgorithm `json:"signatureAlgorithm,omitempty"`
+
+	// SigningCert The service provider's PEM certificate. When set, SAML requests from the service provider must be signed with its key.
+	SigningCert *string `json:"signingCert,omitempty"`
+
+	// TypedAttributes Add xsi:type to attribute values.
+	TypedAttributes *bool `json:"typedAttributes,omitempty"`
+}
+
+// ClientAddonSAMLBinding Binding for messages sent to the service provider (responses always use HTTP-POST).
+type ClientAddonSAMLBinding string
+
+// ClientAddonSAMLDigestAlgorithm defines model for ClientAddonSAML.DigestAlgorithm.
+type ClientAddonSAMLDigestAlgorithm string
+
+// ClientAddonSAMLMappings0 defines model for ClientAddonSAML.Mappings.0.
+type ClientAddonSAMLMappings0 = string
+
+// ClientAddonSAMLMappings1 defines model for ClientAddonSAML.Mappings.1.
+type ClientAddonSAMLMappings1 = []string
+
+// ClientAddonSAML_Mappings_AdditionalProperties defines model for ClientAddonSAML.mappings.AdditionalProperties.
+type ClientAddonSAML_Mappings_AdditionalProperties struct {
+	union json.RawMessage
+}
+
+// ClientAddonSAMLSignatureAlgorithm defines model for ClientAddonSAML.SignatureAlgorithm.
+type ClientAddonSAMLSignatureAlgorithm string
+
+// ClientAddons Application add-ons. Only `samlp` (SAML2 Web App, Plan 37a) is
+// supported; any other add-on key is refused with `400`. `null` removes
+// an add-on.
+type ClientAddons struct {
+	Samlp *ClientAddonSAML `json:"samlp,omitempty"`
+}
+
 // ClientAuthenticationMethods `private_key_jwt` makes the application authenticate with a signed
 // JWT; it requires `token_endpoint_auth_method` null. `null` reverts to
 // `token_endpoint_auth_method`. `tls_client_auth` and
@@ -8299,6 +8548,11 @@ type ClientAuthenticationMethods struct {
 // `is_first_party` true, refresh tokens rotating for `spa` and
 // non-rotating otherwise.
 type ClientCreate struct {
+	// Addons Application add-ons. Only `samlp` (SAML2 Web App, Plan 37a) is
+	// supported; any other add-on key is refused with `400`. `null` removes
+	// an add-on.
+	Addons *ClientAddons `json:"addons,omitempty"`
+
 	// AllowedClients Accepted and ignored.
 	AllowedClients interface{} `json:"allowed_clients,omitempty"`
 
@@ -8713,6 +8967,11 @@ type ClientPage struct {
 
 // ClientSettings The writable settings of an application.
 type ClientSettings struct {
+	// Addons Application add-ons. Only `samlp` (SAML2 Web App, Plan 37a) is
+	// supported; any other add-on key is refused with `400`. `null` removes
+	// an add-on.
+	Addons *ClientAddons `json:"addons,omitempty"`
+
 	// AllowedClients Accepted and ignored.
 	AllowedClients interface{} `json:"allowed_clients,omitempty"`
 
@@ -8883,6 +9142,11 @@ type ClientTokenExchangeAllowAnyProfileOfType string
 // `third_party_security_mode` may be sent only with their current
 // values.
 type ClientUpdate struct {
+	// Addons Application add-ons. Only `samlp` (SAML2 Web App, Plan 37a) is
+	// supported; any other add-on key is refused with `400`. `null` removes
+	// an add-on.
+	Addons *ClientAddons `json:"addons,omitempty"`
+
 	// AllowedClients Accepted and ignored.
 	AllowedClients interface{} `json:"allowed_clients,omitempty"`
 
@@ -9128,11 +9392,11 @@ type ConnectionCreate struct {
 	Realms       *[]string               `json:"realms,omitempty"`
 	ShowAsButton *bool                   `json:"show_as_button,omitempty"`
 
-	// Strategy `email` and `sms` are passwordless connections whose name must equal the strategy; options follow ConnectionOptionsEmail and ConnectionOptionsSMS (Plan 34). `apple` follows ConnectionOptionsApple; web/native login is active (D-0170). `github` follows ConnectionOptionsGitHub (Plan 39c).
+	// Strategy `samlp` follows ConnectionOptionsSAML (Plan 37a). `email` and `sms` are passwordless connections whose name must equal the strategy; options follow ConnectionOptionsEmail and ConnectionOptionsSMS (Plan 34). `apple` follows ConnectionOptionsApple; web/native login is active (D-0170). `github` follows ConnectionOptionsGitHub (Plan 39c).
 	Strategy ConnectionCreateStrategy `json:"strategy"`
 }
 
-// ConnectionCreateStrategy `email` and `sms` are passwordless connections whose name must equal the strategy; options follow ConnectionOptionsEmail and ConnectionOptionsSMS (Plan 34). `apple` follows ConnectionOptionsApple; web/native login is active (D-0170). `github` follows ConnectionOptionsGitHub (Plan 39c).
+// ConnectionCreateStrategy `samlp` follows ConnectionOptionsSAML (Plan 37a). `email` and `sms` are passwordless connections whose name must equal the strategy; options follow ConnectionOptionsEmail and ConnectionOptionsSMS (Plan 34). `apple` follows ConnectionOptionsApple; web/native login is active (D-0170). `github` follows ConnectionOptionsGitHub (Plan 39c).
 type ConnectionCreateStrategy string
 
 // ConnectionDeleted defines model for ConnectionDeleted.
@@ -9448,6 +9712,144 @@ type ConnectionOptionsOktaTokenEndpointJwtcaAudFormat string
 
 // ConnectionOptionsOktaType defines model for ConnectionOptionsOkta.Type.
 type ConnectionOptionsOktaType string
+
+// ConnectionOptionsSAML SAML service-provider connection (`samlp`, Plan 37a, D-0130). The
+// identity provider is configured from `metadataUrl` (fetched through
+// the federation outbound policy and refreshed daily), `metadataXml`,
+// or `signInEndpoint` with `signingCert` (or the legacy `cert`).
+// `thumbprints` and `thumbprints_sha384` are computed from the
+// certificates on write and are read-only. `entityId` defaults to
+// `urn:auth0:{tenant}:{connection}`. The private keys of `signing_key`
+// and `decryptionKey` are write-only: sealed when written and never
+// returned. Without them, keys come from
+// `/api/v2/connections/{id}/keys`. RSA-SHA1 and RSA-1_5 key transport are
+// accepted only when selected explicitly. The assertion consumer service
+// is `POST /login/callback?connection={name}`; SP metadata is
+// `GET /samlp/metadata?connection={name}`.
+// `global_token_revocation_jwt_iss` and `_sub` are stored only (D-0130).
+type ConnectionOptionsSAML struct {
+	// AssertionDecryptionSettings `allowed_key_transport` may add `rsa-1_5` (refused unless listed).
+	AssertionDecryptionSettings *map[string]interface{} `json:"assertion_decryption_settings,omitempty"`
+
+	// Cert Legacy alias of signingCert: the identity provider's signing certificate (PEM or base64 DER).
+	Cert *string `json:"cert,omitempty"`
+
+	// Debug Log SAML responses (attribute values scrubbed) as warning events.
+	Debug         *bool `json:"debug,omitempty"`
+	DecryptionKey *struct {
+		Cert *string `json:"cert,omitempty"`
+
+		// Key PEM private key; sealed and never returned.
+		Key *string `json:"key,omitempty"`
+	} `json:"decryptionKey,omitempty"`
+
+	// Deflate Deflate the AuthnRequest on the HTTP-Redirect binding.
+	Deflate *bool `json:"deflate,omitempty"`
+
+	// DestinationUrl Destination of the AuthnRequest; defaults to signInEndpoint.
+	DestinationUrl  *string                               `json:"destinationUrl,omitempty"`
+	DigestAlgorithm *ConnectionOptionsSAMLDigestAlgorithm `json:"digestAlgorithm,omitempty"`
+
+	// DisableSignout Do not send LogoutRequest to the identity provider on logout.
+	DisableSignout *bool `json:"disableSignout,omitempty"`
+
+	// DomainAliases Home realm discovery domains.
+	DomainAliases *[]string `json:"domain_aliases,omitempty"`
+
+	// EntityId Service provider entity ID; defaults to `urn:auth0:{tenant}:{connection}`.
+	EntityId *string `json:"entityId,omitempty"`
+
+	// FieldsMap Profile field to SAML attribute name, or to several names tried in order.
+	FieldsMap *map[string]ConnectionOptionsSAML_FieldsMap_AdditionalProperties `json:"fieldsMap,omitempty"`
+
+	// GlobalTokenRevocationJwtIss Stored only (D-0130).
+	GlobalTokenRevocationJwtIss *string `json:"global_token_revocation_jwt_iss,omitempty"`
+
+	// GlobalTokenRevocationJwtSub Stored only (D-0130).
+	GlobalTokenRevocationJwtSub *string `json:"global_token_revocation_jwt_sub,omitempty"`
+	IconUrl                     *string `json:"icon_url,omitempty"`
+	Idpinitiated                *struct {
+		// ClientAuthorizequery Query string of the authorization request for the application.
+		ClientAuthorizequery *string `json:"client_authorizequery,omitempty"`
+
+		// ClientId Application that IdP-initiated logins continue to.
+		ClientId       *string                                          `json:"client_id,omitempty"`
+		ClientProtocol *ConnectionOptionsSAMLIdpinitiatedClientProtocol `json:"client_protocol,omitempty"`
+		Enabled        *bool                                            `json:"enabled,omitempty"`
+	} `json:"idpinitiated,omitempty"`
+
+	// MetadataUrl HTTPS URL of the identity provider metadata.
+	MetadataUrl *string `json:"metadataUrl,omitempty"`
+
+	// MetadataXml Identity provider metadata document.
+	MetadataXml        *string   `json:"metadataXml,omitempty"`
+	NonPersistentAttrs *[]string `json:"non_persistent_attrs,omitempty"`
+
+	// ProtocolBinding Binding used to send the AuthnRequest.
+	ProtocolBinding *ConnectionOptionsSAMLProtocolBinding `json:"protocolBinding,omitempty"`
+
+	// RecipientUrl Expected Recipient of assertions; defaults to the ACS URL.
+	RecipientUrl *string `json:"recipientUrl,omitempty"`
+
+	// RequestTemplate AuthnRequest template with `@@variableName@@` substitution; must produce a valid AuthnRequest.
+	RequestTemplate       *string                                     `json:"requestTemplate,omitempty"`
+	SetUserRootAttributes *ConnectionOptionsSAMLSetUserRootAttributes `json:"set_user_root_attributes,omitempty"`
+
+	// SignInEndpoint Identity provider single sign-on URL.
+	SignInEndpoint *string `json:"signInEndpoint,omitempty"`
+
+	// SignOutEndpoint Identity provider single logout URL.
+	SignOutEndpoint *string `json:"signOutEndpoint,omitempty"`
+
+	// SignSAMLRequest Sign the AuthnRequest.
+	SignSAMLRequest    *bool                                    `json:"signSAMLRequest,omitempty"`
+	SignatureAlgorithm *ConnectionOptionsSAMLSignatureAlgorithm `json:"signatureAlgorithm,omitempty"`
+
+	// SigningCert The identity provider's signing certificate (PEM or base64 DER).
+	SigningCert *string `json:"signingCert,omitempty"`
+	SigningKey  *struct {
+		Cert *string `json:"cert,omitempty"`
+
+		// Key PEM private key; sealed and never returned.
+		Key *string `json:"key,omitempty"`
+	} `json:"signing_key,omitempty"`
+
+	// Thumbprints SHA-1 thumbprints of the identity provider certificates, computed on write.
+	Thumbprints *[]string `json:"thumbprints,omitempty"`
+
+	// ThumbprintsSha384 SHA-384 thumbprints, computed on write.
+	ThumbprintsSha384 *[]string `json:"thumbprints_sha384,omitempty"`
+
+	// UserIdAttribute Attribute used as the user ID; defaults to the NameID.
+	UserIdAttribute      *string                `json:"user_id_attribute,omitempty"`
+	AdditionalProperties map[string]interface{} `json:"-"`
+}
+
+// ConnectionOptionsSAMLDigestAlgorithm defines model for ConnectionOptionsSAML.DigestAlgorithm.
+type ConnectionOptionsSAMLDigestAlgorithm string
+
+// ConnectionOptionsSAMLFieldsMap0 defines model for ConnectionOptionsSAML.FieldsMap.0.
+type ConnectionOptionsSAMLFieldsMap0 = string
+
+// ConnectionOptionsSAMLFieldsMap1 defines model for ConnectionOptionsSAML.FieldsMap.1.
+type ConnectionOptionsSAMLFieldsMap1 = []string
+
+// ConnectionOptionsSAML_FieldsMap_AdditionalProperties defines model for ConnectionOptionsSAML.fieldsMap.AdditionalProperties.
+type ConnectionOptionsSAML_FieldsMap_AdditionalProperties struct {
+	union json.RawMessage
+}
+
+// ConnectionOptionsSAMLIdpinitiatedClientProtocol defines model for ConnectionOptionsSAML.Idpinitiated.ClientProtocol.
+type ConnectionOptionsSAMLIdpinitiatedClientProtocol string
+
+// ConnectionOptionsSAMLProtocolBinding Binding used to send the AuthnRequest.
+type ConnectionOptionsSAMLProtocolBinding string
+
+// ConnectionOptionsSAMLSetUserRootAttributes defines model for ConnectionOptionsSAML.SetUserRootAttributes.
+type ConnectionOptionsSAMLSetUserRootAttributes string
+
+// ConnectionOptionsSAMLSignatureAlgorithm defines model for ConnectionOptionsSAML.SignatureAlgorithm.
+type ConnectionOptionsSAMLSignatureAlgorithm string
 
 // ConnectionOptionsSMS Options of the `sms` passwordless connection (name `sms`).
 // `twilio_token` and `gateway_authentication.secret` are sealed,
@@ -16866,6 +17268,524 @@ func (a ConnectionOptionsGitHub) MarshalJSON() ([]byte, error) {
 	return json.Marshal(object)
 }
 
+// Getter for additional properties for ConnectionOptionsSAML. Returns the specified
+// element and whether it was found
+func (a ConnectionOptionsSAML) Get(fieldName string) (value interface{}, found bool) {
+	if a.AdditionalProperties != nil {
+		value, found = a.AdditionalProperties[fieldName]
+	}
+	return
+}
+
+// Setter for additional properties for ConnectionOptionsSAML
+func (a *ConnectionOptionsSAML) Set(fieldName string, value interface{}) {
+	if a.AdditionalProperties == nil {
+		a.AdditionalProperties = make(map[string]interface{})
+	}
+	a.AdditionalProperties[fieldName] = value
+}
+
+// Override default JSON handling for ConnectionOptionsSAML to handle AdditionalProperties
+func (a *ConnectionOptionsSAML) UnmarshalJSON(b []byte) error {
+	object := make(map[string]json.RawMessage)
+	err := json.Unmarshal(b, &object)
+	if err != nil {
+		return err
+	}
+
+	if raw, found := object["assertion_decryption_settings"]; found {
+		err = json.Unmarshal(raw, &a.AssertionDecryptionSettings)
+		if err != nil {
+			return fmt.Errorf("error reading 'assertion_decryption_settings': %w", err)
+		}
+		delete(object, "assertion_decryption_settings")
+	}
+
+	if raw, found := object["cert"]; found {
+		err = json.Unmarshal(raw, &a.Cert)
+		if err != nil {
+			return fmt.Errorf("error reading 'cert': %w", err)
+		}
+		delete(object, "cert")
+	}
+
+	if raw, found := object["debug"]; found {
+		err = json.Unmarshal(raw, &a.Debug)
+		if err != nil {
+			return fmt.Errorf("error reading 'debug': %w", err)
+		}
+		delete(object, "debug")
+	}
+
+	if raw, found := object["decryptionKey"]; found {
+		err = json.Unmarshal(raw, &a.DecryptionKey)
+		if err != nil {
+			return fmt.Errorf("error reading 'decryptionKey': %w", err)
+		}
+		delete(object, "decryptionKey")
+	}
+
+	if raw, found := object["deflate"]; found {
+		err = json.Unmarshal(raw, &a.Deflate)
+		if err != nil {
+			return fmt.Errorf("error reading 'deflate': %w", err)
+		}
+		delete(object, "deflate")
+	}
+
+	if raw, found := object["destinationUrl"]; found {
+		err = json.Unmarshal(raw, &a.DestinationUrl)
+		if err != nil {
+			return fmt.Errorf("error reading 'destinationUrl': %w", err)
+		}
+		delete(object, "destinationUrl")
+	}
+
+	if raw, found := object["digestAlgorithm"]; found {
+		err = json.Unmarshal(raw, &a.DigestAlgorithm)
+		if err != nil {
+			return fmt.Errorf("error reading 'digestAlgorithm': %w", err)
+		}
+		delete(object, "digestAlgorithm")
+	}
+
+	if raw, found := object["disableSignout"]; found {
+		err = json.Unmarshal(raw, &a.DisableSignout)
+		if err != nil {
+			return fmt.Errorf("error reading 'disableSignout': %w", err)
+		}
+		delete(object, "disableSignout")
+	}
+
+	if raw, found := object["domain_aliases"]; found {
+		err = json.Unmarshal(raw, &a.DomainAliases)
+		if err != nil {
+			return fmt.Errorf("error reading 'domain_aliases': %w", err)
+		}
+		delete(object, "domain_aliases")
+	}
+
+	if raw, found := object["entityId"]; found {
+		err = json.Unmarshal(raw, &a.EntityId)
+		if err != nil {
+			return fmt.Errorf("error reading 'entityId': %w", err)
+		}
+		delete(object, "entityId")
+	}
+
+	if raw, found := object["fieldsMap"]; found {
+		err = json.Unmarshal(raw, &a.FieldsMap)
+		if err != nil {
+			return fmt.Errorf("error reading 'fieldsMap': %w", err)
+		}
+		delete(object, "fieldsMap")
+	}
+
+	if raw, found := object["global_token_revocation_jwt_iss"]; found {
+		err = json.Unmarshal(raw, &a.GlobalTokenRevocationJwtIss)
+		if err != nil {
+			return fmt.Errorf("error reading 'global_token_revocation_jwt_iss': %w", err)
+		}
+		delete(object, "global_token_revocation_jwt_iss")
+	}
+
+	if raw, found := object["global_token_revocation_jwt_sub"]; found {
+		err = json.Unmarshal(raw, &a.GlobalTokenRevocationJwtSub)
+		if err != nil {
+			return fmt.Errorf("error reading 'global_token_revocation_jwt_sub': %w", err)
+		}
+		delete(object, "global_token_revocation_jwt_sub")
+	}
+
+	if raw, found := object["icon_url"]; found {
+		err = json.Unmarshal(raw, &a.IconUrl)
+		if err != nil {
+			return fmt.Errorf("error reading 'icon_url': %w", err)
+		}
+		delete(object, "icon_url")
+	}
+
+	if raw, found := object["idpinitiated"]; found {
+		err = json.Unmarshal(raw, &a.Idpinitiated)
+		if err != nil {
+			return fmt.Errorf("error reading 'idpinitiated': %w", err)
+		}
+		delete(object, "idpinitiated")
+	}
+
+	if raw, found := object["metadataUrl"]; found {
+		err = json.Unmarshal(raw, &a.MetadataUrl)
+		if err != nil {
+			return fmt.Errorf("error reading 'metadataUrl': %w", err)
+		}
+		delete(object, "metadataUrl")
+	}
+
+	if raw, found := object["metadataXml"]; found {
+		err = json.Unmarshal(raw, &a.MetadataXml)
+		if err != nil {
+			return fmt.Errorf("error reading 'metadataXml': %w", err)
+		}
+		delete(object, "metadataXml")
+	}
+
+	if raw, found := object["non_persistent_attrs"]; found {
+		err = json.Unmarshal(raw, &a.NonPersistentAttrs)
+		if err != nil {
+			return fmt.Errorf("error reading 'non_persistent_attrs': %w", err)
+		}
+		delete(object, "non_persistent_attrs")
+	}
+
+	if raw, found := object["protocolBinding"]; found {
+		err = json.Unmarshal(raw, &a.ProtocolBinding)
+		if err != nil {
+			return fmt.Errorf("error reading 'protocolBinding': %w", err)
+		}
+		delete(object, "protocolBinding")
+	}
+
+	if raw, found := object["recipientUrl"]; found {
+		err = json.Unmarshal(raw, &a.RecipientUrl)
+		if err != nil {
+			return fmt.Errorf("error reading 'recipientUrl': %w", err)
+		}
+		delete(object, "recipientUrl")
+	}
+
+	if raw, found := object["requestTemplate"]; found {
+		err = json.Unmarshal(raw, &a.RequestTemplate)
+		if err != nil {
+			return fmt.Errorf("error reading 'requestTemplate': %w", err)
+		}
+		delete(object, "requestTemplate")
+	}
+
+	if raw, found := object["set_user_root_attributes"]; found {
+		err = json.Unmarshal(raw, &a.SetUserRootAttributes)
+		if err != nil {
+			return fmt.Errorf("error reading 'set_user_root_attributes': %w", err)
+		}
+		delete(object, "set_user_root_attributes")
+	}
+
+	if raw, found := object["signInEndpoint"]; found {
+		err = json.Unmarshal(raw, &a.SignInEndpoint)
+		if err != nil {
+			return fmt.Errorf("error reading 'signInEndpoint': %w", err)
+		}
+		delete(object, "signInEndpoint")
+	}
+
+	if raw, found := object["signOutEndpoint"]; found {
+		err = json.Unmarshal(raw, &a.SignOutEndpoint)
+		if err != nil {
+			return fmt.Errorf("error reading 'signOutEndpoint': %w", err)
+		}
+		delete(object, "signOutEndpoint")
+	}
+
+	if raw, found := object["signSAMLRequest"]; found {
+		err = json.Unmarshal(raw, &a.SignSAMLRequest)
+		if err != nil {
+			return fmt.Errorf("error reading 'signSAMLRequest': %w", err)
+		}
+		delete(object, "signSAMLRequest")
+	}
+
+	if raw, found := object["signatureAlgorithm"]; found {
+		err = json.Unmarshal(raw, &a.SignatureAlgorithm)
+		if err != nil {
+			return fmt.Errorf("error reading 'signatureAlgorithm': %w", err)
+		}
+		delete(object, "signatureAlgorithm")
+	}
+
+	if raw, found := object["signingCert"]; found {
+		err = json.Unmarshal(raw, &a.SigningCert)
+		if err != nil {
+			return fmt.Errorf("error reading 'signingCert': %w", err)
+		}
+		delete(object, "signingCert")
+	}
+
+	if raw, found := object["signing_key"]; found {
+		err = json.Unmarshal(raw, &a.SigningKey)
+		if err != nil {
+			return fmt.Errorf("error reading 'signing_key': %w", err)
+		}
+		delete(object, "signing_key")
+	}
+
+	if raw, found := object["thumbprints"]; found {
+		err = json.Unmarshal(raw, &a.Thumbprints)
+		if err != nil {
+			return fmt.Errorf("error reading 'thumbprints': %w", err)
+		}
+		delete(object, "thumbprints")
+	}
+
+	if raw, found := object["thumbprints_sha384"]; found {
+		err = json.Unmarshal(raw, &a.ThumbprintsSha384)
+		if err != nil {
+			return fmt.Errorf("error reading 'thumbprints_sha384': %w", err)
+		}
+		delete(object, "thumbprints_sha384")
+	}
+
+	if raw, found := object["user_id_attribute"]; found {
+		err = json.Unmarshal(raw, &a.UserIdAttribute)
+		if err != nil {
+			return fmt.Errorf("error reading 'user_id_attribute': %w", err)
+		}
+		delete(object, "user_id_attribute")
+	}
+
+	if len(object) != 0 {
+		a.AdditionalProperties = make(map[string]interface{})
+		for fieldName, fieldBuf := range object {
+			var fieldVal interface{}
+			err := json.Unmarshal(fieldBuf, &fieldVal)
+			if err != nil {
+				return fmt.Errorf("error unmarshaling field %s: %w", fieldName, err)
+			}
+			a.AdditionalProperties[fieldName] = fieldVal
+		}
+	}
+	return nil
+}
+
+// Override default JSON handling for ConnectionOptionsSAML to handle AdditionalProperties
+func (a ConnectionOptionsSAML) MarshalJSON() ([]byte, error) {
+	var err error
+	object := make(map[string]json.RawMessage)
+
+	if a.AssertionDecryptionSettings != nil {
+		object["assertion_decryption_settings"], err = json.Marshal(a.AssertionDecryptionSettings)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'assertion_decryption_settings': %w", err)
+		}
+	}
+
+	if a.Cert != nil {
+		object["cert"], err = json.Marshal(a.Cert)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'cert': %w", err)
+		}
+	}
+
+	if a.Debug != nil {
+		object["debug"], err = json.Marshal(a.Debug)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'debug': %w", err)
+		}
+	}
+
+	if a.DecryptionKey != nil {
+		object["decryptionKey"], err = json.Marshal(a.DecryptionKey)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'decryptionKey': %w", err)
+		}
+	}
+
+	if a.Deflate != nil {
+		object["deflate"], err = json.Marshal(a.Deflate)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'deflate': %w", err)
+		}
+	}
+
+	if a.DestinationUrl != nil {
+		object["destinationUrl"], err = json.Marshal(a.DestinationUrl)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'destinationUrl': %w", err)
+		}
+	}
+
+	if a.DigestAlgorithm != nil {
+		object["digestAlgorithm"], err = json.Marshal(a.DigestAlgorithm)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'digestAlgorithm': %w", err)
+		}
+	}
+
+	if a.DisableSignout != nil {
+		object["disableSignout"], err = json.Marshal(a.DisableSignout)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'disableSignout': %w", err)
+		}
+	}
+
+	if a.DomainAliases != nil {
+		object["domain_aliases"], err = json.Marshal(a.DomainAliases)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'domain_aliases': %w", err)
+		}
+	}
+
+	if a.EntityId != nil {
+		object["entityId"], err = json.Marshal(a.EntityId)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'entityId': %w", err)
+		}
+	}
+
+	if a.FieldsMap != nil {
+		object["fieldsMap"], err = json.Marshal(a.FieldsMap)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'fieldsMap': %w", err)
+		}
+	}
+
+	if a.GlobalTokenRevocationJwtIss != nil {
+		object["global_token_revocation_jwt_iss"], err = json.Marshal(a.GlobalTokenRevocationJwtIss)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'global_token_revocation_jwt_iss': %w", err)
+		}
+	}
+
+	if a.GlobalTokenRevocationJwtSub != nil {
+		object["global_token_revocation_jwt_sub"], err = json.Marshal(a.GlobalTokenRevocationJwtSub)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'global_token_revocation_jwt_sub': %w", err)
+		}
+	}
+
+	if a.IconUrl != nil {
+		object["icon_url"], err = json.Marshal(a.IconUrl)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'icon_url': %w", err)
+		}
+	}
+
+	if a.Idpinitiated != nil {
+		object["idpinitiated"], err = json.Marshal(a.Idpinitiated)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'idpinitiated': %w", err)
+		}
+	}
+
+	if a.MetadataUrl != nil {
+		object["metadataUrl"], err = json.Marshal(a.MetadataUrl)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'metadataUrl': %w", err)
+		}
+	}
+
+	if a.MetadataXml != nil {
+		object["metadataXml"], err = json.Marshal(a.MetadataXml)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'metadataXml': %w", err)
+		}
+	}
+
+	if a.NonPersistentAttrs != nil {
+		object["non_persistent_attrs"], err = json.Marshal(a.NonPersistentAttrs)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'non_persistent_attrs': %w", err)
+		}
+	}
+
+	if a.ProtocolBinding != nil {
+		object["protocolBinding"], err = json.Marshal(a.ProtocolBinding)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'protocolBinding': %w", err)
+		}
+	}
+
+	if a.RecipientUrl != nil {
+		object["recipientUrl"], err = json.Marshal(a.RecipientUrl)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'recipientUrl': %w", err)
+		}
+	}
+
+	if a.RequestTemplate != nil {
+		object["requestTemplate"], err = json.Marshal(a.RequestTemplate)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'requestTemplate': %w", err)
+		}
+	}
+
+	if a.SetUserRootAttributes != nil {
+		object["set_user_root_attributes"], err = json.Marshal(a.SetUserRootAttributes)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'set_user_root_attributes': %w", err)
+		}
+	}
+
+	if a.SignInEndpoint != nil {
+		object["signInEndpoint"], err = json.Marshal(a.SignInEndpoint)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'signInEndpoint': %w", err)
+		}
+	}
+
+	if a.SignOutEndpoint != nil {
+		object["signOutEndpoint"], err = json.Marshal(a.SignOutEndpoint)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'signOutEndpoint': %w", err)
+		}
+	}
+
+	if a.SignSAMLRequest != nil {
+		object["signSAMLRequest"], err = json.Marshal(a.SignSAMLRequest)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'signSAMLRequest': %w", err)
+		}
+	}
+
+	if a.SignatureAlgorithm != nil {
+		object["signatureAlgorithm"], err = json.Marshal(a.SignatureAlgorithm)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'signatureAlgorithm': %w", err)
+		}
+	}
+
+	if a.SigningCert != nil {
+		object["signingCert"], err = json.Marshal(a.SigningCert)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'signingCert': %w", err)
+		}
+	}
+
+	if a.SigningKey != nil {
+		object["signing_key"], err = json.Marshal(a.SigningKey)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'signing_key': %w", err)
+		}
+	}
+
+	if a.Thumbprints != nil {
+		object["thumbprints"], err = json.Marshal(a.Thumbprints)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'thumbprints': %w", err)
+		}
+	}
+
+	if a.ThumbprintsSha384 != nil {
+		object["thumbprints_sha384"], err = json.Marshal(a.ThumbprintsSha384)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'thumbprints_sha384': %w", err)
+		}
+	}
+
+	if a.UserIdAttribute != nil {
+		object["user_id_attribute"], err = json.Marshal(a.UserIdAttribute)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'user_id_attribute': %w", err)
+		}
+	}
+
+	for fieldName, field := range a.AdditionalProperties {
+		object[fieldName], err = json.Marshal(field)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling '%s': %w", fieldName, err)
+		}
+	}
+	return json.Marshal(object)
+}
+
 // Getter for additional properties for ConnectionOptionsSMS. Returns the specified
 // element and whether it was found
 func (a ConnectionOptionsSMS) Get(fieldName string) (value interface{}, found bool) {
@@ -19385,6 +20305,130 @@ func (a User) MarshalJSON() ([]byte, error) {
 		}
 	}
 	return json.Marshal(object)
+}
+
+// AsClientAddonSAMLMappings0 returns the union data inside the ClientAddonSAML_Mappings_AdditionalProperties as a ClientAddonSAMLMappings0
+func (t ClientAddonSAML_Mappings_AdditionalProperties) AsClientAddonSAMLMappings0() (ClientAddonSAMLMappings0, error) {
+	var body ClientAddonSAMLMappings0
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromClientAddonSAMLMappings0 overwrites any union data inside the ClientAddonSAML_Mappings_AdditionalProperties as the provided ClientAddonSAMLMappings0
+func (t *ClientAddonSAML_Mappings_AdditionalProperties) FromClientAddonSAMLMappings0(v ClientAddonSAMLMappings0) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeClientAddonSAMLMappings0 performs a merge with any union data inside the ClientAddonSAML_Mappings_AdditionalProperties, using the provided ClientAddonSAMLMappings0
+func (t *ClientAddonSAML_Mappings_AdditionalProperties) MergeClientAddonSAMLMappings0(v ClientAddonSAMLMappings0) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsClientAddonSAMLMappings1 returns the union data inside the ClientAddonSAML_Mappings_AdditionalProperties as a ClientAddonSAMLMappings1
+func (t ClientAddonSAML_Mappings_AdditionalProperties) AsClientAddonSAMLMappings1() (ClientAddonSAMLMappings1, error) {
+	var body ClientAddonSAMLMappings1
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromClientAddonSAMLMappings1 overwrites any union data inside the ClientAddonSAML_Mappings_AdditionalProperties as the provided ClientAddonSAMLMappings1
+func (t *ClientAddonSAML_Mappings_AdditionalProperties) FromClientAddonSAMLMappings1(v ClientAddonSAMLMappings1) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeClientAddonSAMLMappings1 performs a merge with any union data inside the ClientAddonSAML_Mappings_AdditionalProperties, using the provided ClientAddonSAMLMappings1
+func (t *ClientAddonSAML_Mappings_AdditionalProperties) MergeClientAddonSAMLMappings1(v ClientAddonSAMLMappings1) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t ClientAddonSAML_Mappings_AdditionalProperties) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *ClientAddonSAML_Mappings_AdditionalProperties) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
+// AsConnectionOptionsSAMLFieldsMap0 returns the union data inside the ConnectionOptionsSAML_FieldsMap_AdditionalProperties as a ConnectionOptionsSAMLFieldsMap0
+func (t ConnectionOptionsSAML_FieldsMap_AdditionalProperties) AsConnectionOptionsSAMLFieldsMap0() (ConnectionOptionsSAMLFieldsMap0, error) {
+	var body ConnectionOptionsSAMLFieldsMap0
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromConnectionOptionsSAMLFieldsMap0 overwrites any union data inside the ConnectionOptionsSAML_FieldsMap_AdditionalProperties as the provided ConnectionOptionsSAMLFieldsMap0
+func (t *ConnectionOptionsSAML_FieldsMap_AdditionalProperties) FromConnectionOptionsSAMLFieldsMap0(v ConnectionOptionsSAMLFieldsMap0) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeConnectionOptionsSAMLFieldsMap0 performs a merge with any union data inside the ConnectionOptionsSAML_FieldsMap_AdditionalProperties, using the provided ConnectionOptionsSAMLFieldsMap0
+func (t *ConnectionOptionsSAML_FieldsMap_AdditionalProperties) MergeConnectionOptionsSAMLFieldsMap0(v ConnectionOptionsSAMLFieldsMap0) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsConnectionOptionsSAMLFieldsMap1 returns the union data inside the ConnectionOptionsSAML_FieldsMap_AdditionalProperties as a ConnectionOptionsSAMLFieldsMap1
+func (t ConnectionOptionsSAML_FieldsMap_AdditionalProperties) AsConnectionOptionsSAMLFieldsMap1() (ConnectionOptionsSAMLFieldsMap1, error) {
+	var body ConnectionOptionsSAMLFieldsMap1
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromConnectionOptionsSAMLFieldsMap1 overwrites any union data inside the ConnectionOptionsSAML_FieldsMap_AdditionalProperties as the provided ConnectionOptionsSAMLFieldsMap1
+func (t *ConnectionOptionsSAML_FieldsMap_AdditionalProperties) FromConnectionOptionsSAMLFieldsMap1(v ConnectionOptionsSAMLFieldsMap1) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeConnectionOptionsSAMLFieldsMap1 performs a merge with any union data inside the ConnectionOptionsSAML_FieldsMap_AdditionalProperties, using the provided ConnectionOptionsSAMLFieldsMap1
+func (t *ConnectionOptionsSAML_FieldsMap_AdditionalProperties) MergeConnectionOptionsSAMLFieldsMap1(v ConnectionOptionsSAMLFieldsMap1) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t ConnectionOptionsSAML_FieldsMap_AdditionalProperties) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *ConnectionOptionsSAML_FieldsMap_AdditionalProperties) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
 }
 
 // AsEventsEventStreamWebhookResponseContent returns the union data inside the EventsCreateEventStreamResponseContent as a EventsEventStreamWebhookResponseContent

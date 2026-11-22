@@ -157,6 +157,10 @@ func (h *Handlers) approve(w http.ResponseWriter, r *http.Request, res tenant.Re
 			copied.RBAC = &actions.RBACSnapshot{Audience: eff.RBAC.Audience, Permissions: append([]string{}, snapshot.Permissions...)}
 			eff = &copied
 		}
+		if fr.SAML != "" {
+			// A SAML response is built after the commit; no code is issued.
+			return nil
+		}
 		if !fr.device() {
 			var e error
 			code, e = local.createCode(ctx, res, client, fr.Request, sess, scopes, eff)
@@ -190,6 +194,14 @@ func (h *Handlers) approve(w http.ResponseWriter, r *http.Request, res tenant.Re
 		w.Header().Add("Set-Cookie", cookie)
 	}
 	h.loginSucceeded(w, r, res, client, fr, sess)
+	if fr.SAML != "" {
+		if h.SAML == nil {
+			http.Error(w, "internal error", http.StatusInternalServerError)
+			return
+		}
+		h.SAML.Respond(w, r, res, client, fr.SAML, fr.OrgID, sess, eff)
+		return
+	}
 	if fr.device() {
 		redirect(w, r, "/device/success")
 		return

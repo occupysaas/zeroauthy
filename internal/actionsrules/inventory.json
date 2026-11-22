@@ -804,9 +804,153 @@
         },
         {
           "name": "samlResponse.setAttribute",
-          "support": "unsupported",
-          "evidence": "local",
-          "note": "throws not supported by zeroauthy; fails closed"
+          "support": "supported",
+          "evidence": "documented",
+          "note": "Plan 37a; applies to the SAML response of a samlp transaction only"
+        },
+        {
+          "name": "samlResponse.setAudience",
+          "support": "supported",
+          "evidence": "documented",
+          "note": "Plan 37a; applies to the SAML response of a samlp transaction only"
+        },
+        {
+          "name": "samlResponse.setRecipient",
+          "support": "supported",
+          "evidence": "documented",
+          "note": "Plan 37a; applies to the SAML response of a samlp transaction only"
+        },
+        {
+          "name": "samlResponse.setCreateUpnClaim",
+          "support": "supported",
+          "evidence": "documented",
+          "note": "Plan 37a; applies to the SAML response of a samlp transaction only"
+        },
+        {
+          "name": "samlResponse.setPassthroughClaimsWithNoMapping",
+          "support": "supported",
+          "evidence": "documented",
+          "note": "Plan 37a; applies to the SAML response of a samlp transaction only"
+        },
+        {
+          "name": "samlResponse.setMapUnknownClaimsAsIs",
+          "support": "supported",
+          "evidence": "documented",
+          "note": "Plan 37a; applies to the SAML response of a samlp transaction only"
+        },
+        {
+          "name": "samlResponse.setMapIdentities",
+          "support": "supported",
+          "evidence": "documented",
+          "note": "Plan 37a; applies to the SAML response of a samlp transaction only"
+        },
+        {
+          "name": "samlResponse.setSignatureAlgorithm",
+          "support": "supported",
+          "evidence": "documented",
+          "note": "Plan 37a; applies to the SAML response of a samlp transaction only"
+        },
+        {
+          "name": "samlResponse.setDigestAlgorithm",
+          "support": "supported",
+          "evidence": "documented",
+          "note": "Plan 37a; applies to the SAML response of a samlp transaction only"
+        },
+        {
+          "name": "samlResponse.setDestination",
+          "support": "supported",
+          "evidence": "documented",
+          "note": "Plan 37a; applies to the SAML response of a samlp transaction only"
+        },
+        {
+          "name": "samlResponse.setLifetimeInSeconds",
+          "support": "supported",
+          "evidence": "documented",
+          "note": "Plan 37a; applies to the SAML response of a samlp transaction only"
+        },
+        {
+          "name": "samlResponse.setSignResponse",
+          "support": "supported",
+          "evidence": "documented",
+          "note": "Plan 37a; applies to the SAML response of a samlp transaction only"
+        },
+        {
+          "name": "samlResponse.setNameIdentifierFormat",
+          "support": "supported",
+          "evidence": "documented",
+          "note": "Plan 37a; applies to the SAML response of a samlp transaction only"
+        },
+        {
+          "name": "samlResponse.setNameIdentifierProbes",
+          "support": "supported",
+          "evidence": "documented",
+          "note": "Plan 37a; applies to the SAML response of a samlp transaction only"
+        },
+        {
+          "name": "samlResponse.setAuthnContextClassRef",
+          "support": "supported",
+          "evidence": "documented",
+          "note": "Plan 37a; applies to the SAML response of a samlp transaction only"
+        },
+        {
+          "name": "samlResponse.setSigningCert",
+          "support": "supported",
+          "evidence": "documented",
+          "note": "Plan 37a; applies to the SAML response of a samlp transaction only"
+        },
+        {
+          "name": "samlResponse.setIncludeAttributeNameFormat",
+          "support": "supported",
+          "evidence": "documented",
+          "note": "Plan 37a; applies to the SAML response of a samlp transaction only"
+        },
+        {
+          "name": "samlResponse.setTypedAttributes",
+          "support": "supported",
+          "evidence": "documented",
+          "note": "Plan 37a; applies to the SAML response of a samlp transaction only"
+        },
+        {
+          "name": "samlResponse.setEncryptionCert",
+          "support": "supported",
+          "evidence": "documented",
+          "note": "Plan 37a; applies to the SAML response of a samlp transaction only"
+        },
+        {
+          "name": "samlResponse.setEncryptionPublicKey",
+          "support": "supported",
+          "evidence": "documented",
+          "note": "Plan 37a; applies to the SAML response of a samlp transaction only"
+        },
+        {
+          "name": "samlResponse.setCert",
+          "support": "supported",
+          "evidence": "documented",
+          "note": "Plan 37a; applies to the SAML response of a samlp transaction only"
+        },
+        {
+          "name": "samlResponse.setKey",
+          "support": "supported",
+          "evidence": "documented",
+          "note": "Plan 37a; applies to the SAML response of a samlp transaction only"
+        },
+        {
+          "name": "samlResponse.setRelayState",
+          "support": "supported",
+          "evidence": "documented",
+          "note": "Plan 37a; applies to the SAML response of a samlp transaction only"
+        },
+        {
+          "name": "samlResponse.setIssuer",
+          "support": "supported",
+          "evidence": "documented",
+          "note": "Plan 37a; applies to the SAML response of a samlp transaction only"
+        },
+        {
+          "name": "samlResponse.setEncryptionAlgorithm",
+          "support": "supported",
+          "evidence": "documented",
+          "note": "Plan 37a; applies to the SAML response of a samlp transaction only"
         }
       ],
       "source_url": "https://auth0.com/docs/customize/actions/explore-triggers/signup-and-login-triggers/login-trigger/post-login-api-object",

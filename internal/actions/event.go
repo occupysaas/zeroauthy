@@ -17,8 +17,10 @@ import (
 const (
 	ProtocolOIDCBasicProfile = "oidc-basic-profile"
 	// ProtocolWebAuthn identifies the native passkey token exchange.
-	ProtocolWebAuthn          = "oauth2-webauthn"
-	ProtocolDeviceCode        = "oauth2-device-code"
+	ProtocolWebAuthn   = "oauth2-webauthn"
+	ProtocolDeviceCode = "oauth2-device-code"
+	// ProtocolSAMLP is a SAML IdP transaction (Plan 37a).
+	ProtocolSAMLP             = "samlp"
 	ProtocolPassword          = "oauth2-password"
 	ProtocolResourceOwner     = "oauth2-resource-owner"
 	ProtocolRefreshToken      = "oauth2-refresh-token"

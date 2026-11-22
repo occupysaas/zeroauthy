@@ -80,8 +80,8 @@ func TestFederationInventory(t *testing.T) {
 			t.Error("aliases to rejected assurance parameters must also be rejected")
 		}
 	})
-	if len(inv.Strategies) != 6 {
-		t.Fatalf("need exactly six strategies, got %d", len(inv.Strategies))
+	if len(inv.Strategies) != 7 {
+		t.Fatalf("need exactly seven strategies, got %d", len(inv.Strategies))
 	}
 	for strategy, want := range map[string]string{
 		"google-oauth2": "google-oauth2|<sub>", "oauth2": "oauth2|<connection-name>|<subject>", "oidc": "oidc|<connection-name>|<sub>",
@@ -284,5 +284,39 @@ func TestFederationInventoryGitHub(t *testing.T) {
 	wantData := []string{"login", "html_url", "blog", "company", "location", "bio", "public_repos", "followers", "following", "created_at", "updated_at"}
 	if !slices.Equal(inv.GitHubProfile.ProviderData, wantData) {
 		t.Errorf("provider_data = %v, want %v", inv.GitHubProfile.ProviderData, wantData)
+	}
+}
+
+// TestFederationInventorySAML: the samlp block classifies every option, and
+// SP private keys in options are rejected (Plan 37a).
+func TestFederationInventorySAML(t *testing.T) {
+	b, err := os.ReadFile("inventory.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var inv struct {
+		Strategies map[string]struct {
+			IsSocial bool   `json:"is_social"`
+			IDFormat string `json:"id_format"`
+			Options  map[string]struct{ Type, Validation, Secret, Runtime, Source string }
+		}
+	}
+	if err := json.Unmarshal(b, &inv); err != nil {
+		t.Fatal(err)
+	}
+	row, ok := inv.Strategies["samlp"]
+	if !ok || row.IsSocial || row.IDFormat == "" {
+		t.Fatal("samlp strategy missing or social")
+	}
+	for _, field := range []string{"signInEndpoint", "signingCert", "thumbprints", "fieldsMap", "idpinitiated", "signing_key", "decryptionKey", "domain_aliases"} {
+		r, ok := row.Options[field]
+		if !ok || r.Type == "" || r.Validation == "" || r.Runtime == "" || r.Source == "" {
+			t.Errorf("samlp option %s incomplete", field)
+		}
+	}
+	for _, k := range []string{"signing_key", "decryptionKey"} {
+		if row.Options[k].Runtime != "rejected" || row.Options[k].Secret != "write-only" {
+			t.Errorf("%s must be rejected and write-only", k)
+		}
 	}
 }

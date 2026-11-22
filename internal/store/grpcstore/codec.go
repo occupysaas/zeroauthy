@@ -394,6 +394,9 @@ func clientToPB(c *store.Client) (*storev1.Client, error) {
 	if pb.OidcLogout, err = optJSON(c.OIDCLogout, c.OIDCLogout == nil); err != nil {
 		return nil, err
 	}
+	if pb.Addons, err = optJSON(c.Addons, c.Addons == nil); err != nil {
+		return nil, err
+	}
 	if pb.NativeSocialLogin, err = optJSON(c.NativeSocialLogin, c.NativeSocialLogin == nil); err != nil {
 		return nil, err
 	}
@@ -443,6 +446,9 @@ func clientFromPB(pb *storev1.Client) (*store.Client, error) {
 		return nil, err
 	}
 	if err := fromOptJSON(pb.OidcLogout, &c.OIDCLogout); err != nil {
+		return nil, err
+	}
+	if err := fromOptJSON(pb.Addons, &c.Addons); err != nil {
 		return nil, err
 	}
 	if pb.Secrets != nil {
@@ -944,7 +950,12 @@ func sessionToPB(s *store.LoginSession) (*storev1.LoginSession, error) {
 	if err != nil {
 		return nil, err
 	}
+	participants, err := optJSON(s.SAMLParticipants, s.SAMLParticipants == nil)
+	if err != nil {
+		return nil, err
+	}
 	return &storev1.LoginSession{
+		SamlParticipants:    participants,
 		ClientOrganizations: stringMapToPB(s.ClientOrganizations),
 		Metadata:            stringMapToPB(s.Metadata),
 		AuthMethods:         methods,
@@ -971,7 +982,12 @@ func sessionFromPB(pb *storev1.LoginSession) (*store.LoginSession, error) {
 	if err := fromOptJSON(pb.AuthMethods, &methods); err != nil {
 		return nil, err
 	}
+	var participants []store.SAMLParticipant
+	if err := fromOptJSON(pb.SamlParticipants, &participants); err != nil {
+		return nil, err
+	}
 	return &store.LoginSession{
+		SAMLParticipants:    participants,
 		ClientOrganizations: stringMapFromPB(pb.ClientOrganizations),
 		Metadata:            stringMapFromPB(pb.Metadata),
 		AuthMethods:         methods,

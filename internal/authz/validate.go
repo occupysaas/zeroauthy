@@ -53,7 +53,18 @@ func ValidateRequest(ctx context.Context, st store.Store, t *store.Tenant, req *
 	if req.RedirectURI == "" {
 		return client, pageErr(errInvalidRequest("redirect_uri is required")), false
 	}
-	if !callbackAllowed(client.Callbacks, req.RedirectURI) {
+	if req.SAML != "" {
+		// A SAML IdP request (Plan 37a): the ACS URL must exactly equal a
+		// callback or the add-on recipient. No code is issued, so the OAuth
+		// response_type, grant, PKCE, PAR and request-object rules below do
+		// not apply.
+		if client.Addons == nil || client.Addons.SAMLP == nil {
+			return client, pageErr(errInvalidRequest("the SAML2 Web App add-on is not enabled for this application")), false
+		}
+		if !SAMLACSAllowed(client, req.RedirectURI) {
+			return client, pageErr(errInvalidRequest("the ACS URL is not registered for this application")), false
+		}
+	} else if !callbackAllowed(client.Callbacks, req.RedirectURI) {
 		return client, pageErr(errInvalidRequest("redirect_uri is not registered for this application")), false
 	}
 
@@ -97,22 +108,22 @@ func ValidateRequest(ctx context.Context, st store.Store, t *store.Tenant, req *
 	}
 	// signed_request_object.required: a verified object at /authorize, or a
 	// signed push (spec §4).
-	if sro := client.SignedRequestObject; sro != nil && sro.Required && !req.Signed {
+	if sro := client.SignedRequestObject; req.SAML == "" && sro != nil && sro.Required && !req.Signed {
 		return client, errInvalidRequest("this application requires a signed request object"), true
 	}
 
-	if client.RequirePushedAuthorizationRequests && !req.Pushed {
+	if req.SAML == "" && client.RequirePushedAuthorizationRequests && !req.Pushed {
 		return client, errInvalidRequest("this application must use pushed authorization requests"), true // P5
 	}
 
-	switch req.ResponseType {
-	case "":
+	switch {
+	case req.SAML != "":
+	case req.ResponseType == "":
 		return client, errInvalidRequest("response_type is required"), true
-	case "code":
-	default:
+	case req.ResponseType != "code":
 		return client, errUnsupportedResponseType("only response_type=code is supported"), true
 	}
-	if !slices.Contains(client.GrantTypes, "authorization_code") {
+	if req.SAML == "" && !slices.Contains(client.GrantTypes, "authorization_code") {
 		return client, errUnauthorizedClient("the application may not use the authorization code grant"), true
 	}
 	// The organization is resolved and bound before any login check, so
@@ -122,6 +133,7 @@ func ValidateRequest(ctx context.Context, st store.Store, t *store.Tenant, req *
 	}
 
 	switch {
+	case req.SAML != "":
 	case req.CodeChallenge != "" && req.CodeChallengeMethod != "S256":
 		return client, errInvalidRequest("code_challenge_method must be S256"), true
 	case req.CodeChallenge != "" && !s256Challenge.MatchString(req.CodeChallenge):
@@ -131,7 +143,7 @@ func ValidateRequest(ctx context.Context, st store.Store, t *store.Tenant, req *
 	case req.CodeChallenge == "" && client.TokenEndpointAuthMethod == store.AuthMethodNone:
 		return client, errInvalidRequest("public applications must use PKCE (code_challenge)"), true
 	}
-	if access.Strict(client) {
+	if req.SAML == "" && access.Strict(client) {
 		if len(req.Present) > 0 {
 			return client, errInvalidRequest(req.Present[0] + " is not supported for this application"), true
 		}
@@ -263,4 +275,17 @@ func originOf(raw string) string {
 		return ""
 	}
 	return u.Scheme + "://" + u.Host
+}
+
+// SAMLACSAllowed reports whether acs exactly equals one of the client's
+// callbacks or its samlp add-on recipient (Plan 37a). Wildcards and
+// placeholders do not apply to SAML assertion consumer services.
+func SAMLACSAllowed(client *store.Client, acs string) bool {
+	if acs == "" || client == nil || client.Addons == nil || client.Addons.SAMLP == nil {
+		return false
+	}
+	if acs == client.Addons.SAMLP.Recipient {
+		return true
+	}
+	return slices.Contains(client.Callbacks, acs)
 }

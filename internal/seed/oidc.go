@@ -18,7 +18,17 @@ type JWTConfiguration struct {
 func (c *Client) validateOIDC() []error {
 	c.oidcLogout = nil
 	c.oidcSupport = nil
+	c.addons = nil
 	var errs []error
+	if c.Addons != nil {
+		raw, err := json.Marshal(c.Addons)
+		if err == nil {
+			c.addons, err = clientrules.ParseAddons(raw)
+		}
+		if err != nil {
+			errs = append(errs, fmt.Errorf("addons: %w", err))
+		}
+	}
 	if c.OIDCLogout != nil {
 		raw, err := json.Marshal(c.OIDCLogout)
 		if err == nil {
@@ -55,6 +65,11 @@ func (c *Client) validateOIDC() []error {
 func checkOIDCStorage(ctx context.Context, st store.Store, f *File) error {
 	for _, t := range f.Tenants {
 		for _, c := range t.Clients {
+			if c.addons != nil {
+				if err := store.CheckSAMLSupport(ctx, st); err != nil {
+					return err
+				}
+			}
 			if c.oidcLogout != nil || c.oidcSupport != nil || c.JWTConfiguration != nil && c.JWTConfiguration.Alg != "" && c.JWTConfiguration.Alg != "RS256" {
 				return store.CheckOIDCLogoutSupport(ctx, st)
 			}

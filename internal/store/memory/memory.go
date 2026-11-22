@@ -123,6 +123,7 @@ type state struct {
 	fedTokens              map[fedKey][]byte                // sealed token records
 	credentials            map[key]*store.ClientCredential  // by (tenant, ID)
 	globalRevocationJTIs   map[key]time.Time
+	samlAssertions         map[key]time.Time
 	assertionJTIs          map[key]time.Time                   // by (tenant, client\x00sha256(jti)); expiry
 	exchangeProfiles       map[key]*store.TokenExchangeProfile // by (tenant, ID)
 }
@@ -175,6 +176,7 @@ func New() *Store {
 		credentials:            map[key]*store.ClientCredential{},
 		assertionJTIs:          map[key]time.Time{},
 		globalRevocationJTIs:   map[key]time.Time{},
+		samlAssertions:         map[key]time.Time{},
 		exchangeProfiles:       map[key]*store.TokenExchangeProfile{},
 		deviceCodes:            map[key]*store.DeviceCode{},
 		refreshOrder:           map[key]uint64{},

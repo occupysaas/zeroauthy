@@ -125,6 +125,11 @@ service StoreService {
   rpc RotateConnectionKeys(ConnectionKeysRequest) returns (ConnectionKeysResult);
   // oidc_logout.v1 gates the new client fields; absent support refuses writes.
   rpc OIDCLogoutCapabilities(PingRequest) returns (EventsCapabilitiesResult);
+  // saml.v1 (Plan 37a) gates client add-ons and the SAML replay and session state.
+  rpc SAMLCapabilities(PingRequest) returns (EventsCapabilitiesResult);
+  rpc SAMLSessionParticipant(SAMLParticipantWrite) returns (Result);
+  rpc SAMLReplayUse(GlobalRevocationJTIRequest) returns (Result); // connection_id + jti = assertion ID
+  rpc SAMLReplayPurge(ClientCredentialsPurgeRequest) returns (CountResult);
   rpc OIDCLogoutUseGlobalJTI(GlobalRevocationJTIRequest) returns (Result);
  rpc OIDCLogoutPurgeGlobalJTIs(ClientCredentialsPurgeRequest) returns (CountResult);
  rpc OIDCLogoutFindByEmail(UsersFindByIdentityRequest) returns (UserResult);
@@ -772,6 +777,7 @@ message Client {
   bytes oidc_support = 32; // store.OIDCSupport JSON, oidc_logout.v1
   bytes oidc_logout = 33; // store.OIDCLogout JSON, oidc_logout.v1
   string id_token_alg = 34; // empty = RS256; non-RS256 requires oidc_logout.v1
+  bytes addons = 35; // store.ClientAddons JSON (Plan 37a); writes require saml.v1
 }
 
 message Scope { string value = 1; string description = 2; }
@@ -961,6 +967,7 @@ message LoginSession {
   bytes auth_methods = 20; // Plan 33b (webauthn.v1); JSON [{name,type,at}], absent = unset
   StringMap metadata = 21;
   StringMap client_organizations = 22;
+  bytes saml_participants = 23; // []store.SAMLParticipant JSON (Plan 37a, saml.v1)
 }
 
 message AuthTransaction {
@@ -1197,6 +1204,8 @@ message SessionWrite { string tx_id = 1; LoginSession value = 2; }
 message SessionResult { Error error = 1; LoginSession value = 2; }
 message SessionList { Error error = 1; repeated LoginSession values = 2; } // newest first
 message SessionsAddClientRequest { string tx_id = 1; string tenant_id = 2; string id = 3; string client_id = 4; string organization_id = 5; }
+// SAMLParticipantWrite records one store.SAMLParticipant (JSON) on a session (saml.v1).
+message SAMLParticipantWrite { string tx_id = 1; string tenant_id = 2; string id = 3; bytes participant = 4; }
 
 message AuthTransactionWrite { string tx_id = 1; AuthTransaction value = 2; }
 message AuthTransactionResult { Error error = 1; AuthTransaction value = 2; }

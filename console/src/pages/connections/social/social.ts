@@ -2,9 +2,9 @@ import type { Connection, SystemTenant } from '../../../api/client'
 
 // Classification and route support are distinct: historical social routes
 // must continue opening generic OIDC connections.
-export const federatedStrategies = ['google-oauth2', 'oauth2', 'oidc', 'windowslive', 'waad', 'apple', 'github', 'okta'] as const
+export const federatedStrategies = ['google-oauth2', 'oauth2', 'oidc', 'windowslive', 'waad', 'apple', 'github', 'okta', 'samlp'] as const
 export const socialStrategies = ['google-oauth2', 'oauth2', 'windowslive', 'apple', 'github'] as const
-export const enterpriseStrategies = ['oidc', 'okta', 'waad'] as const
+export const enterpriseStrategies = ['oidc', 'okta', 'waad', 'samlp'] as const
 export type FederatedStrategy = (typeof federatedStrategies)[number]
 export type SocialStrategy = (typeof socialStrategies)[number]
 export type EnterpriseStrategy = (typeof enterpriseStrategies)[number]
@@ -132,4 +132,16 @@ export function githubFlagOptions(email: boolean, flags: Record<string, boolean>
   const out: Options = { email }
   for (const f of githubScopeFlags) if (flags[f.option] === true) out[f.option] = true
   return out
+}
+
+/** The SAML ACS of a samlp connection (Plan 37a). */
+export function samlACS(t: SystemTenant, connection: string): string {
+  return `https://${t.host}/login/callback?connection=${encodeURIComponent(connection)}`
+}
+
+/** A PEM certificate or base64 DER, as the samlp rules accept. */
+export function samlCertificate(raw: string): boolean {
+  const s = raw.trim()
+  if (s.startsWith('-----BEGIN CERTIFICATE-----')) return /-----END CERTIFICATE-----$/.test(s)
+  return s.length > 64 && /^[A-Za-z0-9+/=\s]+$/.test(s)
 }

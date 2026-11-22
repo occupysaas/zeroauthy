@@ -466,3 +466,14 @@ session metadata, explicit OIDC scope restrictions and PS256 ID tokens.
 HS256 seed validation separately requires a confidential application and a
 usable sealed secret of at least 32 characters; plaintext source credentials
 must still be supplied privately when bootstrapping confidential clients.
+
+Plan 37a adds client `addons` (the SAML2 Web App add-on) to seed and
+preserved-ID bootstrap, and `samlp` connections to the federation import.
+A `samlp` connection carries no provider secret, so `prepare-federation`
+needs no credential for it and refuses one. The pinned Deploy CLI 9.1.0
+lane `tests/e2e/run-m37a-saml-deploy.sh` (part of `make e2e-saml`) verifies
+export, import, reimport and export of an add-on client and a `samlp`
+connection in all four YAML/directory × generated/preserved ID cells. The
+CLI exports `signingCert` as base64 of the PEM, and zeroauthy accepts that
+form on import (S37-16). Connections are imported by the CLI in the
+preserved-ID cells too; bootstrap covers clients only.

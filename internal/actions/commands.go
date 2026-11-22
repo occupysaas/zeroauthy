@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/zeroauthy/zeroauthy/internal/actionresult"
 	"maps"
 	"net/url"
 	"slices"
@@ -177,6 +178,9 @@ func (a *accum) apply(c command) error {
 	}
 	if !triggerSpecs[a.trigger].allows(c.Op) {
 		return invalid(c.Op, "not available in the %s trigger", a.trigger)
+	}
+	if strings.HasPrefix(c.Op, "samlResponse.") {
+		return a.applySAML(c)
 	}
 	switch c.Op {
 	case "multifactor.enable", "authentication.challengeWith", "authentication.challengeWithAny", "authentication.enrollWith", "authentication.enrollWithAny":
@@ -793,4 +797,185 @@ func (a *accum) setUserByConnection(c command) error {
 	}
 	a.cte.selectUser("", name, attrs, creation, update)
 	return nil
+}
+
+// SAML response limits (Plan 37a, aligned with the samlp add-on).
+const (
+	maxSAMLValue      = 16384
+	maxSAMLAttributes = 100
+	maxSAMLValues     = 100
+	maxSAMLLifetime   = 86400
+)
+
+func samlBoolArg(c command) (*bool, error) {
+	if err := argCount(c, 1, 1); err != nil {
+		return nil, err
+	}
+	var b bool
+	if json.Unmarshal(c.Args[0], &b) != nil {
+		return nil, invalid(c.Op, "argument must be a boolean")
+	}
+	return &b, nil
+}
+
+func samlStringArg(c command, allowed ...string) (string, error) {
+	if err := argCount(c, 1, 1); err != nil {
+		return "", err
+	}
+	v, err := argString(c, 0, "value")
+	if err != nil {
+		return "", err
+	}
+	if len(v) > maxSAMLValue {
+		return "", invalid(c.Op, "value is too long")
+	}
+	if len(allowed) > 0 && !slices.Contains(allowed, v) {
+		return "", invalid(c.Op, "value must be one of %s", strings.Join(allowed, ", "))
+	}
+	return v, nil
+}
+
+// applySAML validates one api.samlResponse setter.
+func (a *accum) applySAML(c command) error {
+	if a.eff.SAML == nil {
+		a.eff.SAML = &actionresult.SAMLEffects{}
+	}
+	s := a.eff.SAML
+	var err error
+	str := func(dst *string, allowed ...string) {
+		var v string
+		if v, err = samlStringArg(c, allowed...); err == nil {
+			*dst = v
+		}
+	}
+	boolean := func(dst **bool) { *dst, err = samlBoolArg(c) }
+	switch strings.TrimPrefix(c.Op, "samlResponse.") {
+	case "setAttribute":
+		if err = argCount(c, 2, 2); err != nil {
+			return err
+		}
+		var name string
+		if name, err = argString(c, 0, "attribute"); err != nil {
+			return err
+		}
+		if name == "" || len(name) > 1024 {
+			return invalid(c.Op, "attribute name must be 1 to 1024 characters")
+		}
+		var raw any
+		if json.Unmarshal(c.Args[1], &raw) != nil {
+			return invalid(c.Op, "invalid value")
+		}
+		var vals []string
+		switch v := raw.(type) {
+		case nil:
+			delete(s.Attributes, name)
+			if !slices.Contains(s.RemovedAttributes, name) {
+				s.RemovedAttributes = append(s.RemovedAttributes, name)
+			}
+			return nil
+		case string:
+			vals = []string{v}
+		case bool, float64:
+			vals = []string{fmt.Sprint(v)}
+		case []any:
+			for _, e := range v {
+				switch ev := e.(type) {
+				case string:
+					vals = append(vals, ev)
+				case bool, float64:
+					vals = append(vals, fmt.Sprint(ev))
+				default:
+					return invalid(c.Op, "array values must be strings, numbers or booleans")
+				}
+			}
+		default:
+			return invalid(c.Op, "value must be a string, number, boolean or array of them")
+		}
+		if len(vals) > maxSAMLValues {
+			return invalid(c.Op, "too many values")
+		}
+		for _, v := range vals {
+			if len(v) > maxSAMLValue {
+				return invalid(c.Op, "value is too long")
+			}
+		}
+		if s.Attributes == nil {
+			s.Attributes = map[string][]string{}
+		}
+		if _, exists := s.Attributes[name]; !exists && len(s.Attributes) >= maxSAMLAttributes {
+			return invalid(c.Op, "too many attributes")
+		}
+		s.Attributes[name] = vals
+		s.RemovedAttributes = slices.DeleteFunc(s.RemovedAttributes, func(n string) bool { return n == name })
+		return nil
+	case "setAudience":
+		str(&s.Audience)
+	case "setRecipient":
+		str(&s.Recipient)
+	case "setDestination":
+		str(&s.Destination)
+	case "setIssuer":
+		str(&s.Issuer)
+	case "setRelayState":
+		var v string
+		if v, err = samlStringArg(c); err == nil {
+			s.RelayState = &v
+		}
+	case "setCreateUpnClaim":
+		boolean(&s.CreateUpnClaim)
+	case "setPassthroughClaimsWithNoMapping":
+		boolean(&s.PassthroughClaimsWithNoMapping)
+	case "setMapUnknownClaimsAsIs":
+		boolean(&s.MapUnknownClaimsAsIs)
+	case "setMapIdentities":
+		boolean(&s.MapIdentities)
+	case "setSignResponse":
+		boolean(&s.SignResponse)
+	case "setIncludeAttributeNameFormat":
+		boolean(&s.IncludeAttributeNameFormat)
+	case "setTypedAttributes":
+		boolean(&s.TypedAttributes)
+	case "setSignatureAlgorithm":
+		str(&s.SignatureAlgorithm, "rsa-sha256", "rsa-sha1")
+	case "setDigestAlgorithm":
+		str(&s.DigestAlgorithm, "sha256", "sha1")
+	case "setEncryptionAlgorithm":
+		str(&s.EncryptionAlgorithm, "aes256-gcm", "aes256-cbc")
+	case "setLifetimeInSeconds":
+		if err = argCount(c, 1, 1); err != nil {
+			return err
+		}
+		var n float64
+		if json.Unmarshal(c.Args[0], &n) != nil || n != float64(int(n)) || n < 1 || n > maxSAMLLifetime {
+			return invalid(c.Op, "lifetime must be an integer from 1 to %d", maxSAMLLifetime)
+		}
+		v := int(n)
+		s.LifetimeInSeconds = &v
+	case "setNameIdentifierFormat":
+		str(&s.NameIdentifierFormat)
+	case "setAuthnContextClassRef":
+		str(&s.AuthnContextClassRef)
+	case "setNameIdentifierProbes":
+		if err = argCount(c, 1, 1); err != nil {
+			return err
+		}
+		var probes []string
+		if json.Unmarshal(c.Args[0], &probes) != nil || len(probes) > 16 {
+			return invalid(c.Op, "probes must be an array of up to 16 strings")
+		}
+		s.NameIdentifierProbes = probes
+	case "setSigningCert":
+		str(&s.SigningCert)
+	case "setEncryptionCert":
+		str(&s.EncryptionCert)
+	case "setEncryptionPublicKey":
+		str(&s.EncryptionPublicKey)
+	case "setCert":
+		str(&s.Cert)
+	case "setKey":
+		str(&s.Key)
+	default:
+		return invalid(c.Op, "unknown samlResponse setter")
+	}
+	return err
 }

@@ -28,7 +28,7 @@ per item; items without rulings can start as soon as their track allows.
 | P4 | 41b DCR and CIMD | [spec](2026-11-16-zeroauthy-dynamic-client-registration-design.md) | none |
 | P5 | 41c CIBA (email channel) | [spec](2026-11-16-zeroauthy-ciba-design.md) | none |
 | P6 | 43 Token Vault | [spec](2026-11-16-zeroauthy-token-vault-design.md) | which clients may exchange; upstream revocation; vault vs identities |
-| F2 | 37a SAML | [spec](2026-11-16-zeroauthy-saml-design.md) | XML-signature implementation; E2E npm pins; SHA-1 |
+| F2 | 37a SAML (in progress on `plan-37a-saml`) | [spec](2026-11-16-zeroauthy-saml-design.md) | none (ruled 2026-11-21: vendor goxmldsig + etree; E2E `@node-saml/node-saml` and `samlify`; SHA-1/RSA-1_5 opt-in only) |
 | F3 | 37b WS-Fed and ADFS | [spec](2026-11-16-zeroauthy-ws-federation-design.md) | none (inherits F2's) |
 | F4 | 37c SCIM, groups, self-service | [spec](2026-11-16-zeroauthy-scim-self-service-design.md) | phase order; directory-sync testing |
 | F5 | 38a AD/LDAP | [spec](2026-11-16-zeroauthy-ad-ldap-design.md) | connector protocol vs LDAP bind; connector E2E pin; replica forwarding |

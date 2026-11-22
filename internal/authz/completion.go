@@ -39,6 +39,12 @@ type pendingLogin struct {
 // BeginLogin records first-factor evidence on the original browser transaction.
 // It is never a session: only the hosted continuation paths can read it.
 func (h *Handlers) BeginLogin(w http.ResponseWriter, r *http.Request, res tenant.Resolved, txn *store.AuthTransaction, user *store.User, connection string, methods ...store.AuthMethod) (*store.LoginSession, error) {
+	return h.BeginLoginWithSAML(w, r, res, txn, user, connection, nil, methods...)
+}
+
+// BeginLoginWithSAML is BeginLogin for a samlp login: the pending session
+// carries the upstream IdP session (Plan 37a SP single logout).
+func (h *Handlers) BeginLoginWithSAML(w http.ResponseWriter, r *http.Request, res tenant.Resolved, txn *store.AuthTransaction, user *store.User, connection string, upstream *store.SAMLParticipant, methods ...store.AuthMethod) (*store.LoginSession, error) {
 	// Keep the number of outstanding credentials bounded without evicting another flow.
 	if session.PendingCookieCount(r) >= session.MaxPendingLogins {
 		return nil, store.ErrPrecondition
@@ -46,6 +52,9 @@ func (h *Handlers) BeginLogin(w http.ResponseWriter, r *http.Request, res tenant
 	sess, _, err := h.Sessions.Prepare(r.Context(), r, res.Tenant, user.UserID, connection, h.now(), methods...)
 	if err != nil {
 		return nil, err
+	}
+	if upstream != nil {
+		sess.SAMLParticipants = []store.SAMLParticipant{*upstream}
 	}
 	token := secrets.RandomString(43)
 	sess.TokenHash = secrets.HashToken(token)

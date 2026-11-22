@@ -115,7 +115,8 @@ func TestActionsInventory(t *testing.T) {
 			"refreshToken.setMetadata", "refreshToken.deleteMetadata", "refreshToken.evictMetadata",
 			"authentication.challengeWith", "authentication.challengeWithAny", "authentication.enrollWith",
 			"authentication.enrollWithAny", "authentication.recordMethod", "authentication.setPrimaryUser",
-			"multifactor.enable", "prompt.render", "samlResponse.setAttribute",
+			"multifactor.enable", "prompt.render",
+			"samlResponse.setAttribute", "samlResponse.setAudience", "samlResponse.setRecipient", "samlResponse.setCreateUpnClaim", "samlResponse.setPassthroughClaimsWithNoMapping", "samlResponse.setMapUnknownClaimsAsIs", "samlResponse.setMapIdentities", "samlResponse.setSignatureAlgorithm", "samlResponse.setDigestAlgorithm", "samlResponse.setDestination", "samlResponse.setLifetimeInSeconds", "samlResponse.setSignResponse", "samlResponse.setNameIdentifierFormat", "samlResponse.setNameIdentifierProbes", "samlResponse.setAuthnContextClassRef", "samlResponse.setSigningCert", "samlResponse.setIncludeAttributeNameFormat", "samlResponse.setTypedAttributes", "samlResponse.setEncryptionCert", "samlResponse.setEncryptionPublicKey", "samlResponse.setCert", "samlResponse.setKey", "samlResponse.setRelayState", "samlResponse.setIssuer", "samlResponse.setEncryptionAlgorithm",
 		},
 		"custom-token-exchange": {
 			"access.deny", "access.rejectInvalidSubjectToken", "authentication.setUserById",
@@ -280,6 +281,9 @@ func wantSupport(trigger, name string) string {
 			return "unsupported"
 		}
 		return "supported"
+	}
+	if strings.HasPrefix(name, "samlResponse.") {
+		return "supported" // Plan 37a
 	}
 	switch name {
 	case "refreshToken.revoke", "authentication.challengeWith", "authentication.challengeWithAny", "authentication.enrollWith", "authentication.enrollWithAny", "multifactor.enable":

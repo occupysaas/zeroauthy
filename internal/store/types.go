@@ -139,6 +139,8 @@ type ClientSecret struct {
 
 // Client is an application registered in a tenant.
 type Client struct {
+	// Addons are the application add-ons (Plan 37a); nil means none.
+	Addons                   *ClientAddons
 	OIDCSupport              *OIDCSupport
 	OIDCLogout               *OIDCLogout
 	IDTokenAlg               string // Empty means RS256.
@@ -841,8 +843,11 @@ type LoginSession struct {
 	// ClientOrganizations binds each participant to its latest validated organization.
 	// An empty value denotes a non-organization authorization.
 	ClientOrganizations map[string]string
-	Metadata            map[string]string
-	MFAAt               time.Time
+	// SAMLParticipants are the SAML service providers this session answered
+	// (Plan 37a single logout), one per client, latest last.
+	SAMLParticipants []SAMLParticipant
+	Metadata         map[string]string
+	MFAAt            time.Time
 	// Origin pins the browser issuer/host; legacy empty values mean canonical origin.
 	Origin string
 	// CookieMode is persisted at creation; later tenant edits do not change it.
@@ -879,7 +884,9 @@ const (
 	TxnFlowDevice = "device"
 	// TxnParamOrgID holds the organization resolved at /authorize or PAR,
 	// and TxnParamOrgMode how the request uses organizations (D-0055).
-	TxnParamOrgID   = "za_org_id"
+	TxnParamOrgID = "za_org_id"
+	// TxnParamSAML holds the SAML IdP binding of a samlp transaction (Plan 37a).
+	TxnParamSAML    = "za_saml"
 	TxnParamOrgMode = "za_org_mode"
 )
 

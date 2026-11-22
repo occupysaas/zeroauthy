@@ -3,6 +3,7 @@ package server
 
 import (
 	"context"
+	"github.com/zeroauthy/zeroauthy/internal/samlidp"
 	"io/fs"
 	"log/slog"
 	"net/http"
@@ -155,6 +156,8 @@ type authAPI struct {
 	oauth  *oauth.Handlers
 	authz  *authz.Handlers
 	dbconn *dbconn.Handlers
+	saml   *samlidp.Handler
+	login  *login.Handlers
 
 	passwordless *passwordless.Handlers
 }
@@ -267,6 +270,8 @@ func New(d Deps) http.Handler {
 
 	az := &authz.Handlers{Compat: d.Compat, Passkeys: d.Passkeys, MFA: d.MFA, Store: d.Store, Sessions: d.Sessions, Log: d.Log,
 		Actions: d.Actions, Wrapper: d.Wrapper, TrustProxyHeaders: d.TrustProxyHeaders}
+	samlIdP := &samlidp.Handler{Store: d.Store, Keys: d.Keys, Sessions: d.Sessions, Wrapper: d.Wrapper, Authz: az, Log: d.Log}
+	az.SAML = samlIdP
 	db := &identity.Database{Store: d.Store, Scripts: d.Scripts, Log: d.Log}
 	// One mailer sends every verification email: after a signup (API and
 	// hosted page) and for the Management API's verify_email.
@@ -330,7 +335,7 @@ func New(d Deps) http.Handler {
 		})
 		proofService := &dpop.Service{Store: d.Store, Wrapper: d.Wrapper}
 		authapi.HandlerWithOptions(authAPI{
-			oidc: &oidc.Handlers{Wrapper: d.Wrapper, Compat: d.Compat, DPoP: proofService, Keys: d.Keys, Store: d.Store, Sessions: d.Sessions, Log: d.Log},
+			oidc: &oidc.Handlers{UpstreamLogout: lg.UpstreamLogout, Wrapper: d.Wrapper, Compat: d.Compat, DPoP: proofService, Keys: d.Keys, Store: d.Store, Sessions: d.Sessions, Log: d.Log},
 			oauth: &oauth.Handlers{Compat: d.Compat, Logout: d.Logout,
 				DPoP:       proofService,
 				Federation: d.Federation,
@@ -348,6 +353,8 @@ func New(d Deps) http.Handler {
 				Passwordless:            pwl,
 			},
 			authz:        az,
+			saml:         samlIdP,
+			login:        lg,
 			dbconn:       dbconnHandlers,
 			passwordless: &passwordless.Handlers{Service: pwl, Authz: az, Sessions: d.Sessions, TrustProxyHeaders: d.TrustProxyHeaders, Log: d.Log},
 		}, authapi.ChiServerOptions{
@@ -427,8 +434,13 @@ func New(d Deps) http.Handler {
 		systemOrigin = "https://" + tenant.NormalizeHost(d.SystemHost)
 	}
 	mr := chi.NewRouter()
+	var samlMetadata func(context.Context, string) ([]byte, error)
+	if d.Federation != nil && d.Federation.Providers != nil {
+		samlMetadata = d.Federation.Providers.FetchSAMLMetadata
+	}
 	mh := &mgmt.Handlers{
 		Logout:         d.Logout,
+		SAMLMetadata:   samlMetadata,
 		LogsConfig:     d.LogsConfig,
 		EventsConfig:   d.EventsConfig,
 		EventDeliverer: d.EventDeliverer,
@@ -540,4 +552,36 @@ func operatorOnly(next http.Handler) http.Handler {
 		}
 		next.ServeHTTP(w, r)
 	})
+}
+
+func (a authAPI) SamlpSPMetadata(w http.ResponseWriter, r *http.Request, p authapi.SamlpSPMetadataParams) {
+	a.login.SAMLSPMetadata(w, r, p.Connection)
+}
+func (a authAPI) SamlpSPLogout(w http.ResponseWriter, r *http.Request, p authapi.SamlpSPLogoutParams) {
+	a.login.SAMLSPLogout(w, r, p.Connection)
+}
+func (a authAPI) SamlpSPLogoutPost(w http.ResponseWriter, r *http.Request, p authapi.SamlpSPLogoutPostParams) {
+	a.login.SAMLSPLogout(w, r, p.Connection)
+}
+func (a authAPI) SamlpIdPMetadata(w http.ResponseWriter, r *http.Request, clientID string) {
+	a.saml.Metadata(w, r, clientID)
+}
+func (a authAPI) SamlpSSO(w http.ResponseWriter, r *http.Request, clientID string, p authapi.SamlpSSOParams) {
+	a.saml.SSO(w, r, clientID, deref(p.Connection), deref(p.Organization))
+}
+func (a authAPI) SamlpSSOPost(w http.ResponseWriter, r *http.Request, clientID string, p authapi.SamlpSSOPostParams) {
+	a.saml.SSO(w, r, clientID, deref(p.Connection), deref(p.Organization))
+}
+
+func deref(s *string) string {
+	if s == nil {
+		return ""
+	}
+	return *s
+}
+func (a authAPI) SamlpIdPLogout(w http.ResponseWriter, r *http.Request, clientID string, _ authapi.SamlpIdPLogoutParams) {
+	a.saml.Logout(w, r, clientID)
+}
+func (a authAPI) SamlpIdPLogoutPost(w http.ResponseWriter, r *http.Request, clientID string) {
+	a.saml.Logout(w, r, clientID)
 }

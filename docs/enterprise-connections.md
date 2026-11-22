@@ -1,5 +1,8 @@
 # Enterprise OpenID Connect connections
 
+SAML connections (`samlp`) and the SAML2 Web App add-on are described in
+[SAML](saml.md).
+
 Create enterprise connections in **Enterprise** in the console, through
 `POST /api/v2/connections`, or in the seed file. Enable each connection for
 the applications allowed to use it. Register each tenant callback origin's
@@ -174,7 +177,8 @@ answer 204; all matching users on the connection are removed.
 `id_token_session_expiry_supported` and `upstream_params` are stored without
 runtime enforcement. DPoP (`dpop_signing_alg`) is refused when non-null.
 Entra Graph groups and WS-Federation are separate roadmap items. Keys are
-currently available for OIDC/Okta; SAML support belongs to Plan 37a.
+available for OIDC/Okta and for `samlp` connections, whose SP signing and
+decryption keys they are; see [SAML](saml.md).
 
 The local rulings and follow-up observations are in D-0120 and the
 [Plan 36 observation points](superpowers/plan-1-followups.md). They track
