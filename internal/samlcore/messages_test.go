@@ -104,6 +104,22 @@ func TestAssertionBuildParseCheck(t *testing.T) {
 			t.Errorf("skew at %v: %v", at, err)
 		}
 	}
+	// Every AudienceRestriction must name the SP (SAML Core §2.5.1.4).
+	narrowed := BuildAssertion(spec)
+	cond := narrowed.FindElement("./Conditions")
+	extra := cond.CreateElement("saml:AudienceRestriction")
+	extra.CreateElement("saml:Audience").SetText("urn:other")
+	na, err := ParseAssertion(roundTrip(t, narrowed))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := na.Check(ok); err == nil {
+		t.Fatal("an AudienceRestriction without the SP was satisfied by another")
+	}
+	extra.CreateElement("saml:Audience").SetText("urn:sp")
+	if na, _ = ParseAssertion(roundTrip(t, narrowed)); na.Check(ok) != nil {
+		t.Fatal("two restrictions both naming the SP refused")
+	}
 	// An unsolicited assertion is accepted only when allowed.
 	spec.InResponseTo = ""
 	u, _ := ParseAssertion(roundTrip(t, BuildAssertion(spec)))

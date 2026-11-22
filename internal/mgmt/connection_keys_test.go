@@ -212,3 +212,45 @@ func TestSAMLConnectionMetadataURL(t *testing.T) {
 		t.Fatalf("unreachable metadata: %d", r.Code)
 	}
 }
+
+// An update fetches metadata only when options are written, outside the
+// transaction, and an options write without signingCert takes the IdP's
+// current (rotated) certificate (security review, Plan 37a).
+func TestSAMLConnectionMetadataRefresh(t *testing.T) {
+	e := keysEnv(t)
+	metadata := func(cert string) []byte {
+		block, _ := pem.Decode([]byte(cert))
+		parsed, _ := x509.ParseCertificate(block.Bytes)
+		doc := etree.NewDocument()
+		doc.SetRoot(samlcore.BuildMetadata(samlcore.EntityDescriptor{EntityID: "https://idp.example.test", IdP: &samlcore.IdPDescriptor{SigningCerts: []*x509.Certificate{parsed},
+			SSO: []samlcore.Endpoint{{Binding: samlcore.BindingRedirect, Location: "https://idp.example.test/sso"}}}}))
+		md, _ := doc.WriteToBytes()
+		return md
+	}
+	first, rotated := samlTestCert(t), samlTestCert(t)
+	current, fetches := metadata(first), 0
+	e.h.SAMLMetadata = func(context.Context, string) ([]byte, error) { fetches++; return current, nil }
+	r, v := e.call(t, e.tn, m2mCaller(), "POST", "/connections", map[string]any{"name": "md-refresh", "strategy": "samlp",
+		"options": map[string]any{"metadataUrl": "https://idp.example.test/metadata"}}, e.h.CreateConnection)
+	if r.Code != 201 {
+		t.Fatalf("create: %d %v", r.Code, v)
+	}
+	id := v.(map[string]any)["id"].(string)
+	before := v.(map[string]any)["options"].(map[string]any)["thumbprints"].([]any)[0]
+	update := func(body map[string]any) (int, map[string]any) {
+		r, v := e.call(t, e.tn, m2mCaller(), "PATCH", "/connections/"+id, body, func(w http.ResponseWriter, r *http.Request) { e.h.UpdateConnection(w, r, id) })
+		out, _ := v.(map[string]any)
+		return r.Code, out
+	}
+	current, fetches = metadata(rotated), 0
+	if code, out := update(map[string]any{"display_name": "Corp"}); code != 200 || fetches != 0 {
+		t.Fatalf("display_name update fetched metadata: %d %d %v", code, fetches, out)
+	}
+	code, out := update(map[string]any{"options": map[string]any{"metadataUrl": "https://idp.example.test/metadata"}})
+	if code != 200 || fetches != 1 {
+		t.Fatalf("options update: %d fetches=%d %v", code, fetches, out)
+	}
+	if after := out["options"].(map[string]any)["thumbprints"].([]any)[0]; after == before {
+		t.Fatal("rotated metadata certificate not picked up")
+	}
+}

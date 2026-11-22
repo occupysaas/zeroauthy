@@ -3782,7 +3782,7 @@ Implementation rulings (recorded in the
 | LR37a-16 | SP `LogoutRequest`s/`LogoutResponse`s are always signed; IdP-initiated `LogoutRequest`s must be signed. SP-side logout ends the session through the session manager (back-channel initiator `rp-logout`). |
 | LR37a-17 | HTTP-Redirect `AuthnRequest`s are always deflated; `deflate: false` is stored only. Inbound non-deflated Redirect payloads are accepted when plainly XML. |
 | LR37a-18 | `email_verified` is false unless `fieldsMap` maps it to a true attribute. |
-| LR37a-19 | `metadataUrl` is fetched on create and update only (S37-11); `options.debug` is stored only. |
+| LR37a-19 | `metadataUrl` is fetched outside the store transaction on create and when `options` are written; an options write without `signingCert` takes the metadata's current certificate (S37-11). `options.debug` is stored only. |
 | LR37a-20 | AES-CBC data encryption is accepted with one uniform decryption error, and the assertion signature is checked after decryption. |
 
 Observation points S37-1…S37-16 are listed in

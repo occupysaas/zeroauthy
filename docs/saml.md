@@ -74,6 +74,9 @@ Rules worth knowing:
   provider must be signed with its key. Unsigned ones are refused (LR37a-4).
   zeroauthy always signs with the tenant signing key unless an Action selects
   another key.
+- **Set `audience` or `signingCert`.** Without `audience`, the assertion's
+  audience is the `AuthnRequest` `Issuer`, which an unsigned request chooses
+  (Auth0's default). The assertion still goes only to a registered ACS.
 - **`Destination` is checked.** A request `Destination`, when present, must
   equal the endpoint it was sent to.
 - **Metadata needs an explicit mapping.** `app_metadata` and
@@ -134,11 +137,12 @@ Management API, the seed or the Deploy CLI. Two ways to configure it:
             "fieldsMap":{"email":"mail","name":"displayName"}}}
 ```
 
-`metadataUrl` is fetched over the guarded HTTPS client on create and on
-update only. The derived `signInEndpoint`, `signOutEndpoint` and
-`signingCert` are stored, and explicit values win. There is no refresh job,
-so after the IdP rotates its certificate, update the connection
-(observation S37-11).
+`metadataUrl` is fetched over the guarded HTTPS client, outside any store
+transaction, on create and whenever `options` are written. The derived
+`signInEndpoint`, `signOutEndpoint` and `signingCert` are stored, and values
+in the written options win. There is no refresh job: after the IdP rotates
+its certificate, write the options again without `signingCert` (observation
+S37-11). Edits that leave `options` alone fetch nothing.
 
 `signingCert` accepts PEM, base64 DER, or base64 of the PEM: Auth0's stored
 form, which the Deploy CLI exports and imports. The `thumbprints` are read
@@ -177,7 +181,8 @@ A response must carry a valid signature, by a configured certificate or a
 pinned thumbprint, on the response or the assertion. Signature-wrapping
 shapes are refused. It must also pass these checks:
 
-- the `Destination`, `Recipient` and audience;
+- the `Destination` and `Recipient`, and an audience every
+  `AudienceRestriction` names;
 - the bearer confirmation;
 - `InResponseTo` matches the attempt;
 - `NotBefore` and `NotOnOrAfter`, with 2 minutes of skew (LR37a-3).

@@ -1,6 +1,7 @@
 package samlcore
 
 import (
+	"slices"
 	"strings"
 	"time"
 
@@ -282,6 +283,7 @@ type Assertion struct {
 	ID, Issuer, NameID, NameIDFormat, SessionIndex, AuthnContextClassRef string
 	IssueInstant, NotBefore, NotOnOrAfter, AuthnInstant                  time.Time
 	Audiences                                                            []string
+	AudienceRestrictions                                                 [][]string // one entry per AudienceRestriction
 	Bearer                                                               bool
 	Recipient, InResponseTo                                              string
 	ConfirmationNotOnOrAfter                                             time.Time
@@ -315,9 +317,12 @@ func ParseAssertion(el *etree.Element) (*Assertion, error) {
 		a.NotBefore, _ = parseTime(cond[0].SelectAttrValue("NotBefore", ""))
 		a.NotOnOrAfter, _ = parseTime(cond[0].SelectAttrValue("NotOnOrAfter", ""))
 		for _, ar := range directChildren(cond[0], NSAssertion, "AudienceRestriction") {
+			var set []string
 			for _, au := range directChildren(ar, NSAssertion, "Audience") {
-				a.Audiences = append(a.Audiences, strings.TrimSpace(au.Text()))
+				set = append(set, strings.TrimSpace(au.Text()))
 			}
+			a.Audiences = append(a.Audiences, set...)
+			a.AudienceRestrictions = append(a.AudienceRestrictions, set)
 		}
 	}
 	if as := directChildren(el, NSAssertion, "AuthnStatement"); len(as) > 0 {
@@ -367,9 +372,11 @@ func (a *Assertion) Check(e Expect) error {
 	if !e.Now.Add(-e.Skew).Before(a.NotOnOrAfter) || !e.Now.Add(-e.Skew).Before(a.ConfirmationNotOnOrAfter) {
 		return refuse
 	}
-	audienceOK := false
-	for _, au := range a.Audiences {
-		audienceOK = audienceOK || au == e.Audience
+	// Each AudienceRestriction must name the audience (SAML Core
+	// §2.5.1.4); at least one restriction is required.
+	audienceOK := len(a.AudienceRestrictions) > 0
+	for _, set := range a.AudienceRestrictions {
+		audienceOK = audienceOK && slices.Contains(set, e.Audience)
 	}
 	if !audienceOK || a.Recipient != e.Recipient {
 		return refuse

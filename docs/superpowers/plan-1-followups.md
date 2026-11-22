@@ -830,6 +830,10 @@ Recorded under [D-0130](../compat/decisions.md); observe on a live tenant when o
 - **S37-15** Whether Auth0 requires an `AuthnStatement` in an upstream
   response. zeroauthy currently accepts a signed assertion without one
   (found by the samlify E2E fixture); SAML Profiles §4.1.4.2 requires one.
+- **Review follow-ups (Plan 37a final review, minor):** an opt-in policy
+  for AES-CBC data encryption like RSA-1_5; freshness (`IssueInstant`
+  window), replay and `Issuer`/`Destination` checks for incoming
+  LogoutRequests.
 - **S37-16** `signingCert` forms: the Deploy CLI exports base64 of the
   PEM and imports it unchanged, so zeroauthy accepts that form beside PEM
   and base64 DER, and stores what it is sent.

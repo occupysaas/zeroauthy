@@ -18,6 +18,7 @@ import (
 
 	"github.com/zeroauthy/zeroauthy/internal/connrules"
 	"github.com/zeroauthy/zeroauthy/internal/federation"
+	"github.com/zeroauthy/zeroauthy/internal/federation/rules"
 	"github.com/zeroauthy/zeroauthy/internal/gen/mgmtapi"
 	"github.com/zeroauthy/zeroauthy/internal/keys"
 	"github.com/zeroauthy/zeroauthy/internal/resourceview"
@@ -502,6 +503,19 @@ func (h *Handlers) UpdateConnection(w http.ResponseWriter, r *http.Request, id s
 		return
 	}
 	tn := resolved(r)
+	// metadataUrl is fetched before the transaction (an outbound request
+	// must not hold the write lock), and only when options are written.
+	var samlDerived map[string]string
+	if set["options"] && patch.Options.Extra != nil {
+		if u, _ := patch.Options.Extra["metadataUrl"].(string); u != "" {
+			if c, err := h.Store.Connections().Get(r.Context(), tn.ID, id); err == nil && c.Strategy == rules.SAMLP {
+				if samlDerived, err = h.fetchSAMLMetadata(r.Context(), u); err != nil {
+					Fail(w, err)
+					return
+				}
+			}
+		}
+	}
 	var out *store.Connection
 	err = h.Store.WithTx(r.Context(), func(tx store.Store) error {
 		c, err := tx.Connections().Get(r.Context(), tn.ID, id)
@@ -557,8 +571,11 @@ func (h *Handlers) UpdateConnection(w http.ResponseWriter, r *http.Request, id s
 				passwordlessCurrent = current
 			}
 		}
-		if err := h.samlMetadata(r.Context(), spec); err != nil {
-			return err
+		if set["options"] && spec.Strategy == rules.SAMLP {
+			if u, _ := spec.Options.Extra["metadataUrl"].(string); u != "" && samlDerived == nil {
+				return badBody("options.metadataUrl could not be fetched")
+			}
+			applySAMLMetadata(spec, samlDerived)
 		}
 		if err := normalizeConnection(spec); err != nil {
 			return err

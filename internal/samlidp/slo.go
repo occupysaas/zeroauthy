@@ -77,7 +77,6 @@ type logoutMessage struct {
 	root       *etree.Element
 	relayState string
 	verify     func(samlcore.Trust) (*etree.Element, error)
-	signed     bool
 }
 
 func readLogout(w http.ResponseWriter, r *http.Request) (logoutMessage, error) {
@@ -95,7 +94,7 @@ func readLogout(w http.ResponseWriter, r *http.Request) (logoutMessage, error) {
 			return logoutMessage{}, err
 		}
 		root := doc.Root()
-		return logoutMessage{param: param, root: root, relayState: r.PostForm.Get("RelayState"), signed: root.FindElement("./Signature") != nil,
+		return logoutMessage{param: param, root: root, relayState: r.PostForm.Get("RelayState"),
 			verify: func(t samlcore.Trust) (*etree.Element, error) { return samlcore.VerifyEnveloped(root, t) }}, nil
 	}
 	msg, err := samlcore.DecodeRedirect(r.URL.RawQuery)
@@ -103,7 +102,7 @@ func readLogout(w http.ResponseWriter, r *http.Request) (logoutMessage, error) {
 		return logoutMessage{}, err
 	}
 	root := msg.Doc.Root()
-	return logoutMessage{param: msg.Param, root: root, relayState: msg.RelayState, signed: msg.Signed(), verify: func(t samlcore.Trust) (*etree.Element, error) {
+	return logoutMessage{param: msg.Param, root: root, relayState: msg.RelayState, verify: func(t samlcore.Trust) (*etree.Element, error) {
 		if err := msg.Verify(t); err != nil {
 			return nil, err
 		}
