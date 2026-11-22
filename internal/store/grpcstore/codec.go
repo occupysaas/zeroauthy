@@ -394,6 +394,9 @@ func clientToPB(c *store.Client) (*storev1.Client, error) {
 	if pb.OidcLogout, err = optJSON(c.OIDCLogout, c.OIDCLogout == nil); err != nil {
 		return nil, err
 	}
+	if pb.Addons, err = optJSON(c.Addons, c.Addons == nil); err != nil {
+		return nil, err
+	}
 	if pb.NativeSocialLogin, err = optJSON(c.NativeSocialLogin, c.NativeSocialLogin == nil); err != nil {
 		return nil, err
 	}
@@ -443,6 +446,9 @@ func clientFromPB(pb *storev1.Client) (*store.Client, error) {
 		return nil, err
 	}
 	if err := fromOptJSON(pb.OidcLogout, &c.OIDCLogout); err != nil {
+		return nil, err
+	}
+	if err := fromOptJSON(pb.Addons, &c.Addons); err != nil {
 		return nil, err
 	}
 	if pb.Secrets != nil {

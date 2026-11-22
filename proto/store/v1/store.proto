@@ -125,6 +125,8 @@ service StoreService {
   rpc RotateConnectionKeys(ConnectionKeysRequest) returns (ConnectionKeysResult);
   // oidc_logout.v1 gates the new client fields; absent support refuses writes.
   rpc OIDCLogoutCapabilities(PingRequest) returns (EventsCapabilitiesResult);
+  // saml.v1 (Plan 37a) gates client add-ons and the SAML replay and session state.
+  rpc SAMLCapabilities(PingRequest) returns (EventsCapabilitiesResult);
   rpc OIDCLogoutUseGlobalJTI(GlobalRevocationJTIRequest) returns (Result);
  rpc OIDCLogoutPurgeGlobalJTIs(ClientCredentialsPurgeRequest) returns (CountResult);
  rpc OIDCLogoutFindByEmail(UsersFindByIdentityRequest) returns (UserResult);
@@ -772,6 +774,7 @@ message Client {
   bytes oidc_support = 32; // store.OIDCSupport JSON, oidc_logout.v1
   bytes oidc_logout = 33; // store.OIDCLogout JSON, oidc_logout.v1
   string id_token_alg = 34; // empty = RS256; non-RS256 requires oidc_logout.v1
+  bytes addons = 35; // store.ClientAddons JSON (Plan 37a); writes require saml.v1
 }
 
 message Scope { string value = 1; string description = 2; }

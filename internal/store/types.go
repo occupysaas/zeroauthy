@@ -139,6 +139,8 @@ type ClientSecret struct {
 
 // Client is an application registered in a tenant.
 type Client struct {
+	// Addons are the application add-ons (Plan 37a); nil means none.
+	Addons                   *ClientAddons
 	OIDCSupport              *OIDCSupport
 	OIDCLogout               *OIDCLogout
 	IDTokenAlg               string // Empty means RS256.

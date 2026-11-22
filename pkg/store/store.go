@@ -13,6 +13,10 @@ type (
 	OIDCLogout                     = store.OIDCLogout
 	OIDCSupport                    = store.OIDCSupport
 	OIDCLogoutSupporter            = store.OIDCLogoutSupporter
+	ClientAddons                   = store.ClientAddons
+	SAMLAddon                      = store.SAMLAddon
+	SAMLAddonLogout                = store.SAMLAddonLogout
+	SAMLSupporter                  = store.SAMLSupporter
 	GlobalRevocationStore          = store.GlobalRevocationStore
 	SessionOrganizationRecorder    = store.SessionOrganizationRecorder
 	SessionExpiryLister            = store.SessionExpiryLister
@@ -438,3 +442,9 @@ var ErrRefreshTokensIISupportLost = store.ErrRefreshTokensIISupportLost
 var ErrRefreshTokensIIUnavailable = store.ErrRefreshTokensIIUnavailable
 
 var ErrOIDCLogoutUnavailable = store.ErrOIDCLogoutUnavailable
+
+// ErrSAMLUnavailable reports a plugin without saml.v1 (Plan 37a).
+var ErrSAMLUnavailable = store.ErrSAMLUnavailable
+
+// CheckSAMLSupport reports whether s implements saml.v1.
+func CheckSAMLSupport(ctx context.Context, s Store) error { return store.CheckSAMLSupport(ctx, s) }

@@ -305,6 +305,15 @@ func (s *opened) CheckRefreshTokensIISupport(ctx context.Context) error {
 	return s.Store.(store.RefreshTokensIISupporter).CheckRefreshTokensIISupport(ctx)
 }
 
+// CheckSAMLSupport keeps saml.v1 (Plan 37a) visible through the process
+// wrapper; without it, CheckSAMLSupport would treat the wrapper as supporting.
+func (o *opened) CheckSAMLSupport(ctx context.Context) error {
+	if repo, ok := o.Store.(store.SAMLSupporter); ok {
+		return repo.CheckSAMLSupport(ctx)
+	}
+	return store.ErrSAMLUnavailable
+}
+
 // Keep oidc_logout.v1 optional interfaces visible through the process wrapper.
 func (o *opened) CheckOIDCLogoutSupport(ctx context.Context) error {
 	if repo, ok := o.Store.(store.OIDCLogoutSupporter); ok {

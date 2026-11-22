@@ -356,3 +356,34 @@ func testOIDCClientSettings(t *testing.T, newStore Factory) {
 	mustEqual(t, got, want)
 	mustErrIs(t, func() error { _, err := s.Clients().Get(ctx, "ten_b", want.ClientID); return err }(), store.ErrNotFound)
 }
+
+// testClientAddons is Plan 37a: the samlp add-on round trips, is copied on
+// read and can be removed.
+func testClientAddons(t *testing.T, newStore Factory) {
+	ctx := t.Context()
+	s := open(t, newStore)
+	yes, no := true, false
+	lifetime := 600
+	want := newClient("ten_a", "saml-app")
+	want.Addons = &store.ClientAddons{SAMLP: &store.SAMLAddon{
+		Audience: "urn:sp", Recipient: "https://sp.example.test/acs", SignResponse: &yes, CreateUpnClaim: &no,
+		LifetimeInSeconds: &lifetime, NameIdentifierProbes: []string{"http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress"},
+		Mappings: map[string][]string{"email": {"mail"}, "groups": {"memberOf", "groups"}},
+		Logout:   &store.SAMLAddonLogout{Callback: "https://sp.example.test/slo", SLOEnabled: &yes},
+	}}
+	mustNoErr(t, s.Clients().Create(ctx, want))
+	got, err := s.Clients().Get(ctx, "ten_a", want.ClientID)
+	mustNoErr(t, err)
+	mustEqual(t, got, want)
+	got.Addons.SAMLP.Mappings["email"][0] = "mutated"
+	got.Addons.SAMLP.NameIdentifierProbes[0] = "mutated"
+	*got.Addons.SAMLP.SignResponse = false
+	again, err := s.Clients().Get(ctx, "ten_a", want.ClientID)
+	mustNoErr(t, err)
+	mustEqual(t, again, want)
+	want.Addons = nil
+	mustNoErr(t, s.Clients().Update(ctx, want))
+	got, err = s.Clients().Get(ctx, "ten_a", want.ClientID)
+	mustNoErr(t, err)
+	mustEqual(t, got, want)
+}
