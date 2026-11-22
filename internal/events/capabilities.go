@@ -108,3 +108,90 @@ func (s *capture) PurgeSAMLAssertions(ctx context.Context, before time.Time, lim
 	}
 	return repo.PurgeSAMLAssertions(ctx, before, limit)
 }
+
+// The optional interfaces below must be forwarded explicitly: the embedded
+// store.Store does not carry them, and the production store is always
+// wrapped. Without a supporter the answers match the gRPC server's defaults.
+
+func (s *capture) CheckOIDCLogoutSupport(ctx context.Context) error {
+	return store.CheckOIDCLogoutSupport(ctx, s.Store)
+}
+func (s *capture) CheckClientCredentialsSupport(ctx context.Context) error {
+	if p, ok := s.Store.(store.ClientCredentialsSupporter); ok {
+		return p.CheckClientCredentialsSupport(ctx)
+	}
+	return nil
+}
+func (s *capture) ClientCredentialsSupported() bool {
+	if p, ok := s.Store.(store.ClientCredentialsSupporter); ok {
+		return p.ClientCredentialsSupported()
+	}
+	switch s.Store.ClientCredentials().(type) {
+	case store.UnimplementedClientCredentials, *store.UnimplementedClientCredentials:
+		return false
+	}
+	return true
+}
+func (s *capture) ConnectionKeysSupported() bool {
+	if p, ok := s.Store.(store.ConnectionKeysSupporter); ok {
+		return p.ConnectionKeysSupported()
+	}
+	switch s.Store.ConnectionKeys().(type) {
+	case store.UnimplementedConnectionKeys, *store.UnimplementedConnectionKeys:
+		return false
+	}
+	return true
+}
+func (s *capture) CheckMFASupport(ctx context.Context) error {
+	if p, ok := s.Store.(store.MFASupporter); ok {
+		return p.CheckMFASupport(ctx)
+	}
+	return nil
+}
+func (s *capture) MFASupported() bool {
+	if p, ok := s.Store.(store.MFASupporter); ok {
+		return p.MFASupported()
+	}
+	switch s.Store.MFA().(type) {
+	case store.UnimplementedMFA, *store.UnimplementedMFA:
+		return false
+	}
+	return true
+}
+func (s *capture) CheckPhoneSupport(ctx context.Context) error {
+	if p, ok := s.Store.(store.PhoneSupporter); ok {
+		return p.CheckPhoneSupport(ctx)
+	}
+	return nil
+}
+func (s *capture) PhoneSupported() bool {
+	if p, ok := s.Store.(store.PhoneSupporter); ok {
+		return p.PhoneSupported()
+	}
+	switch s.Store.Phone().(type) {
+	case store.UnimplementedPhone, *store.UnimplementedPhone:
+		return false
+	}
+	return true
+}
+func (s *capture) UseGlobalRevocationJTI(ctx context.Context, tid, connection, jti string, exp, now time.Time) error {
+	repo, ok := s.Store.(store.GlobalRevocationStore)
+	if !ok {
+		return store.ErrOIDCLogoutUnavailable
+	}
+	return repo.UseGlobalRevocationJTI(ctx, tid, connection, jti, exp, now)
+}
+func (s *capture) PurgeGlobalRevocationJTIs(ctx context.Context, before time.Time, limit int) (int, error) {
+	repo, ok := s.Store.(store.GlobalRevocationStore)
+	if !ok {
+		return 0, store.ErrOIDCLogoutUnavailable
+	}
+	return repo.PurgeGlobalRevocationJTIs(ctx, before, limit)
+}
+func (s *capture) FindByFederatedEmail(ctx context.Context, tid, connection, email string) (*store.User, error) {
+	repo, ok := s.Store.(store.GlobalRevocationStore)
+	if !ok {
+		return nil, store.ErrOIDCLogoutUnavailable
+	}
+	return repo.FindByFederatedEmail(ctx, tid, connection, email)
+}
