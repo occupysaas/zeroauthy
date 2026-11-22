@@ -1,5 +1,8 @@
-// Isolated Plan 41a acceptance server. Production does not import this harness.
-// Only upstream DNS/final dialing is injected; JWT and HTTPS validation are real.
+// Plan 41a acceptance server: the production app, configuration and SQLite
+// storage (including the events decorator every production store is wrapped
+// in), with only the federation transport pointed at the local upstream
+// fixture. Production does not import this harness. JWT and HTTPS validation
+// are real.
 package main
 
 import (
@@ -9,27 +12,41 @@ import (
 	"crypto/x509"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
-	"github.com/go-jose/go-jose/v4"
-	"github.com/zeroauthy/zeroauthy/internal/actions"
-	"github.com/zeroauthy/zeroauthy/internal/federation"
-	"github.com/zeroauthy/zeroauthy/internal/keys"
-	"github.com/zeroauthy/zeroauthy/internal/logout"
-	"github.com/zeroauthy/zeroauthy/internal/mfa"
-	"github.com/zeroauthy/zeroauthy/internal/secrets"
-	"github.com/zeroauthy/zeroauthy/internal/seed"
-	"github.com/zeroauthy/zeroauthy/internal/server"
-	"github.com/zeroauthy/zeroauthy/internal/session"
-	"github.com/zeroauthy/zeroauthy/internal/store"
-	"github.com/zeroauthy/zeroauthy/internal/store/sqlstore"
-	"github.com/zeroauthy/zeroauthy/internal/tenant"
 	"log/slog"
 	"net"
 	"net/http"
 	"net/netip"
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
+
+	"github.com/go-jose/go-jose/v4"
+	"github.com/zeroauthy/zeroauthy/internal/app"
+	"github.com/zeroauthy/zeroauthy/internal/config"
+	"github.com/zeroauthy/zeroauthy/internal/federation"
+	"github.com/zeroauthy/zeroauthy/internal/keys"
+	"github.com/zeroauthy/zeroauthy/internal/secrets"
+	"github.com/zeroauthy/zeroauthy/internal/seed"
+	"github.com/zeroauthy/zeroauthy/internal/store"
+	"github.com/zeroauthy/zeroauthy/internal/store/sqlstore"
 )
+
+const upstreamListen = "127.0.0.1:9743"
+
+// network is the production federation policy with only DNS and the final
+// dial injected: example.com resolves to a public address, and that address
+// is dialled at the local upstream fixture.
+func network(roots *x509.CertPool) *federation.Providers {
+	return federation.NewProviders(federation.NetworkPolicy{RootCAs: roots, Resolver: resolver{}, DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
+		if addr != "8.8.8.8:443" {
+			return nil, fmt.Errorf("unexpected fixture address")
+		}
+		return (&net.Dialer{}).DialContext(ctx, network, upstreamListen)
+	}}, nil)
+}
 
 type resolver struct{}
 
@@ -39,9 +56,10 @@ func (resolver) LookupNetIP(_ context.Context, _, host string) ([]netip.Addr, er
 	}
 	return []netip.Addr{netip.MustParseAddr("8.8.8.8")}, nil
 }
-func run() error {
-	ctx := context.Background()
-	work := os.Getenv("E2E_M41A_WORK")
+
+// prepare applies the seed and links the upstream identity before the app
+// starts: seed files cannot express a linked federated identity.
+func prepare(ctx context.Context, dsn, work string) error {
 	raw, err := base64.StdEncoding.DecodeString(os.Getenv("ZEROAUTHY_SECURITY__MASTER_KEY"))
 	if err != nil {
 		return err
@@ -51,7 +69,7 @@ func run() error {
 	if err != nil {
 		return err
 	}
-	st, err := sqlstore.Open(ctx, "sqlite://"+work+"/logout.db")
+	st, err := sqlstore.Open(ctx, dsn)
 	if err != nil {
 		return err
 	}
@@ -78,32 +96,23 @@ func run() error {
 		return err
 	}
 	user.Identities = append(user.Identities, store.Identity{Connection: "Enterprise", Provider: "oidc", UserID: "Enterprise|upstream-user", ProfileData: map[string]any{"email": "linked@example.test"}})
-	if err := st.Users().Update(ctx, user); err != nil {
-		return err
-	}
-	manager := keys.NewManager(st.SigningKeys(), wrapper)
-	if err := manager.Ensure(ctx, tn.ID); err != nil {
-		return err
-	}
-	pem, err := os.ReadFile(work + "/cert.pem")
+	return st.Users().Update(ctx, user)
+}
+
+// upstream is the enterprise IdP: its JWKS and a global token revocation
+// JWT minter for the browser test.
+func upstream() (*http.Server, error) {
+	key, err := rsa.GenerateKey(rand.Reader, 2048)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	roots := x509.NewCertPool()
-	if !roots.AppendCertsFromPEM(pem) {
-		return fmt.Errorf("invalid fixture CA")
-	}
-	upstreamKey, err := rsa.GenerateKey(rand.Reader, 2048)
-	if err != nil {
-		return err
-	}
-	upstream := http.NewServeMux()
-	upstream.HandleFunc("GET /jwks", func(w http.ResponseWriter, r *http.Request) {
-		json.NewEncoder(w).Encode(jose.JSONWebKeySet{Keys: []jose.JSONWebKey{{Key: &upstreamKey.PublicKey, KeyID: "fixture", Use: "sig", Algorithm: "RS256"}}})
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /jwks", func(w http.ResponseWriter, r *http.Request) {
+		json.NewEncoder(w).Encode(jose.JSONWebKeySet{Keys: []jose.JSONWebKey{{Key: &key.PublicKey, KeyID: "fixture", Use: "sig", Algorithm: "RS256"}}})
 	})
-	upstream.HandleFunc("POST /global-jwt", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("POST /global-jwt", func(w http.ResponseWriter, r *http.Request) {
 		now := time.Now()
-		signer, e := jose.NewSigner(jose.SigningKey{Algorithm: jose.RS256, Key: upstreamKey}, (&jose.SignerOptions{}).WithType("global-token-revocation+jwt").WithHeader("kid", "fixture"))
+		signer, e := jose.NewSigner(jose.SigningKey{Algorithm: jose.RS256, Key: key}, (&jose.SignerOptions{}).WithType("global-token-revocation+jwt").WithHeader("kid", "fixture"))
 		if e != nil {
 			w.WriteHeader(500)
 			return
@@ -113,24 +122,52 @@ func run() error {
 		token, _ := obj.CompactSerialize()
 		json.NewEncoder(w).Encode(map[string]string{"token": token})
 	})
+	return &http.Server{Addr: upstreamListen, Handler: mux, ReadHeaderTimeout: 10 * time.Second}, nil
+}
+
+func run() error {
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+	work := os.Getenv("E2E_M41A_WORK")
+	if work == "" {
+		return errors.New("E2E_M41A_WORK is required")
+	}
+	cfg, err := config.Load("tests/e2e/config.yaml", os.Environ())
+	if err != nil {
+		return err
+	}
+	if err := prepare(ctx, cfg.Storage.DSN, work); err != nil {
+		return fmt.Errorf("prepare: %w", err)
+	}
+	cfg.Seed = "" // applied by prepare
+	pem, err := os.ReadFile(cfg.Server.TLSCertFile)
+	if err != nil {
+		return err
+	}
+	roots := x509.NewCertPool()
+	if !roots.AppendCertsFromPEM(pem) {
+		return errors.New("invalid fixture root")
+	}
+	up, err := upstream()
+	if err != nil {
+		return err
+	}
 	go func() {
-		if err := http.ListenAndServeTLS("127.0.0.1:9743", work+"/cert.pem", work+"/key.pem", upstream); err != nil {
-			panic(err)
+		if err := up.ListenAndServeTLS(cfg.Server.TLSCertFile, cfg.Server.TLSKeyFile); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			slog.Error("upstream fixture", "err", err)
+			stop()
 		}
 	}()
-	policy := federation.NetworkPolicy{RootCAs: roots, Resolver: resolver{}, DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
-		var d net.Dialer
-		return d.DialContext(ctx, network, "127.0.0.1:9743")
-	}}
-	flows := &federation.FlowService{Service: federation.Service{Wrapper: wrapper}, Store: st, Providers: federation.NewProviders(policy, time.Now)}
-	notifications := &logout.Service{Store: st, Wrapper: wrapper, Keys: manager, AllowPrivateNetworks: true}
-	engine := &actions.Engine{Store: st, Secrets: wrapper, BackchannelLogout: notifications}
-	worker := &actions.Worker{Store: st, Engine: engine, Workers: 1, Poll: 20 * time.Millisecond}
-	go worker.Run(ctx)
-	mfaService := mfa.NewService(st, wrapper, nil, nil, slog.Default(), time.Now)
-	handler := server.New(server.Deps{Store: st, Keys: manager, Wrapper: wrapper, Sessions: &session.Manager{Store: st}, Resolver: tenant.NewResolver(st.Tenants(), "", false), Federation: flows, Logout: notifications, Actions: engine, MFA: mfaService, Log: slog.Default(), SystemHost: "system.e2e.test"})
-	return http.ListenAndServeTLS("127.0.0.1:9543", work+"/cert.pem", work+"/key.pem", handler)
+	defer up.Close()
+	log := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelInfo}))
+	a, err := app.New(ctx, cfg, log, app.WithFederationProviders(func() *federation.Providers { return network(roots) }))
+	if err != nil {
+		return err
+	}
+	defer a.Close()
+	return a.Serve(ctx)
 }
+
 func main() {
 	if err := run(); err != nil {
 		fmt.Fprintln(os.Stderr, "Plan 41a fixture server failed", err)

@@ -40,7 +40,13 @@ const doc={tenants:[{name:'logout',domains:['localhost:9543'],default_directory:
 await writeFile(`${work}/seed.yaml`,dump(doc),{mode:0o600});
 JS
 go build -o "$work/harness" ./tests/e2e/logout-server
-setsid "$work/harness" >"$work/server.log" 2>&1 & pids+=("$!")
+# The production app and configuration (tests/e2e/config.yaml plus these
+# overrides); only the federation transport is pointed at the fixture.
+ZEROAUTHY_SERVER__TLS_CERT_FILE="$work/cert.pem" ZEROAUTHY_SERVER__TLS_KEY_FILE="$work/key.pem" \
+ZEROAUTHY_SERVER__LISTEN=127.0.0.1:9543 ZEROAUTHY_SERVER__SYSTEM_HOST=system.e2e.test \
+ZEROAUTHY_STORAGE__DSN="sqlite://$work/logout.db" ZEROAUTHY_STORAGE__AUTO_MIGRATE=true \
+ZEROAUTHY_EMAIL__DIR="$work/mail" ZEROAUTHY_LOGS__STREAMS__ALLOW_PRIVATE_NETWORKS=true \
+ setsid "$work/harness" >"$work/server.log" 2>&1 & pids+=("$!")
 for _ in $(seq 1 200); do
  if curl -fsS --cacert "$work/cert.pem" https://localhost:9543/healthz --noproxy '*' >/dev/null 2>&1; then break; fi
  kill -0 "${pids[0]}" 2>/dev/null || { echo 'Plan41a fixture failed; inspect protected server.log' >&2; exit 1; }

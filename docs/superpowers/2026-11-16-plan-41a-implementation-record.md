@@ -471,3 +471,19 @@ passed under race instrumentation: mutations and close operations do not cross
 copies, integrity_check returns ok and Migrate succeeds. Focused race checks
 passed in 12.221s; the full non-race Go suite passed. This is test setup only;
 production logic, assertions, migrations and timeout limits are unchanged.
+
+## Harness on production wiring (2026-11-22)
+
+`tests/e2e/logout-server` built its own server from a bare SQLite store, so
+it skipped the events decorator that wraps every production store. The
+decorator hid `GlobalRevocationStore`, and global token revocation always
+failed in production (fixed by PR #83). The harness now runs `app.New` with
+`tests/e2e/config.yaml` plus environment overrides. It still applies the seed
+and links the upstream identity first, and injects only the federation DNS
+and final dial for `example.com`. The `e2e-logout` Makefile rule, lost in a
+merge, was restored by PR #80.
+
+The full `run-m41a-logout.sh` lane passed on production wiring: node-auth0
+CRUD, four browser tests, secret scan and four Deploy CLI cells. With PR
+#83's decorator change reverted, the global revocation test failed (500
+instead of 204).
