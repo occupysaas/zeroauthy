@@ -828,8 +828,10 @@ Recorded under [D-0130](../compat/decisions.md); observe on a live tenant when o
 - **S37-14** SP logout response endpoint.
 - **LR37a-6 follow-up:** global token revocation for `samlp` connections.
 - **S37-15** Whether Auth0 requires an `AuthnStatement` in an upstream
-  response. zeroauthy currently accepts a signed assertion without one
-  (found by the samlify E2E fixture); SAML Profiles §4.1.4.2 requires one.
+  response. zeroauthy accepts a signed assertion without one (found by the
+  samlify E2E fixture); SAML Profiles §4.1.4.2 requires one. Ruled
+  2026-11-22: keep and document (LR37a-21); revisit if anyone asks or an
+  Auth0 observation shows otherwise.
 - **Review follow-ups (Plan 37a final review, minor):** an opt-in policy
   for AES-CBC data encryption like RSA-1_5; freshness (`IssueInstant`
   window), replay and `Issuer`/`Destination` checks for incoming
