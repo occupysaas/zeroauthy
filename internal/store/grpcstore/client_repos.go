@@ -237,6 +237,11 @@ func (a clientClients) Create(ctx context.Context, v *store.Client) error {
 			return err
 		}
 	}
+	if store.ClientNeedsWSFed(v) {
+		if err := a.c.CheckWSFedSupport(ctx); err != nil {
+			return err
+		}
+	}
 	v = a.c.clientCredentialsClient(a.c.webauthnClient(v))
 	return put("ClientsCreate", v, clientToPB, func(pb *storev1.Client) (result, error) {
 		if pb != nil && (pb.RequireProofOfPossession || pb.TokenQuota != nil || pb.GetRefreshToken().GetPolicies() != nil) {
@@ -263,6 +268,11 @@ func (a clientClients) Update(ctx context.Context, v *store.Client) error {
 			return err
 		}
 	}
+	if store.ClientNeedsWSFed(v) {
+		if err := a.c.CheckWSFedSupport(ctx); err != nil {
+			return err
+		}
+	}
 	v = a.c.clientCredentialsClient(a.c.webauthnClient(v))
 	return put("ClientsUpdate", v, clientToPB, func(pb *storev1.Client) (result, error) {
 		versioned, err := a.c.useRefreshIIUpdate(ctx, pb.GetRequireProofOfPossession() || pb.GetTokenQuota() != nil || pb.GetRefreshToken().GetPolicies() != nil)
@@ -283,6 +293,15 @@ func (a clientClients) Delete(ctx context.Context, tenantID, clientID string) er
 }
 
 func (a clientClients) List(ctx context.Context, tenantID string, f store.ClientFilter, p store.Page) ([]*store.Client, int, error) {
+	if f.Alias != "" {
+		// Plan 37b: the page RPC has no alias filter; every wsfed.v1 plugin
+		// returns client_aliases, so list everything and filter here.
+		all, _, err := a.List(ctx, tenantID, store.ClientFilter{}, store.Page{})
+		if err != nil {
+			return nil, 0, err
+		}
+		return filterClients(all, f, p)
+	}
 	if len(f.AppTypes) == 0 && f.IsFirstParty == nil && p == (store.Page{}) {
 		// Everything, as every plugin can serve it.
 		r, err := refreshRead(a.c, a.c.rpc.ClientsList, a.c.rpc.RefreshIIClientsList)(ctx, &storev1.TenantScope{TxId: a.c.txID, TenantId: tenantID})
@@ -325,7 +344,7 @@ func filterClients(all []*store.Client, f store.ClientFilter, p store.Page) ([]*
 	var kept []*store.Client
 	for _, c := range all {
 		if (len(f.AppTypes) == 0 || slices.Contains(f.AppTypes, string(c.AppType))) &&
-			(f.IsFirstParty == nil || c.IsFirstParty == *f.IsFirstParty) {
+			(f.IsFirstParty == nil || c.IsFirstParty == *f.IsFirstParty) && (f.Alias == "" || slices.Contains(c.ClientAliases, f.Alias)) {
 			kept = append(kept, c)
 		}
 	}

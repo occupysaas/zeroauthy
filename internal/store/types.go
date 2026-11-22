@@ -140,7 +140,12 @@ type ClientSecret struct {
 // Client is an application registered in a tenant.
 type Client struct {
 	// Addons are the application add-ons (Plan 37a); nil means none.
-	Addons                   *ClientAddons
+	Addons *ClientAddons
+	// ClientAliases are the realms accepted as wtrealm besides the client
+	// ID (Plan 37b); unique within the tenant (LR37b-3).
+	ClientAliases []string
+	// FormTemplate is stored and returned only (LR37b-5).
+	FormTemplate             string
 	OIDCSupport              *OIDCSupport
 	OIDCLogout               *OIDCLogout
 	IDTokenAlg               string // Empty means RS256.
@@ -1198,6 +1203,8 @@ type UserGrantFilter struct {
 type ClientFilter struct {
 	AppTypes     []string
 	IsFirstParty *bool
+	// Alias keeps the client whose client_aliases contain it (Plan 37b).
+	Alias string
 }
 
 // JobType is the kind of a Management API job.

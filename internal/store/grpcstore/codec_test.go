@@ -163,7 +163,7 @@ func TestTenantRoundTrip(t *testing.T) {
 
 func TestClientRoundTrip(t *testing.T) {
 	roundTrip(t, "full", &store.Client{
-		IDTokenAlg: "PS256", Addons: fullSAMLAddons(), OIDCSupport: &store.OIDCSupport{IsAllowed: true, AllowAllScopes: ptr(true), AllowedScopes: []string{"email"}}, OIDCLogout: &store.OIDCLogout{BackchannelURLs: []string{"https://rp.example/logout"}, InitiatorsMode: "custom", Initiators: []string{"rp-logout", "idp-logout"}, IncludeSessionMetadata: ptr(true)},
+		IDTokenAlg: "PS256", Addons: fullSAMLAddons(), ClientAliases: []string{"urn:rp", "https://rp.example/"}, FormTemplate: "<form></form>", OIDCSupport: &store.OIDCSupport{IsAllowed: true, AllowAllScopes: ptr(true), AllowedScopes: []string{"email"}}, OIDCLogout: &store.OIDCLogout{BackchannelURLs: []string{"https://rp.example/logout"}, InitiatorsMode: "custom", Initiators: []string{"rp-logout", "idp-logout"}, IncludeSessionMetadata: ptr(true)},
 		RequireProofOfPossession: true, TokenQuota: &store.TokenQuota{Enforce: true, PerHour: 6, PerDay: 15},
 		TenantID: "ten", ClientID: "cid", Name: "App", AppType: store.AppTypeRegularWeb, InitiateLoginURI: "https://app.example/login?keep=yes",
 		PrivateKeyJWTCredentials: []string{"cred_1"}, SignedRequestObject: &store.SignedRequestObject{Required: true, Credentials: []string{"cred_1"}}, TokenExchangeTypes: []string{"urn:example:t"},
@@ -743,5 +743,5 @@ func fullSAMLAddons() *store.ClientAddons {
 		Logout:  &store.SAMLAddonLogout{Callback: "https://sp.example/slo", SLOEnabled: ptr(true)},
 		Binding: "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST", TypedAttributes: ptr(true), IncludeAttributeNameFormat: ptr(true),
 		SigningCert: "-----BEGIN CERTIFICATE-----\nAA==\n-----END CERTIFICATE-----",
-	}}
+	}, WSFed: []byte(`{"note":"kept"}`)}
 }

@@ -329,6 +329,15 @@ func (o *opened) PurgeSAMLAssertions(ctx context.Context, before time.Time, limi
 	return 0, store.ErrSAMLUnavailable
 }
 
+// CheckWSFedSupport keeps wsfed.v1 (Plan 37b) visible through the process
+// wrapper; without it, CheckWSFedSupport would treat the wrapper as supporting.
+func (o *opened) CheckWSFedSupport(ctx context.Context) error {
+	if repo, ok := o.Store.(store.WSFedSupporter); ok {
+		return repo.CheckWSFedSupport(ctx)
+	}
+	return store.ErrWSFedUnavailable
+}
+
 // Keep oidc_logout.v1 optional interfaces visible through the process wrapper.
 func (o *opened) CheckOIDCLogoutSupport(ctx context.Context) error {
 	if repo, ok := o.Store.(store.OIDCLogoutSupporter); ok {

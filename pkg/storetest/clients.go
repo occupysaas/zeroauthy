@@ -387,3 +387,82 @@ func testClientAddons(t *testing.T, newStore Factory) {
 	mustNoErr(t, err)
 	mustEqual(t, got, want)
 }
+
+// testClientAliases is Plan 37b: the wsfed add-on, client_aliases and
+// form_template round trip; an alias is unique within a tenant (LR37b-3),
+// freed when its client drops it or is deleted, and found by
+// ClientFilter.Alias.
+func testClientAliases(t *testing.T, newStore Factory) {
+	ctx := t.Context()
+	s := open(t, newStore)
+	a := newClient("ten_a", "wsfed-a")
+	a.Addons = &store.ClientAddons{WSFed: []byte(`{"note":"kept"}`)}
+	a.ClientAliases = []string{"urn:sharepoint:portal", "https://rp.example.test/"}
+	a.FormTemplate = "<form>{{wresult}}</form>"
+	mustNoErr(t, s.Clients().Create(ctx, a))
+	got, err := s.Clients().Get(ctx, "ten_a", a.ClientID)
+	mustNoErr(t, err)
+	mustEqual(t, got, a)
+	got.ClientAliases[0] = "mutated"
+	again, err := s.Clients().Get(ctx, "ten_a", a.ClientID)
+	mustNoErr(t, err)
+	mustEqual(t, again, a)
+
+	byAlias := func(tenantID, alias string) []string {
+		t.Helper()
+		cs, total, err := s.Clients().List(ctx, tenantID, store.ClientFilter{Alias: alias}, store.Page{})
+		mustNoErr(t, err)
+		ids := []string{}
+		for _, c := range cs {
+			ids = append(ids, c.ClientID)
+		}
+		if total != len(ids) {
+			t.Fatalf("total %d for %v", total, ids)
+		}
+		return ids
+	}
+	mustEqual(t, byAlias("ten_a", "urn:sharepoint:portal"), []string{"wsfed-a"})
+	mustEqual(t, byAlias("ten_a", "https://rp.example.test/"), []string{"wsfed-a"})
+	mustEqual(t, byAlias("ten_a", "urn:other"), []string{})
+	mustEqual(t, byAlias("ten_b", "urn:sharepoint:portal"), []string{})
+
+	// Another client in the tenant cannot take an alias; another tenant can.
+	b := newClient("ten_a", "wsfed-b")
+	b.ClientAliases = []string{"urn:sharepoint:portal"}
+	mustErrIs(t, s.Clients().Create(ctx, b), store.ErrConflict)
+	_, err = s.Clients().Get(ctx, "ten_a", "wsfed-b")
+	mustErrIs(t, err, store.ErrNotFound)
+	b.ClientAliases = []string{"urn:b"}
+	mustNoErr(t, s.Clients().Create(ctx, b))
+	b.ClientAliases = []string{"urn:b", "https://rp.example.test/"}
+	mustErrIs(t, s.Clients().Update(ctx, b), store.ErrConflict)
+	got, err = s.Clients().Get(ctx, "ten_a", "wsfed-b")
+	mustNoErr(t, err)
+	mustEqual(t, got.ClientAliases, []string{"urn:b"})
+	other := newClient("ten_b", "wsfed-a")
+	other.ClientAliases = []string{"urn:sharepoint:portal"}
+	mustNoErr(t, s.Clients().Create(ctx, other))
+
+	// Dropping an alias frees it; an update that keeps it is no conflict.
+	a.ClientAliases = []string{"https://rp.example.test/"}
+	mustNoErr(t, s.Clients().Update(ctx, a))
+	mustNoErr(t, s.Clients().Update(ctx, a))
+	mustEqual(t, byAlias("ten_a", "urn:sharepoint:portal"), []string{})
+	b.ClientAliases = []string{"urn:b", "urn:sharepoint:portal"}
+	mustNoErr(t, s.Clients().Update(ctx, b))
+	mustEqual(t, byAlias("ten_a", "urn:sharepoint:portal"), []string{"wsfed-b"})
+
+	// Deleting a client frees its aliases.
+	mustNoErr(t, s.Clients().Delete(ctx, "ten_a", "wsfed-a"))
+	mustEqual(t, byAlias("ten_a", "https://rp.example.test/"), []string{})
+	c := newClient("ten_a", "wsfed-c")
+	c.ClientAliases = []string{"https://rp.example.test/"}
+	mustNoErr(t, s.Clients().Create(ctx, c))
+
+	// Clearing everything round trips as empty.
+	c.ClientAliases, c.FormTemplate, c.Addons = nil, "", nil
+	mustNoErr(t, s.Clients().Update(ctx, c))
+	got, err = s.Clients().Get(ctx, "ten_a", "wsfed-c")
+	mustNoErr(t, err)
+	mustEqual(t, got, c)
+}

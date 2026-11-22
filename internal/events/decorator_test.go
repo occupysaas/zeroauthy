@@ -446,6 +446,7 @@ func (s capabilityStore) MicrosoftFederationSupported(context.Context) error  { 
 func (s capabilityStore) CheckEventsSupport(context.Context) error            { return s.sentinel }
 func (s capabilityStore) EventsSupported() bool                               { return false }
 func (s capabilityStore) CheckSAMLSupport(context.Context) error              { return s.sentinel }
+func (s capabilityStore) CheckWSFedSupport(context.Context) error             { return s.sentinel }
 func (s capabilityStore) CheckOIDCLogoutSupport(context.Context) error        { return s.sentinel }
 func (s capabilityStore) CheckClientCredentialsSupport(context.Context) error { return s.sentinel }
 func (s capabilityStore) ClientCredentialsSupported() bool                    { return false }
@@ -458,7 +459,7 @@ func TestDecoratorForwardsCapabilities(t *testing.T) {
 	ctx := context.Background()
 	sentinel := errors.New("capability failure")
 	s := events.Wrap(capabilityStore{Store: memory.New(), sentinel: sentinel}, events.Config{})
-	for name, probe := range map[string]func(context.Context) error{"rbac": s.(store.RBACSupporter).CheckRBACSupport, "actions": s.(store.ActionsSupporter).CheckActionsSupport, "organizations": s.(store.OrganizationsSupporter).CheckOrganizationsSupport, "organizationsII": s.(store.OrganizationsIISupporter).CheckOrganizationsIISupport, "logs": s.(store.LogsSupporter).CheckLogsSupport, "microsoft": s.(store.MicrosoftFederationSupporter).MicrosoftFederationSupported, "events": s.(store.EventsSupporter).CheckEventsSupport, "saml": s.(store.SAMLSupporter).CheckSAMLSupport, "oidcLogout": s.(store.OIDCLogoutSupporter).CheckOIDCLogoutSupport, "clientCredentials": s.(store.ClientCredentialsSupporter).CheckClientCredentialsSupport, "mfa": s.(store.MFASupporter).CheckMFASupport, "phone": s.(store.PhoneSupporter).CheckPhoneSupport} {
+	for name, probe := range map[string]func(context.Context) error{"rbac": s.(store.RBACSupporter).CheckRBACSupport, "actions": s.(store.ActionsSupporter).CheckActionsSupport, "organizations": s.(store.OrganizationsSupporter).CheckOrganizationsSupport, "organizationsII": s.(store.OrganizationsIISupporter).CheckOrganizationsIISupport, "logs": s.(store.LogsSupporter).CheckLogsSupport, "microsoft": s.(store.MicrosoftFederationSupporter).MicrosoftFederationSupported, "events": s.(store.EventsSupporter).CheckEventsSupport, "saml": s.(store.SAMLSupporter).CheckSAMLSupport, "wsfed": s.(store.WSFedSupporter).CheckWSFedSupport, "oidcLogout": s.(store.OIDCLogoutSupporter).CheckOIDCLogoutSupport, "clientCredentials": s.(store.ClientCredentialsSupporter).CheckClientCredentialsSupport, "mfa": s.(store.MFASupporter).CheckMFASupport, "phone": s.(store.PhoneSupporter).CheckPhoneSupport} {
 		if err := probe(ctx); !errors.Is(err, sentinel) {
 			t.Fatalf("%s lost error: %v", name, err)
 		}

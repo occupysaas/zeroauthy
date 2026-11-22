@@ -861,3 +861,86 @@ func TestClientSAMLAddon(t *testing.T) {
 		t.Fatalf("plain create without saml.v1 status=%d", rec.Code)
 	}
 }
+
+type noWSFedStore struct{ store.Store }
+
+func (noWSFedStore) CheckWSFedSupport(context.Context) error { return store.ErrWSFedUnavailable }
+func (s noWSFedStore) WithTx(ctx context.Context, fn func(store.Store) error) error {
+	return s.Store.WithTx(ctx, func(tx store.Store) error { return fn(noWSFedStore{tx}) })
+}
+
+// TestClientWSFedFields is Plan 37b: the wsfed add-on, client_aliases and
+// form_template round trip through the Management API.
+func TestClientWSFedFields(t *testing.T) {
+	e := newClientsEnv(t)
+	caller := m2mCaller(allClientScopes...)
+	rec, created := e.create(t, caller, map[string]any{"name": "rp", "callbacks": []string{"https://rp.example.test/"},
+		"addons": map[string]any{"wsfed": map[string]any{}}, "client_aliases": []string{"urn:sharepoint:portal"}, "form_template": "<form></form>"})
+	if rec.Code != 201 {
+		t.Fatalf("create status=%d body=%s", rec.Code, rec.Body)
+	}
+	if created["addons"].(map[string]any)["wsfed"] == nil || created["form_template"] != "<form></form>" ||
+		fmt.Sprint(created["client_aliases"]) != "[urn:sharepoint:portal]" {
+		t.Fatalf("returned %v", created)
+	}
+	id := created["client_id"].(string)
+	stored, err := e.st.Clients().Get(t.Context(), e.tn.ID, id)
+	if err != nil || stored.Addons.WSFed == nil || stored.ClientAliases[0] != "urn:sharepoint:portal" || stored.FormTemplate != "<form></form>" {
+		t.Fatalf("stored %+v %v", stored, err)
+	}
+	for _, bad := range []map[string]any{
+		{"client_aliases": []string{""}},
+		{"client_aliases": []string{"urn:a", "urn:a"}},
+		{"client_aliases": "urn:a"},
+		{"form_template": ""},
+		{"addons": map[string]any{"wsfed": "on"}},
+	} {
+		if rec, _ := e.patch(t, caller, id, bad); rec.Code != 400 {
+			t.Fatalf("invalid %v status=%d", bad, rec.Code)
+		}
+	}
+	rec, cleared := e.patch(t, caller, id, map[string]any{"client_aliases": nil, "form_template": nil, "addons": nil})
+	if rec.Code != 200 || cleared["client_aliases"] != nil || cleared["form_template"] != nil || cleared["addons"] != nil {
+		t.Fatalf("clear status=%d %v", rec.Code, cleared)
+	}
+	e.h.Store = noWSFedStore{e.st}
+	if rec, _ := e.create(t, caller, map[string]any{"name": "rp2", "client_aliases": []string{"urn:x"}}); rec.Code != 400 {
+		t.Fatalf("plugin without wsfed.v1 create status=%d", rec.Code)
+	}
+	if rec, _ := e.create(t, caller, map[string]any{"name": "plain"}); rec.Code != 201 {
+		t.Fatalf("plain create without wsfed.v1 status=%d", rec.Code)
+	}
+}
+
+// TestClientAliasesUnique is Plan 37b Review Focus 2: an alias another
+// application of the tenant uses is refused at write (LR37b-3).
+func TestClientAliasesUnique(t *testing.T) {
+	e := newClientsEnv(t)
+	caller := m2mCaller(allClientScopes...)
+	rec, a := e.create(t, caller, map[string]any{"name": "a", "client_aliases": []string{"urn:portal", "urn:a"}})
+	if rec.Code != 201 {
+		t.Fatalf("create a status=%d body=%s", rec.Code, rec.Body)
+	}
+	if rec, _ := e.create(t, caller, map[string]any{"name": "b", "client_aliases": []string{"urn:portal"}}); rec.Code != 409 {
+		t.Fatalf("duplicate alias on create status=%d body=%s", rec.Code, rec.Body)
+	}
+	rec, b := e.create(t, caller, map[string]any{"name": "b", "client_aliases": []string{"urn:b"}})
+	if rec.Code != 201 {
+		t.Fatalf("create b status=%d", rec.Code)
+	}
+	bID := b["client_id"].(string)
+	if rec, _ := e.patch(t, caller, bID, map[string]any{"client_aliases": []string{"urn:b", "urn:a"}}); rec.Code != 409 || !strings.Contains(rec.Body.String(), "client_aliases") {
+		t.Fatalf("duplicate alias on update status=%d body=%s", rec.Code, rec.Body)
+	}
+	// A client may keep its own aliases, and a freed alias can be taken.
+	aID := a["client_id"].(string)
+	if rec, _ := e.patch(t, caller, aID, map[string]any{"name": "a2"}); rec.Code != 200 {
+		t.Fatalf("unrelated update status=%d", rec.Code)
+	}
+	if rec, _ := e.patch(t, caller, aID, map[string]any{"client_aliases": []string{"urn:a"}}); rec.Code != 200 {
+		t.Fatalf("drop alias status=%d", rec.Code)
+	}
+	if rec, _ := e.patch(t, caller, bID, map[string]any{"client_aliases": []string{"urn:b", "urn:portal"}}); rec.Code != 200 {
+		t.Fatalf("take freed alias status=%d body=%s", rec.Code, rec.Body)
+	}
+}

@@ -1,16 +1,22 @@
 package store
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"maps"
 	"slices"
 	"time"
 )
 
-// ClientAddons are an application's add-ons (Plan 37a). Only samlp exists.
+// ClientAddons are an application's add-ons: samlp (Plan 37a) and wsfed
+// (Plan 37b).
 type ClientAddons struct {
 	SAMLP *SAMLAddon `json:"samlp,omitempty"`
+	// WSFed enables the WS-Fed add-on. It holds the add-on object exactly as
+	// written (a JSON object); its members have no effect (LR37b-4).
+	WSFed json.RawMessage `json:"wsfed,omitempty"`
 }
 
 // SAMLAddon is the validated samlp add-on (Auth0 member names). Pointer
@@ -58,7 +64,7 @@ func (a *ClientAddons) Clone() *ClientAddons {
 	if a == nil {
 		return nil
 	}
-	return &ClientAddons{SAMLP: a.SAMLP.Clone()}
+	return &ClientAddons{SAMLP: a.SAMLP.Clone(), WSFed: bytes.Clone(a.WSFed)}
 }
 
 // Clone returns a deep copy.

@@ -127,6 +127,8 @@ service StoreService {
   rpc OIDCLogoutCapabilities(PingRequest) returns (EventsCapabilitiesResult);
   // saml.v1 (Plan 37a) gates client add-ons and the SAML replay and session state.
   rpc SAMLCapabilities(PingRequest) returns (EventsCapabilitiesResult);
+  // wsfed.v1 (Plan 37b) gates client_aliases (unique per tenant) and form_template.
+  rpc WSFedCapabilities(PingRequest) returns (EventsCapabilitiesResult);
   rpc SAMLSessionParticipant(SAMLParticipantWrite) returns (Result);
   rpc SAMLReplayUse(GlobalRevocationJTIRequest) returns (Result); // connection_id + jti = assertion ID
   rpc SAMLReplayPurge(ClientCredentialsPurgeRequest) returns (CountResult);
@@ -778,6 +780,8 @@ message Client {
   bytes oidc_logout = 33; // store.OIDCLogout JSON, oidc_logout.v1
   string id_token_alg = 34; // empty = RS256; non-RS256 requires oidc_logout.v1
   bytes addons = 35; // store.ClientAddons JSON (Plan 37a); writes require saml.v1
+  repeated string client_aliases = 36; // Plan 37b, unique per tenant; writes require wsfed.v1
+  string form_template = 37; // Plan 37b, stored only; writes require wsfed.v1
 }
 
 message Scope { string value = 1; string description = 2; }
