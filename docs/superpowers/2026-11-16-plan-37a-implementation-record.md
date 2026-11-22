@@ -34,6 +34,7 @@ Local toolchain: Go `1.27.4-X:nodwarf5`; Node 26.
 | `make console` twice | second and third builds identical file contents; dist committed |
 | `make e2e-saml` (`tests/e2e/run-m37a-saml.sh`) | Playwright 3 passed (node-saml 5.2.0 SP login and signed SLO both ways; unsigned LogoutRequest refused; samlify 2.15.1 IdP login and upstream signed SLO), secret scan passed, Deploy CLI four cells passed |
 | Fast tier `go test -count=1 ./...` (no `-race`, tmpfs), commit `54352163` (pre-review) | first run exit 1: `internal/federation/script` (`TestProfileScript/cancellation_releases_the_slot` timeout) and `internal/noderunner` (two cancellation-timing tests) failed while the fuzz smoke and govulncheck ran concurrently; both packages passed when rerun alone; 109 other packages ok |
+| Fast tier rerun after review fixes, commit `2589cba3` (machine otherwise idle) | exit 0, 111 packages ok, no failures |
 | Fuzz smoke `FuzzParse` 60 s (`internal/samlcore`) | passed, 291,742 executions |
 | `govulncheck` v1.10.0 | no vulnerabilities (v1.1.4 panics on this toolchain's AST) |
 | zizmor | not installed locally; runs in CI (one matrix value added) |
