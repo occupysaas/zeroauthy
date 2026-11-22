@@ -50,7 +50,7 @@ func TestVerifyWrappingCorpus(t *testing.T) {
 		"duplicate ID, evil first":        responseXML("_r", evil("_a")+signedA),
 		"signed assertion hidden in signature object": responseXML("_r", strings.Replace(evil("_evil"), "</saml:Issuer>",
 			"</saml:Issuer>"+signatureOf(signedA)[:len(signatureOf(signedA))-len("</ds:Signature>")]+`<ds:Object>`+signedA+`</ds:Object></ds:Signature>`, 1)),
-		"modified signed content":   responseXML("_r", strings.Replace(signedA, "alice@example.test", "admin@example.test", 1)),
+		"modified signed content":    responseXML("_r", strings.Replace(signedA, "alice@example.test", "admin@example.test", 1)),
 		"signature moved into child": responseXML("_r", moveSignatureIntoSubject(signedA)),
 		"no signature at all":        responseXML("_r", assertionXML("_u", "admin@example.test")),
 		"signature by untrusted key": responseXML("_r", signedAssertion(t, newIdentity(t, "evil", time.Now().Add(time.Hour)), "_a", "admin@example.test")),

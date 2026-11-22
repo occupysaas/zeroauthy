@@ -1,8 +1,8 @@
 package samlcore
 
 import (
-	dsig "github.com/zeroauthy/zeroauthy/internal/third_party/goxmldsig"
 	"github.com/zeroauthy/zeroauthy/internal/third_party/etree"
+	dsig "github.com/zeroauthy/zeroauthy/internal/third_party/goxmldsig"
 )
 
 // Canonicalize returns the Exclusive XML Canonicalization 1.0 form of el,

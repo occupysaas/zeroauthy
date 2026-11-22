@@ -9,9 +9,9 @@ import (
 
 func TestParseRefusesDTDAndEntities(t *testing.T) {
 	for name, doc := range map[string]string{
-		"xxe":           `<?xml version="1.0"?><!DOCTYPE r [<!ENTITY x SYSTEM "file:///etc/passwd">]><r>&x;</r>`,
-		"billion laughs": `<!DOCTYPE l [<!ENTITY a "aaaa"><!ENTITY b "&a;&a;&a;&a;">]><l>&b;</l>`,
-		"bare doctype":  `<!DOCTYPE r><r/>`,
+		"xxe":              `<?xml version="1.0"?><!DOCTYPE r [<!ENTITY x SYSTEM "file:///etc/passwd">]><r>&x;</r>`,
+		"billion laughs":   `<!DOCTYPE l [<!ENTITY a "aaaa"><!ENTITY b "&a;&a;&a;&a;">]><l>&b;</l>`,
+		"bare doctype":     `<!DOCTYPE r><r/>`,
 		"undefined entity": `<r>&nope;</r>`,
 	} {
 		t.Run(name, func(t *testing.T) {

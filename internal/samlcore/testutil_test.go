@@ -3,11 +3,11 @@ package samlcore
 import (
 	"strings"
 
-	"github.com/zeroauthy/zeroauthy/internal/third_party/etree"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
 	"crypto/x509/pkix"
+	"github.com/zeroauthy/zeroauthy/internal/third_party/etree"
 	"math/big"
 	"testing"
 	"time"

@@ -59,9 +59,9 @@ func TestThumbprints(t *testing.T) {
 		t.Fatal(err)
 	}
 	for name, trust := range map[string]Trust{
-		"sha1 thumbprint":        {Thumbprints: []string{strings.ToUpper(s1)}},
-		"sha1 with colons":       {Thumbprints: []string{colons(s1)}},
-		"sha384 thumbprint":      {Thumbprints384: []string{s384}},
+		"sha1 thumbprint":   {Thumbprints: []string{strings.ToUpper(s1)}},
+		"sha1 with colons":  {Thumbprints: []string{colons(s1)}},
+		"sha384 thumbprint": {Thumbprints384: []string{s384}},
 	} {
 		if _, err := VerifyEnveloped(roundTrip(t, signed), trust); err != nil {
 			t.Errorf("%s: %v", name, err)
