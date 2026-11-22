@@ -118,7 +118,7 @@ type Spec struct {
 }
 
 // Federated reports whether s uses a federated strategy (Plan 24).
-func (s *Spec) Federated() bool { return rules.IsFederated(s.Strategy) || s.Strategy == rules.SAMLP }
+func (s *Spec) Federated() bool { return rules.IsFederated(s.Strategy) }
 
 // FederationInput is s in the form the shared federated rules validate.
 func (s *Spec) FederationInput() rules.Input {

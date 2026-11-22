@@ -10,6 +10,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/zeroauthy/zeroauthy/internal/samlcore"
 	"log/slog"
 	"net/url"
 	"slices"
@@ -33,6 +34,8 @@ const (
 	callbackBudget = 30 * time.Second
 	// MaxCallbackSize bounds both query and form-post callbacks.
 	MaxCallbackSize = 16 << 10
+	// MaxSAMLCallbackSize bounds a posted SAML response form (Plan 37a).
+	MaxSAMLCallbackSize = 2*samlcore.MaxInputBytes + 8192
 	// AttemptCookiePrefix names the browser binding cookie of one attempt:
 	// the prefix plus the first 16 hex characters of the state hash, so tabs
 	// keep independent attempts.
@@ -86,6 +89,9 @@ type BeginInput struct {
 type Begun struct {
 	URL, CookieName, CookieValue string
 	ExpiresAt                    time.Time
+	// Form, when set, is posted to URL by an auto-submitting page (the SAML
+	// HTTP-POST binding) instead of a redirect.
+	Form url.Values
 }
 
 type proof struct {
@@ -137,7 +143,7 @@ func (s *FlowService) Begin(ctx context.Context, in BeginInput) (*Begun, error) 
 	}
 	spec := connrules.FromConnection(conn)
 	cfg, err := ParseConfig(*spec)
-	if err != nil || !cfg.AuthenticationActive || len(conn.FederationSecretsSealed) == 0 && cfg.Channel != "front_channel" && cfg.TokenAuth != "private_key_jwt" {
+	if err != nil || !cfg.AuthenticationActive || cfg.SAML == nil && len(conn.FederationSecretsSealed) == 0 && cfg.Channel != "front_channel" && cfg.TokenAuth != "private_key_jwt" {
 		return nil, ErrConnectionUnusable
 	}
 	if cfg.Strategy == StrategyOAuth2 {
@@ -161,6 +167,11 @@ func (s *FlowService) Begin(ctx context.Context, in BeginInput) (*Begun, error) 
 		endpoints, _ = s.Providers.github() // no issuer: GitHub has no ID token
 	case StrategyOAuth2:
 		endpoints = Endpoints{AuthorizationURL: cfg.AuthorizationURL, TokenURL: cfg.TokenURL, TokenAuthMethod: authPost}
+	case StrategySAMLP:
+		if cfg.SAML.SignInEndpoint == "" {
+			return nil, ErrConnectionUnusable
+		}
+		endpoints, issuer = Endpoints{AuthorizationURL: cfg.SAML.SignInEndpoint}, cfg.SAML.IdPEntityID
 	case StrategyWindowsLive, StrategyWAAD, StrategyOIDC, StrategyOkta:
 		var meta Metadata
 		var err error
@@ -199,6 +210,9 @@ func (s *FlowService) Begin(ctx context.Context, in BeginInput) (*Begun, error) 
 		expires = in.Txn.ExpiresAt
 	}
 	callback := strings.TrimSuffix(in.Origin, "/") + CallbackPath
+	if cfg.SAML != nil {
+		callback = SAMLACSURL(in.Origin, conn.Name)
+	}
 	a := &store.FederationAttempt{
 		StateHash: stateHash, TenantID: conn.TenantID, TransactionID: in.Txn.ID, ConnectionID: conn.ID,
 		Revision: key.Revision, IdentityEpoch: epoch, CookieHash: CookieHash(cookie), Origin: in.Origin,
@@ -207,6 +221,13 @@ func (s *FlowService) Begin(ctx context.Context, in BeginInput) (*Begun, error) 
 	}
 	if err := s.Store.Federation().CreateAttempt(ctx, a); err != nil {
 		return nil, err
+	}
+	if cfg.SAML != nil {
+		u, form, err := s.samlAuthnRequest(ctx, in.Tenant, conn, cfg, callback, state, nonce)
+		if err != nil {
+			return nil, err
+		}
+		return &Begun{URL: u, Form: form, CookieName: AttemptCookiePrefix + stateHash[:16], CookieValue: cookie, ExpiresAt: expires}, nil
 	}
 	sum := sha256.Sum256([]byte(verifier))
 	challenge := base64.RawURLEncoding.EncodeToString(sum[:])
@@ -252,7 +273,9 @@ func (s *FlowService) openProof(tenantID, stateHash string, sealed []byte) (proo
 type CallbackParams struct {
 	State, Code, Error string
 	IDToken            string
-	FormPost           bool
+	// SAMLResponse is a posted SAML response (samlp ACS, Plan 37a).
+	SAMLResponse string
+	FormPost     bool
 	// User is untrusted, optional Apple first-authorization name JSON.
 	User string
 }
@@ -321,7 +344,7 @@ type Completion struct {
 // provider identity and commits identity, tokens, attempt and session in one
 // transaction.
 func (s *FlowService) Complete(ctx context.Context, in CompleteInput) (*Completion, error) {
-	ctx = logscrub.WithCredentials(logscrub.WithValues(ctx, in.Params.Code, in.Params.IDToken), in.Params.Code, in.Params.IDToken)
+	ctx = logscrub.WithCredentials(logscrub.WithValues(ctx, in.Params.Code, in.Params.IDToken, in.Params.SAMLResponse), in.Params.Code, in.Params.IDToken, in.Params.SAMLResponse)
 	if in.CookieValue == "" || in.Tenant == nil {
 		return nil, ErrCallbackRejected
 	}
@@ -363,7 +386,13 @@ func (s *FlowService) Complete(ctx context.Context, in CompleteInput) (*Completi
 		a.Endpoints.PKCEMethod = "S256"
 	}
 	front := cfg.Channel == "front_channel"
-	if front {
+	if cfg.SAML != nil {
+		if !in.Params.FormPost || in.Params.SAMLResponse == "" || in.Params.Code != "" || in.Params.IDToken != "" {
+			return nil, ErrCallbackRejected
+		}
+	} else if in.Params.SAMLResponse != "" {
+		return nil, ErrCallbackRejected
+	} else if front {
 		if !in.Params.FormPost || a.Endpoints.ResponseType != "id_token" || in.Params.Code != "" {
 			return nil, ErrCallbackRejected
 		}
@@ -380,7 +409,7 @@ func (s *FlowService) Complete(ctx context.Context, in CompleteInput) (*Completi
 		if err != nil {
 			return nil, fmt.Errorf("%w: credentials", ErrConnectionUnusable)
 		}
-	} else if cfg.Channel != "front_channel" && cfg.TokenAuth != "private_key_jwt" {
+	} else if cfg.SAML == nil && cfg.Channel != "front_channel" && cfg.TokenAuth != "private_key_jwt" {
 		return nil, ErrConnectionUnusable
 	}
 	var appleUser *AppleUser
@@ -405,7 +434,13 @@ func (s *FlowService) Complete(ctx context.Context, in CompleteInput) (*Completi
 		CodeVerifier: pr.Verifier, Nonce: pr.Nonce, ClientSecret: creds.ClientSecret, Now: s.now(), AppleUser: appleUser,
 	}
 	var res ProviderResult
-	if front {
+	var assertion *samlAssertion
+	if cfg.SAML != nil {
+		assertion, err = s.samlValidate(ctx, in.Tenant, conn, cfg, in.Origin, samlRequestID(pr.Nonce), in.Params.SAMLResponse)
+		if err == nil {
+			res = assertion.Result
+		}
+	} else if front {
 		claims, e := s.Providers.validateIDToken(ctx, exchange, a.Endpoints, TokenSet{IDToken: in.Params.IDToken})
 		if e != nil {
 			return nil, e
@@ -508,6 +543,11 @@ func (s *FlowService) Complete(ctx context.Context, in CompleteInput) (*Completi
 					return err
 				}
 			}
+			if assertion != nil {
+				if err := useSAMLAssertion(ctx, tx, conn, assertion, s.now()); err != nil {
+					return err
+				}
+			}
 			if err := tx.Federation().FinishAttempt(ctx, a.TenantID, a.StateHash); err != nil {
 				return ErrAttemptStale
 			}
@@ -588,7 +628,7 @@ func SocialChoices(client *store.Client, conns []*store.Connection, includeHidde
 		}
 		spec := connrules.FromConnection(c)
 		cfg, err := ParseConfig(*spec)
-		if err != nil || len(c.FederationSecretsSealed) == 0 && cfg.Channel != "front_channel" && cfg.TokenAuth != "private_key_jwt" {
+		if err != nil || cfg.SAML == nil && len(c.FederationSecretsSealed) == 0 && cfg.Channel != "front_channel" && cfg.TokenAuth != "private_key_jwt" {
 			continue
 		}
 		if active, ok := spec.Authentication["active"].(bool); ok && !active {

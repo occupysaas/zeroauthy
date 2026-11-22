@@ -60,7 +60,7 @@ const (
 
 // IsFederated reports whether strategy is one of the federated strategies.
 func IsFederated(strategy string) bool {
-	return strategy == Apple || strategy == WindowsLive || strategy == WAAD || strategy == Google || strategy == GitHub || strategy == OAuth2 || strategy == OIDC || strategy == Okta
+	return strategy == Apple || strategy == WindowsLive || strategy == WAAD || strategy == Google || strategy == GitHub || strategy == OAuth2 || strategy == OIDC || strategy == Okta || strategy == SAMLP
 }
 
 // IsSocial reports whether identities of strategy are social (isSocial).

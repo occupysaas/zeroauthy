@@ -188,12 +188,17 @@ func (h *Handlers) startSocialHint(w http.ResponseWriter, r *http.Request, f *fl
 		return
 	}
 	sameSite := http.SameSiteLaxMode
-	if conn.Strategy == federation.StrategyApple || conn.Strategy == federation.StrategyOIDC && conn.Extra["type"] != "back_channel" {
+	if conn.Strategy == federation.StrategyApple || conn.Strategy == federation.StrategyOIDC && conn.Extra["type"] != "back_channel" || conn.Strategy == federation.StrategySAMLP {
+		// Form-posted responses arrive cross-site.
 		sameSite = http.SameSiteNoneMode
 	}
 	http.SetCookie(w, &http.Cookie{Name: begun.CookieName, Value: begun.CookieValue, Path: federation.CallbackPath, Expires: begun.ExpiresAt,
 		HttpOnly: true, Secure: true, SameSite: sameSite})
 	w.Header().Set("Cache-Control", "no-store")
+	if begun.Form != nil {
+		ui.RenderFormPost(w, f.view.L, begun.URL, begun.Form)
+		return
+	}
 	if r.Method == http.MethodPost {
 		u, err := url.Parse(begun.URL)
 		if err != nil {
@@ -274,11 +279,16 @@ func (h *Handlers) SocialCallback(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodPost {
 		// Read and parse a bounded body ourselves. Register partial parsed
 		// credentials before handling any error, including malformed forms.
-		body, err := io.ReadAll(io.LimitReader(r.Body, federation.MaxCallbackSize+1))
+		body, err := io.ReadAll(io.LimitReader(r.Body, federation.MaxSAMLCallbackSize+1))
 		r.PostForm, parseErr = url.ParseQuery(string(body))
 		h.maskRequest(r)
-		// POST callbacks use body fields only; never merge query parameters.
 		mediaType, _, mediaErr := mime.ParseMediaType(r.Header.Get("Content-Type"))
+		if r.PostForm.Has("SAMLResponse") && parseErr == nil && err == nil && mediaErr == nil && mediaType == "application/x-www-form-urlencoded" && len(body) <= federation.MaxSAMLCallbackSize {
+			// The SAML ACS is /login/callback?connection={name} (Plan 37a).
+			h.samlCallback(w, r)
+			return
+		}
+		// POST callbacks use body fields only; never merge query parameters.
 		if err != nil || len(body) > federation.MaxCallbackSize || mediaErr != nil || mediaType != "application/x-www-form-urlencoded" || raw != "" {
 			parseErr = federation.ErrCallbackRejected
 		}
@@ -297,6 +307,13 @@ func (h *Handlers) SocialCallback(w http.ResponseWriter, r *http.Request) {
 		h.socialFailure(w, r, nil, err)
 		return
 	}
+	h.finishCallback(w, r, res, params)
+}
+
+// finishCallback completes a provider callback whose parameters are parsed:
+// the attempt cookie, then Complete, the session and the resumed flow.
+func (h *Handlers) finishCallback(w http.ResponseWriter, r *http.Request, res tenant.Resolved, params federation.CallbackParams) {
+	ctx := r.Context()
 	cookieName := federation.AttemptCookiePrefix + federation.StateHash(params.State)[:16]
 	c, err := r.Cookie(cookieName)
 	if err != nil || c.Value == "" {
