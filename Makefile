@@ -109,5 +109,8 @@ e2e-actions-ii:
 e2e-refresh-tokens:
 	./tests/e2e/run-m48-refresh-tokens.sh
 
+e2e-logout:
+	./tests/e2e/run-m41a-logout.sh
+
 e2e-saml:
 	./tests/e2e/run-m37a-saml.sh
