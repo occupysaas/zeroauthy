@@ -187,6 +187,10 @@ shapes are refused. It must also pass these checks:
 - `InResponseTo` matches the attempt;
 - `NotBefore` and `NotOnOrAfter`, with 2 minutes of skew (LR37a-3).
 
+An `AuthnStatement` is not required: a signed assertion with only a
+subject and attributes is accepted. SAML Profiles §4.1.4.2 requires one,
+but Auth0 documents no such check (LR37a-21).
+
 Each assertion ID is single use within its validity window. The replay
 table is shared by every replica.
 

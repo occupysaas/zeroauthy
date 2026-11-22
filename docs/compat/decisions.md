@@ -3785,6 +3785,7 @@ Implementation rulings (recorded in the
 | LR37a-18 | `email_verified` is false unless `fieldsMap` maps it to a true attribute. |
 | LR37a-19 | `metadataUrl` is fetched outside the store transaction on create and when `options` are written; an options write without `signingCert` takes the metadata's current certificate (S37-11). `options.debug` is stored only. |
 | LR37a-20 | AES-CBC data encryption is accepted with one uniform decryption error, and the assertion signature is checked after decryption. |
+| LR37a-21 | A signed assertion without an `AuthnStatement` is accepted as a service provider (S37-15). Auth0 documents no behaviour and OIDC does not apply, so the shipped behaviour stands (maintainer, 2026-11-22). SAML Profiles §4.1.4.2 requires one; refusing it is a one-line check in `samlcore` if anyone asks. |
 
 Observation points S37-1…S37-16 are listed in
 [plan-1-followups.md](../superpowers/plan-1-followups.md#plan-37a-observation-points).
