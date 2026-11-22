@@ -739,7 +739,7 @@ func fullSAMLAddons() *store.ClientAddons {
 		SignatureAlgorithm: "rsa-sha256", DigestAlgorithm: "sha256", Issuer: "urn:idp", Destination: "https://sp.example/acs",
 		LifetimeInSeconds: &n, SignResponse: ptr(true), NameIdentifierFormat: "urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress",
 		NameIdentifierProbes: []string{"email"}, AuthnContextClassRef: "urn:oasis:names:tc:SAML:2.0:ac:classes:unspecified",
-		Logout: &store.SAMLAddonLogout{Callback: "https://sp.example/slo", SLOEnabled: ptr(true)},
+		Logout:  &store.SAMLAddonLogout{Callback: "https://sp.example/slo", SLOEnabled: ptr(true)},
 		Binding: "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST", TypedAttributes: ptr(true), IncludeAttributeNameFormat: ptr(true),
 		SigningCert: "-----BEGIN CERTIFICATE-----\nAA==\n-----END CERTIFICATE-----",
 	}}
