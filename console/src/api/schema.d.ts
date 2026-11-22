@@ -4982,6 +4982,135 @@ export interface components {
             [key: string]: unknown;
         };
         /**
+         * @description SAML service-provider connection (`samlp`, Plan 37a, D-0130). The
+         *     identity provider is configured from `metadataUrl` (fetched through
+         *     the federation outbound policy and refreshed daily), `metadataXml`,
+         *     or `signInEndpoint` with `signingCert` (or the legacy `cert`).
+         *     `thumbprints` and `thumbprints_sha384` are computed from the
+         *     certificates on write and are read-only. `entityId` defaults to
+         *     `urn:auth0:{tenant}:{connection}`. The private keys of `signing_key`
+         *     and `decryptionKey` are write-only: sealed when written and never
+         *     returned. Without them, keys come from
+         *     `/api/v2/connections/{id}/keys`. RSA-SHA1 and RSA-1_5 key transport are
+         *     accepted only when selected explicitly. The assertion consumer service
+         *     is `POST /login/callback?connection={name}`; SP metadata is
+         *     `GET /samlp/metadata?connection={name}`.
+         *     `global_token_revocation_jwt_iss` and `_sub` are stored only (D-0130).
+         */
+        ConnectionOptionsSAML: {
+            /** @description Legacy alias of signingCert: the identity provider's signing certificate (PEM or base64 DER). */
+            cert?: string;
+            /** @description The identity provider's signing certificate (PEM or base64 DER). */
+            signingCert?: string;
+            /** @description SHA-1 thumbprints of the identity provider certificates, computed on write. */
+            readonly thumbprints?: string[];
+            /** @description SHA-384 thumbprints, computed on write. */
+            readonly thumbprints_sha384?: string[];
+            /**
+             * Format: uri
+             * @description HTTPS URL of the identity provider metadata.
+             */
+            metadataUrl?: string;
+            /** @description Identity provider metadata document. */
+            metadataXml?: string;
+            /** @description Identity provider single sign-on URL. */
+            signInEndpoint?: string;
+            /** @description Identity provider single logout URL. */
+            signOutEndpoint?: string;
+            /** @description Destination of the AuthnRequest; defaults to signInEndpoint. */
+            destinationUrl?: string;
+            /** @description Expected Recipient of assertions; defaults to the ACS URL. */
+            recipientUrl?: string;
+            /** @description Service provider entity ID; defaults to `urn:auth0:{tenant}:{connection}`. */
+            entityId?: string;
+            /**
+             * @description Binding used to send the AuthnRequest.
+             * @default urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect
+             * @enum {string}
+             */
+            protocolBinding?: "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST" | "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect";
+            /**
+             * @description Sign the AuthnRequest.
+             * @default false
+             */
+            signSAMLRequest?: boolean;
+            /**
+             * @default rsa-sha256
+             * @enum {string}
+             */
+            signatureAlgorithm?: "rsa-sha256" | "rsa-sha1";
+            /**
+             * @default sha256
+             * @enum {string}
+             */
+            digestAlgorithm?: "sha256" | "sha1";
+            /**
+             * @description Deflate the AuthnRequest on the HTTP-Redirect binding.
+             * @default true
+             */
+            deflate?: boolean;
+            /** @description AuthnRequest template with `@@variableName@@` substitution; must produce a valid AuthnRequest. */
+            requestTemplate?: string;
+            /** @description Profile field to SAML attribute name, or to several names tried in order. */
+            fieldsMap?: {
+                [key: string]: string | string[];
+            };
+            /** @description Attribute used as the user ID; defaults to the NameID. */
+            user_id_attribute?: string;
+            idpinitiated?: {
+                /** @default false */
+                enabled?: boolean;
+                /** @description Application that IdP-initiated logins continue to. */
+                client_id?: string;
+                /**
+                 * @default oidc
+                 * @enum {string}
+                 */
+                client_protocol?: "oidc" | "samlp" | "wsfed";
+                /** @description Query string of the authorization request for the application. */
+                client_authorizequery?: string;
+            };
+            /**
+             * @description Do not send LogoutRequest to the identity provider on logout.
+             * @default false
+             */
+            disableSignout?: boolean;
+            decryptionKey?: {
+                /** @description PEM private key; sealed and never returned. */
+                key?: string;
+                cert?: string;
+            };
+            /** @description `allowed_key_transport` may add `rsa-1_5` (refused unless listed). */
+            assertion_decryption_settings?: {
+                [key: string]: unknown;
+            };
+            signing_key?: {
+                /** @description PEM private key; sealed and never returned. */
+                key?: string;
+                cert?: string;
+            };
+            /** @description Home realm discovery domains. */
+            domain_aliases?: string[];
+            /**
+             * @description Log SAML responses (attribute values scrubbed) as warning events.
+             * @default false
+             */
+            debug?: boolean;
+            /**
+             * @default on_each_login
+             * @enum {string}
+             */
+            set_user_root_attributes?: "on_each_login" | "on_first_login" | "never_on_login";
+            non_persistent_attrs?: string[];
+            icon_url?: string;
+            /** @description Stored only (D-0130). */
+            global_token_revocation_jwt_iss?: string;
+            /** @description Stored only (D-0130). */
+            global_token_revocation_jwt_sub?: string;
+        } & {
+            [key: string]: unknown;
+        };
+        /**
          * @description Options of the `email` passwordless connection (name `email`).
          *     `authParams` is a JSON object encoded as a string, merged into magic
          *     links. `email.body` is Liquid with `code`, `link`, `application.name`,
@@ -8260,6 +8389,107 @@ export interface components {
             allow_all_scopes?: boolean;
             allowed_scopes?: ("profile" | "email" | "address" | "phone")[];
         } | null;
+        /**
+         * @description Application add-ons. Only `samlp` (SAML2 Web App, Plan 37a) is
+         *     supported; any other add-on key is refused with `400`. `null` removes
+         *     an add-on.
+         */
+        ClientAddons: {
+            samlp?: components["schemas"]["ClientAddonSAML"] | null;
+        };
+        /**
+         * @description SAML2 Web App add-on (Plan 37a, D-0130): zeroauthy acts as the SAML
+         *     identity provider at `/samlp/{client_id}`. Defaults the Auth0
+         *     documentation leaves out follow Auth0's MIT `node-samlp` (D-0130).
+         *     SHA-1 signatures and digests are used only when selected explicitly.
+         */
+        ClientAddonSAML: {
+            /** @description User profile field to SAML attribute name, or to several names. */
+            mappings?: {
+                [key: string]: string | string[];
+            };
+            /** @description Audience of the assertion; defaults to the requesting service provider's issuer. */
+            audience?: string;
+            /** @description Recipient of the assertion (the ACS URL); defaults to the requested AssertionConsumerServiceURL. */
+            recipient?: string;
+            /**
+             * @description Add the UPN claim.
+             * @default true
+             */
+            createUpnClaim?: boolean;
+            /**
+             * @description Send profile fields without a mapping under their own names.
+             * @default false
+             */
+            mapUnknownClaimsAsIs?: boolean;
+            /**
+             * @description Send claims without a mapping using the default claim namespace.
+             * @default true
+             */
+            passthroughClaimsWithNoMapping?: boolean;
+            /**
+             * @description Add the user's identities as attributes.
+             * @default true
+             */
+            mapIdentities?: boolean;
+            /**
+             * @default rsa-sha256
+             * @enum {string}
+             */
+            signatureAlgorithm?: "rsa-sha256" | "rsa-sha1";
+            /**
+             * @default sha256
+             * @enum {string}
+             */
+            digestAlgorithm?: "sha256" | "sha1";
+            /** @description Issuer of the response; defaults to `urn:{tenant domain}`. */
+            issuer?: string;
+            /** @description Destination of the response; defaults to the ACS URL. */
+            destination?: string;
+            /**
+             * @description Assertion validity.
+             * @default 3600
+             */
+            lifetimeInSeconds?: number;
+            /**
+             * @description Sign the whole Response in addition to the Assertion.
+             * @default false
+             */
+            signResponse?: boolean;
+            /** @default urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified */
+            nameIdentifierFormat?: string;
+            /** @description Claims tried in order for the NameID; the first non-empty value wins. */
+            nameIdentifierProbes?: string[];
+            /** @default urn:oasis:names:tc:SAML:2.0:ac:classes:unspecified */
+            authnContextClassRef?: string;
+            logout?: {
+                /** @description Service provider SLO URL that receives LogoutRequest and LogoutResponse messages. */
+                callback?: string;
+                /**
+                 * @description Propagate single logout to the other SAML session participants.
+                 * @default true
+                 */
+                slo_enabled?: boolean;
+            };
+            /**
+             * @description Binding for messages sent to the service provider (responses always use HTTP-POST).
+             * @default urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST
+             * @enum {string}
+             */
+            binding?: "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST" | "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect";
+            /**
+             * @description Add xsi:type to attribute values.
+             * @default true
+             */
+            typedAttributes?: boolean;
+            /**
+             * @description Add NameFormat to attributes.
+             * @default true
+             */
+            includeAttributeNameFormat?: boolean;
+            /** @description The service provider's PEM certificate. When set, SAML requests from the service provider must be signed with its key. */
+            signingCert?: string;
+        };
         ClientOIDCLogout: {
             /** @description Public HTTPS receiver. Organization ID and name placeholders are supported (D-0080). */
             backchannel_logout_urls?: string[];
@@ -8421,6 +8651,7 @@ export interface components {
             allowed_origins?: string[];
             oidc_logout?: components["schemas"]["ClientOIDCLogout"];
             oidc_support?: components["schemas"]["ClientOIDCSupport"];
+            addons?: components["schemas"]["ClientAddons"];
             jwt_configuration?: components["schemas"]["JwtConfiguration"];
             refresh_token?: components["schemas"]["RefreshTokenSettings"];
             token_quota?: components["schemas"]["IITokenQuota"];
@@ -8558,6 +8789,7 @@ export interface components {
             token_exchange?: components["schemas"]["ClientTokenExchange"];
             oidc_logout?: components["schemas"]["ClientOIDCLogout"];
             oidc_support?: components["schemas"]["ClientOIDCSupport"];
+            addons?: components["schemas"]["ClientAddons"];
             jwt_configuration: components["schemas"]["JwtConfiguration"];
             refresh_token: components["schemas"]["RefreshTokenSettings"];
             token_quota?: components["schemas"]["IITokenQuota"];
@@ -8955,10 +9187,10 @@ export interface components {
             /** @description Letters and digits with single hyphens between them. */
             name: string;
             /**
-             * @description `email` and `sms` are passwordless connections whose name must equal the strategy; options follow ConnectionOptionsEmail and ConnectionOptionsSMS (Plan 34). `apple` follows ConnectionOptionsApple; web/native login is active (D-0170). `github` follows ConnectionOptionsGitHub (Plan 39c).
+             * @description `samlp` follows ConnectionOptionsSAML (Plan 37a). `email` and `sms` are passwordless connections whose name must equal the strategy; options follow ConnectionOptionsEmail and ConnectionOptionsSMS (Plan 34). `apple` follows ConnectionOptionsApple; web/native login is active (D-0170). `github` follows ConnectionOptionsGitHub (Plan 39c).
              * @enum {string}
              */
-            strategy: "auth0" | "google-oauth2" | "oauth2" | "oidc" | "windowslive" | "waad" | "email" | "sms" | "apple" | "github" | "okta";
+            strategy: "auth0" | "google-oauth2" | "oauth2" | "oidc" | "windowslive" | "waad" | "email" | "sms" | "apple" | "github" | "okta" | "samlp";
             /** @description Applications to enable on the connection; accepted on create only. */
             enabled_clients?: string[];
         };

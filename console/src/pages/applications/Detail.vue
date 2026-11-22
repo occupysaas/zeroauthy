@@ -13,6 +13,7 @@ import CredentialsTab from './CredentialsTab.vue'
 import ConnectionsTab from './ConnectionsTab.vue'
 import AdvancedTab from './AdvancedTab.vue'
 import OidcTab from './OidcTab.vue'
+import SamlTab from './SamlTab.vue'
 import RefreshTokensTab from './RefreshTokensTab.vue'
 import DangerZone from './DangerZone.vue'
 import QuickStart from './QuickStart.vue'
@@ -71,6 +72,7 @@ function rotated(c: Client) {
           <TabsTrigger class="tab" value="settings">{{ t('apps.settings') }}</TabsTrigger>
           <TabsTrigger class="tab" value="advanced">{{ t('apps.advanced') }}</TabsTrigger>
           <TabsTrigger class="tab" value="oidc">{{ t('oidc41.tab') }}</TabsTrigger>
+          <TabsTrigger class="tab" value="saml">{{ t('saml37.tab') }}</TabsTrigger>
           <TabsTrigger class="tab" value="refresh">{{ t('rt48.refresh') }}</TabsTrigger>
           <TabsTrigger class="tab" value="credentials">{{ t('cred.tab') }}</TabsTrigger>
           <TabsTrigger class="tab" value="apis">{{ t('grants.tab') }}</TabsTrigger>
@@ -87,6 +89,7 @@ function rotated(c: Client) {
           <AdvancedTab :tenant="tenant" :client="client" @saved="client = $event" />
         </TabsContent>
         <TabsContent value="oidc"><OidcTab :tenant="tenant" :client="client" @saved="client = $event" /></TabsContent>
+        <TabsContent value="saml"><SamlTab :tenant="tenant" :client="client" @saved="client = $event" /></TabsContent>
         <TabsContent value="refresh"><RefreshTokensTab :tenant="tenant" :client="client" @saved="client = $event" /></TabsContent>
         <TabsContent value="credentials">
           <CredentialsTab :tenant="tenant" :client="client" @saved="client = $event" />

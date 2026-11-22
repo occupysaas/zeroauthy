@@ -2,6 +2,14 @@ import logInventory from '../../../internal/logrules/inventory.json'
 // The English catalog: every string the console shows. Other languages
 // follow this shape (MessageSchema); vue-i18n checks keys against it.
 const en = {
+ saml37: {
+  tab: 'SAML2 Web App', enable: 'Enable the SAML2 Web App add-on', settings: 'Add-on settings (JSON)', settingsHint: 'Auth0 SAML2 Web App members such as audience, mappings, signResponse and nameIdentifierProbes. An empty object uses the defaults.',
+  invalidJSON: 'Enter a JSON object.', usage: 'Usage', loginURL: 'Identity provider login URL', metadata: 'Identity provider metadata', logoutURL: 'Single logout URL', issuer: 'Issuer',
+  source: 'Identity provider configuration', fromMetadata: 'From a metadata URL', manual: 'Sign-in URL and certificate', metadataURL: 'Metadata URL', signIn: 'Sign-in URL',
+  signingCert: 'Signing certificate', signingCertHint: 'The identity provider\'s PEM certificate.', certInvalid: 'Enter a PEM or base64 DER certificate.',
+  acs: 'Assertion consumer service URL:', sp: 'Service provider', entityID: 'Entity ID', spMetadata: 'Service provider metadata',
+  replaceCertHint: 'Paste a PEM certificate to replace the stored one; leave empty to keep it.', signOut: 'Sign-out URL', signRequest: 'Sign authentication requests', disableSignout: 'Do not log out of the identity provider', idpInitiated: 'Allow IdP-initiated login', idpClient: 'Application for IdP-initiated login', idpQuery: 'Authorization query for IdP-initiated login', fieldsMap: 'Attribute mapping (JSON)',
+ },
  oidc41: {
   tab: 'OIDC and logout', logout: 'Back-channel logout', receiver: 'Logout receiver URL', receiverHint: 'One HTTPS URL, up to 2,048 bytes. Organization name and ID placeholders are supported. Clear to remove.', invalidURL: 'Enter one HTTPS URL without credentials, spaces or a fragment.',
   initiators: 'Send logout notifications when', custom: 'Selected events', all: 'All supported events', metadata: 'Include session metadata in logout tokens', tokens: 'OpenID Connect', algorithm: 'ID token signing algorithm', hsHint: 'HS256 requires a confidential application using a retrievable client secret of at least 32 characters. Rotate an unavailable secret in Settings.',
@@ -1291,6 +1299,7 @@ const en = {
       apple: 'Apple',
       github: 'GitHub',
       waad: 'Microsoft work or school account',
+      samlp: 'SAML',
     },
     enterpriseLink: 'Set up generic OpenID Connect or Microsoft work and school in Enterprise',
     appleServices: 'Services ID',

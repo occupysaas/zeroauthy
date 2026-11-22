@@ -15,6 +15,7 @@ import EnterpriseSettings from '../enterprise/Settings.vue'
 import Mapping from '../enterprise/Mapping.vue'
 import Keys from '../enterprise/Keys.vue'
 import LoginExperience from '../enterprise/LoginExperience.vue'
+import SamlSettings from '../enterprise/SamlSettings.vue'
 import { isFederated } from './social'
 
 const { t } = useI18n()
@@ -27,7 +28,8 @@ const error = ref('')
 const notFound = ref(false)
 const tab = ref('settings')
 const oidc = computed(() => ['oidc','okta'].includes(connection.value?.strategy ?? ''))
-const enterpriseConnection = computed(() => ['oidc','okta','waad'].includes(connection.value?.strategy ?? ''))
+const enterpriseConnection = computed(() => ['oidc','okta','waad','samlp'].includes(connection.value?.strategy ?? ''))
+const saml = computed(() => connection.value?.strategy === 'samlp')
 let seq = 0
 
 // A reload keeps the shown connection (and the editor's draft) when it
@@ -75,7 +77,7 @@ watch([tenant, () => route.params.id], load, { immediate: true })
           <TabsTrigger class="tab" value="danger">{{ t('social.danger') }}</TabsTrigger>
         </TabsList>
         <TabsContent value="settings">
-          <EnterpriseSettings v-if="oidc" :tenant="tenant" :connection="connection" @saved="connection = $event" /><Settings v-else :tenant="tenant" :connection="connection" @saved="connection = $event" />
+          <SamlSettings v-if="saml" :tenant="tenant" :connection="connection" @saved="connection = $event" /><EnterpriseSettings v-else-if="oidc" :tenant="tenant" :connection="connection" @saved="connection = $event" /><Settings v-else :tenant="tenant" :connection="connection" @saved="connection = $event" />
         </TabsContent>
         <TabsContent v-if="oidc" value="mapping"><Mapping :tenant="tenant" :connection="connection" @saved="connection = $event" /></TabsContent><TabsContent v-if="oidc" value="keys"><Keys :tenant="tenant" :connection="connection" /></TabsContent><TabsContent v-if="enterpriseConnection" value="experience"><LoginExperience :tenant="tenant" :connection="connection" @saved="connection = $event" /></TabsContent>
         <TabsContent value="clients">
