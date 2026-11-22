@@ -44,7 +44,8 @@ func (idp fixtureIdP) response(t *testing.T, id, inResponseTo, audience, acs, na
 		as = append(as, samlcore.Attribute{Name: k, Values: []string{v}})
 	}
 	a := samlcore.BuildAssertion(samlcore.AssertionSpec{ID: id, IssueInstant: now, Issuer: "https://idp.saml.test", NameID: nameID, Audience: audience,
-		Recipient: acs, InResponseTo: inResponseTo, NotBefore: now, NotOnOrAfter: now.Add(5 * time.Minute), AuthnInstant: now, Attributes: as})
+		Recipient: acs, InResponseTo: inResponseTo, NotBefore: now, NotOnOrAfter: now.Add(5 * time.Minute), AuthnInstant: now, Attributes: as,
+		SessionIndex: "idp-sess" + id})
 	signed, err := samlcore.Signer{Key: idp.key, Cert: idp.cert}.SignEnveloped(a)
 	if err != nil {
 		t.Fatal(err)
@@ -255,5 +256,115 @@ func TestSAMLSPEncryptedAssertion(t *testing.T) {
 	}
 	if _, err := e.st.Users().Get(t.Context(), tn.ID, "samlp|corp-saml|encrypted-user"); err != nil {
 		t.Fatal("encrypted-assertion user not provisioned")
+	}
+}
+
+func TestSAMLSPMetadata(t *testing.T) {
+	e, _, _ := samlConnEnv(t, map[string]any{"signSAMLRequest": true})
+	resp, body := fetch(t, e.client(t), e.base+"/samlp/metadata?connection=corp-saml")
+	if resp.StatusCode != 200 {
+		t.Fatalf("SP metadata: %d", resp.StatusCode)
+	}
+	md, err := samlcore.ParseMetadata([]byte(body))
+	if err != nil || md.SP == nil {
+		t.Fatalf("SP metadata: %v", err)
+	}
+	if md.EntityID != "urn:auth0:flow:corp-saml" || len(md.SP.ACS) != 1 || md.SP.ACS[0].Location != e.base+"/login/callback?connection=corp-saml" ||
+		md.SP.ACS[0].Binding != samlcore.BindingPOST || len(md.SP.SigningCerts) == 0 || len(md.SP.EncryptionCerts) == 0 || !md.SP.AuthnRequestsSigned ||
+		len(md.SP.SLO) == 0 || md.SP.SLO[0].Location != e.base+"/samlp/logout?connection=corp-saml" {
+		t.Fatalf("SP descriptor %+v", md.SP)
+	}
+	if resp, _ := fetch(t, e.client(t), e.base+"/samlp/metadata?connection=nope"); resp.StatusCode != 404 {
+		t.Fatalf("unknown connection: %d", resp.StatusCode)
+	}
+}
+
+// samlLogin completes an SP-initiated SAML login for c.
+func samlLogin(t *testing.T, e *flowEnv, c *http.Client, idp fixtureIdP) {
+	t.Helper()
+	acs := e.base + "/login/callback?connection=corp-saml"
+	ar, relay := startSAML(t, e, c)
+	resp := postACS(t, e, c, idp.response(t, "_slo", ar.ID, "urn:auth0:flow:corp-saml", acs, "jdoe", nil), relay)
+	for i := 0; i < 5 && resp.StatusCode/100 == 3; i++ {
+		loc, _ := resp.Location()
+		if loc.Host == "app.flow.test" {
+			return
+		}
+		resp, _ = fetch(t, c, e.base+loc.RequestURI())
+	}
+	t.Fatalf("SAML login did not complete: %d", resp.StatusCode)
+}
+
+func TestSAMLSPSingleLogout(t *testing.T) {
+	e, tn, idp := samlConnEnv(t, map[string]any{"signOutEndpoint": "https://idp.saml.test/slo"})
+	c := e.client(t)
+	samlLogin(t, e, c, idp)
+	sessions, _ := e.st.Sessions().ListByUser(t.Context(), tn.ID, "samlp|corp-saml|jdoe")
+	if len(sessions) != 1 {
+		t.Fatalf("sessions %d", len(sessions))
+	}
+	resp, _ := fetch(t, c, e.base+"/v2/logout?client_id=spa&returnTo="+url.QueryEscape("https://app.flow.test/bye"))
+	loc, _ := resp.Location()
+	if resp.StatusCode != 302 || loc == nil || loc.Host != "idp.saml.test" || loc.Path != "/slo" {
+		t.Fatalf("logout did not go to the IdP: %d %v", resp.StatusCode, loc)
+	}
+	if _, err := e.st.Sessions().Get(t.Context(), tn.ID, sessions[0].ID); err == nil {
+		t.Fatal("local session not ended")
+	}
+	msg, err := samlcore.DecodeRedirect(loc.RawQuery)
+	if err != nil {
+		t.Fatal(err)
+	}
+	lr, err := samlcore.ParseLogoutRequest(msg.Doc.Root())
+	if err != nil || lr.NameID != "jdoe" || lr.SessionIndex != "idp-sess_slo" || lr.Issuer != "urn:auth0:flow:corp-saml" || lr.Destination != "https://idp.saml.test/slo" {
+		t.Fatalf("LogoutRequest %+v %v", lr, err)
+	}
+	// The IdP answers; the browser returns to returnTo.
+	lresp := samlcore.BuildLogoutResponse(samlcore.LogoutResponse{ID: "_lresp", InResponseTo: lr.ID, IssueInstant: time.Now(), Issuer: "https://idp.saml.test", StatusCode: samlcore.StatusSuccess})
+	u, _ := samlcore.EncodeRedirect(e.base+"/samlp/logout?connection=corp-saml", samlcore.ParamResponse, lresp, msg.RelayState, &samlcore.Signer{Key: idp.key, Cert: idp.cert})
+	resp, _ = fetch(t, c, u)
+	if loc, _ := resp.Location(); resp.StatusCode != 302 || loc == nil || loc.String() != "https://app.flow.test/bye" {
+		t.Fatalf("after IdP logout response: %d %v", resp.StatusCode, loc)
+	}
+}
+
+func TestSAMLSPDisableSignout(t *testing.T) {
+	e, _, idp := samlConnEnv(t, map[string]any{"signOutEndpoint": "https://idp.saml.test/slo", "disableSignout": true})
+	c := e.client(t)
+	samlLogin(t, e, c, idp)
+	resp, _ := fetch(t, c, e.base+"/v2/logout?client_id=spa&returnTo="+url.QueryEscape("https://app.flow.test/bye"))
+	if loc, _ := resp.Location(); loc == nil || loc.Host != "app.flow.test" {
+		t.Fatalf("disableSignout still went to the IdP: %v", loc)
+	}
+}
+
+// An IdP-initiated LogoutRequest must be signed by the IdP and name the
+// session's user; it ends the session and is answered with a LogoutResponse.
+func TestSAMLSPIdPInitiatedLogout(t *testing.T) {
+	e, tn, idp := samlConnEnv(t, map[string]any{"signOutEndpoint": "https://idp.saml.test/slo"})
+	c := e.client(t)
+	samlLogin(t, e, c, idp)
+	sessions, _ := e.st.Sessions().ListByUser(t.Context(), tn.ID, "samlp|corp-saml|jdoe")
+	lr := samlcore.BuildLogoutRequest(samlcore.LogoutRequest{ID: "_idplr", IssueInstant: time.Now(), Issuer: "https://idp.saml.test", NameID: "jdoe", SessionIndex: "idp-sess_slo"})
+	unsigned, _ := samlcore.EncodeRedirect(e.base+"/samlp/logout?connection=corp-saml", samlcore.ParamRequest, lr, "", nil)
+	if resp, _ := fetch(t, c, unsigned); resp.StatusCode != 400 {
+		t.Fatalf("unsigned IdP LogoutRequest: %d", resp.StatusCode)
+	}
+	if _, err := e.st.Sessions().Get(t.Context(), tn.ID, sessions[0].ID); err != nil {
+		t.Fatal("unsigned LogoutRequest ended the session")
+	}
+	signed, _ := samlcore.EncodeRedirect(e.base+"/samlp/logout?connection=corp-saml", samlcore.ParamRequest, lr, "r", &samlcore.Signer{Key: idp.key, Cert: idp.cert})
+	resp, _ := fetch(t, c, signed)
+	loc, _ := resp.Location()
+	if resp.StatusCode != 302 || loc == nil || loc.Host != "idp.saml.test" {
+		t.Fatalf("IdP-initiated logout answer: %d %v", resp.StatusCode, loc)
+	}
+	msg, _ := samlcore.DecodeRedirect(loc.RawQuery)
+	answer, err := samlcore.ParseLogoutResponse(msg.Doc.Root())
+	if err != nil || answer.InResponseTo != "_idplr" || answer.StatusCode != samlcore.StatusSuccess || msg.RelayState != "r" {
+		t.Fatalf("LogoutResponse %+v %v", answer, err)
+	}
+	if _, err := e.st.Sessions().Get(t.Context(), tn.ID, sessions[0].ID); err == nil {
+		t.Fatal("IdP-initiated logout did not end the session")
 	}
 }

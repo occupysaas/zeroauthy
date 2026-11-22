@@ -111,6 +111,9 @@ func ClientNeedsSAML(c *Client) bool { return c != nil && c.Addons != nil }
 // SAMLParticipant is a SAML service provider a session answered: what a
 // LogoutRequest to it must name.
 type SAMLParticipant struct {
+	// ConnectionID marks the upstream SAML IdP this session signed in with
+	// (SP single logout); ClientID is then empty.
+	ConnectionID string `json:"connection_id,omitempty"`
 	ClientID     string `json:"client_id"`
 	NameID       string `json:"name_id"`
 	NameIDFormat string `json:"name_id_format,omitempty"`
@@ -129,7 +132,7 @@ type SAMLSessionRecorder interface {
 func UpsertSAMLParticipant(ps []SAMLParticipant, p SAMLParticipant) []SAMLParticipant {
 	out := make([]SAMLParticipant, 0, len(ps)+1)
 	for _, e := range ps {
-		if e.ClientID != p.ClientID {
+		if e.ClientID != p.ClientID || e.ConnectionID != p.ConnectionID {
 			out = append(out, e)
 		}
 	}

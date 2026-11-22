@@ -280,7 +280,7 @@ func (r sessions) RecordSAMLParticipant(ctx context.Context, tid, id string, p s
 			return err
 		}
 		current.SAMLParticipants = store.UpsertSAMLParticipant(current.SAMLParticipants, p)
-		if !slices.Contains(current.ClientIDs, p.ClientID) {
+		if p.ClientID != "" && !slices.Contains(current.ClientIDs, p.ClientID) {
 			current.ClientIDs = append(current.ClientIDs, p.ClientID)
 		}
 		ids, err := toJSON(current.ClientIDs)

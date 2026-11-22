@@ -122,21 +122,27 @@ func (h *Handlers) OidcLogout(w http.ResponseWriter, r *http.Request) {
 	if sess != nil {
 		*r = *r.WithContext(logs.WithEvent(r.Context(), logs.Event{UserID: sess.UserID, Connection: sess.Connection}))
 	}
-	if !h.endSession(w, r, res, view) {
+	ended, ok := h.endSession(w, r, res, view)
+	if !ok {
+		return
+	}
+	if target != "" {
+		if state := p.Get("state"); state != "" {
+			// Append to the registered URL byte for byte. AllowedURL rejects
+			// fragments, so the query is the end of the string.
+			sep := "?"
+			if strings.Contains(target, "?") {
+				sep = "&"
+			}
+			target += sep + "state=" + url.QueryEscape(state)
+		}
+	}
+	if h.upstream(w, r, res, ended, target) {
 		return
 	}
 	if target == "" {
 		ui.RenderLoggedOut(w, view)
 		return
-	}
-	if state := p.Get("state"); state != "" {
-		// Append to the registered URL byte for byte. AllowedURL rejects
-		// fragments, so the query is the end of the string.
-		sep := "?"
-		if strings.Contains(target, "?") {
-			sep = "&"
-		}
-		target += sep + "state=" + url.QueryEscape(state)
 	}
 	redirect(w, r, target)
 }

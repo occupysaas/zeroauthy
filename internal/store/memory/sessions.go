@@ -227,7 +227,7 @@ func (r sessions) RecordSAMLParticipant(_ context.Context, tenantID, id string, 
 	if !ok {
 		return store.ErrNotFound
 	}
-	if !slices.Contains(s.ClientIDs, p.ClientID) {
+	if p.ClientID != "" && !slices.Contains(s.ClientIDs, p.ClientID) {
 		s.ClientIDs = append(slices.Clone(s.ClientIDs), p.ClientID)
 	}
 	s.SAMLParticipants = store.UpsertSAMLParticipant(s.SAMLParticipants, p)

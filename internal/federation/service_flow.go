@@ -330,7 +330,9 @@ type CompleteInput struct {
 	// Commit runs inside the final transaction after every eligibility check
 	// and the identity/token writes: it creates the local session and
 	// consumes the login transaction through tx.
-	Commit func(tx store.Store, user *store.User, txn *store.AuthTransaction, conn *store.Connection) error
+	// upstream is the SAML IdP session (samlp logins only, else nil), to be
+	// carried by the new session for SP single logout.
+	Commit func(tx store.Store, user *store.User, txn *store.AuthTransaction, conn *store.Connection, upstream *store.SAMLParticipant) error
 }
 
 // Completion is a committed federated login.
@@ -552,7 +554,11 @@ func (s *FlowService) Complete(ctx context.Context, in CompleteInput) (*Completi
 				return ErrAttemptStale
 			}
 			if in.Commit != nil {
-				if err := in.Commit(tx, user, txn, conn); err != nil {
+				var upstream *store.SAMLParticipant
+				if assertion != nil {
+					upstream = assertion.upstream(conn)
+				}
+				if err := in.Commit(tx, user, txn, conn, upstream); err != nil {
 					return err
 				}
 			}

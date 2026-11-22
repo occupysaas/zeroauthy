@@ -22,14 +22,17 @@ import (
 const metadataCacheControl = "public, max-age=300"
 
 type Handlers struct {
-	Wrapper  keys.Wrapper
-	Compat   compat.Switches
-	DPoP     *dpop.Service
-	Keys     *keys.Manager
-	Store    store.Store
-	Sessions *session.Manager
-	Log      *slog.Logger
-	Now      func() time.Time
+	// UpstreamLogout continues a logout at the session's SAML IdP (Plan 37a);
+	// it reports whether it answered the request.
+	UpstreamLogout func(w http.ResponseWriter, r *http.Request, res tenant.Resolved, ended *store.LoginSession, returnTo string) bool
+	Wrapper        keys.Wrapper
+	Compat         compat.Switches
+	DPoP           *dpop.Service
+	Keys           *keys.Manager
+	Store          store.Store
+	Sessions       *session.Manager
+	Log            *slog.Logger
+	Now            func() time.Time
 }
 
 func (h *Handlers) now() time.Time {

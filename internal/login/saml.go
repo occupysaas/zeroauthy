@@ -47,9 +47,13 @@ func (h *Handlers) samlCallback(w http.ResponseWriter, r *http.Request) {
 		h.socialFailure(w, r, nil, err)
 		return
 	}
-	if _, err := h.Authz.Sessions.Start(ctx, w, r, res.Tenant, out.User.UserID, out.Connection.Name, h.now(), store.AuthMethod{Name: "federated"}); err != nil {
+	sess, err := h.Authz.Sessions.Start(ctx, w, r, res.Tenant, out.User.UserID, out.Connection.Name, h.now(), store.AuthMethod{Name: "federated"})
+	if err != nil {
 		h.socialFailure(w, r, nil, err)
 		return
+	}
+	if err := federation.RecordSAMLUpstream(ctx, h.Store, res.Tenant.ID, sess.ID, out.Upstream); err != nil {
+		h.log().WarnContext(ctx, "saml: record upstream session", "tenant", res.Tenant.ID, "err", err)
 	}
 	next := "/authorize?" + out.Query.Encode()
 	if out.Protocol == "samlp" {

@@ -51,7 +51,8 @@ func (h *Handlers) Logout(w http.ResponseWriter, r *http.Request) {
 		ui.RenderError(w, http.StatusBadRequest, view, view.L.T(i18n.KeyErrLogoutURL))
 		return
 	}
-	if !h.endSession(w, r, res, view) {
+	ended, ok := h.endSession(w, r, res, view)
+	if !ok || h.upstream(w, r, res, ended, returnTo) {
 		return
 	}
 	if returnTo == "" {
@@ -104,20 +105,26 @@ func firstConcrete(allowed []string) string {
 
 // endSession ends the browser's session. On a store failure it renders the
 // error page and returns false.
-func (h *Handlers) endSession(w http.ResponseWriter, r *http.Request, res tenant.Resolved, view ui.Tenant) bool {
+func (h *Handlers) endSession(w http.ResponseWriter, r *http.Request, res tenant.Resolved, view ui.Tenant) (*store.LoginSession, bool) {
 	ctx := r.Context()
 	s, err := h.Sessions.End(ctx, w, r, res.Tenant)
 	if err != nil {
 		h.recordLogout(r, nil, "flo")
 		h.log().ErrorContext(ctx, "end session", "tenant", res.Tenant.ID, "err", err)
 		ui.RenderError(w, http.StatusInternalServerError, view, view.L.T(i18n.KeyErrServer))
-		return false
+		return nil, false
 	}
 	h.recordLogout(r, s, "slo")
 	if s != nil {
 		h.log().InfoContext(ctx, "logged out", "tenant", res.Tenant.ID, "session", s.ID, "user_id", s.UserID)
 	}
-	return true
+	return s, true
+}
+
+// upstream hands the browser to a SAML IdP's single logout when the ended
+// session came from one (Plan 37a); target is where it returns.
+func (h *Handlers) upstream(w http.ResponseWriter, r *http.Request, res tenant.Resolved, ended *store.LoginSession, target string) bool {
+	return h.UpstreamLogout != nil && ended != nil && h.UpstreamLogout(w, r, res, ended, target)
 }
 
 func redirect(w http.ResponseWriter, r *http.Request, to string) {

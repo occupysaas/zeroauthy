@@ -358,7 +358,7 @@ func (h *Handlers) finishCallback(w http.ResponseWriter, r *http.Request, res te
 			}
 			return nil
 		},
-		Commit: func(tx store.Store, user *store.User, txn *store.AuthTransaction, conn *store.Connection) error {
+		Commit: func(tx store.Store, user *store.User, txn *store.AuthTransaction, conn *store.Connection, upstream *store.SAMLParticipant) error {
 			bound := *h.Authz
 			bound.Store = tx
 			if bound.Sessions != nil {
@@ -367,7 +367,7 @@ func (h *Handlers) finishCallback(w http.ResponseWriter, r *http.Request, res te
 				bound.Sessions = &sm
 			}
 			var err error
-			sess, err = bound.BeginLogin(w, r, res, txn, user, conn.Name, store.AuthMethod{Name: "federated"})
+			sess, err = bound.BeginLoginWithSAML(w, r, res, txn, user, conn.Name, upstream, store.AuthMethod{Name: "federated"})
 			return err
 		},
 	})

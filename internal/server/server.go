@@ -157,6 +157,7 @@ type authAPI struct {
 	authz  *authz.Handlers
 	dbconn *dbconn.Handlers
 	saml   *samlidp.Handler
+	login  *login.Handlers
 
 	passwordless *passwordless.Handlers
 }
@@ -334,7 +335,7 @@ func New(d Deps) http.Handler {
 		})
 		proofService := &dpop.Service{Store: d.Store, Wrapper: d.Wrapper}
 		authapi.HandlerWithOptions(authAPI{
-			oidc: &oidc.Handlers{Wrapper: d.Wrapper, Compat: d.Compat, DPoP: proofService, Keys: d.Keys, Store: d.Store, Sessions: d.Sessions, Log: d.Log},
+			oidc: &oidc.Handlers{UpstreamLogout: lg.UpstreamLogout, Wrapper: d.Wrapper, Compat: d.Compat, DPoP: proofService, Keys: d.Keys, Store: d.Store, Sessions: d.Sessions, Log: d.Log},
 			oauth: &oauth.Handlers{Compat: d.Compat, Logout: d.Logout,
 				DPoP:       proofService,
 				Federation: d.Federation,
@@ -353,6 +354,7 @@ func New(d Deps) http.Handler {
 			},
 			authz:        az,
 			saml:         samlIdP,
+			login:        lg,
 			dbconn:       dbconnHandlers,
 			passwordless: &passwordless.Handlers{Service: pwl, Authz: az, Sessions: d.Sessions, TrustProxyHeaders: d.TrustProxyHeaders, Log: d.Log},
 		}, authapi.ChiServerOptions{
@@ -552,19 +554,14 @@ func operatorOnly(next http.Handler) http.Handler {
 	})
 }
 
-// SAML routes (Plan 37a). Until the IdP and SP handlers land these answer
-// 501 so the generated router compiles and the contract is routable.
-func samlNotImplemented(w http.ResponseWriter) {
-	httpx.WriteError(w, http.StatusNotImplemented, "not_implemented", "SAML is not implemented yet")
+func (a authAPI) SamlpSPMetadata(w http.ResponseWriter, r *http.Request, p authapi.SamlpSPMetadataParams) {
+	a.login.SAMLSPMetadata(w, r, p.Connection)
 }
-func (authAPI) SamlpSPMetadata(w http.ResponseWriter, _ *http.Request, _ authapi.SamlpSPMetadataParams) {
-	samlNotImplemented(w)
+func (a authAPI) SamlpSPLogout(w http.ResponseWriter, r *http.Request, p authapi.SamlpSPLogoutParams) {
+	a.login.SAMLSPLogout(w, r, p.Connection)
 }
-func (authAPI) SamlpSPLogout(w http.ResponseWriter, _ *http.Request, _ authapi.SamlpSPLogoutParams) {
-	samlNotImplemented(w)
-}
-func (authAPI) SamlpSPLogoutPost(w http.ResponseWriter, _ *http.Request, _ authapi.SamlpSPLogoutPostParams) {
-	samlNotImplemented(w)
+func (a authAPI) SamlpSPLogoutPost(w http.ResponseWriter, r *http.Request, p authapi.SamlpSPLogoutPostParams) {
+	a.login.SAMLSPLogout(w, r, p.Connection)
 }
 func (a authAPI) SamlpIdPMetadata(w http.ResponseWriter, r *http.Request, clientID string) {
 	a.saml.Metadata(w, r, clientID)

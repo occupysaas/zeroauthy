@@ -380,4 +380,13 @@ func testSAMLSessionParticipants(t *testing.T, newStore Factory) {
 	mustNoErr(t, err)
 	mustEqual(t, again.SAMLParticipants, want)
 	mustErrIs(t, rec.RecordSAMLParticipant(ctx, "ten_b", "sid", store.SAMLParticipant{ClientID: "x"}), store.ErrNotFound)
+	// An upstream IdP entry is kept beside the SPs and adds no client.
+	up := store.SAMLParticipant{ConnectionID: "con_up", NameID: "jdoe", SessionIndex: "idp-1"}
+	mustNoErr(t, rec.RecordSAMLParticipant(ctx, "ten_a", "sid", up))
+	got, err = s.Sessions().Get(ctx, "ten_a", "sid")
+	mustNoErr(t, err)
+	mustEqual(t, got.SAMLParticipants, append(want, up))
+	if slices.Contains(got.ClientIDs, "") {
+		t.Fatal("upstream entry added an empty client")
+	}
 }

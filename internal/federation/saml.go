@@ -111,9 +111,10 @@ func (s *FlowService) samlAuthnRequest(ctx context.Context, tenant *store.Tenant
 
 // samlAssertion is a validated SAML login.
 type samlAssertion struct {
-	Result    ProviderResult
-	ID        string
-	ExpiresAt time.Time
+	Result                             ProviderResult
+	ID                                 string
+	ExpiresAt                          time.Time
+	NameID, NameIDFormat, SessionIndex string
 }
 
 // samlValidate verifies a posted SAMLResponse for conn. inResponseTo is the
@@ -180,7 +181,8 @@ func (s *FlowService) samlValidate(ctx context.Context, tenant *store.Tenant, co
 	if !a.ConfirmationNotOnOrAfter.IsZero() && a.ConfirmationNotOnOrAfter.After(exp) {
 		exp = a.ConfirmationNotOnOrAfter
 	}
-	return &samlAssertion{Result: ProviderResult{Profile: profile}, ID: a.ID, ExpiresAt: exp.Add(samlSkew)}, nil
+	return &samlAssertion{Result: ProviderResult{Profile: profile}, ID: a.ID, ExpiresAt: exp.Add(samlSkew),
+		NameID: a.NameID, NameIDFormat: a.NameIDFormat, SessionIndex: a.SessionIndex}, nil
 }
 
 // samlDefaults are the attribute names tried for each profile field when
@@ -257,6 +259,7 @@ type SAMLUnsolicited struct {
 	ClientID   string
 	Protocol   string // "oidc" or "samlp"
 	Query      url.Values
+	Upstream   *store.SAMLParticipant
 }
 
 // CompleteSAMLUnsolicited validates an unsolicited response posted to the
@@ -298,7 +301,7 @@ func (s *FlowService) CompleteSAMLUnsolicited(ctx context.Context, tenant *store
 	}
 	q, _ := url.ParseQuery(ip.AuthorizeQuery)
 	q.Set("client_id", client.ClientID)
-	return &SAMLUnsolicited{User: user, Connection: conn, ClientID: client.ClientID, Protocol: ip.Protocol, Query: q}, nil
+	return &SAMLUnsolicited{User: user, Connection: conn, ClientID: client.ClientID, Protocol: ip.Protocol, Query: q, Upstream: assertion.upstream(conn)}, nil
 }
 
 // FetchSAMLMetadata reads an IdP metadata document through the federation
@@ -325,4 +328,22 @@ func (ps *Providers) FetchSAMLMetadata(ctx context.Context, u string) ([]byte, e
 		return nil, fmt.Errorf("%w: status %d", ErrProviderResponse, resp.StatusCode)
 	}
 	return body, nil
+}
+
+// upstream is the session record SP single logout needs.
+func (a *samlAssertion) upstream(conn *store.Connection) *store.SAMLParticipant {
+	return &store.SAMLParticipant{ConnectionID: conn.ID, NameID: a.NameID, NameIDFormat: a.NameIDFormat, SessionIndex: a.SessionIndex}
+}
+
+// RecordSAMLUpstream stores the upstream IdP of a session for SP single
+// logout. Stores without saml.v1 skip it (no SP logout then).
+func RecordSAMLUpstream(ctx context.Context, st store.Store, tenantID, sessionID string, p *store.SAMLParticipant) error {
+	if p == nil {
+		return nil
+	}
+	rec, ok := st.Sessions().(store.SAMLSessionRecorder)
+	if !ok {
+		return nil
+	}
+	return rec.RecordSAMLParticipant(ctx, tenantID, sessionID, *p)
 }

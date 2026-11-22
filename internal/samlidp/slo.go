@@ -182,6 +182,9 @@ func (h *Handler) logoutRequest(w http.ResponseWriter, r *http.Request, res tena
 	matched := false
 	if sess != nil && (lr.SessionIndex == "" || lr.SessionIndex == sess.ID) {
 		for _, p := range sess.SAMLParticipants {
+			if p.ConnectionID != "" {
+				continue // an upstream IdP, not a service provider we answered
+			}
 			if p.ClientID == client.ClientID {
 				matched = p.NameID == lr.NameID
 				continue
