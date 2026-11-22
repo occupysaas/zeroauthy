@@ -42,5 +42,7 @@ internal/third_party/goxmldsig/ is a copy of github.com/russellhaering/goxmldsig
 at v1.6.1 (https://github.com/russellhaering/goxmldsig), licensed under the
 Apache License, Version 2.0; its LICENSE file is beside the code. Modified:
 imports point at the vendored etree; clock.go no longer wraps
-github.com/jonboulle/clockwork and keeps only Now (marked in a comment);
-tls_keystore.go is gofmt-formatted; the tests were not copied.
+github.com/jonboulle/clockwork and keeps only Now; SigningContext gains an
+optional DigestHash so the digest and signature algorithms can differ;
+ValidationContext gains IgnoreCertificateValidity; tls_keystore.go is
+gofmt-formatted; the tests were not copied. Each change is marked in a comment.

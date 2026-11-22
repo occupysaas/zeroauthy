@@ -18,6 +18,10 @@ import (
 
 type SigningContext struct {
 	Hash crypto.Hash
+	// DigestHash, when set, is the reference digest algorithm; otherwise
+	// Hash is used for both. zeroauthy modification (D-0130): SAML lets the
+	// signature and digest algorithms be chosen independently.
+	DigestHash crypto.Hash
 
 	// This field will be nil and unused if the SigningContext is created with
 	// NewSigningContext
@@ -99,7 +103,7 @@ func (ctx *SigningContext) digest(el *etree.Element) ([]byte, error) {
 		return nil, err
 	}
 
-	hash := ctx.Hash.New()
+	hash := ctx.digestHash().New()
 	_, err = hash.Write(canonical)
 	if err != nil {
 		return nil, err
@@ -312,7 +316,7 @@ func (ctx *SigningContext) GetSignatureMethodIdentifier() string {
 }
 
 func (ctx *SigningContext) GetDigestAlgorithmIdentifier() string {
-	if ident, ok := digestAlgorithmIdentifiers[ctx.Hash]; ok {
+	if ident, ok := digestAlgorithmIdentifiers[ctx.digestHash()]; ok { // zeroauthy modification: DigestHash
 		return ident
 	}
 	return ""
@@ -331,4 +335,12 @@ func (ctx *SigningContext) SignString(content string) ([]byte, error) {
 	digest := hash.Sum(nil)
 
 	return ctx.signDigest(digest)
+}
+
+// digestHash returns DigestHash when set, else Hash. zeroauthy modification.
+func (ctx *SigningContext) digestHash() crypto.Hash {
+	if ctx.DigestHash != 0 {
+		return ctx.DigestHash
+	}
+	return ctx.Hash
 }

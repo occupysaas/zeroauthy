@@ -28,6 +28,10 @@ type ValidationContext struct {
 	CertificateStore X509CertificateStore
 	IdAttribute      string
 	Clock            *Clock
+	// IgnoreCertificateValidity skips the trusted certificate's NotBefore and
+	// NotAfter check. zeroauthy modification (D-0130): SAML metadata trust
+	// anchors are honoured regardless of their validity dates.
+	IgnoreCertificateValidity bool
 }
 
 func NewDefaultValidationContext(certificateStore X509CertificateStore) *ValidationContext {
@@ -556,7 +560,7 @@ func (ctx *ValidationContext) verifyCertificate(sig *types.Signature) (*x509.Cer
 
 	// Verify that the certificate is one we trust
 
-	if now.Before(trustedCert.NotBefore) || now.After(trustedCert.NotAfter) {
+	if !ctx.IgnoreCertificateValidity && (now.Before(trustedCert.NotBefore) || now.After(trustedCert.NotAfter)) {
 		return nil, errors.New("Cert is not valid at this time")
 	}
 
