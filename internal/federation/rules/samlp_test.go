@@ -5,6 +5,7 @@ import (
 	"crypto/rsa"
 	"crypto/x509"
 	"crypto/x509/pkix"
+	"encoding/base64"
 	"encoding/pem"
 	"math/big"
 	"strings"
@@ -41,6 +42,10 @@ func TestParseSAML(t *testing.T) {
 	der := strings.Join(strings.Split(strings.TrimSpace(strings.TrimSuffix(strings.TrimPrefix(cert, "-----BEGIN CERTIFICATE-----"), "-----END CERTIFICATE-----\n")), "\n"), "")
 	if _, errs := Parse(Input{Strategy: SAMLP, Name: "corp", Options: map[string]any{"signInEndpoint": "https://idp/sso", "cert": der}}); len(errs) > 0 {
 		t.Fatalf("legacy cert: %v", errs)
+	}
+	// Base64 of the PEM, as the Deploy CLI exports and re-imports it.
+	if s, errs := Parse(Input{Strategy: SAMLP, Name: "corp", Options: map[string]any{"signInEndpoint": "https://idp/sso", "signingCert": base64.StdEncoding.EncodeToString([]byte(cert))}}); len(errs) > 0 || len(s.SAML.Certs) != 1 {
+		t.Fatalf("base64 PEM: %v", errs)
 	}
 	for name, mutate := range map[string]func(map[string]any){
 		"no endpoint":          func(o map[string]any) { delete(o, "signInEndpoint") },

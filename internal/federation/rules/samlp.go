@@ -54,6 +54,11 @@ func parseSAMLCert(s string) ([]byte, error) {
 			return nil, err
 		}
 		der = b
+		// Base64 of a PEM certificate, Auth0's stored form (the Deploy CLI
+		// exports and re-imports it so).
+		if block, _ := pem.Decode(b); block != nil && block.Type == "CERTIFICATE" {
+			der = block.Bytes
+		}
 	}
 	if _, err := x509.ParseCertificate(der); err != nil {
 		return nil, err
@@ -208,7 +213,7 @@ func parseSAML(in Input) (Settings, []error) {
 		if v := text(k, 16384); v != "" {
 			der, err := parseSAMLCert(v)
 			if err != nil {
-				fail("options.%s must be a PEM or base64 DER certificate", k)
+				fail("options.%s must be a PEM, base64 PEM or base64 DER certificate", k)
 				continue
 			}
 			if !slices.ContainsFunc(s.Certs, func(c []byte) bool { return string(c) == string(der) }) {
