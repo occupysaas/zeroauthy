@@ -716,7 +716,10 @@ func TestServerTxChaos(t *testing.T) {
 // Unimplemented. A panic (e.g. a store given a nil value) still proves the
 // method is ours.
 func TestServerImplementsEveryMethod(t *testing.T) {
-	srv := NewServer(memory.New())
+	// The empty BeginTx request opens a transaction nobody ends; a short idle
+	// timeout rolls it back so the calls after it don't wait a minute for the
+	// store lock.
+	srv := NewServer(memory.New(), WithTxIdleTimeout(10*time.Millisecond))
 	defer srv.Close()
 	v := reflect.ValueOf(srv)
 	for _, md := range storev1.StoreService_ServiceDesc.Methods {

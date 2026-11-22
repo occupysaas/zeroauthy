@@ -11,7 +11,8 @@ on:
 permissions: {}
 
 jobs:
-  test:
+  checks:
+    # Formatting, vet, build and generated code. The tests run in go-test.
     runs-on: ubuntu-latest
     permissions:
       contents: read # check out the repository
@@ -25,6 +26,47 @@ jobs:
       - name: gofmt
         run: test -z "$(gofmt -l .)" || (gofmt -l . && exit 1)
       - run: go vet ./...
+      - run: CGO_ENABLED=0 go build ./cmd/zeroauthy
+      - name: generated code is up to date
+        run: go generate ./... && git diff --exit-code
+  test-groups:
+    # The go-test matrix comes from scripts/test-group.sh, so every group and
+    # store shard it defines is tested and no package is left out.
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read # check out the repository
+    outputs:
+      jobs: ${{ steps.list.outputs.jobs }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
+        with:
+          go-version-file: go.mod
+      - id: list
+        run: echo "jobs=$(./scripts/test-group.sh --json)" >> "$GITHUB_OUTPUT"
+  go-test:
+    name: go-test (${{ matrix.group }})
+    # go test -race by area (scripts/test-group.sh --list). One job per group
+    # so a slow area can't push the others past the timeout, and a failure
+    # names the area.
+    needs: test-groups
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: read # check out the repository
+    strategy:
+      fail-fast: false
+      matrix:
+        group: ${{ fromJSON(needs.test-groups.outputs.jobs) }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
+        with:
+          go-version-file: go.mod
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 26
@@ -33,16 +75,12 @@ jobs:
       # Compiler scratch stays on disk so builds cannot exhaust /dev/shm.
       - name: temporary storage for tests
         run: install -d -m 700 /dev/shm/za-test /tmp/za-build
-      # grpcstore and sqlstore run longer than go test's 10-minute default
-      # under -race on hosted runners.
-      - run: go test -race -timeout=60m ./...
+      - run: ./scripts/test-group.sh "$GROUP" -race -timeout=45m
         env:
+          GROUP: ${{ matrix.group }}
           TMPDIR: /dev/shm/za-test
           GOTMPDIR: /tmp/za-build
           ZA_REQUIRE_NODE: "1"
-      - run: CGO_ENABLED=0 go build ./cmd/zeroauthy
-      - name: generated code is up to date
-        run: go generate ./... && git diff --exit-code
   vulncheck:
     # Known-vulnerability scan of Go dependencies and the standard library.
     # Also a release gate, since release.yml reuses this workflow.
@@ -128,9 +166,21 @@ jobs:
           E2E_SUITE: ${{ matrix.suite }}
           ZA_REQUIRE_NODE: "1"
   sql:
+    # The SQL store on the server dialects, without -race (go-test already
+    # runs it under the race detector on SQLite), as the four store shards of
+    # scripts/test-group.sh: MySQL alone took 56 minutes in one job, because
+    # it creates a database per test. SQLite also runs in each job; it takes
+    # about a minute without -race.
+    name: sql (${{ matrix.dialect }} ${{ matrix.group }})
     runs-on: ubuntu-latest
+    timeout-minutes: 75
     permissions:
       contents: read # check out the repository
+    strategy:
+      fail-fast: false
+      matrix:
+        dialect: [postgres, mysql]
+        group: ["store-sqlite:1", "store-sqlite:2", "store-sqlite:3", "store-sqlite:other"]
     services:
       postgres:
         image: postgres:17
@@ -161,10 +211,8 @@ jobs:
       - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
         with:
           go-version-file: go.mod
-      # Without -race: the test job already runs this package under the race
-      # detector on SQLite; with it, PostgreSQL plus MySQL exceed 90 minutes
-      # on hosted runners.
-      - run: go test -count=1 -timeout=90m ./internal/store/sqlstore/...
+      - run: ./scripts/test-group.sh "$GROUP" -count=1 -timeout=70m
         env:
-          ZA_TEST_POSTGRES_DSN: postgres://postgres:zeroauthy@127.0.0.1:55432/postgres?sslmode=disable
-          ZA_TEST_MYSQL_DSN: mysql://root:zeroauthy@127.0.0.1:53306/
+          GROUP: ${{ matrix.group }}
+          ZA_TEST_POSTGRES_DSN: ${{ matrix.dialect == 'postgres' && 'postgres://postgres:zeroauthy@127.0.0.1:55432/postgres?sslmode=disable' || '' }}
+          ZA_TEST_MYSQL_DSN: ${{ matrix.dialect == 'mysql' && 'mysql://root:zeroauthy@127.0.0.1:53306/' || '' }}

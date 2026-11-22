@@ -1,4 +1,4 @@
-.PHONY: e2e-logout e2e-refresh-tokens e2e-apple e2e-github e2e-client-auth e2e-passkeys e2e-passwordless e2e-mfa e2e-events e2e-logs e2e-organizations-ii e2e-organizations build test test-sql lint generate check-sources e2e e2e-actions e2e-actions-ii e2e-rbac e2e-email-accounts e2e-social e2e-deploy e2e-signing e2e-email e2e-branding e2e-domains conformance console
+.PHONY: e2e-logout e2e-refresh-tokens e2e-apple e2e-github e2e-client-auth e2e-passkeys e2e-passwordless e2e-mfa e2e-events e2e-logs e2e-organizations-ii e2e-organizations build test test-group test-groups test-sql lint generate check-sources e2e e2e-actions e2e-actions-ii e2e-rbac e2e-email-accounts e2e-social e2e-deploy e2e-signing e2e-email e2e-branding e2e-domains conformance console
 
 build:
 	CGO_ENABLED=0 go build -trimpath -o bin/zeroauthy ./cmd/zeroauthy
@@ -6,6 +6,15 @@ build:
 
 test:
 	go test ./...
+
+# One area of the Go tests, as CI runs it: make test-group G=protocol
+# (G=store-sqlite:2 for one store shard; ARGS="-race -v" for extra flags).
+test-group:
+	@test -n "$(G)" || { echo "usage: make test-group G=<group> [ARGS=...]; groups: make test-groups" >&2; exit 2; }
+	./scripts/test-group.sh $(G) $(ARGS)
+
+test-groups:
+	./scripts/test-group.sh --list
 
 test-sql:
 	./scripts/test-sql.sh
@@ -99,6 +108,3 @@ e2e-actions-ii:
 
 e2e-refresh-tokens:
 	./tests/e2e/run-m48-refresh-tokens.sh
-
-e2e-logout:
-	./tests/e2e/run-m41a-logout.sh
