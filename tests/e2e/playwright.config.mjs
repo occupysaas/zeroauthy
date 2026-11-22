@@ -9,6 +9,7 @@ export default defineConfig({
   // run-m39a-apple.sh and run-m39c-github.sh enable their complete lanes.
   testIgnore: [
     ...(process.env.E2E_M41A === '1' ? [] : ['m41a-logout.spec.mjs']),
+    ...(process.env.E2E_M37A === '1' ? [] : ['m37a-saml.spec.mjs']),
     ...(process.env.E2E_M39A === '1' ? [] : ['m39a-apple.spec.mjs']),
     ...(process.env.E2E_M39C === '1' ? [] : ['m39c-github.spec.mjs']),
   ],

@@ -445,11 +445,12 @@ func (s capabilityStore) LogsSupported() bool                                { r
 func (s capabilityStore) MicrosoftFederationSupported(context.Context) error { return s.sentinel }
 func (s capabilityStore) CheckEventsSupport(context.Context) error           { return s.sentinel }
 func (s capabilityStore) EventsSupported() bool                              { return false }
+func (s capabilityStore) CheckSAMLSupport(context.Context) error             { return s.sentinel }
 func TestDecoratorForwardsCapabilities(t *testing.T) {
 	ctx := context.Background()
 	sentinel := errors.New("capability failure")
 	s := events.Wrap(capabilityStore{Store: memory.New(), sentinel: sentinel}, events.Config{})
-	for name, probe := range map[string]func(context.Context) error{"rbac": s.(store.RBACSupporter).CheckRBACSupport, "actions": s.(store.ActionsSupporter).CheckActionsSupport, "organizations": s.(store.OrganizationsSupporter).CheckOrganizationsSupport, "organizationsII": s.(store.OrganizationsIISupporter).CheckOrganizationsIISupport, "logs": s.(store.LogsSupporter).CheckLogsSupport, "microsoft": s.(store.MicrosoftFederationSupporter).MicrosoftFederationSupported, "events": s.(store.EventsSupporter).CheckEventsSupport} {
+	for name, probe := range map[string]func(context.Context) error{"rbac": s.(store.RBACSupporter).CheckRBACSupport, "actions": s.(store.ActionsSupporter).CheckActionsSupport, "organizations": s.(store.OrganizationsSupporter).CheckOrganizationsSupport, "organizationsII": s.(store.OrganizationsIISupporter).CheckOrganizationsIISupport, "logs": s.(store.LogsSupporter).CheckLogsSupport, "microsoft": s.(store.MicrosoftFederationSupporter).MicrosoftFederationSupported, "events": s.(store.EventsSupporter).CheckEventsSupport, "saml": s.(store.SAMLSupporter).CheckSAMLSupport} {
 		if err := probe(ctx); !errors.Is(err, sentinel) {
 			t.Fatalf("%s lost error: %v", name, err)
 		}
@@ -688,5 +689,29 @@ func TestDecoratorUnavailableWithoutProbe(t *testing.T) {
 	}
 	if err := s.(store.EventsSupporter).CheckEventsSupport(context.Background()); !errors.Is(err, store.ErrEventsUnavailable) {
 		t.Fatal(err)
+	}
+}
+
+// The decorator forwards the SAML replay store, also inside transactions:
+// SAML SP logins consume assertion IDs in the commit transaction (Plan 37a).
+func TestDecoratorForwardsSAMLReplay(t *testing.T) {
+	ctx := context.Background()
+	s := events.Wrap(memory.New(), events.Config{})
+	now := time.Now()
+	use := func(st store.Store) error {
+		repo, ok := st.(store.SAMLReplayStore)
+		if !ok {
+			t.Fatalf("%T hides SAMLReplayStore", st)
+		}
+		return repo.UseSAMLAssertion(ctx, "t", "c", "_a1", now.Add(time.Minute), now)
+	}
+	if err := s.WithTx(ctx, use); err != nil {
+		t.Fatal(err)
+	}
+	if err := use(s); !errors.Is(err, store.ErrConflict) {
+		t.Fatalf("replay through the decorator: %v", err)
+	}
+	if n, err := s.(store.SAMLReplayStore).PurgeSAMLAssertions(ctx, now.Add(time.Hour), 10); err != nil || n != 1 {
+		t.Fatalf("purge through the decorator: %d %v", n, err)
 	}
 }

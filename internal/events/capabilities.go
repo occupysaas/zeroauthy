@@ -2,6 +2,7 @@ package events
 
 import (
 	"context"
+	"time"
 
 	"github.com/zeroauthy/zeroauthy/internal/store"
 )
@@ -86,4 +87,24 @@ func (s *capture) GitHubFederationSupported(ctx context.Context) error {
 		return p.GitHubFederationSupported(ctx)
 	}
 	return store.ErrFederationUnavailable
+}
+
+// SAML (Plan 37a): the capability and the replay store pass through, also
+// on transaction stores, where SP logins consume assertion IDs.
+func (s *capture) CheckSAMLSupport(ctx context.Context) error {
+	return store.CheckSAMLSupport(ctx, s.Store)
+}
+func (s *capture) UseSAMLAssertion(ctx context.Context, tid, connection, id string, exp, now time.Time) error {
+	repo, ok := s.Store.(store.SAMLReplayStore)
+	if !ok {
+		return store.ErrSAMLUnavailable
+	}
+	return repo.UseSAMLAssertion(ctx, tid, connection, id, exp, now)
+}
+func (s *capture) PurgeSAMLAssertions(ctx context.Context, before time.Time, limit int) (int, error) {
+	repo, ok := s.Store.(store.SAMLReplayStore)
+	if !ok {
+		return 0, store.ErrSAMLUnavailable
+	}
+	return repo.PurgeSAMLAssertions(ctx, before, limit)
 }

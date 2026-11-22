@@ -10,6 +10,7 @@
     "@auth0/auth0-react": "2.28.2",
     "@auth0/auth0-spa-js": "2.28.3",
     "@auth0/nextjs-auth0": "4.32.0",
+    "@node-saml/node-saml": "5.2.0",
     "@playwright/test": "1.65.0",
     "auth0": "7.4.0",
     "auth0-deploy-cli": "9.1.0",
@@ -22,6 +23,7 @@
     "jwks-rsa": "4.1.0",
     "next": "15.5.27",
     "react": "19.3.1",
-    "react-dom": "19.3.1"
+    "react-dom": "19.3.1",
+    "samlify": "2.15.1"
   }
 }
