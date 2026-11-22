@@ -8,6 +8,15 @@ All notable changes to zeroauthy are recorded here. The format follows
 
 ### Added
 
+- SAML 2.0: the SAML2 Web App add-on (`addons.samlp`) makes zeroauthy a
+  SAML identity provider, with `api.samlResponse` in post-login Actions, and
+  `samlp` enterprise connections sign users in through upstream SAML
+  identity providers. Both directions support the Redirect and POST bindings
+  and signed single logout. Migration 0044 adds client add-ons, session SAML
+  participants and the assertion replay table; storage plugins need the
+  `saml.v1` capability. Console, seed and Deploy CLI support accompany it.
+  See [SAML](docs/saml.md).
+
 - OIDC claims requests, phone/address/profile claims, requested MFA step-up,
   per-client ID token algorithms, back-channel logout with durable delivery,
   and enterprise upstream global revocation. Console, seed and Deploy CLI

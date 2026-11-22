@@ -76,7 +76,8 @@ evidence log; the user-facing summary, with the gaps listed first, is
 | Management API v2: custom signing JWKS | Implemented as stored-only (Plan 20) | Public JWKS is isolated from canonical JWKS and token verification. Publication remains a follow-up; Plan 23 TLS state does not change token-signing key distribution. |
 | Deploy CLI migration | Implemented for four supported families (Plan 20; local verification) | Pinned CLI 9.1.0 passes YAML/directory generated/preserved-ID imports, repeat/update checks and runtime credentials. Database/generic connections/attack-protection handlers are explicitly tool-unsupported pending required APIs. Upstream lane unavailable. See [deploy-cli.md](../deploy-cli.md). |
 | Admin console (`/admin` on the system host) and system API (`/api/system/tenants`, `/api/system/operators`) | Implemented | zeroauthy extension, not an Auth0 surface. Guide: `docs/console.md`; D-0040. Verified in Chromium (m13-console) |
-| SAML, WS-Federation | Planned (sub-project 4) | |
+| SAML 2.0 (IdP add-on `addons.samlp`, SP `samlp` connections) | Implemented (Plan 37a; local verification) | Redirect/POST bindings, signed SLO both ways, encrypted assertions, replay store, metadata. No artifact/SOAP/ECP. Verified with pinned @node-saml/node-saml 5.2.0, samlify 2.15.1 and the Deploy CLI. See [SAML](../saml.md), D-0130. |
+| WS-Federation | Planned (Plan 37b) | |
 | Deprecated endpoints (`/oauth/ro`, `/delegation`, `/tokeninfo`, `/oauth/access_token`, impersonation) | Not planned | Deprecated by Auth0 |
 | Hosted page languages (`ui_locales`, `Accept-Language`, `enabled_locales`, per-tenant `custom_text`) | Implemented | English catalog only; verified with @auth0/auth0-spa-js 2.28.3 (`ui_locales`) and browser `Accept-Language`; the custom-text Management API is implemented (Plan 22, below) |
 | Storage plugins (`plugin://` DSN, gRPC) | Implemented | zeroauthy extension, not an Auth0 surface; Go SDK in `pkg/storeplugin`; see D-0021 |
@@ -264,3 +265,16 @@ and mTLS remain unsupported.
 
 See [logout](../logout.md) and the [implementation record](../superpowers/2026-11-16-plan-41a-implementation-record.md)
 for limitations and verification. No new certification is claimed here.
+
+## Plan 37a SAML 2.0
+
+| Surface | Behavior |
+| --- | --- |
+| IdP add-on | Documented `addons.samlp` members; exact ACS match; SP `signingCert` requires signed requests; assertion or (with `signResponse`) response signed with RSA-SHA256. |
+| Actions | `api.samlResponse.*` setters, `event.transaction.protocol` `samlp`; signing and encryption key overrides. |
+| SP connections | `metadataUrl` or explicit endpoints and certificate; connection keys for signing and decryption; IdP-initiated login only when enabled. |
+| Validation | Wrapping-resistant signature checks, audience/recipient/destination/`InResponseTo`, 2-minute skew, single-use assertion IDs. |
+| Single logout | IdP: participant propagation and signed responses. SP: signed upstream `LogoutRequest` and signed IdP-initiated requests only. |
+| Weak algorithms | RSA-SHA1, SHA-1 digests and RSA-1_5 only by explicit configuration. |
+
+See [SAML](../saml.md) and the [implementation record](../superpowers/2026-11-16-plan-37a-implementation-record.md).

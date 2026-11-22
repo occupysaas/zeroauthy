@@ -3708,8 +3708,9 @@ credential change notifies with exactly one initiator.
 
 ## D-0130: SAML 2.0 identity provider and service provider (Plan 37a)
 
-**Contract frozen 2026-11-21; implementation in progress.** This entry records
-intended behavior, not completed runtime. The
+**Contract frozen 2026-11-21; implemented 2026-11-22 (local verification;
+plan-branch CI and maintainer approval pending).** Operator guide:
+[SAML](../saml.md). The
 [spec](../superpowers/specs/2026-11-16-zeroauthy-saml-design.md) and
 [plan](../superpowers/plans/2026-11-16-zeroauthy-plan-37a-saml.md) reserve
 D-0130–0139. No live Auth0 tenant was observed by the implementer.
@@ -3764,5 +3765,25 @@ assertions); profile fields map `user_id`→nameidentifier, `email`→emailaddre
 | LR37a-5 | Add-on keys other than `samlp` are refused (`400`) until a plan implements them. |
 | LR37a-6 | `global_token_revocation_jwt_iss`/`_sub` on `samlp` connections are validated and stored only; global token revocation for SAML connections is a follow-up. |
 
-Observation points S37-1…S37-14 are listed in
+Implementation rulings (recorded in the
+[implementation record](../superpowers/2026-11-16-plan-37a-implementation-record.md)):
+
+| Local ruling | Contract |
+|---|---|
+| LR37a-7 | The IdP ACS must equal a client callback or the add-on `recipient` exactly; no wildcards. |
+| LR37a-8 | The SP issuer is not checked against a registry; the audience is the add-on `audience` or the request `Issuer` (node-samlp). A request `Destination`, when present, must equal the endpoint. |
+| LR37a-9 | `signResponse: true` signs the Response instead of the Assertion. |
+| LR37a-10 | Errors after ACS validation return a signed SAML error Response (`AuthnFailed` or `Responder`). |
+| LR37a-11 | Metadata reaches assertions only through explicit dotted `app_metadata.`/`user_metadata.` mappings. |
+| LR37a-12 | IdP single logout propagates to participants with `logout.callback` and `slo_enabled` not false; a request not matching the browser session ends nothing (`Requester`). Chain state is a sealed browser cookie. |
+| LR37a-13 | Default IdP issuer `urn:{tenant host}` (S37-6). |
+| LR37a-14 | Pinned IdP certificates are trusted regardless of validity dates; thumbprint trust accepts the KeyInfo certificate whose SHA-1/SHA-384 thumbprint is pinned. |
+| LR37a-15 | `options.signing_key.key` and `options.decryptionKey.key` are refused; SP keys are Plan 36 connection keys. |
+| LR37a-16 | SP `LogoutRequest`s/`LogoutResponse`s are always signed; IdP-initiated `LogoutRequest`s must be signed. SP-side logout ends the session through the session manager (back-channel initiator `rp-logout`). |
+| LR37a-17 | HTTP-Redirect `AuthnRequest`s are always deflated; `deflate: false` is stored only. Inbound non-deflated Redirect payloads are accepted when plainly XML. |
+| LR37a-18 | `email_verified` is false unless `fieldsMap` maps it to a true attribute. |
+| LR37a-19 | `metadataUrl` is fetched on create and update only (S37-11); `options.debug` is stored only. |
+| LR37a-20 | AES-CBC data encryption is accepted with one uniform decryption error, and the assertion signature is checked after decryption. |
+
+Observation points S37-1…S37-16 are listed in
 [plan-1-followups.md](../superpowers/plan-1-followups.md#plan-37a-observation-points).
