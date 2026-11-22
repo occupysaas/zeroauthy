@@ -106,3 +106,31 @@ func CheckSAMLSupport(ctx context.Context, s Store) error {
 
 // ClientNeedsSAML reports whether writing c needs saml.v1.
 func ClientNeedsSAML(c *Client) bool { return c != nil && c.Addons != nil }
+
+// SAMLParticipant is a SAML service provider a session answered: what a
+// LogoutRequest to it must name.
+type SAMLParticipant struct {
+	ClientID     string `json:"client_id"`
+	NameID       string `json:"name_id"`
+	NameIDFormat string `json:"name_id_format,omitempty"`
+	SessionIndex string `json:"session_index"`
+}
+
+// SAMLSessionRecorder records a session's SAML participants (saml.v1). A
+// client recorded again replaces its earlier entry and moves last; the
+// client is also added to the session's clients.
+type SAMLSessionRecorder interface {
+	RecordSAMLParticipant(ctx context.Context, tenantID, id string, p SAMLParticipant) error
+}
+
+// UpsertSAMLParticipant returns ps with p replacing any entry for its client,
+// appended last.
+func UpsertSAMLParticipant(ps []SAMLParticipant, p SAMLParticipant) []SAMLParticipant {
+	out := make([]SAMLParticipant, 0, len(ps)+1)
+	for _, e := range ps {
+		if e.ClientID != p.ClientID {
+			out = append(out, e)
+		}
+	}
+	return append(out, p)
+}

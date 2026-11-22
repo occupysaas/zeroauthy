@@ -134,6 +134,7 @@ func cloneUser(u *store.User) *store.User {
 func cloneSession(s *store.LoginSession) *store.LoginSession {
 	out := *s
 	out.ClientOrganizations = maps.Clone(s.ClientOrganizations)
+	out.SAMLParticipants = slices.Clone(s.SAMLParticipants)
 	out.Metadata = maps.Clone(s.Metadata)
 	out.ClientIDs = slices.Clone(s.ClientIDs)
 	out.AuthMethods = slices.Clone(s.AuthMethods)

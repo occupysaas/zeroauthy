@@ -17,6 +17,8 @@ type (
 	SAMLAddon                      = store.SAMLAddon
 	SAMLAddonLogout                = store.SAMLAddonLogout
 	SAMLSupporter                  = store.SAMLSupporter
+	SAMLParticipant                = store.SAMLParticipant
+	SAMLSessionRecorder            = store.SAMLSessionRecorder
 	GlobalRevocationStore          = store.GlobalRevocationStore
 	SessionOrganizationRecorder    = store.SessionOrganizationRecorder
 	SessionExpiryLister            = store.SessionExpiryLister

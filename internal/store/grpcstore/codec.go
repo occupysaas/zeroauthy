@@ -950,7 +950,12 @@ func sessionToPB(s *store.LoginSession) (*storev1.LoginSession, error) {
 	if err != nil {
 		return nil, err
 	}
+	participants, err := optJSON(s.SAMLParticipants, s.SAMLParticipants == nil)
+	if err != nil {
+		return nil, err
+	}
 	return &storev1.LoginSession{
+		SamlParticipants:    participants,
 		ClientOrganizations: stringMapToPB(s.ClientOrganizations),
 		Metadata:            stringMapToPB(s.Metadata),
 		AuthMethods:         methods,
@@ -977,7 +982,12 @@ func sessionFromPB(pb *storev1.LoginSession) (*store.LoginSession, error) {
 	if err := fromOptJSON(pb.AuthMethods, &methods); err != nil {
 		return nil, err
 	}
+	var participants []store.SAMLParticipant
+	if err := fromOptJSON(pb.SamlParticipants, &participants); err != nil {
+		return nil, err
+	}
 	return &store.LoginSession{
+		SAMLParticipants:    participants,
 		ClientOrganizations: stringMapFromPB(pb.ClientOrganizations),
 		Metadata:            stringMapFromPB(pb.Metadata),
 		AuthMethods:         methods,

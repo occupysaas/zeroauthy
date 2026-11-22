@@ -353,6 +353,7 @@ func TestUserRoundTrip(t *testing.T) {
 func TestSessionRoundTrip(t *testing.T) {
 	roundTrip(t, "full", &store.LoginSession{
 		ClientOrganizations: map[string]string{"c1": "org_0123456789abcdef"},
+		SAMLParticipants:    []store.SAMLParticipant{{ClientID: "c1", NameID: "alice", NameIDFormat: "urn:f", SessionIndex: "s1"}},
 		Metadata:            map[string]string{"purpose": "roundtrip"},
 		MFAAt:               nanoTime, Origin: "https://login.example", AuthMethods: []store.AuthMethod{{Name: "mfa", Type: "otp", At: nanoTime.UTC().Truncate(time.Microsecond)}},
 		TenantID: "ten", ID: "sid", TokenHash: "th", UserID: "auth0|u1", Connection: "db", CookieMode: "non-persistent",

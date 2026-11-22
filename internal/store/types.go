@@ -843,8 +843,11 @@ type LoginSession struct {
 	// ClientOrganizations binds each participant to its latest validated organization.
 	// An empty value denotes a non-organization authorization.
 	ClientOrganizations map[string]string
-	Metadata            map[string]string
-	MFAAt               time.Time
+	// SAMLParticipants are the SAML service providers this session answered
+	// (Plan 37a single logout), one per client, latest last.
+	SAMLParticipants []SAMLParticipant
+	Metadata         map[string]string
+	MFAAt            time.Time
 	// Origin pins the browser issuer/host; legacy empty values mean canonical origin.
 	Origin string
 	// CookieMode is persisted at creation; later tenant edits do not change it.

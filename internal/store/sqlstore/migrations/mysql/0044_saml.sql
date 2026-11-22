@@ -1,1 +1,2 @@
 ALTER TABLE clients ADD COLUMN addons LONGTEXT NULL;
+ALTER TABLE sessions ADD COLUMN saml_participants LONGTEXT NULL;
