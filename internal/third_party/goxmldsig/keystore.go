@@ -1,11 +1,8 @@
 package dsig
 
 import (
-	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
-	"math/big"
-	"time"
 )
 
 type X509KeyStore interface {
@@ -35,33 +32,4 @@ type MemoryX509KeyStore struct {
 
 func (ks *MemoryX509KeyStore) GetKeyPair() (*rsa.PrivateKey, []byte, error) {
 	return ks.privateKey, ks.cert, nil
-}
-
-func RandomKeyStoreForTest() X509KeyStore {
-	key, err := rsa.GenerateKey(rand.Reader, 1024)
-	if err != nil {
-		panic(err)
-	}
-
-	now := time.Now()
-
-	template := &x509.Certificate{
-		SerialNumber: big.NewInt(0),
-		NotBefore:    now.Add(-5 * time.Minute),
-		NotAfter:     now.Add(365 * 24 * time.Hour),
-
-		KeyUsage:              x509.KeyUsageDigitalSignature,
-		ExtKeyUsage:           []x509.ExtKeyUsage{},
-		BasicConstraintsValid: true,
-	}
-
-	cert, err := x509.CreateCertificate(rand.Reader, template, template, &key.PublicKey, key)
-	if err != nil {
-		panic(err)
-	}
-
-	return &MemoryX509KeyStore{
-		privateKey: key,
-		cert:       cert,
-	}
 }

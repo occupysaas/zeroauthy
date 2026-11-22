@@ -80,4 +80,17 @@ metadata fetch, storage and key handling were confirmed.
 
 ## CI
 
-Pending.
+Plan-branch run
+[44998832433](https://github.com/occupysaas/zeroauthy/actions/runs/44998832433)
+at `cb26afce`: all 50 jobs passed, including `e2e (e2e-saml)`. `e2e-logout`
+passed without running anything because its Makefile rule is missing on
+`main` (restored by PR #80).
+
+PR #81's CodeQL check then reported four new alerts:
+
+| Alert | Assessment | Resolution |
+|---|---|---|
+| `go/weak-crypto-key`, `internal/third_party/goxmldsig/keystore.go` | Real but unreachable: upstream's test-only `RandomKeyStoreForTest` generated a 1024-bit key | Removed (no callers) |
+| `go/weak-sensitive-data-hashing`, `internal/federation/rules/samlp.go` | False positive: SHA-1 of a public certificate, the Auth0 `thumbprints` format; not used to verify signatures | Left for the maintainer to dismiss |
+| `go/unvalidated-url-redirection`, `internal/login/saml_sp.go` | False positive: `returnTo` passes the `/v2/logout` or RP-initiated logout allow-list before it is sealed into the tenant-bound cookie; the other target is the configured `signOutEndpoint` | Left for the maintainer to dismiss |
+| `go/unvalidated-url-redirection`, `internal/samlidp/slo.go` | False positive: the target is the add-on's configured `logout.callback`; request data only fills query parameters | Left for the maintainer to dismiss |

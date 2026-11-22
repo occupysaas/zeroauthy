@@ -3721,7 +3721,8 @@ D-0130–0139. No live Auth0 tenant was observed by the implementer.
    `beevik/etree` v1.8.1 (BSD-2-Clause) are vendored into
    `internal/third_party` with their licences and `NOTICE` entries. No Go
    module is added. goxmldsig's `clockwork` dependency is replaced by a
-   plain clock function; upstream tests (testify) are not vendored.
+   plain clock function; upstream tests (testify) are not vendored, and
+   the test-only `RandomKeyStoreForTest` helper (a 1024-bit key) is removed.
 2. E2E: `@node-saml/node-saml` as the third-party service provider and
    `samlify` as the third-party identity provider, pinned exactly in
    `tests/e2e`.
