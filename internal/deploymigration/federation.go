@@ -30,7 +30,8 @@ func FederationImport(export Export, credentials map[string]string) (json.RawMes
 		}
 		_, exportedClient := options["client_secret"]
 		_, exportedApple := options["app_secret"]
-		front := strategy == rules.OIDC && options["type"] != "back_channel"
+		// samlp and front-channel OIDC carry no provider secret (Plan 37a).
+		front := strategy == rules.OIDC && options["type"] != "back_channel" || strategy == rules.SAMLP
 		optional := front || (strategy == rules.OIDC || strategy == rules.Okta) && options["token_endpoint_auth_method"] == "private_key_jwt"
 		if exportedClient || exportedApple || !optional && strings.TrimSpace(secret) == "" || strings.Contains(secret, "********") || front && secret != "" {
 			return nil, errors.New("deploymigration: explicit provider-secret injection is required")
