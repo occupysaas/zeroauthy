@@ -3705,3 +3705,64 @@ keeps each `jti` only until `exp`. `aud` may also be a one-element array
 because such a token is also valid at another recipient. The Management API
 refuses changing email and password in one update (as Auth0 does), so each
 credential change notifies with exactly one initiator.
+
+## D-0130: SAML 2.0 identity provider and service provider (Plan 37a)
+
+**Contract frozen 2026-11-21; implementation in progress.** This entry records
+intended behavior, not completed runtime. The
+[spec](../superpowers/specs/2026-11-16-zeroauthy-saml-design.md) and
+[plan](../superpowers/plans/2026-11-16-zeroauthy-plan-37a-saml.md) reserve
+D-0130–0139. No live Auth0 tenant was observed by the implementer.
+
+**Maintainer rulings (2026-11-21, spec §9):**
+
+1. XML signatures: `russellhaering/goxmldsig` v1.6.1 (Apache-2.0) and
+   `beevik/etree` v1.8.1 (BSD-2-Clause) are vendored into
+   `internal/third_party` with their licences and `NOTICE` entries. No Go
+   module is added. goxmldsig's `clockwork` dependency is replaced by a
+   plain clock function; upstream tests (testify) are not vendored.
+2. E2E: `@node-saml/node-saml` as the third-party service provider and
+   `samlify` as the third-party identity provider, pinned exactly in
+   `tests/e2e`.
+3. RSA-SHA1 signatures, SHA-1 digests and RSA-1_5 key transport are used
+   only when a connection or add-on selects them explicitly; defaults are
+   RSA-SHA256, SHA-256 and RSA-OAEP.
+
+Sources: [Auth0 as SAML IdP](https://auth0.com/docs/authenticate/single-sign-on/outbound-single-sign-on/configure-auth0-saml-identity-provider),
+[customize SAML assertions](https://auth0.com/docs/authenticate/protocols/saml/saml-configuration/customize-saml-assertions),
+[SAML connections](https://auth0.com/docs/authenticate/identity-providers/enterprise-identity-providers/saml),
+[Management OpenAPI](https://auth0.com/docs/oas/management/v2/management-api-oas.json),
+OASIS SAML 2.0 Core, Bindings, Profiles and Metadata, XML Signature 1.1,
+Exclusive XML Canonicalization 1.0, XML Encryption 1.1.
+
+**`node-samlp` defaults** (MIT, `auth0/node-samlp` at
+`fb81faf3a3df959cd464172589510db173472322`, read 2026-11-21; studied, not
+copied):
+
+| Default | Value | Source |
+|---|---|---|
+| Assertion lifetime | 3600 s | `lib/samlp.js` (`lifetimeInSeconds \|\| 3600`) |
+| Signature algorithm | `rsa-sha256` | `lib/samlp.js` (`signatureAlgorithm \|\| 'rsa-sha256'`) |
+| Digest algorithm | `sha256` | `lib/samlp.js` (`digestAlgorithm \|\| 'sha256'`) |
+| Audience when unset | the AuthnRequest `Issuer` | `lib/samlp.js` (issuer XPath into `audience`) |
+| RelayState | echoed from the request (query or body) | `lib/samlp.js` |
+| Claim namespaces | `…/ws/2005/05/identity/claims/{nameidentifier,emailaddress,name,givenname,surname,upn}`, `http://schemas.xmlsoap.org/claims/Group` | `lib/claims/PassportProfileMapper.js` |
+| NameID fallback order | nameidentifier, name, email claim | `lib/claims/PassportProfileMapper.js` |
+
+The Auth0 documentation's own defaults take precedence where they differ:
+NameID probes are nameidentifier, emailaddress, name (customize SAML
+assertions); profile fields map `user_id`→nameidentifier, `email`→emailaddress,
+`name`→name, `given_name`→givenname, `family_name`→surname, `upn`→upn,
+`groups`→Group.
+
+| Local ruling | Contract |
+|---|---|
+| LR37a-1 | No artifact binding, SOAP back channel or ECP. |
+| LR37a-2 | `api.samlResponse.*` setters are built in this plan. |
+| LR37a-3 | 2 minutes of clock skew; each assertion ID is single use for its validity window, shared by replicas. |
+| LR37a-4 | The add-on's `signingCert` is the service provider's certificate (Auth0's OpenAPI meaning): when set, AuthnRequests must be signed with its key. The IdP always signs with the tenant signing key unless an Action selects another key. |
+| LR37a-5 | Add-on keys other than `samlp` are refused (`400`) until a plan implements them. |
+| LR37a-6 | `global_token_revocation_jwt_iss`/`_sub` on `samlp` connections are validated and stored only; global token revocation for SAML connections is a follow-up. |
+
+Observation points S37-1…S37-14 are listed in
+[plan-1-followups.md](../superpowers/plan-1-followups.md#plan-37a-observation-points).

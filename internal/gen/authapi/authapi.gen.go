@@ -1577,6 +1577,118 @@ type PasswordlessVerifyRedirectConfirmFormdataBody struct {
 	VerificationCode *string `form:"verification_code,omitempty" json:"verification_code,omitempty"`
 }
 
+// SamlpSPLogoutParams defines parameters for SamlpSPLogout.
+type SamlpSPLogoutParams struct {
+	Connection string `form:"connection" json:"connection"`
+
+	// SAMLRequest Base64 (deflated on HTTP-Redirect) SAML request.
+	SAMLRequest *string `form:"SAMLRequest,omitempty" json:"SAMLRequest,omitempty"`
+
+	// SAMLResponse Base64 deflated SAML response (logout endpoints only).
+	SAMLResponse *string `form:"SAMLResponse,omitempty" json:"SAMLResponse,omitempty"`
+
+	// RelayState Returned unchanged to the service provider.
+	RelayState *string `form:"RelayState,omitempty" json:"RelayState,omitempty"`
+
+	// SigAlg HTTP-Redirect binding signature algorithm.
+	SigAlg *string `form:"SigAlg,omitempty" json:"SigAlg,omitempty"`
+
+	// Signature HTTP-Redirect binding signature.
+	Signature *string `form:"Signature,omitempty" json:"Signature,omitempty"`
+}
+
+// SamlpSPLogoutPostFormdataBody defines parameters for SamlpSPLogoutPost.
+type SamlpSPLogoutPostFormdataBody struct {
+	RelayState *string `form:"RelayState,omitempty" json:"RelayState,omitempty"`
+
+	// SAMLRequest Base64 SAML request.
+	SAMLRequest *string `form:"SAMLRequest,omitempty" json:"SAMLRequest,omitempty"`
+
+	// SAMLResponse Base64 SAML response.
+	SAMLResponse *string `form:"SAMLResponse,omitempty" json:"SAMLResponse,omitempty"`
+}
+
+// SamlpSPLogoutPostParams defines parameters for SamlpSPLogoutPost.
+type SamlpSPLogoutPostParams struct {
+	Connection string `form:"connection" json:"connection"`
+}
+
+// SamlpSPMetadataParams defines parameters for SamlpSPMetadata.
+type SamlpSPMetadataParams struct {
+	// Connection The samlp connection's name.
+	Connection string `form:"connection" json:"connection"`
+}
+
+// SamlpSSOParams defines parameters for SamlpSSO.
+type SamlpSSOParams struct {
+	// SAMLRequest Base64 (deflated on HTTP-Redirect) SAML request.
+	SAMLRequest *string `form:"SAMLRequest,omitempty" json:"SAMLRequest,omitempty"`
+
+	// SAMLResponse Base64 deflated SAML response (logout endpoints only).
+	SAMLResponse *string `form:"SAMLResponse,omitempty" json:"SAMLResponse,omitempty"`
+
+	// RelayState Returned unchanged to the service provider.
+	RelayState *string `form:"RelayState,omitempty" json:"RelayState,omitempty"`
+
+	// SigAlg HTTP-Redirect binding signature algorithm.
+	SigAlg *string `form:"SigAlg,omitempty" json:"SigAlg,omitempty"`
+
+	// Signature HTTP-Redirect binding signature.
+	Signature *string `form:"Signature,omitempty" json:"Signature,omitempty"`
+
+	// Connection Connection to log in with.
+	Connection *string `form:"connection,omitempty" json:"connection,omitempty"`
+
+	// Organization Organization to log in to.
+	Organization *string `form:"organization,omitempty" json:"organization,omitempty"`
+}
+
+// SamlpSSOPostFormdataBody defines parameters for SamlpSSOPost.
+type SamlpSSOPostFormdataBody struct {
+	RelayState *string `form:"RelayState,omitempty" json:"RelayState,omitempty"`
+
+	// SAMLRequest Base64 SAML request.
+	SAMLRequest *string `form:"SAMLRequest,omitempty" json:"SAMLRequest,omitempty"`
+
+	// SAMLResponse Base64 SAML response.
+	SAMLResponse *string `form:"SAMLResponse,omitempty" json:"SAMLResponse,omitempty"`
+}
+
+// SamlpSSOPostParams defines parameters for SamlpSSOPost.
+type SamlpSSOPostParams struct {
+	Connection   *string `form:"connection,omitempty" json:"connection,omitempty"`
+	Organization *string `form:"organization,omitempty" json:"organization,omitempty"`
+}
+
+// SamlpIdPLogoutParams defines parameters for SamlpIdPLogout.
+type SamlpIdPLogoutParams struct {
+	// SAMLRequest Base64 (deflated on HTTP-Redirect) SAML request.
+	SAMLRequest *string `form:"SAMLRequest,omitempty" json:"SAMLRequest,omitempty"`
+
+	// SAMLResponse Base64 deflated SAML response (logout endpoints only).
+	SAMLResponse *string `form:"SAMLResponse,omitempty" json:"SAMLResponse,omitempty"`
+
+	// RelayState Returned unchanged to the service provider.
+	RelayState *string `form:"RelayState,omitempty" json:"RelayState,omitempty"`
+
+	// SigAlg HTTP-Redirect binding signature algorithm.
+	SigAlg *string `form:"SigAlg,omitempty" json:"SigAlg,omitempty"`
+
+	// Signature HTTP-Redirect binding signature.
+	Signature *string `form:"Signature,omitempty" json:"Signature,omitempty"`
+}
+
+// SamlpIdPLogoutPostFormdataBody defines parameters for SamlpIdPLogoutPost.
+type SamlpIdPLogoutPostFormdataBody struct {
+	RelayState *string `form:"RelayState,omitempty" json:"RelayState,omitempty"`
+
+	// SAMLRequest Base64 SAML request.
+	SAMLRequest *string `form:"SAMLRequest,omitempty" json:"SAMLRequest,omitempty"`
+
+	// SAMLResponse Base64 SAML response.
+	SAMLResponse *string `form:"SAMLResponse,omitempty" json:"SAMLResponse,omitempty"`
+}
+
 // UserinfoPostFormdataBody defines parameters for UserinfoPost.
 type UserinfoPostFormdataBody struct {
 	// AccessToken The access token, when no Authorization header is sent.
@@ -1660,6 +1772,15 @@ type PasswordlessStartJSONRequestBody = PasswordlessStartRequest
 
 // PasswordlessVerifyRedirectConfirmFormdataRequestBody defines body for PasswordlessVerifyRedirectConfirm for application/x-www-form-urlencoded ContentType.
 type PasswordlessVerifyRedirectConfirmFormdataRequestBody PasswordlessVerifyRedirectConfirmFormdataBody
+
+// SamlpSPLogoutPostFormdataRequestBody defines body for SamlpSPLogoutPost for application/x-www-form-urlencoded ContentType.
+type SamlpSPLogoutPostFormdataRequestBody SamlpSPLogoutPostFormdataBody
+
+// SamlpSSOPostFormdataRequestBody defines body for SamlpSSOPost for application/x-www-form-urlencoded ContentType.
+type SamlpSSOPostFormdataRequestBody SamlpSSOPostFormdataBody
+
+// SamlpIdPLogoutPostFormdataRequestBody defines body for SamlpIdPLogoutPost for application/x-www-form-urlencoded ContentType.
+type SamlpIdPLogoutPostFormdataRequestBody SamlpIdPLogoutPostFormdataBody
 
 // UserinfoPostFormdataRequestBody defines body for UserinfoPost for application/x-www-form-urlencoded ContentType.
 type UserinfoPostFormdataRequestBody UserinfoPostFormdataBody
@@ -2764,6 +2885,30 @@ type ServerInterface interface {
 	// PasswordlessVerifyRedirectConfirm Confirm a magic link
 	// (POST /passwordless/verify_redirect)
 	PasswordlessVerifyRedirectConfirm(w http.ResponseWriter, r *http.Request)
+	// SamlpSPLogout SAML service-provider single logout (HTTP-Redirect)
+	// (GET /samlp/logout)
+	SamlpSPLogout(w http.ResponseWriter, r *http.Request, params SamlpSPLogoutParams)
+	// SamlpSPLogoutPost SAML service-provider single logout (HTTP-POST)
+	// (POST /samlp/logout)
+	SamlpSPLogoutPost(w http.ResponseWriter, r *http.Request, params SamlpSPLogoutPostParams)
+	// SamlpSPMetadata SAML service-provider metadata of a connection
+	// (GET /samlp/metadata)
+	SamlpSPMetadata(w http.ResponseWriter, r *http.Request, params SamlpSPMetadataParams)
+	// SamlpIdPMetadata SAML identity-provider metadata of an application
+	// (GET /samlp/metadata/{client_id})
+	SamlpIdPMetadata(w http.ResponseWriter, r *http.Request, clientId string)
+	// SamlpSSO SAML identity-provider single sign-on (HTTP-Redirect)
+	// (GET /samlp/{client_id})
+	SamlpSSO(w http.ResponseWriter, r *http.Request, clientId string, params SamlpSSOParams)
+	// SamlpSSOPost SAML identity-provider single sign-on (HTTP-POST)
+	// (POST /samlp/{client_id})
+	SamlpSSOPost(w http.ResponseWriter, r *http.Request, clientId string, params SamlpSSOPostParams)
+	// SamlpIdPLogout SAML identity-provider single logout (HTTP-Redirect)
+	// (GET /samlp/{client_id}/logout)
+	SamlpIdPLogout(w http.ResponseWriter, r *http.Request, clientId string, params SamlpIdPLogoutParams)
+	// SamlpIdPLogoutPost SAML identity-provider single logout (HTTP-POST)
+	// (POST /samlp/{client_id}/logout)
+	SamlpIdPLogoutPost(w http.ResponseWriter, r *http.Request, clientId string)
 	// Userinfo Get the user's profile
 	// (GET /userinfo)
 	Userinfo(w http.ResponseWriter, r *http.Request)
@@ -2920,6 +3065,54 @@ func (_ Unimplemented) PasswordlessVerifyRedirect(w http.ResponseWriter, r *http
 // PasswordlessVerifyRedirectConfirm Confirm a magic link
 // (POST /passwordless/verify_redirect)
 func (_ Unimplemented) PasswordlessVerifyRedirectConfirm(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// SamlpSPLogout SAML service-provider single logout (HTTP-Redirect)
+// (GET /samlp/logout)
+func (_ Unimplemented) SamlpSPLogout(w http.ResponseWriter, r *http.Request, params SamlpSPLogoutParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// SamlpSPLogoutPost SAML service-provider single logout (HTTP-POST)
+// (POST /samlp/logout)
+func (_ Unimplemented) SamlpSPLogoutPost(w http.ResponseWriter, r *http.Request, params SamlpSPLogoutPostParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// SamlpSPMetadata SAML service-provider metadata of a connection
+// (GET /samlp/metadata)
+func (_ Unimplemented) SamlpSPMetadata(w http.ResponseWriter, r *http.Request, params SamlpSPMetadataParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// SamlpIdPMetadata SAML identity-provider metadata of an application
+// (GET /samlp/metadata/{client_id})
+func (_ Unimplemented) SamlpIdPMetadata(w http.ResponseWriter, r *http.Request, clientId string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// SamlpSSO SAML identity-provider single sign-on (HTTP-Redirect)
+// (GET /samlp/{client_id})
+func (_ Unimplemented) SamlpSSO(w http.ResponseWriter, r *http.Request, clientId string, params SamlpSSOParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// SamlpSSOPost SAML identity-provider single sign-on (HTTP-POST)
+// (POST /samlp/{client_id})
+func (_ Unimplemented) SamlpSSOPost(w http.ResponseWriter, r *http.Request, clientId string, params SamlpSSOPostParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// SamlpIdPLogout SAML identity-provider single logout (HTTP-Redirect)
+// (GET /samlp/{client_id}/logout)
+func (_ Unimplemented) SamlpIdPLogout(w http.ResponseWriter, r *http.Request, clientId string, params SamlpIdPLogoutParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// SamlpIdPLogoutPost SAML identity-provider single logout (HTTP-POST)
+// (POST /samlp/{client_id}/logout)
+func (_ Unimplemented) SamlpIdPLogoutPost(w http.ResponseWriter, r *http.Request, clientId string) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -4013,6 +4206,491 @@ func (siw *ServerInterfaceWrapper) PasswordlessVerifyRedirectConfirm(w http.Resp
 	handler.ServeHTTP(w, r)
 }
 
+// SamlpSPLogout operation middleware
+func (siw *ServerInterfaceWrapper) SamlpSPLogout(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params SamlpSPLogoutParams
+
+	// ------------- Required query parameter "connection" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, true, "connection", r.URL.Query(), &params.Connection, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "connection"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "connection", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "SAMLRequest" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "SAMLRequest", r.URL.Query(), &params.SAMLRequest, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "SAMLRequest"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "SAMLRequest", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "SAMLResponse" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "SAMLResponse", r.URL.Query(), &params.SAMLResponse, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "SAMLResponse"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "SAMLResponse", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "RelayState" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "RelayState", r.URL.Query(), &params.RelayState, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "RelayState"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "RelayState", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "SigAlg" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "SigAlg", r.URL.Query(), &params.SigAlg, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "SigAlg"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "SigAlg", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "Signature" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "Signature", r.URL.Query(), &params.Signature, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "Signature"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "Signature", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SamlpSPLogout(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SamlpSPLogoutPost operation middleware
+func (siw *ServerInterfaceWrapper) SamlpSPLogoutPost(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params SamlpSPLogoutPostParams
+
+	// ------------- Required query parameter "connection" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, true, "connection", r.URL.Query(), &params.Connection, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "connection"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "connection", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SamlpSPLogoutPost(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SamlpSPMetadata operation middleware
+func (siw *ServerInterfaceWrapper) SamlpSPMetadata(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params SamlpSPMetadataParams
+
+	// ------------- Required query parameter "connection" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, true, "connection", r.URL.Query(), &params.Connection, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "connection"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "connection", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SamlpSPMetadata(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SamlpIdPMetadata operation middleware
+func (siw *ServerInterfaceWrapper) SamlpIdPMetadata(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "client_id" -------------
+	var clientId string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "client_id", chi.URLParam(r, "client_id"), &clientId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "client_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SamlpIdPMetadata(w, r, clientId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SamlpSSO operation middleware
+func (siw *ServerInterfaceWrapper) SamlpSSO(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "client_id" -------------
+	var clientId string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "client_id", chi.URLParam(r, "client_id"), &clientId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "client_id", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params SamlpSSOParams
+
+	// ------------- Optional query parameter "SAMLRequest" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "SAMLRequest", r.URL.Query(), &params.SAMLRequest, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "SAMLRequest"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "SAMLRequest", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "SAMLResponse" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "SAMLResponse", r.URL.Query(), &params.SAMLResponse, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "SAMLResponse"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "SAMLResponse", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "RelayState" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "RelayState", r.URL.Query(), &params.RelayState, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "RelayState"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "RelayState", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "SigAlg" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "SigAlg", r.URL.Query(), &params.SigAlg, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "SigAlg"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "SigAlg", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "Signature" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "Signature", r.URL.Query(), &params.Signature, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "Signature"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "Signature", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "connection" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "connection", r.URL.Query(), &params.Connection, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "connection"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "connection", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "organization" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "organization", r.URL.Query(), &params.Organization, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "organization"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "organization", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SamlpSSO(w, r, clientId, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SamlpSSOPost operation middleware
+func (siw *ServerInterfaceWrapper) SamlpSSOPost(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "client_id" -------------
+	var clientId string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "client_id", chi.URLParam(r, "client_id"), &clientId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "client_id", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params SamlpSSOPostParams
+
+	// ------------- Optional query parameter "connection" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "connection", r.URL.Query(), &params.Connection, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "connection"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "connection", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "organization" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "organization", r.URL.Query(), &params.Organization, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "organization"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "organization", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SamlpSSOPost(w, r, clientId, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SamlpIdPLogout operation middleware
+func (siw *ServerInterfaceWrapper) SamlpIdPLogout(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "client_id" -------------
+	var clientId string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "client_id", chi.URLParam(r, "client_id"), &clientId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "client_id", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params SamlpIdPLogoutParams
+
+	// ------------- Optional query parameter "SAMLRequest" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "SAMLRequest", r.URL.Query(), &params.SAMLRequest, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "SAMLRequest"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "SAMLRequest", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "SAMLResponse" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "SAMLResponse", r.URL.Query(), &params.SAMLResponse, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "SAMLResponse"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "SAMLResponse", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "RelayState" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "RelayState", r.URL.Query(), &params.RelayState, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "RelayState"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "RelayState", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "SigAlg" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "SigAlg", r.URL.Query(), &params.SigAlg, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "SigAlg"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "SigAlg", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "Signature" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "Signature", r.URL.Query(), &params.Signature, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "Signature"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "Signature", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SamlpIdPLogout(w, r, clientId, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SamlpIdPLogoutPost operation middleware
+func (siw *ServerInterfaceWrapper) SamlpIdPLogoutPost(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "client_id" -------------
+	var clientId string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "client_id", chi.URLParam(r, "client_id"), &clientId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "client_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SamlpIdPLogoutPost(w, r, clientId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // Userinfo operation middleware
 func (siw *ServerInterfaceWrapper) Userinfo(w http.ResponseWriter, r *http.Request) {
 
@@ -4248,6 +4926,30 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/v2/logout", wrapper.Logout)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/samlp/metadata", wrapper.SamlpSPMetadata)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/samlp/metadata/{client_id}", wrapper.SamlpIdPMetadata)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/samlp/logout", wrapper.SamlpSPLogout)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/samlp/logout", wrapper.SamlpSPLogoutPost)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/samlp/{client_id}", wrapper.SamlpSSO)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/samlp/{client_id}", wrapper.SamlpSSOPost)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/samlp/{client_id}/logout", wrapper.SamlpIdPLogout)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/samlp/{client_id}/logout", wrapper.SamlpIdPLogoutPost)
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/oidc/logout", wrapper.OidcLogout)

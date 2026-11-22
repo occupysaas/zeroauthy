@@ -23,7 +23,7 @@ for E2E only after ruling §9.2.
 
 **Spec:** [Plan 37a design](../specs/2026-11-16-zeroauthy-saml-design.md). § refers to it.
 
-**Gates:** Task 1 now; Tasks 2+ after ruling §9.1; Task 10 E2E after §9.2.
+**Gates:** all ruled 2026-11-21 (spec §11): vendor goxmldsig + etree; E2E `@node-saml/node-saml` and `samlify`; SHA-1/RSA-1_5 opt-in only.
 **Depends on:** Plan 36 (connection keys repository, HRD) merged first.
 
 ## Global Constraints

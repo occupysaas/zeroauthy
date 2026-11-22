@@ -14324,6 +14324,89 @@ components:
           maxItems: 96
           items: {type: string, maxLength: 255}
           description: Stored only.
+    ConnectionOptionsSAML:
+      type: object
+      description: |
+        SAML service-provider connection (`samlp`, Plan 37a, D-0130). The
+        identity provider is configured from `metadataUrl` (fetched through
+        the federation outbound policy and refreshed daily), `metadataXml`,
+        or `signInEndpoint` with `signingCert` (or the legacy `cert`).
+        `thumbprints` and `thumbprints_sha384` are computed from the
+        certificates on write and are read-only. `entityId` defaults to
+        `urn:auth0:{tenant}:{connection}`. The private keys of `signing_key`
+        and `decryptionKey` are write-only: sealed when written and never
+        returned. Without them, keys come from
+        `/api/v2/connections/{id}/keys`. RSA-SHA1 and RSA-1_5 key transport are
+        accepted only when selected explicitly. The assertion consumer service
+        is `POST /login/callback?connection={name}`; SP metadata is
+        `GET /samlp/metadata?connection={name}`.
+        `global_token_revocation_jwt_iss` and `_sub` are stored only (D-0130).
+      x-source:
+        - https://auth0.com/docs/authenticate/identity-providers/enterprise-identity-providers/saml
+        - https://auth0.com/docs/api/management/v2/connections/post-connections
+      additionalProperties: true
+      properties:
+        cert: {type: string, maxLength: 16384, description: "Legacy alias of signingCert: the identity provider's signing certificate (PEM or base64 DER)."}
+        signingCert: {type: string, maxLength: 16384, description: "The identity provider's signing certificate (PEM or base64 DER)."}
+        thumbprints: {type: array, readOnly: true, items: {type: string}, description: "SHA-1 thumbprints of the identity provider certificates, computed on write."}
+        thumbprints_sha384: {type: array, readOnly: true, items: {type: string}, description: "SHA-384 thumbprints, computed on write."}
+        metadataUrl: {type: string, format: uri, maxLength: 2048, description: HTTPS URL of the identity provider metadata.}
+        metadataXml: {type: string, maxLength: 262144, description: Identity provider metadata document.}
+        signInEndpoint: {type: string, maxLength: 2048, description: Identity provider single sign-on URL.}
+        signOutEndpoint: {type: string, maxLength: 2048, description: Identity provider single logout URL.}
+        destinationUrl: {type: string, maxLength: 2048, description: Destination of the AuthnRequest; defaults to signInEndpoint.}
+        recipientUrl: {type: string, maxLength: 2048, description: Expected Recipient of assertions; defaults to the ACS URL.}
+        entityId: {type: string, maxLength: 1024, description: "Service provider entity ID; defaults to `urn:auth0:{tenant}:{connection}`."}
+        protocolBinding:
+          type: string
+          enum: ["urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST", "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect"]
+          default: "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect"
+          description: Binding used to send the AuthnRequest.
+        signSAMLRequest: {type: boolean, default: false, description: Sign the AuthnRequest.}
+        signatureAlgorithm: {type: string, enum: [rsa-sha256, rsa-sha1], default: rsa-sha256}
+        digestAlgorithm: {type: string, enum: [sha256, sha1], default: sha256}
+        deflate: {type: boolean, default: true, description: Deflate the AuthnRequest on the HTTP-Redirect binding.}
+        requestTemplate: {type: string, maxLength: 16384, description: "AuthnRequest template with `@@variableName@@` substitution; must produce a valid AuthnRequest."}
+        fieldsMap:
+          type: object
+          description: Profile field to SAML attribute name, or to several names tried in order.
+          additionalProperties:
+            oneOf:
+              - {type: string, maxLength: 1024}
+              - {type: array, maxItems: 16, items: {type: string, maxLength: 1024}}
+        user_id_attribute: {type: string, maxLength: 1024, description: Attribute used as the user ID; defaults to the NameID.}
+        idpinitiated:
+          type: object
+          additionalProperties: false
+          properties:
+            enabled: {type: boolean, default: false}
+            client_id: {type: string, description: Application that IdP-initiated logins continue to.}
+            client_protocol: {type: string, enum: [oidc, samlp, wsfed], default: oidc}
+            client_authorizequery: {type: string, maxLength: 2048, description: Query string of the authorization request for the application.}
+        disableSignout: {type: boolean, default: false, description: Do not send LogoutRequest to the identity provider on logout.}
+        decryptionKey:
+          type: object
+          additionalProperties: false
+          properties:
+            key: {type: string, writeOnly: true, maxLength: 16384, description: PEM private key; sealed and never returned.}
+            cert: {type: string, maxLength: 16384}
+        assertion_decryption_settings:
+          type: object
+          additionalProperties: true
+          description: "`allowed_key_transport` may add `rsa-1_5` (refused unless listed)."
+        signing_key:
+          type: object
+          additionalProperties: false
+          properties:
+            key: {type: string, writeOnly: true, maxLength: 16384, description: PEM private key; sealed and never returned.}
+            cert: {type: string, maxLength: 16384}
+        domain_aliases: {type: array, maxItems: 100, items: {type: string, maxLength: 253}, description: Home realm discovery domains.}
+        debug: {type: boolean, default: false, description: Log SAML responses (attribute values scrubbed) as warning events.}
+        set_user_root_attributes: {type: string, enum: [on_each_login, on_first_login, never_on_login], default: on_each_login}
+        non_persistent_attrs: {type: array, maxItems: 96, items: {type: string, maxLength: 255}}
+        icon_url: {type: string, maxLength: 2048}
+        global_token_revocation_jwt_iss: {type: string, maxLength: 2048, description: Stored only (D-0130).}
+        global_token_revocation_jwt_sub: {type: string, maxLength: 2048, description: Stored only (D-0130).}
     ConnectionOptionsEmail:
       type: object
       description: |
@@ -22371,6 +22454,76 @@ components:
           type: array
           uniqueItems: true
           items: {type: string, enum: [profile, email, address, phone]}
+    ClientAddons:
+      type: object
+      additionalProperties: false
+      description: |
+        Application add-ons. Only `samlp` (SAML2 Web App, Plan 37a) is
+        supported; any other add-on key is refused with `400`. `null` removes
+        an add-on.
+      x-source:
+        - https://auth0.com/docs/api/management/v2/clients/post-clients
+      properties:
+        samlp:
+          oneOf:
+            - $ref: "#/components/schemas/ClientAddonSAML"
+            - {type: "null"}
+    ClientAddonSAML:
+      type: object
+      additionalProperties: false
+      description: |
+        SAML2 Web App add-on (Plan 37a, D-0130): zeroauthy acts as the SAML
+        identity provider at `/samlp/{client_id}`. Defaults the Auth0
+        documentation leaves out follow Auth0's MIT `node-samlp` (D-0130).
+        SHA-1 signatures and digests are used only when selected explicitly.
+      x-source:
+        - https://auth0.com/docs/authenticate/single-sign-on/outbound-single-sign-on/configure-auth0-saml-identity-provider
+        - https://auth0.com/docs/authenticate/protocols/saml/saml-configuration/customize-saml-assertions
+        - https://github.com/auth0/node-samlp
+      properties:
+        mappings:
+          type: object
+          description: User profile field to SAML attribute name, or to several names.
+          additionalProperties:
+            oneOf:
+              - {type: string, maxLength: 1024}
+              - {type: array, maxItems: 16, items: {type: string, maxLength: 1024}}
+        audience: {type: string, maxLength: 2048, description: "Audience of the assertion; defaults to the requesting service provider's issuer."}
+        recipient: {type: string, maxLength: 2048, description: "Recipient of the assertion (the ACS URL); defaults to the requested AssertionConsumerServiceURL."}
+        createUpnClaim: {type: boolean, default: true, description: Add the UPN claim.}
+        mapUnknownClaimsAsIs: {type: boolean, default: false, description: Send profile fields without a mapping under their own names.}
+        passthroughClaimsWithNoMapping: {type: boolean, default: true, description: Send claims without a mapping using the default claim namespace.}
+        mapIdentities: {type: boolean, default: true, description: Add the user's identities as attributes.}
+        signatureAlgorithm: {type: string, enum: [rsa-sha256, rsa-sha1], default: rsa-sha256}
+        digestAlgorithm: {type: string, enum: [sha256, sha1], default: sha256}
+        issuer: {type: string, maxLength: 2048, description: "Issuer of the response; defaults to `urn:{tenant domain}`."}
+        destination: {type: string, maxLength: 2048, description: Destination of the response; defaults to the ACS URL.}
+        lifetimeInSeconds: {type: integer, minimum: 1, maximum: 86400, default: 3600, description: Assertion validity.}
+        signResponse: {type: boolean, default: false, description: Sign the whole Response in addition to the Assertion.}
+        nameIdentifierFormat: {type: string, maxLength: 1024, default: "urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified"}
+        nameIdentifierProbes:
+          type: array
+          maxItems: 16
+          items: {type: string, maxLength: 1024}
+          description: Claims tried in order for the NameID; the first non-empty value wins.
+        authnContextClassRef: {type: string, maxLength: 1024, default: "urn:oasis:names:tc:SAML:2.0:ac:classes:unspecified"}
+        logout:
+          type: object
+          additionalProperties: false
+          properties:
+            callback: {type: string, maxLength: 2048, description: Service provider SLO URL that receives LogoutRequest and LogoutResponse messages.}
+            slo_enabled: {type: boolean, default: true, description: Propagate single logout to the other SAML session participants.}
+        binding:
+          type: string
+          enum: ["urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST", "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect"]
+          default: "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST"
+          description: Binding for messages sent to the service provider (responses always use HTTP-POST).
+        typedAttributes: {type: boolean, default: true, description: Add xsi:type to attribute values.}
+        includeAttributeNameFormat: {type: boolean, default: true, description: Add NameFormat to attributes.}
+        signingCert:
+          type: string
+          maxLength: 16384
+          description: The service provider's PEM certificate. When set, SAML requests from the service provider must be signed with its key.
     ClientOIDCLogout:
       type: [object, "null"]
       additionalProperties: false
@@ -22573,6 +22726,7 @@ components:
         allowed_origins: {type: array, items: {type: string}, description: Origins allowed for cross-origin requests.}
         oidc_logout: {$ref: "#/components/schemas/ClientOIDCLogout"}
         oidc_support: {$ref: "#/components/schemas/ClientOIDCSupport"}
+        addons: {$ref: "#/components/schemas/ClientAddons"}
         jwt_configuration: {$ref: "#/components/schemas/JwtConfiguration"}
         refresh_token: {$ref: "#/components/schemas/RefreshTokenSettings"}
         token_quota: {$ref: "#/components/schemas/IITokenQuota"}
@@ -22707,6 +22861,7 @@ components:
         token_exchange: {$ref: "#/components/schemas/ClientTokenExchange"}
         oidc_logout: {$ref: "#/components/schemas/ClientOIDCLogout"}
         oidc_support: {$ref: "#/components/schemas/ClientOIDCSupport"}
+        addons: {$ref: "#/components/schemas/ClientAddons"}
         jwt_configuration: {$ref: "#/components/schemas/JwtConfiguration"}
         refresh_token: {$ref: "#/components/schemas/RefreshTokenSettings"}
         token_quota: {$ref: "#/components/schemas/IITokenQuota"}
@@ -23134,7 +23289,7 @@ components:
           required: [name, strategy]
           properties:
             name: {type: string, minLength: 1, maxLength: 128, description: "Letters and digits with single hyphens between them."}
-            strategy: {type: string, enum: [auth0, google-oauth2, oauth2, oidc, windowslive, waad, email, sms, apple, github, okta], description: "`email` and `sms` are passwordless connections whose name must equal the strategy; options follow ConnectionOptionsEmail and ConnectionOptionsSMS (Plan 34). `apple` follows ConnectionOptionsApple; web/native login is active (D-0170). `github` follows ConnectionOptionsGitHub (Plan 39c)."}
+            strategy: {type: string, enum: [auth0, google-oauth2, oauth2, oidc, windowslive, waad, email, sms, apple, github, okta, samlp], description: "`samlp` follows ConnectionOptionsSAML (Plan 37a). `email` and `sms` are passwordless connections whose name must equal the strategy; options follow ConnectionOptionsEmail and ConnectionOptionsSMS (Plan 34). `apple` follows ConnectionOptionsApple; web/native login is active (D-0170). `github` follows ConnectionOptionsGitHub (Plan 39c)."}
             enabled_clients:
               type: array
               items: {type: string}

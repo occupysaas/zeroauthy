@@ -541,3 +541,29 @@ func operatorOnly(next http.Handler) http.Handler {
 		next.ServeHTTP(w, r)
 	})
 }
+
+// SAML routes (Plan 37a). Until the IdP and SP handlers land these answer
+// 501 so the generated router compiles and the contract is routable.
+func samlNotImplemented(w http.ResponseWriter) {
+	httpx.WriteError(w, http.StatusNotImplemented, "not_implemented", "SAML is not implemented yet")
+}
+func (authAPI) SamlpSPMetadata(w http.ResponseWriter, _ *http.Request, _ authapi.SamlpSPMetadataParams) {
+	samlNotImplemented(w)
+}
+func (authAPI) SamlpSPLogout(w http.ResponseWriter, _ *http.Request, _ authapi.SamlpSPLogoutParams) {
+	samlNotImplemented(w)
+}
+func (authAPI) SamlpSPLogoutPost(w http.ResponseWriter, _ *http.Request, _ authapi.SamlpSPLogoutPostParams) {
+	samlNotImplemented(w)
+}
+func (authAPI) SamlpIdPMetadata(w http.ResponseWriter, _ *http.Request, _ string) { samlNotImplemented(w) }
+func (authAPI) SamlpSSO(w http.ResponseWriter, _ *http.Request, _ string, _ authapi.SamlpSSOParams) {
+	samlNotImplemented(w)
+}
+func (authAPI) SamlpSSOPost(w http.ResponseWriter, _ *http.Request, _ string, _ authapi.SamlpSSOPostParams) {
+	samlNotImplemented(w)
+}
+func (authAPI) SamlpIdPLogout(w http.ResponseWriter, _ *http.Request, _ string, _ authapi.SamlpIdPLogoutParams) {
+	samlNotImplemented(w)
+}
+func (authAPI) SamlpIdPLogoutPost(w http.ResponseWriter, _ *http.Request, _ string) { samlNotImplemented(w) }
