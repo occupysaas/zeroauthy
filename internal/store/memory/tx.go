@@ -159,6 +159,7 @@ func (s *Store) snapshot() *state {
 		credentials:            cloneMap(s.credentials, cloneClientCredential),
 		assertionJTIs:          maps.Clone(s.assertionJTIs),
 		globalRevocationJTIs:   maps.Clone(s.globalRevocationJTIs),
+		samlAssertions:         maps.Clone(s.samlAssertions),
 		exchangeProfiles:       cloneMap(s.exchangeProfiles, cloneValue[store.TokenExchangeProfile]),
 	}
 }
@@ -201,6 +202,7 @@ func (s *Store) restore(snap *state) {
 	s.emailTemplates, s.emailNotifications = snap.emailTemplates, snap.emailNotifications
 	s.fedAttempts, s.fedIdentities, s.fedTokens = snap.fedAttempts, snap.fedIdentities, snap.fedTokens
 	s.globalRevocationJTIs = snap.globalRevocationJTIs
+	s.samlAssertions = snap.samlAssertions
 	s.credentials, s.assertionJTIs, s.exchangeProfiles = snap.credentials, snap.assertionJTIs, snap.exchangeProfiles
 }
 

@@ -174,6 +174,7 @@ func (r tenants) Delete(_ context.Context, id string) error {
 	purge(s.credentials, id)
 	purge(s.assertionJTIs, id)
 	purge(s.globalRevocationJTIs, id)
+	purge(s.samlAssertions, id)
 	purge(s.exchangeProfiles, id)
 	purge(s.deviceCodes, id)
 	purge(s.refreshTokens, id)

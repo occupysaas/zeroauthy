@@ -19,6 +19,7 @@ type (
 	SAMLSupporter                  = store.SAMLSupporter
 	SAMLParticipant                = store.SAMLParticipant
 	SAMLSessionRecorder            = store.SAMLSessionRecorder
+	SAMLReplayStore                = store.SAMLReplayStore
 	GlobalRevocationStore          = store.GlobalRevocationStore
 	SessionOrganizationRecorder    = store.SessionOrganizationRecorder
 	SessionExpiryLister            = store.SessionExpiryLister

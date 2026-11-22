@@ -5,6 +5,7 @@ import (
 	"errors"
 	"maps"
 	"slices"
+	"time"
 )
 
 // ClientAddons are an application's add-ons (Plan 37a). Only samlp exists.
@@ -133,4 +134,13 @@ func UpsertSAMLParticipant(ps []SAMLParticipant, p SAMLParticipant) []SAMLPartic
 		}
 	}
 	return append(out, p)
+}
+
+// SAMLReplayStore makes SAML assertion IDs single use (saml.v1, LR37a-3).
+// UseSAMLAssertion records an assertion ID for a tenant and connection until
+// exp; ErrConflict means it was already used and has not expired. It must
+// run inside the transaction that commits the login.
+type SAMLReplayStore interface {
+	UseSAMLAssertion(ctx context.Context, tenantID, connectionID, assertionID string, exp, now time.Time) error
+	PurgeSAMLAssertions(ctx context.Context, before time.Time, limit int) (int, error)
 }

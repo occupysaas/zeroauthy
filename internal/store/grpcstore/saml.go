@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"time"
 
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	storev1 "github.com/zeroauthy/zeroauthy/proto/store/v1"
@@ -43,7 +44,9 @@ func (c *Client) CheckSAMLSupport(ctx context.Context) error {
 // SAMLCapabilities answers saml.v1 for the backing store.
 func (s *Server) SAMLCapabilities(ctx context.Context, _ *storev1.PingRequest) (*storev1.EventsCapabilitiesResult, error) {
 	if _, explicit := s.st.(store.SAMLSupporter); !explicit {
-		if _, ok := s.st.Sessions().(store.SAMLSessionRecorder); !ok {
+		_, sessions := s.st.Sessions().(store.SAMLSessionRecorder)
+		_, replay := s.st.(store.SAMLReplayStore)
+		if !sessions || !replay {
 			return &storev1.EventsCapabilitiesResult{}, nil
 		}
 	}
@@ -82,4 +85,54 @@ func (s *Server) SAMLSessionParticipant(ctx context.Context, q *storev1.SAMLPart
 		}
 		return repo.RecordSAMLParticipant(ctx, q.TenantId, q.Id, p)
 	}), nil
+}
+
+// UseSAMLAssertion implements store.SAMLReplayStore over gRPC.
+func (c *Client) UseSAMLAssertion(ctx context.Context, tid, connection, id string, exp, now time.Time) error {
+	if err := c.CheckSAMLSupport(ctx); err != nil {
+		return err
+	}
+	r, err := c.rpc.SAMLReplayUse(ctx, &storev1.GlobalRevocationJTIRequest{TxId: c.txID, TenantId: tid, ConnectionId: connection, Jti: id, ExpiresAt: tsToPB(exp), Now: tsToPB(now)})
+	return do("SAMLReplayUse", r, err)
+}
+
+// PurgeSAMLAssertions implements store.SAMLReplayStore over gRPC.
+func (c *Client) PurgeSAMLAssertions(ctx context.Context, before time.Time, limit int) (int, error) {
+	if err := c.CheckSAMLSupport(ctx); err != nil {
+		return 0, err
+	}
+	r, err := c.rpc.SAMLReplayPurge(ctx, &storev1.ClientCredentialsPurgeRequest{TxId: c.txID, Before: tsToPB(before), Limit: int64(limit)})
+	if err != nil {
+		return 0, rpcErr("SAMLReplayPurge", err)
+	}
+	return int(r.GetCount()), errFromPB(r.GetError())
+}
+
+// SAMLReplayUse serves UseSAMLAssertion.
+func (s *Server) SAMLReplayUse(ctx context.Context, q *storev1.GlobalRevocationJTIRequest) (*storev1.Result, error) {
+	return exec(s, q.TxId, func(st store.Store) error {
+		repo, ok := st.(store.SAMLReplayStore)
+		if !ok {
+			return store.ErrSAMLUnavailable
+		}
+		if err := checkTS(q.ExpiresAt, q.Now); err != nil {
+			return err
+		}
+		return repo.UseSAMLAssertion(ctx, q.TenantId, q.ConnectionId, q.Jti, tsFromPB(q.ExpiresAt), tsFromPB(q.Now))
+	}), nil
+}
+
+// SAMLReplayPurge serves PurgeSAMLAssertions.
+func (s *Server) SAMLReplayPurge(ctx context.Context, q *storev1.ClientCredentialsPurgeRequest) (*storev1.CountResult, error) {
+	out := &storev1.CountResult{}
+	out.Error = errToPB(s.with(q.TxId, func(st store.Store) error {
+		repo, ok := st.(store.SAMLReplayStore)
+		if !ok {
+			return store.ErrSAMLUnavailable
+		}
+		n, err := repo.PurgeSAMLAssertions(ctx, tsFromPB(q.Before), int(q.Limit))
+		out.Count = int64(n)
+		return err
+	}))
+	return out, nil
 }

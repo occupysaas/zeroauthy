@@ -84,6 +84,8 @@ const (
 	StoreService_OIDCLogoutCapabilities_FullMethodName                        = "/zeroauthy.store.v1.StoreService/OIDCLogoutCapabilities"
 	StoreService_SAMLCapabilities_FullMethodName                              = "/zeroauthy.store.v1.StoreService/SAMLCapabilities"
 	StoreService_SAMLSessionParticipant_FullMethodName                        = "/zeroauthy.store.v1.StoreService/SAMLSessionParticipant"
+	StoreService_SAMLReplayUse_FullMethodName                                 = "/zeroauthy.store.v1.StoreService/SAMLReplayUse"
+	StoreService_SAMLReplayPurge_FullMethodName                               = "/zeroauthy.store.v1.StoreService/SAMLReplayPurge"
 	StoreService_OIDCLogoutUseGlobalJTI_FullMethodName                        = "/zeroauthy.store.v1.StoreService/OIDCLogoutUseGlobalJTI"
 	StoreService_OIDCLogoutPurgeGlobalJTIs_FullMethodName                     = "/zeroauthy.store.v1.StoreService/OIDCLogoutPurgeGlobalJTIs"
 	StoreService_OIDCLogoutFindByEmail_FullMethodName                         = "/zeroauthy.store.v1.StoreService/OIDCLogoutFindByEmail"
@@ -614,6 +616,8 @@ type StoreServiceClient interface {
 	// saml.v1 (Plan 37a) gates client add-ons and the SAML replay and session state.
 	SAMLCapabilities(ctx context.Context, in *PingRequest, opts ...grpc.CallOption) (*EventsCapabilitiesResult, error)
 	SAMLSessionParticipant(ctx context.Context, in *SAMLParticipantWrite, opts ...grpc.CallOption) (*Result, error)
+	SAMLReplayUse(ctx context.Context, in *GlobalRevocationJTIRequest, opts ...grpc.CallOption) (*Result, error)
+	SAMLReplayPurge(ctx context.Context, in *ClientCredentialsPurgeRequest, opts ...grpc.CallOption) (*CountResult, error)
 	OIDCLogoutUseGlobalJTI(ctx context.Context, in *GlobalRevocationJTIRequest, opts ...grpc.CallOption) (*Result, error)
 	OIDCLogoutPurgeGlobalJTIs(ctx context.Context, in *ClientCredentialsPurgeRequest, opts ...grpc.CallOption) (*CountResult, error)
 	OIDCLogoutFindByEmail(ctx context.Context, in *UsersFindByIdentityRequest, opts ...grpc.CallOption) (*UserResult, error)
@@ -1701,6 +1705,26 @@ func (c *storeServiceClient) SAMLSessionParticipant(ctx context.Context, in *SAM
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(Result)
 	err := c.cc.Invoke(ctx, StoreService_SAMLSessionParticipant_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) SAMLReplayUse(ctx context.Context, in *GlobalRevocationJTIRequest, opts ...grpc.CallOption) (*Result, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Result)
+	err := c.cc.Invoke(ctx, StoreService_SAMLReplayUse_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) SAMLReplayPurge(ctx context.Context, in *ClientCredentialsPurgeRequest, opts ...grpc.CallOption) (*CountResult, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CountResult)
+	err := c.cc.Invoke(ctx, StoreService_SAMLReplayPurge_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -5838,6 +5862,8 @@ type StoreServiceServer interface {
 	// saml.v1 (Plan 37a) gates client add-ons and the SAML replay and session state.
 	SAMLCapabilities(context.Context, *PingRequest) (*EventsCapabilitiesResult, error)
 	SAMLSessionParticipant(context.Context, *SAMLParticipantWrite) (*Result, error)
+	SAMLReplayUse(context.Context, *GlobalRevocationJTIRequest) (*Result, error)
+	SAMLReplayPurge(context.Context, *ClientCredentialsPurgeRequest) (*CountResult, error)
 	OIDCLogoutUseGlobalJTI(context.Context, *GlobalRevocationJTIRequest) (*Result, error)
 	OIDCLogoutPurgeGlobalJTIs(context.Context, *ClientCredentialsPurgeRequest) (*CountResult, error)
 	OIDCLogoutFindByEmail(context.Context, *UsersFindByIdentityRequest) (*UserResult, error)
@@ -6475,6 +6501,12 @@ func (UnimplementedStoreServiceServer) SAMLCapabilities(context.Context, *PingRe
 }
 func (UnimplementedStoreServiceServer) SAMLSessionParticipant(context.Context, *SAMLParticipantWrite) (*Result, error) {
 	return nil, status.Error(codes.Unimplemented, "method SAMLSessionParticipant not implemented")
+}
+func (UnimplementedStoreServiceServer) SAMLReplayUse(context.Context, *GlobalRevocationJTIRequest) (*Result, error) {
+	return nil, status.Error(codes.Unimplemented, "method SAMLReplayUse not implemented")
+}
+func (UnimplementedStoreServiceServer) SAMLReplayPurge(context.Context, *ClientCredentialsPurgeRequest) (*CountResult, error) {
+	return nil, status.Error(codes.Unimplemented, "method SAMLReplayPurge not implemented")
 }
 func (UnimplementedStoreServiceServer) OIDCLogoutUseGlobalJTI(context.Context, *GlobalRevocationJTIRequest) (*Result, error) {
 	return nil, status.Error(codes.Unimplemented, "method OIDCLogoutUseGlobalJTI not implemented")
@@ -8857,6 +8889,42 @@ func _StoreService_SAMLSessionParticipant_Handler(srv interface{}, ctx context.C
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(StoreServiceServer).SAMLSessionParticipant(ctx, req.(*SAMLParticipantWrite))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_SAMLReplayUse_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GlobalRevocationJTIRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).SAMLReplayUse(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_SAMLReplayUse_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).SAMLReplayUse(ctx, req.(*GlobalRevocationJTIRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_SAMLReplayPurge_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ClientCredentialsPurgeRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).SAMLReplayPurge(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_SAMLReplayPurge_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).SAMLReplayPurge(ctx, req.(*ClientCredentialsPurgeRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -16266,6 +16334,14 @@ var StoreService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "SAMLSessionParticipant",
 			Handler:    _StoreService_SAMLSessionParticipant_Handler,
+		},
+		{
+			MethodName: "SAMLReplayUse",
+			Handler:    _StoreService_SAMLReplayUse_Handler,
+		},
+		{
+			MethodName: "SAMLReplayPurge",
+			Handler:    _StoreService_SAMLReplayPurge_Handler,
 		},
 		{
 			MethodName: "OIDCLogoutUseGlobalJTI",

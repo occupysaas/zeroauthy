@@ -128,6 +128,8 @@ service StoreService {
   // saml.v1 (Plan 37a) gates client add-ons and the SAML replay and session state.
   rpc SAMLCapabilities(PingRequest) returns (EventsCapabilitiesResult);
   rpc SAMLSessionParticipant(SAMLParticipantWrite) returns (Result);
+  rpc SAMLReplayUse(GlobalRevocationJTIRequest) returns (Result); // connection_id + jti = assertion ID
+  rpc SAMLReplayPurge(ClientCredentialsPurgeRequest) returns (CountResult);
   rpc OIDCLogoutUseGlobalJTI(GlobalRevocationJTIRequest) returns (Result);
  rpc OIDCLogoutPurgeGlobalJTIs(ClientCredentialsPurgeRequest) returns (CountResult);
  rpc OIDCLogoutFindByEmail(UsersFindByIdentityRequest) returns (UserResult);
