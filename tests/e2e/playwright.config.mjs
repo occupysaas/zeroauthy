@@ -10,6 +10,7 @@ export default defineConfig({
   testIgnore: [
     ...(process.env.E2E_M41A === '1' ? [] : ['m41a-logout.spec.mjs']),
     ...(process.env.E2E_M37A === '1' ? [] : ['m37a-saml.spec.mjs']),
+    ...(process.env.E2E_M37B === '1' ? [] : ['m37b-wsfed.spec.mjs']),
     ...(process.env.E2E_M39A === '1' ? [] : ['m39a-apple.spec.mjs']),
     ...(process.env.E2E_M39C === '1' ? [] : ['m39c-github.spec.mjs']),
   ],
