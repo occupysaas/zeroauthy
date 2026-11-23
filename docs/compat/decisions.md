@@ -3697,6 +3697,16 @@ explicit token type and five-minute bound. It does not accept ordinary ID
 tokens. The draft remains work in progress. Tenant-issuer audiences are
 rejected; callers following the earlier design must update.
 
+Discovery follow-up (2026-11-22, maintainer): discovery no longer lists
+`global_token_revocation_endpoint` or its auth methods. The endpoint is per
+connection, so its address is the template
+`https://{tenant}/oauth/global-token-revocation/connection/{connectionName}`,
+not a URL, and the OIDF suite (release-v5.3.3,
+`CheckDiscEndpointAllEndpointsAreHttps`) refuses a discovery document with
+one. Production began advertising it once the events decorator forwarded
+the global revocation store (PR #83). The endpoint itself is unchanged;
+callers configure it per connection, as Auth0's Universal Logout setup does.
+
 Review follow-up (2026-11-21, maintainer): an upstream clock up to 60 seconds
 ahead is tolerated for `iat`, `nbf` and the lifetime ceiling, so a fresh token
 is not refused for minor skew; `exp` stays strict because the replay table

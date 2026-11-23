@@ -286,21 +286,6 @@ func (e OpenIDConfigurationDpopSigningAlgValuesSupported) Valid() bool {
 	}
 }
 
-// Defines values for OpenIDConfigurationGlobalTokenRevocationEndpointAuthMethodsSupported.
-const (
-	GlobalTokenRevocationJwt OpenIDConfigurationGlobalTokenRevocationEndpointAuthMethodsSupported = "global-token-revocation+jwt"
-)
-
-// Valid indicates whether the value is a known member of the OpenIDConfigurationGlobalTokenRevocationEndpointAuthMethodsSupported enum.
-func (e OpenIDConfigurationGlobalTokenRevocationEndpointAuthMethodsSupported) Valid() bool {
-	switch e {
-	case GlobalTokenRevocationJwt:
-		return true
-	default:
-		return false
-	}
-}
-
 // Defines values for OpenIDConfigurationRequestObjectSigningAlgValuesSupported.
 const (
 	OpenIDConfigurationRequestObjectSigningAlgValuesSupportedPS256 OpenIDConfigurationRequestObjectSigningAlgValuesSupported = "PS256"
@@ -842,15 +827,11 @@ type OpenIDConfiguration struct {
 	DpopSigningAlgValuesSupported *[]OpenIDConfigurationDpopSigningAlgValuesSupported `json:"dpop_signing_alg_values_supported,omitempty"`
 
 	// EndSessionEndpoint Omitted when the tenant disables RP logout discovery; the endpoint remains available.
-	EndSessionEndpoint *string `json:"end_session_endpoint,omitempty"`
-
-	// GlobalTokenRevocationEndpoint Connection-specific endpoint template with literal {connectionName}.
-	GlobalTokenRevocationEndpoint                     *string                                                                 `json:"global_token_revocation_endpoint,omitempty"`
-	GlobalTokenRevocationEndpointAuthMethodsSupported *[]OpenIDConfigurationGlobalTokenRevocationEndpointAuthMethodsSupported `json:"global_token_revocation_endpoint_auth_methods_supported,omitempty"`
-	GrantTypesSupported                               *[]string                                                               `json:"grant_types_supported,omitempty"`
-	IdTokenSigningAlgValuesSupported                  []string                                                                `json:"id_token_signing_alg_values_supported"`
-	Issuer                                            string                                                                  `json:"issuer"`
-	JwksUri                                           string                                                                  `json:"jwks_uri"`
+	EndSessionEndpoint               *string   `json:"end_session_endpoint,omitempty"`
+	GrantTypesSupported              *[]string `json:"grant_types_supported,omitempty"`
+	IdTokenSigningAlgValuesSupported []string  `json:"id_token_signing_alg_values_supported"`
+	Issuer                           string    `json:"issuer"`
+	JwksUri                          string    `json:"jwks_uri"`
 
 	// PushedAuthorizationRequestEndpoint Present when the tenant allows pushed authorization requests.
 	PushedAuthorizationRequestEndpoint *string `json:"pushed_authorization_request_endpoint,omitempty"`
@@ -880,9 +861,6 @@ type OpenIDConfiguration struct {
 
 // OpenIDConfigurationDpopSigningAlgValuesSupported defines model for OpenIDConfiguration.DpopSigningAlgValuesSupported.
 type OpenIDConfigurationDpopSigningAlgValuesSupported string
-
-// OpenIDConfigurationGlobalTokenRevocationEndpointAuthMethodsSupported defines model for OpenIDConfiguration.GlobalTokenRevocationEndpointAuthMethodsSupported.
-type OpenIDConfigurationGlobalTokenRevocationEndpointAuthMethodsSupported string
 
 // OpenIDConfigurationRequestObjectSigningAlgValuesSupported defines model for OpenIDConfiguration.RequestObjectSigningAlgValuesSupported.
 type OpenIDConfigurationRequestObjectSigningAlgValuesSupported string

@@ -364,6 +364,11 @@ func TestDiscoveryBackchannel(t *testing.T) {
 	}
 }
 
+// TestGlobalRevocationDiscovery: discovery does not list the global token
+// revocation endpoint. Its address is a template per connection
+// (.../connection/{connectionName}), which is not a URL, and the OIDF suite
+// refuses discovery documents with one (maintainer, 2026-11-22). The
+// endpoint itself still works.
 func TestGlobalRevocationDiscovery(t *testing.T) {
 	h, _ := setup(t)
 	rec := get(h, "https://acme.example.test/.well-known/openid-configuration")
@@ -371,11 +376,14 @@ func TestGlobalRevocationDiscovery(t *testing.T) {
 	if json.Unmarshal(rec.Body.Bytes(), &doc) != nil {
 		t.Fatal("invalid discovery")
 	}
-	if doc["global_token_revocation_endpoint"] != "https://acme.example.test/oauth/global-token-revocation/connection/{connectionName}" {
-		t.Fatal("missing connection-specific revocation endpoint")
+	for _, k := range []string{"global_token_revocation_endpoint", "global_token_revocation_endpoint_auth_methods_supported"} {
+		if _, ok := doc[k]; ok {
+			t.Errorf("discovery advertises %s", k)
+		}
 	}
-	methods, _ := doc["global_token_revocation_endpoint_auth_methods_supported"].([]any)
-	if len(methods) != 1 || methods[0] != "global-token-revocation+jwt" {
-		t.Fatal("missing revocation authentication method")
+	for k, v := range doc {
+		if s, ok := v.(string); ok && strings.HasSuffix(k, "_endpoint") && strings.ContainsAny(s, "{}") {
+			t.Errorf("discovery %s is a template, not a URL: %s", k, s)
+		}
 	}
 }
