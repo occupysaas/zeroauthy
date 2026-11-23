@@ -20,6 +20,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/customdb"
 	"github.com/zeroauthy/zeroauthy/internal/customdomain"
 	"github.com/zeroauthy/zeroauthy/internal/dbconn"
+	"github.com/zeroauthy/zeroauthy/internal/dirsync"
 	"github.com/zeroauthy/zeroauthy/internal/dpop"
 	"github.com/zeroauthy/zeroauthy/internal/email"
 	"github.com/zeroauthy/zeroauthy/internal/email/providers"
@@ -417,6 +418,12 @@ func New(d Deps) http.Handler {
 		tr.Get("/login/callback", lg.SocialCallback)
 		tr.Mount("/scim/v2/connections/{connection_id}", scimHandler.Routes())
 		tr.Handle(selfservice.Path, assistant)
+		if d.Federation != nil && d.Federation.Providers != nil {
+			// Google Workspace directory provisioning consent (Plan 37c Phase C).
+			consent := &dirsync.Consent{Store: d.Store, Wrapper: d.Wrapper, Providers: d.Federation.Providers, Log: d.Log}
+			tr.Get(dirsync.ConsentPath, consent.ServeHTTP)
+			tr.Get(dirsync.CallbackPath, consent.ServeHTTP)
+		}
 		tr.Post("/login/callback", lg.SocialCallback)
 		tr.Get("/u/consent", lg.ConsentPage)
 		tr.Post("/u/consent", lg.ConsentSubmit)

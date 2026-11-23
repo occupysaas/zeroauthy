@@ -99,6 +99,22 @@ type Providers struct {
 type GoogleOverride struct {
 	Endpoints Endpoints
 	Issuer    string
+	// DirectoryURL replaces the Admin SDK Directory API base (Plan 37c).
+	DirectoryURL string
+}
+
+// GoogleDirectoryURL is the Admin SDK Directory API base.
+const GoogleDirectoryURL = "https://admin.googleapis.com/admin/directory/v1"
+
+// Google returns the Google endpoints and issuer in use, and the Directory
+// API base: Google's own unless a fixture replaced them.
+func (ps *Providers) Google() (Endpoints, string, string) {
+	e, iss := ps.google()
+	dir := GoogleDirectoryURL
+	if ps.googleFix != nil && ps.googleFix.DirectoryURL != "" {
+		dir = ps.googleFix.DirectoryURL
+	}
+	return e, iss, dir
 }
 
 // WithGoogleFixture points google-oauth2 at a local harness; tests and the
