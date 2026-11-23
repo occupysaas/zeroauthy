@@ -966,4 +966,7 @@ func TestADContracts(t *testing.T) {
 	if item := a.Paths.Value("/ad-hub"); item == nil || item.Get == nil {
 		t.Error("route GET /ad-hub missing")
 	}
+	if item := a.Paths.Value("/test"); item == nil || item.Get == nil {
+		t.Error("route GET /test (the connector's latency test) missing")
+	}
 }

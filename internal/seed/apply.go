@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/zeroauthy/zeroauthy/internal/adhub"
 	"github.com/zeroauthy/zeroauthy/internal/apirules"
 	"github.com/zeroauthy/zeroauthy/internal/brandingrules"
 	"github.com/zeroauthy/zeroauthy/internal/clientrules"
@@ -19,6 +20,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/customdomain"
 	"github.com/zeroauthy/zeroauthy/internal/events"
 	"github.com/zeroauthy/zeroauthy/internal/federation"
+	"github.com/zeroauthy/zeroauthy/internal/federation/rules"
 	"github.com/zeroauthy/zeroauthy/internal/hostedlogin"
 	"github.com/zeroauthy/zeroauthy/internal/hostname"
 	"github.com/zeroauthy/zeroauthy/internal/identity"
@@ -537,7 +539,7 @@ func applyConnection(ctx context.Context, st store.Store, tenantID string, in Co
 			return err
 		}
 	}
-	return tenantsetup.UpsertConnection(ctx, st, tenantID, in.Name, now, func(c *store.Connection) error {
+	err := tenantsetup.UpsertConnection(ctx, st, tenantID, in.Name, now, func(c *store.Connection) error {
 		before := store.PhoneIdentifierActive(c)
 		if err := setConnection(c, in, w); err != nil {
 			return err
@@ -553,6 +555,29 @@ func applyConnection(ctx context.Context, st store.Store, tenantID string, in Co
 		}
 		return nil
 	})
+	if err != nil || in.normalized == nil || in.normalized.Strategy != rules.AD {
+		return err
+	}
+	return provisionAD(ctx, st, tenantID, in.Name, now, w)
+}
+
+// provisionAD gives a seeded ad connection its provisioning ticket and
+// signing key once (Plan 38a): tickets are created where the connection
+// lives, never copied from a seed.
+func provisionAD(ctx context.Context, st store.Store, tenantID, name string, now time.Time, w keys.Wrapper) error {
+	repo, err := store.ADHub(ctx, st)
+	if err != nil {
+		return err
+	}
+	c, err := st.Connections().GetByName(ctx, tenantID, name)
+	if err != nil {
+		return err
+	}
+	if _, err := repo.GetADProvisioning(ctx, tenantID, c.ID); err == nil || !errors.Is(err, store.ErrNotFound) {
+		return err
+	}
+	svc := &adhub.Service{Store: st, Wrapper: w, Now: func() time.Time { return now }}
+	return svc.Provision(ctx, st, c)
 }
 
 func setConnection(c *store.Connection, in Connection, w keys.Wrapper) error {
@@ -610,6 +635,21 @@ func setConnection(c *store.Connection, in Connection, w keys.Wrapper) error {
 		}
 		connrules.Apply(spec, c)
 		return nil
+	}
+	if spec.Strategy == rules.AD {
+		// The connector's registration owns these options (LR38a-6).
+		copySpec := *spec
+		copySpec.Options.Extra = maps.Clone(spec.Options.Extra)
+		if copySpec.Options.Extra == nil {
+			copySpec.Options.Extra = map[string]any{}
+		}
+		for _, k := range rules.ADManaged {
+			delete(copySpec.Options.Extra, k)
+			if v, ok := c.Extra[k]; ok {
+				copySpec.Options.Extra[k] = v
+			}
+		}
+		spec = &copySpec
 	}
 	// The seed owns the complexity half of the password options unless it
 	// names password_options; fields it does not name are left alone.

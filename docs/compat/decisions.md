@@ -3901,6 +3901,8 @@ real connector):
 | Ticket information | `GET {ticket}/info` → JSON with `adHub` (required, else "Wrong ticket url"), `connectionName`, `connectionDomain`, `certAuth`, `kerberos`, `realm.name`, `realm.postTokenUrl`; 404 means "Does this connection still exist?" | `lib/provisioningTicket.js`, `server.js` 100–113 |
 | Registration | `POST {ticket}` JSON `{certs: [base64 DER], signInEndpoint: "{SERVER_URL}/wsfed", agentMode, agentVersion}`; the response's `signingKey` becomes `TENANT_SIGNING_KEY` | `lib/configureConnection.js`, `server.js` 124–131 |
 | Both run at every connector start | the ticket is therefore reusable, not single-use (LR38a-4) | `server.js` `startup` |
+| Latency test | after connecting, `GET https://{ticket host}/test` ten times; the connector exits unless each answers 2xx (found by the E2E suite) | `latency_test.js`, `server.js` 146 |
+| CA certificates | the connector replaces Node's CA list with the system store or `SSL_CA_PATH` (a directory of `.pem`/`.crt`/`.cer`), so a private CA goes there, not in `NODE_EXTRA_CA_CERTS` | `lib/add_certs.js` |
 | Hub | WebSocket to `adHub` (`http` → `ws`), frames are JSON `{n, p}`; unparseable frames are ignored | `ws_validator.js` 17, 45–99 |
 | Connector authentication | `{n:"authenticate", p:{jwt}}`, RS256 with the connector's private key, claims `iss` = connection name, `aud` = realm name, `exp` = 1 minute, no other claims | `ws_validator.js` 347–358 |
 | Answer | `authenticated` (the connector starts pinging every 5 s, 4 s pong timeout, reconnects after 5 misses) or `authentication_failure` (the connector exits) | `ws_validator.js` 56–81, 104–133 |

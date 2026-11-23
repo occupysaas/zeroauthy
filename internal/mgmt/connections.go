@@ -281,6 +281,9 @@ func readConnectionBody(body map[string]json.RawMessage, create bool) (*connrule
 	if create {
 		allowed = append([]string{"name", "strategy", "enabled_clients"}, settingsKeys...)
 	}
+	// provisioning_ticket_url is read-only (Plan 38a); exports carry it back
+	// (the Deploy CLI sends what it read), so it is ignored.
+	delete(body, "provisioning_ticket_url")
 	set := map[string]bool{}
 	for _, k := range slices.Sorted(maps.Keys(body)) {
 		if !slices.Contains(allowed, k) {

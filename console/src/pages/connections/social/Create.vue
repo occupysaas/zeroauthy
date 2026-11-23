@@ -48,6 +48,7 @@ const draft = reactive({
   samlMetadataURL: '',
   samlSignIn: '',
   samlCert: '',
+  adDomain: '',
   adfsSource: 'server' as 'server' | 'xml',
   adfsServer: '',
   adfsXML: '',
@@ -86,6 +87,7 @@ function validate(): boolean {
   const n = draft.name.trim()
   if (!n) errors.name = t('social.nameRequired')
   else if (n.length > 128 || !NAME.test(n)) errors.name = t('social.nameInvalid')
+  if (draft.strategy === 'ad') return Object.keys(errors).length === 0
   if (draft.strategy === 'adfs') {
     if (draft.adfsSource === 'server' ? !draft.adfsServer.trim() : !draft.adfsXML.trim()) errors[draft.adfsSource === 'server' ? 'adfsServer' : 'adfsXML'] = t('social.required')
     return Object.keys(errors).length === 0
@@ -128,6 +130,9 @@ function validate(): boolean {
 function body(): ConnectionCreate {
   let options: Options = { client_id: draft.clientId.trim(), client_secret: draft.clientSecret }
   switch (draft.strategy) {
+    case 'ad':
+      options = draft.adDomain.trim() ? { tenant_domain: draft.adDomain.trim().toLowerCase() } : {}
+      break
     case 'adfs':
       options = draft.adfsSource === 'server' ? { adfs_server: draft.adfsServer.trim() } : { fedMetadataXml: draft.adfsXML.trim() }
       break
@@ -228,16 +233,20 @@ function describedBy(id: string, key: string, hint = false): string {
         </template>
         <p class="muted" data-testid="saml-acs">{{ t('saml37.acs') }} <code>{{ samlACS(tenant, draft.name.trim() || '{name}') }}</code></p>
       </template>
+      <template v-if="draft.strategy === 'ad'">
+        <Field id="ad-domain" :label="t('ad38.domain')" :hint="t('ad38.domainHint')"><input id="ad-domain" v-model="draft.adDomain" type="text" autocomplete="off" spellcheck="false" /></Field>
+        <p class="muted" data-testid="ad-create-hint">{{ t('ad38.createHint') }}</p>
+      </template>
       <template v-if="draft.strategy === 'adfs'">
         <Field id="adfs-source" :label="t('wsfed37.source')"><select id="adfs-source" v-model="draft.adfsSource"><option value="server">{{ t('wsfed37.fromServer') }}</option><option value="xml">{{ t('wsfed37.fromXML') }}</option></select></Field>
         <Field v-if="draft.adfsSource === 'server'" id="adfs-server" :label="t('wsfed37.server')" :hint="t('wsfed37.serverHint')" :error="errors.adfsServer"><input id="adfs-server" v-model="draft.adfsServer" type="text" autocomplete="off" spellcheck="false" :aria-invalid="!!errors.adfsServer" /></Field>
         <Field v-else id="adfs-xml" :label="t('wsfed37.xml')" :error="errors.adfsXML"><textarea id="adfs-xml" v-model="draft.adfsXML" rows="7" spellcheck="false" :aria-invalid="!!errors.adfsXML" /></Field>
         <dl class="m-0 break-all muted" data-testid="adfs-rp"><dt>{{ t('wsfed37.realm') }}</dt><dd><code>{{ adfsRealm(tenant, draft.name.trim() || '{name}') }}</code></dd><dt>{{ t('wsfed37.callback') }}</dt><dd><code>{{ adfsCallback(tenant) }}</code></dd></dl>
       </template>
-      <Field v-if="draft.strategy !== 'samlp' && draft.strategy !== 'adfs'" id="social-client-id" :label="t(draft.strategy === 'apple' ? 'social.appleServices' : 'social.clientId')" :error="errors.clientId">
+      <Field v-if="draft.strategy !== 'samlp' && draft.strategy !== 'adfs' && draft.strategy !== 'ad'" id="social-client-id" :label="t(draft.strategy === 'apple' ? 'social.appleServices' : 'social.clientId')" :error="errors.clientId">
         <input id="social-client-id" v-model="draft.clientId" type="text" autocomplete="off" spellcheck="false" :aria-invalid="!!errors.clientId" :aria-describedby="describedBy('social-client-id', 'clientId')" />
       </Field>
-      <Field v-if="draft.strategy !== 'apple' && draft.strategy !== 'samlp' && draft.strategy !== 'adfs' && (draft.strategy !== 'oidc' || draft.channel === 'back_channel')" id="social-client-secret" :label="t('social.clientSecret')" :hint="t('social.clientSecretNew')" :error="errors.clientSecret">
+      <Field v-if="draft.strategy !== 'apple' && draft.strategy !== 'samlp' && draft.strategy !== 'adfs' && draft.strategy !== 'ad' && (draft.strategy !== 'oidc' || draft.channel === 'back_channel')" id="social-client-secret" :label="t('social.clientSecret')" :hint="t('social.clientSecretNew')" :error="errors.clientSecret">
         <input id="social-client-secret" v-model="draft.clientSecret" type="password" autocomplete="new-password" spellcheck="false" :aria-invalid="!!errors.clientSecret" :aria-describedby="describedBy('social-client-secret', 'clientSecret', true)" />
       </Field>
       <template v-if="draft.strategy === 'apple'">
@@ -274,7 +283,7 @@ function describedBy(id: string, key: string, hint = false): string {
           <input id="social-scopes" v-model="draft.scopes" type="text" autocomplete="off" spellcheck="false" :aria-invalid="!!errors.scopes" :aria-describedby="describedBy('social-scopes', 'scopes', true)" />
         </Field>
       </template>
-      <section v-if="draft.strategy !== 'samlp' && draft.strategy !== 'adfs'" class="stack" aria-labelledby="social-callbacks">
+      <section v-if="draft.strategy !== 'samlp' && draft.strategy !== 'adfs' && draft.strategy !== 'ad'" class="stack" aria-labelledby="social-callbacks">
         <h2 id="social-callbacks" class="m-0 text-base">{{ t('social.callbacks') }}</h2>
         <p class="muted">{{ t('social.callbacksHint') }}</p>
         <p v-if="draft.strategy === 'github'" class="muted" data-testid="github-callbacks">{{ t('social.githubCallbacks') }}</p>

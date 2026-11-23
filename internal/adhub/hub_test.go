@@ -152,15 +152,47 @@ func TestHubSessionsAndEviction(t *testing.T) {
 
 // A connector that stops sending (no pings) is closed after the idle timeout.
 func TestHubIdleTimeout(t *testing.T) {
-	old := idleTimeout
-	idleTimeout = 300 * time.Millisecond
-	t.Cleanup(func() { idleTimeout = old })
 	e := newEnv(t)
 	h := newHub(e)
+	h.idle = 300 * time.Millisecond
 	srv := hubServer(t, e, h, e.ta)
 	k := newConnectorKey(t, 2048)
 	key := register(t, e, k)
 	connect(t, e, srv, k, key, nil)
 	waitFor(t, "connected", func() bool { return h.Connected("ten_a", e.conn.ID) })
 	waitFor(t, "idle socket closed", func() bool { return !h.Connected("ten_a", e.conn.ID) })
+}
+
+// The connector pings every 5 s and the hub's pongs share the socket with
+// its frames: a write deadline left behind by a frame must not fail a later
+// pong (found by make e2e-ad with the real connector).
+func TestHubKeepsPingingConnector(t *testing.T) {
+	e := newEnv(t)
+	h := newHub(e)
+	h.write, h.idle = 100*time.Millisecond, 2*time.Second
+	srv := hubServer(t, e, h, e.ta)
+	k := newConnectorKey(t, 2048)
+	key := register(t, e, k)
+	c := connect(t, e, srv, k, key, func(_ string, claims map[string]any) any { return profileReply(claims) })
+	waitFor(t, "connected", func() bool { return h.Connected("ten_a", e.conn.ID) })
+	if _, err := h.Call(context.Background(), "ten_a", e.conn.ID, OpAuthenticateUser, map[string]any{"username": "u"}); err != nil {
+		t.Fatal(err)
+	}
+	for range 10 {
+		time.Sleep(60 * time.Millisecond) // beyond the last frame's write deadline
+		c.writeMu.Lock()
+		c.ws.PayloadType = websocket.PingFrame
+		_, err := c.ws.Write([]byte("p"))
+		c.ws.PayloadType = websocket.TextFrame
+		c.writeMu.Unlock()
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+	if !h.Connected("ten_a", e.conn.ID) {
+		t.Fatal("the hub dropped a pinging connector")
+	}
+	if _, err := h.Call(context.Background(), "ten_a", e.conn.ID, OpAuthenticateUser, map[string]any{"username": "u"}); err != nil {
+		t.Fatalf("after pings: %v", err)
+	}
 }

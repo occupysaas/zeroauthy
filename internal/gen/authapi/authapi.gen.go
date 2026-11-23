@@ -2999,6 +2999,9 @@ type ServerInterface interface {
 	// SamlpIdPLogoutPost SAML identity-provider single logout (HTTP-POST)
 	// (POST /samlp/{client_id}/logout)
 	SamlpIdPLogoutPost(w http.ResponseWriter, r *http.Request, clientId string)
+	// AdConnectorLatencyTest AD/LDAP Connector latency test
+	// (GET /test)
+	AdConnectorLatencyTest(w http.ResponseWriter, r *http.Request)
 	// Userinfo Get the user's profile
 	// (GET /userinfo)
 	Userinfo(w http.ResponseWriter, r *http.Request)
@@ -3233,6 +3236,12 @@ func (_ Unimplemented) SamlpIdPLogout(w http.ResponseWriter, r *http.Request, cl
 // SamlpIdPLogoutPost SAML identity-provider single logout (HTTP-POST)
 // (POST /samlp/{client_id}/logout)
 func (_ Unimplemented) SamlpIdPLogoutPost(w http.ResponseWriter, r *http.Request, clientId string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// AdConnectorLatencyTest AD/LDAP Connector latency test
+// (GET /test)
+func (_ Unimplemented) AdConnectorLatencyTest(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -4901,6 +4910,20 @@ func (siw *ServerInterfaceWrapper) SamlpIdPLogoutPost(w http.ResponseWriter, r *
 	handler.ServeHTTP(w, r)
 }
 
+// AdConnectorLatencyTest operation middleware
+func (siw *ServerInterfaceWrapper) AdConnectorLatencyTest(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.AdConnectorLatencyTest(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // Userinfo operation middleware
 func (siw *ServerInterfaceWrapper) Userinfo(w http.ResponseWriter, r *http.Request) {
 
@@ -5411,6 +5434,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/p/ad/{ticket}", wrapper.AdTicketConfigure)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/test", wrapper.AdConnectorLatencyTest)
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/ad-hub", wrapper.AdHub)

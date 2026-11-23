@@ -94,13 +94,17 @@ func TestHubMultiplexer(t *testing.T) {
 	send := func(name string, payload any) {
 		body, _ := json.Marshal(payload)
 		b, _ := json.Marshal(frame{N: name, P: body})
+		c.writeMu.Lock()
 		_, _ = c.ws.Write(b)
+		c.writeMu.Unlock()
 	}
 	send("0123456789abcdef0123456789abcdef_result", map[string]any{"profile": map[string]any{"id": "intruder"}})
 	send(pid+"_list_groups_result", map[string]any{"groups": []string{"admins"}})
 	send(pid+"_change_password_result", map[string]any{"profile": map[string]any{"id": "intruder"}})
 	send("garbage", nil)
+	c.writeMu.Lock()
 	_, _ = c.ws.Write([]byte("not json"))
+	c.writeMu.Unlock()
 	if err := <-done; !errors.Is(err, ErrTimeout) {
 		t.Fatalf("mismatched replies taken: %v", err)
 	}
@@ -110,8 +114,11 @@ func TestHubMultiplexer(t *testing.T) {
 	if r, err := h.Call(ctx, "ten_a", e.conn.ID, OpAuthenticateUser, map[string]any{"username": "after"}); err != nil || r.Profile == nil {
 		t.Fatalf("after late reply: %v", err)
 	}
-	if h.inFlight[connKey{"ten_a", e.conn.ID}] != 0 {
-		t.Fatalf("in-flight count leaked: %d", h.inFlight[connKey{"ten_a", e.conn.ID}])
+	h.mu.Lock()
+	leaked := h.inFlight[connKey{"ten_a", e.conn.ID}]
+	h.mu.Unlock()
+	if leaked != 0 {
+		t.Fatalf("in-flight count leaked: %d", leaked)
 	}
 }
 

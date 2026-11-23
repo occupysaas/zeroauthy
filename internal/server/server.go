@@ -620,6 +620,14 @@ func (a authAPI) WsfedClientMetadata(w http.ResponseWriter, r *http.Request, cli
 func adNotImplemented(w http.ResponseWriter) {
 	httpx.WriteError(w, http.StatusNotImplemented, "not_implemented", "AD/LDAP connections are not implemented yet")
 }
+
+// AdConnectorLatencyTest answers the connector's start-up latency test
+// (latency_test.js); without a 2xx the connector exits.
+func (authAPI) AdConnectorLatencyTest(w http.ResponseWriter, _ *http.Request) {
+	w.Header().Set("Cache-Control", "no-store")
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	_, _ = w.Write([]byte("OK"))
+}
 func (a authAPI) AdHub(w http.ResponseWriter, r *http.Request) {
 	if a.ad == nil || a.ad.Hub == nil {
 		adNotImplemented(w)

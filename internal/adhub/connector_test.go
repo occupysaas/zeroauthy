@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -38,6 +39,7 @@ type fakeConnector struct {
 	t          *testing.T
 	ws         *websocket.Conn
 	signingKey string
+	writeMu    sync.Mutex
 	mu         sync.Mutex
 	got        []map[string]any
 	// answer builds the reply payload of a request; nil means no reply.
@@ -56,13 +58,16 @@ func dialHub(t *testing.T, srv *httptest.Server) (*websocket.Conn, error) {
 }
 
 // hubToken is the connector's authenticate JWT (ws_validator.js 347–358).
-func hubToken(t *testing.T, k connectorKey, iss, aud string, exp time.Time) string {
+func hubToken(t *testing.T, k connectorKey, iss, aud string, exp time.Time, jti ...string) string {
 	t.Helper()
 	signer, err := jose.NewSigner(jose.SigningKey{Algorithm: jose.RS256, Key: k.key}, (&jose.SignerOptions{}).WithType("JWT"))
 	if err != nil {
 		t.Fatal(err)
 	}
 	claims := jwt.Claims{Issuer: iss, Audience: jwt.Audience{aud}, Expiry: jwt.NewNumericDate(exp), IssuedAt: jwt.NewNumericDate(exp.Add(-time.Minute))}
+	if len(jti) > 0 {
+		claims.ID = jti[0]
+	}
 	raw, err := jwt.Signed(signer).Claims(claims).Serialize()
 	if err != nil {
 		t.Fatal(err)
@@ -95,7 +100,7 @@ func connect(t *testing.T, e *env, srv *httptest.Server, k connectorKey, signing
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got := authenticateRaw(t, ws, hubToken(t, k, "corp", "urn:auth0:acme:corp", e.now.Add(time.Minute+time.Duration(connectSeq.Add(1))*time.Second))); got != evAuthenticated {
+	if got := authenticateRaw(t, ws, hubToken(t, k, "corp", "urn:auth0:acme:corp", e.now.Add(time.Minute), fmt.Sprint(connectSeq.Add(1)))); got != evAuthenticated {
 		t.Fatalf("authenticate: %s", got)
 	}
 	_ = ws.SetReadDeadline(time.Time{})
@@ -139,7 +144,9 @@ func (c *fakeConnector) loop() {
 		pid, _ := claims["pid"].(string)
 		body, _ := json.Marshal(reply)
 		b, _ := json.Marshal(frame{N: pid + Op(f.N).replySuffix(), P: body})
+		c.writeMu.Lock()
 		_, _ = c.ws.Write(b)
+		c.writeMu.Unlock()
 	}
 }
 

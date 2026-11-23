@@ -45,8 +45,12 @@ const (
 )
 
 // idleTimeout closes a socket that sent nothing (the connector pings every
-// 5 s) for this long; a variable for tests.
-var idleTimeout = 30 * time.Second
+// 5 s) for this long; writeTimeout bounds one frame write. Tests shorten
+// them per hub.
+const (
+	idleTimeout  = 30 * time.Second
+	writeTimeout = RequestTimeout
+)
 
 // Errors of Call.
 var (
@@ -66,6 +70,9 @@ type Hub struct {
 	// Forward, when set, sends a request for a connection without a local
 	// connector to the replica that holds sess.
 	Forward func(ctx context.Context, sess *store.ADHubSession, op Op, claims map[string]any) (*Reply, error)
+
+	// idle and write override idleTimeout and writeTimeout (tests).
+	idle, write time.Duration
 
 	mu       sync.Mutex
 	agents   map[connKey]map[string]*agent
@@ -93,6 +100,20 @@ type pendingCall struct {
 }
 
 func (h *Hub) now() time.Time { return h.Service.now() }
+
+func (h *Hub) idleTimeout() time.Duration {
+	if h.idle > 0 {
+		return h.idle
+	}
+	return idleTimeout
+}
+
+func (h *Hub) writeTimeout() time.Duration {
+	if h.write > 0 {
+		return h.write
+	}
+	return writeTimeout
+}
 
 // tlsOK is LR38a-2: the hub accepts sockets only over TLS, directly or
 // through a trusted proxy that says so.
@@ -130,7 +151,7 @@ func (h *Hub) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			h.serve(ctx, res, ws, ip)
 		},
 	}
-	srv.ServeHTTP(idleWriter{w}, r)
+	srv.ServeHTTP(idleWriter{ResponseWriter: w, idle: h.idleTimeout()}, r)
 }
 
 // serve authenticates a socket and runs it until it closes.
@@ -153,7 +174,7 @@ func (h *Hub) serve(ctx context.Context, res tenant.Resolved, ws *websocket.Conn
 		h.reject(ws)
 		return
 	}
-	_ = ws.SetReadDeadline(time.Now().Add(idleTimeout))
+	_ = ws.SetReadDeadline(time.Now().Add(h.idleTimeout()))
 	a := &agent{hub: h, id: secrets.RandomHex(16), key: connKey{conn.TenantID, conn.ID}, thumbprint: thumbprint, ws: ws,
 		pending: map[string]*pendingCall{}, done: make(chan struct{})}
 	if err := a.send(frame{N: evAuthenticated}); err != nil {
@@ -168,7 +189,7 @@ func (h *Hub) serve(ctx context.Context, res tenant.Resolved, ws *websocket.Conn
 
 func (h *Hub) reject(ws *websocket.Conn) {
 	b, _ := json.Marshal(frame{N: evAuthenticationFailure})
-	_ = ws.SetWriteDeadline(time.Now().Add(RequestTimeout))
+	_ = ws.SetWriteDeadline(time.Now().Add(h.writeTimeout()))
 	ws.PayloadType = websocket.TextFrame
 	_, _ = ws.Write(b)
 }
@@ -431,7 +452,11 @@ func (a *agent) send(f frame) error {
 	}
 	a.writeMu.Lock()
 	defer a.writeMu.Unlock()
-	_ = a.ws.SetWriteDeadline(time.Now().Add(RequestTimeout))
+	// The deadline is cleared again: x/net/websocket answers the
+	// connector's pings with pongs on the same connection, and a stale
+	// deadline would fail them and drop the socket (found by make e2e-ad).
+	_ = a.ws.SetWriteDeadline(time.Now().Add(a.hub.writeTimeout()))
+	defer a.ws.SetWriteDeadline(time.Time{})
 	a.ws.PayloadType = websocket.TextFrame
 	_, err = a.ws.Write(b)
 	return err
@@ -564,7 +589,10 @@ func readFrame(ws *websocket.Conn, f *frame) error {
 // idleWriter makes the hijacked connection fail reads after idleTimeout
 // without any bytes from the connector (it pings every 5 s), so a vanished
 // connector frees its session.
-type idleWriter struct{ http.ResponseWriter }
+type idleWriter struct {
+	http.ResponseWriter
+	idle time.Duration
+}
 
 func (w idleWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
 	hj, ok := w.ResponseWriter.(http.Hijacker)
@@ -576,17 +604,20 @@ func (w idleWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
 		return nil, nil, err
 	}
 	pre, _ := brw.Reader.Peek(brw.Reader.Buffered())
-	ic := &idleConn{Conn: c}
+	ic := &idleConn{Conn: c, idle: w.idle}
 	r := bufio.NewReader(io.MultiReader(bytes.NewReader(bytes.Clone(pre)), ic))
 	return ic, bufio.NewReadWriter(r, bufio.NewWriter(ic)), nil
 }
 
-type idleConn struct{ net.Conn }
+type idleConn struct {
+	net.Conn
+	idle time.Duration
+}
 
 func (c *idleConn) Read(b []byte) (int, error) {
 	n, err := c.Conn.Read(b)
 	if n > 0 {
-		_ = c.Conn.SetReadDeadline(time.Now().Add(idleTimeout))
+		_ = c.Conn.SetReadDeadline(time.Now().Add(c.idle))
 	}
 	return n, err
 }

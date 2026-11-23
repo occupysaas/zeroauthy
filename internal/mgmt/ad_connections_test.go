@@ -190,3 +190,24 @@ func TestADUserPasswordChange(t *testing.T) {
 		}
 	}
 }
+
+// Exports carry provisioning_ticket_url back (the Deploy CLI sends what it
+// read): it is ignored, never an unknown property, and never changes the
+// ticket.
+func TestADTicketURLIgnoredOnWrite(t *testing.T) {
+	e, _ := adEnv(t)
+	r, v := e.call(t, e.tn, m2mCaller(), "POST", "/connections", map[string]any{"name": "corp", "strategy": "ad", "provisioning_ticket_url": "https://evil.example/p/ad/x"}, e.h.CreateConnection)
+	if r.Code != 201 {
+		t.Fatalf("create: %d %v", r.Code, v)
+	}
+	view := v.(map[string]any)
+	ticket, id := view["provisioning_ticket_url"], view["id"].(string)
+	if !strings.HasPrefix(fmt.Sprint(ticket), "https://login.acme.test/p/ad/") {
+		t.Fatalf("ticket %v", ticket)
+	}
+	r, v = e.call(t, e.tn, m2mCaller(), "PATCH", "/connections/"+id, map[string]any{"provisioning_ticket_url": "https://evil.example/p/ad/x", "display_name": "Corp"},
+		func(w http.ResponseWriter, r *http.Request) { e.h.UpdateConnection(w, r, id) })
+	if r.Code != 200 || v.(map[string]any)["provisioning_ticket_url"] != ticket {
+		t.Fatalf("update: %d %v", r.Code, v)
+	}
+}

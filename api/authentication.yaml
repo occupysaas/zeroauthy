@@ -1084,6 +1084,23 @@ paths:
           content:
             application/json:
               schema: {$ref: "#/components/schemas/OAuthError"}
+  /test:
+    get:
+      operationId: adConnectorLatencyTest
+      tags: [AD/LDAP Connector]
+      summary: AD/LDAP Connector latency test
+      description: |
+        The connector requests `https://{ticket host}/test` ten times at
+        every start to measure latency and exits unless each answers 2xx
+        (`latency_test.js`). The body carries nothing.
+      x-source:
+        - https://github.com/auth0/ad-ldap-connector
+      responses:
+        "200":
+          description: OK.
+          content:
+            text/plain:
+              schema: {type: string}
   /ad-hub:
     get:
       operationId: adHub
