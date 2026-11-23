@@ -20,3 +20,14 @@ export const scimScopes = ['get:users', 'post:users', 'put:users', 'patch:users'
 
 // The strategies that accept SCIM provisioning.
 export const scimStrategies = ['samlp', 'oidc', 'okta', 'waad']
+
+// Self-service SSO (Plan 37c Phase B).
+export type SelfServiceProfile = components['schemas']['SelfServiceProfile']
+export type SelfServiceProfileCreate = components['schemas']['CreateSelfServiceProfileRequestContent']
+export type SelfServiceProfileUpdate = components['schemas']['UpdateSelfServiceProfileRequestContent']
+export type SsoTicketRequest = components['schemas']['CreateSelfServiceProfileSsoTicketRequestContent']
+export type ConnectionProfile = components['schemas']['ConnectionProfile']
+export type ConnectionProfileCreate = components['schemas']['CreateConnectionProfileRequestContent']
+
+// The strategies the self-service assistant can configure (D-0150 Q7).
+export const selfServiceStrategies = ['samlp', 'oidc', 'okta', 'waad', 'adfs'] as const

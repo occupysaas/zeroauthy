@@ -25,6 +25,7 @@ export const sections: Section[] = [
   { key: 'passwordless-sms', label: 'phone.passwordlessSMS', group: 'navGroup.authentication', path: 'passwordless/sms', status: 'live' },
   { key: 'social', label: 'nav.social', group: 'navGroup.authentication', path: 'social', status: 'live' },
   { key: 'enterprise', label: 'nav.enterprise', group: 'navGroup.authentication', path: 'enterprise', status: 'live' },
+  { key: 'self-service', label: 'nav.selfService', group: 'navGroup.authentication', path: 'self-service', status: 'live' },
   {
     key: 'users',
     label: 'nav.users',

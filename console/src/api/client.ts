@@ -1,8 +1,8 @@
 import type { components } from './schema'
 import type { Role, RolePage, PermissionKey, PermissionPage, RoleUserPage, OffsetPage } from './rbac'
 export type { Role, RolePage, PermissionKey, Permission, PermissionSource, PermissionPage, RoleUser, RoleUserPage } from './rbac'
-import type { Group, GroupPage, GroupCheckpoint, GroupMemberPage, GroupRolePage, UserGroupPage, ScimConfiguration, ScimMappingItem, ScimToken, ScimTokenCreate, ScimTokenCreated } from './directory'
-export type { Group, GroupPage, GroupCheckpoint, GroupMember, GroupMemberPage, GroupRolePage, UserGroup, UserGroupPage, ScimConfiguration, ScimMappingItem, ScimToken, ScimTokenCreate, ScimTokenCreated } from './directory'
+import type { Group, GroupPage, GroupCheckpoint, GroupMemberPage, GroupRolePage, UserGroupPage, ScimConfiguration, ScimMappingItem, ScimToken, ScimTokenCreate, ScimTokenCreated, SelfServiceProfile, SelfServiceProfileCreate, SelfServiceProfileUpdate, SsoTicketRequest, ConnectionProfile, ConnectionProfileCreate } from './directory'
+export type { Group, GroupPage, GroupCheckpoint, GroupMember, GroupMemberPage, GroupRolePage, UserGroup, UserGroupPage, ScimConfiguration, ScimMappingItem, ScimToken, ScimTokenCreate, ScimTokenCreated, SelfServiceProfile, SelfServiceProfileCreate, SelfServiceProfileUpdate, SsoTicketRequest, ConnectionProfile, ConnectionProfileCreate } from './directory'
 
 // A thin, typed wrapper over fetch for the Management and system APIs.
 
@@ -542,6 +542,43 @@ export class Api {
   }
   listUserGroups(t: SystemTenant, id: string): Promise<UserGroupPage> {
     return this.tenantRequest(t, 'GET', userPath(id) + '/groups', { query: { take: 100 } })
+  }
+  // Self-service SSO (Plan 37c Phase B).
+  listSelfServiceProfiles(t: SystemTenant): Promise<SelfServiceProfile[]> {
+    return this.tenantRequest(t, 'GET', '/api/v2/self-service-profiles', { query: { per_page: 100 } })
+  }
+  getSelfServiceProfile(t: SystemTenant, id: string): Promise<SelfServiceProfile> {
+    return this.tenantRequest(t, 'GET', '/api/v2/self-service-profiles/' + encodeURIComponent(id))
+  }
+  createSelfServiceProfile(t: SystemTenant, body: SelfServiceProfileCreate): Promise<SelfServiceProfile> {
+    return this.tenantRequest(t, 'POST', '/api/v2/self-service-profiles', { body })
+  }
+  updateSelfServiceProfile(t: SystemTenant, id: string, body: SelfServiceProfileUpdate): Promise<SelfServiceProfile> {
+    return this.tenantRequest(t, 'PATCH', '/api/v2/self-service-profiles/' + encodeURIComponent(id), { body })
+  }
+  deleteSelfServiceProfile(t: SystemTenant, id: string): Promise<void> {
+    return this.tenantRequest(t, 'DELETE', '/api/v2/self-service-profiles/' + encodeURIComponent(id))
+  }
+  getSelfServiceCustomText(t: SystemTenant, id: string): Promise<Record<string, string>> {
+    return this.tenantRequest(t, 'GET', '/api/v2/self-service-profiles/' + encodeURIComponent(id) + '/custom-text/en/get-started')
+  }
+  setSelfServiceCustomText(t: SystemTenant, id: string, body: Record<string, string>): Promise<Record<string, string>> {
+    return this.tenantRequest(t, 'PUT', '/api/v2/self-service-profiles/' + encodeURIComponent(id) + '/custom-text/en/get-started', { body })
+  }
+  createSsoTicket(t: SystemTenant, id: string, body: SsoTicketRequest): Promise<{ ticket?: string }> {
+    return this.tenantRequest(t, 'POST', '/api/v2/self-service-profiles/' + encodeURIComponent(id) + '/sso-ticket', { body })
+  }
+  revokeSsoTicket(t: SystemTenant, id: string, ticket: string): Promise<void> {
+    return this.tenantRequest(t, 'POST', '/api/v2/self-service-profiles/' + encodeURIComponent(id) + '/sso-ticket/' + encodeURIComponent(ticket) + '/revoke')
+  }
+  listConnectionProfiles(t: SystemTenant): Promise<{ connection_profiles?: ConnectionProfile[]; next?: string }> {
+    return this.tenantRequest(t, 'GET', '/api/v2/connection-profiles', { query: { take: 100 } })
+  }
+  createConnectionProfile(t: SystemTenant, body: ConnectionProfileCreate): Promise<ConnectionProfile> {
+    return this.tenantRequest(t, 'POST', '/api/v2/connection-profiles', { body })
+  }
+  deleteConnectionProfile(t: SystemTenant, id: string): Promise<void> {
+    return this.tenantRequest(t, 'DELETE', '/api/v2/connection-profiles/' + encodeURIComponent(id))
   }
   // SCIM provisioning of an enterprise connection (Plan 37c).
   getScimConfiguration(t: SystemTenant, connection: string): Promise<ScimConfiguration> {
