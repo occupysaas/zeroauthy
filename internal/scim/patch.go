@@ -101,7 +101,26 @@ func ApplyPatch(res map[string]any, ops []PatchOperation) error {
 			if kind == "remove" || !ok {
 				return errPatch
 			}
-			merge(res, obj)
+			// A key may be an attribute path (Entra ID sends
+			// "name.givenName" and URN-qualified extension attributes);
+			// a plain name or a schema URN merges as an attribute.
+			for k, v := range obj {
+				if strings.ContainsAny(k, ".:") {
+					if p, err := ParsePath(k); err == nil && p.Filter == nil {
+						if p.URN == "" && p.Sub == "" {
+							merge(res, map[string]any{p.Attr: v})
+							continue
+						}
+						c := container(res, p, true)
+						if p.Sub == "" {
+							p.Attr = actualKey(c, p.Attr)
+						}
+						Set(res, p, v)
+						continue
+					}
+				}
+				merge(res, map[string]any{k: v})
+			}
 			continue
 		}
 		p, err := ParsePath(op.Path)

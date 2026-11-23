@@ -81,3 +81,26 @@ func TestApplyPatch(t *testing.T) {
 		}
 	}
 }
+
+// TestApplyPatchPathlessPaths: Entra ID sends path-less operations whose
+// value keys are attribute paths (sub-attributes and URN-qualified
+// extension attributes), not only top-level attribute names.
+func TestApplyPatchPathlessPaths(t *testing.T) {
+	res := map[string]any{"userName": "grace", "name": map[string]any{"givenName": "Grace", "familyName": "Murray"}}
+	err := ApplyPatch(res, []PatchOperation{
+		{Op: "Replace", Value: map[string]any{"name.familyName": "Hopper", "displayName": "Grace Hopper"}},
+		{Op: "Add", Value: map[string]any{EnterpriseUser + ":department": "Computing"}},
+		{Op: "Add", Value: map[string]any{EnterpriseUser: map[string]any{"costCenter": "CC-1"}}},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	name := res["name"].(map[string]any)
+	if name["familyName"] != "Hopper" || name["givenName"] != "Grace" || res["name.familyName"] != nil || res["displayName"] != "Grace Hopper" {
+		t.Fatalf("sub-attribute path: %v", res)
+	}
+	ext, _ := res[EnterpriseUser].(map[string]any)
+	if ext["department"] != "Computing" || ext["costCenter"] != "CC-1" || res[EnterpriseUser+":department"] != nil {
+		t.Fatalf("extension path: %v", res)
+	}
+}
