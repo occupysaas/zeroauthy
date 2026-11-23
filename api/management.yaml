@@ -6850,6 +6850,69 @@ paths:
         "404": {$ref: "#/components/responses/NotFound"}
         "429": {$ref: "#/components/responses/TooManyRequests"}
         "502": {description: The provider did not accept the message.}
+  /api/system/tenants/{tenant}/connections/{id}/directory-provisioning/consent:
+    parameters:
+      - name: tenant
+        in: path
+        required: true
+        description: The tenant's name.
+        schema: {type: string}
+      - name: id
+        in: path
+        required: true
+        description: The google-apps connection ID.
+        schema: {type: string, pattern: '^con_[A-Za-z0-9]{1,64}$'}
+    post:
+      x-source:
+        - https://auth0.com/docs/authenticate/identity-providers/enterprise-identity-providers/google-apps
+      operationId: createDirectoryProvisioningConsent
+      tags: [system]
+      summary: Create a Google Workspace administrator consent link for directory provisioning.
+      description: |
+        A zeroauthy extension on the system host (Plan 37c, D-0150
+        LR37c-15). Requires signed and current operator grants for the
+        target tenant, a google-apps connection with a client secret and
+        a directory provisioning configuration. Returns a link, valid 15
+        minutes, on the tenant's canonical host; a Google Workspace
+        administrator opens it, approves read-only Directory API access,
+        and zeroauthy stores the refresh token sealed and schedules a
+        synchronization. `redirect_uri` must be listed on the Google OAuth
+        client. Auth0 runs this step from its Dashboard.
+      security: [{operatorToken: []}]
+      responses:
+        "200":
+          description: The consent link.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [url, redirect_uri, expires_at]
+                properties:
+                  url: {type: string, description: The consent link. Treat it as a secret until it expires.}
+                  redirect_uri: {type: string}
+                  expires_at: {type: string, format: date-time}
+        "400":
+          description: The connection cannot consent.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/ManagementError"}
+        "401":
+          description: Operator authentication failed.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/ManagementError"}
+        "403":
+          description: The operator does not manage the tenant.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/ManagementError"}
+        "404": {$ref: "#/components/responses/NotFound"}
+        "501":
+          description: The storage backend does not support directory provisioning.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/ManagementError"}
   /api/system/tenants/{tenant}/connections/{id}/passwordless/try:
     parameters:
       - name: tenant

@@ -26666,6 +26666,9 @@ type ServerInterface interface {
 	// PreviewTenantBranding Preview tenant Universal Login branding.
 	// (POST /api/system/tenants/{tenant}/branding/preview)
 	PreviewTenantBranding(w http.ResponseWriter, r *http.Request, tenant string)
+	// CreateDirectoryProvisioningConsent Create a Google Workspace administrator consent link for directory provisioning.
+	// (POST /api/system/tenants/{tenant}/connections/{id}/directory-provisioning/consent)
+	CreateDirectoryProvisioningConsent(w http.ResponseWriter, r *http.Request, tenant string, id string)
 	// GetTenantPasskeyPrerequisites Read the prerequisites for passkey login
 	// (GET /api/system/tenants/{tenant}/connections/{id}/passkey-prerequisites)
 	GetTenantPasskeyPrerequisites(w http.ResponseWriter, r *http.Request, tenant string, id string)
@@ -27857,6 +27860,12 @@ func (_ Unimplemented) GetTenantActionExecutionAttempt(w http.ResponseWriter, r 
 // PreviewTenantBranding Preview tenant Universal Login branding.
 // (POST /api/system/tenants/{tenant}/branding/preview)
 func (_ Unimplemented) PreviewTenantBranding(w http.ResponseWriter, r *http.Request, tenant string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// CreateDirectoryProvisioningConsent Create a Google Workspace administrator consent link for directory provisioning.
+// (POST /api/system/tenants/{tenant}/connections/{id}/directory-provisioning/consent)
+func (_ Unimplemented) CreateDirectoryProvisioningConsent(w http.ResponseWriter, r *http.Request, tenant string, id string) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -30447,6 +30456,41 @@ func (siw *ServerInterfaceWrapper) PreviewTenantBranding(w http.ResponseWriter, 
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.PreviewTenantBranding(w, r, tenant)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateDirectoryProvisioningConsent operation middleware
+func (siw *ServerInterfaceWrapper) CreateDirectoryProvisioningConsent(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "tenant" -------------
+	var tenant string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "tenant", chi.URLParam(r, "tenant"), &tenant, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "tenant", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateDirectoryProvisioningConsent(w, r, tenant, id)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -43729,6 +43773,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/api/system/tenants/{tenant}/emails/test", wrapper.TestTenantEmail)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/system/tenants/{tenant}/connections/{id}/directory-provisioning/consent", wrapper.CreateDirectoryProvisioningConsent)
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/api/system/tenants/{tenant}/connections/{id}/passwordless/try", wrapper.TryConnectionPasswordless)

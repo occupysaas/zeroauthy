@@ -2826,6 +2826,39 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/system/tenants/{tenant}/connections/{id}/directory-provisioning/consent": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The tenant's name. */
+                tenant: string;
+                /** @description The google-apps connection ID. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create a Google Workspace administrator consent link for directory provisioning.
+         * @description A zeroauthy extension on the system host (Plan 37c, D-0150
+         *     LR37c-15). Requires signed and current operator grants for the
+         *     target tenant, a google-apps connection with a client secret and
+         *     a directory provisioning configuration. Returns a link, valid 15
+         *     minutes, on the tenant's canonical host; a Google Workspace
+         *     administrator opens it, approves read-only Directory API access,
+         *     and zeroauthy stores the refresh token sealed and schedules a
+         *     synchronization. `redirect_uri` must be listed on the Google OAuth
+         *     client. Auth0 runs this step from its Dashboard.
+         */
+        post: operations["createDirectoryProvisioningConsent"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/system/tenants/{tenant}/connections/{id}/passwordless/try": {
         parameters: {
             query?: never;
@@ -18839,6 +18872,74 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    createDirectoryProvisioningConsent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The tenant's name. */
+                tenant: string;
+                /** @description The google-apps connection ID. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The consent link. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description The consent link. Treat it as a secret until it expires. */
+                        url: string;
+                        redirect_uri: string;
+                        /** Format: date-time */
+                        expires_at: string;
+                    };
+                };
+            };
+            /** @description The connection cannot consent. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Operator authentication failed. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description The operator does not manage the tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            404: components["responses"]["NotFound"];
+            /** @description The storage backend does not support directory provisioning. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
             };
         };
     };
