@@ -86,7 +86,7 @@ func dirProvView(c *store.Connection, p *store.DirectoryProvisioning) map[string
 	}
 	out := map[string]any{"connection_id": c.ID, "connection_name": c.Name, "strategy": c.Strategy, "mapping": d.Mapping,
 		"synchronize_automatically": d.SynchronizeAutomatically,
-		"created_at": p.CreatedAt.UTC().Format(time.RFC3339Nano), "updated_at": p.UpdatedAt.UTC().Format(time.RFC3339Nano)}
+		"created_at":                p.CreatedAt.UTC().Format(time.RFC3339Nano), "updated_at": p.UpdatedAt.UTC().Format(time.RFC3339Nano)}
 	if d.SynchronizeGroups != "" {
 		out["synchronize_groups"] = d.SynchronizeGroups
 	}
