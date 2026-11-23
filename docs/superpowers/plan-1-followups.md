@@ -894,5 +894,12 @@ Recorded under [D-0150](../compat/decisions.md); observe on a live tenant when o
   (LR37c-13).
 - **Q17** Defaults of `enabled_features` on edit tickets (zeroauthy: sso on,
   domain verification and provisioning off).
+- **Q18** Directory provisioning against a live Google Workspace (fixture
+  coverage only, maintainer ruling 2026-11-22): Auth0's default mapping,
+  `last_synchronization_status` values, the synchronization ID format,
+  how Auth0 obtains the administrator grant (zeroauthy: LR37c-15) and
+  whether it unblocks reinstated users (zeroauthy: only its own blocks).
+- **Q19** `google-apps` in self-service profiles' `allowed_strategies`:
+  still refused (Q7); the assistant has no Workspace step yet.
 - **Q15** Checkpoint cursors of group lists (zeroauthy: opaque offsets; an
   insert or delete between pages can shift a later page by one).

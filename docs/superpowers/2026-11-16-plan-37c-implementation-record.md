@@ -1,16 +1,14 @@
 # Plan 37c implementation record
 
-Status: **Phase A (inbound SCIM and directory groups) implemented and
-verified locally; phases B and C pending.** Started from `main` commit
-`953ee03e`. Branch: `plan-37c-scim`; worktree:
-`/mnt/nvme2/code/zeroauthy-plan37c`. Not pushed yet: AGENTS.md forbids
-pushing a partial plan to start CI, so the branch goes to plan-branch CI
-when all three phases are done. Maintainer approval governs integration.
+Status: **Phases A, B and C implemented and verified locally; plan-branch
+CI pending.** Started from `main` commit `953ee03e`. Branch:
+`plan-37c-scim`; worktree: `/mnt/nvme2/code/zeroauthy-plan37c`.
+Maintainer approval governs integration.
 
 Spec: [SCIM and self-service design](specs/2026-11-16-zeroauthy-scim-self-service-design.md).
 Plan: [Plan 37c](plans/2026-11-16-zeroauthy-plan-37c-scim-self-service.md).
-Decisions: D-0150 (LR37c-1…9). Operator guide: [SCIM](../scim.md).
-Observation points: Q1–Q15 in
+Decisions: D-0150 (LR37c-1…16). Operator guides: [SCIM](../scim.md), [Self-service SSO](../self-service-sso.md), [Directory provisioning](../directory-provisioning.md).
+Observation points: Q1–Q19 in
 [plan-1-followups.md](plan-1-followups.md#plan-37c-observation-points).
 
 Maintainer rulings (2026-11-22): phases A → B → C; Phase C with fixture
@@ -107,3 +105,45 @@ connection list omits `enabled_clients` (the E2E reads
 Mutation checks: ticket hashing, version-2 capability gating, the domain
 allowlist, the fixed strategy after creation and the edit ticket's `sso`
 switch were each broken on purpose and caught.
+
+## Phase C (Google Workspace directory provisioning)
+
+1. C1 `94a46574`, `96044481`, `b0dc70ff`: contracts (11 operations, 17
+   schemas, four scopes); the `google-apps` strategy (LR37c-14) on the
+   Google OIDC adapter with the `hd` binding; `store.DirectorySync` on
+   memory, SQLite, PostgreSQL, MySQL (migration 0048) and gRPC (`scim.v1`
+   version 3), cascading with the connection and tenant.
+2. C2 `3e8882fd`: `internal/dirsync`: administrator consent (LR37c-15) and
+   the syncer (LR37c-16), started with the server like the Actions worker.
+3. C3 `6b1fbfb2`, `3c0d5b0e` and this update: Management routes and the
+   system API consent link, console (Google Workspace setup and the
+   Provisioning tab), [Directory provisioning](../directory-provisioning.md).
+
+Coverage is a fixture Google (maintainer ruling); there is no Phase C E2E
+suite because no Auth0 SDK or Deploy CLI release in the pins calls the
+directory provisioning routes, and a browser run of the consent would only
+replay the fixture the Go tests already drive.
+
+Mutation checks: the `hd` comparison, the consent's state binding and
+administrator probe, blocking of removed users, unblocking only
+synchronization's own blocks, and the connection cascade of the new tables
+were each broken on purpose and caught.
+
+Findings: `go test` passes `GOTMPDIR` to tests as `TMPDIR`; with
+`GOTMPDIR` on the btrfs disk (stalled `btrfs-transaction`), every SQLite
+fsync waited seconds and the store suites ran past 2.5 hours on main and on
+the branch alike. With both on tmpfs they take 25 s (sqlstore) and 77 s
+(grpcstore). A forged-state consent test first passed for the wrong reason
+(the code exchange failed first); it now presents a valid code.
+
+## Verification (Phases B and C)
+
+| Check | Result |
+|---|---|
+| `./scripts/test-sql.sh -timeout 60m ./internal/store/sqlstore` (race; SQLite, PostgreSQL, MySQL) at `94a46574` | ok, 3349 s, 0 skips |
+| `go test ./internal/store/sqlstore ./internal/store/grpcstore` at `94a46574` | ok (25 s, 77 s) |
+| DirectorySync conformance on PostgreSQL and MySQL at `b0dc70ff` | ok |
+| `go test ./api/... ./internal/mgmt/... ./internal/dirsync/... ./internal/federation/... ./internal/login/... ./internal/app/...` | ok |
+| `go test ./internal/server -run 'DirectoryProvisioning|GoogleApps|SocialConnections|MicrosoftConnections'` | ok |
+| Console `npm test`, lint, typecheck; `make console` | 98 files, 754 tests passed; clean; `console/dist` rebuilt |
+| Fast tier `go test ./...` | see the final review section |

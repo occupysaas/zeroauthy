@@ -5,6 +5,8 @@ SAML connections (`samlp`) and the SAML2 Web App add-on are described in
 described in [WS-Federation](ws-federation.md). SCIM provisioning of
 enterprise connections and directory groups are described in [SCIM](scim.md),
 and customer-configured connections in [Self-service SSO](self-service-sso.md).
+Google Workspace (`google-apps`) and its directory provisioning are in
+[Directory provisioning](directory-provisioning.md).
 
 Create enterprise connections in **Enterprise** in the console, through
 `POST /api/v2/connections`, or in the seed file. Enable each connection for
