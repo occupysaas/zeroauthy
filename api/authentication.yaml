@@ -28,6 +28,8 @@ tags:
     description: Metadata that lets clients configure themselves.
   - name: SAML
     description: SAML 2.0 identity provider (application add-on) and service provider (samlp connections), Plan 37a.
+  - name: WS-Federation
+    description: WS-Federation passive requestor identity provider (the `wsfed` application add-on), Plan 37b.
   - name: Tokens
     description: Obtain tokens.
   - name: Login
@@ -994,6 +996,119 @@ paths:
           content:
             text/html:
               schema: {type: string}
+  /wsfed:
+    get:
+      operationId: wsfedSignIn
+      tags: [WS-Federation]
+      summary: WS-Federation sign-in and sign-out by realm
+      description: As `GET /wsfed/{client_id}`, with the application chosen by `wtrealm` (its client ID or one of its `client_aliases`).
+      x-source:
+        - https://auth0.com/docs/authenticate/protocols/ws-fed-protocol
+        - https://docs.oasis-open.org/wsfed/federation/v1.2/os/ws-federation-1.2-spec-os.html
+      parameters:
+        - {name: wa, in: query, schema: {type: string, enum: [wsignin1.0, wsignout1.0, wsignoutcleanup1.0], default: wsignin1.0}, description: "Action: issue a token (default), end the session, or clean up the session."}
+        - {name: wtrealm, in: query, schema: {type: string, maxLength: 1024}, description: "Realm of the relying party: the client ID or one of its `client_aliases`; it is the token audience."}
+        - {name: wreply, in: query, schema: {type: string, maxLength: 2048}, description: "Where the response is posted (sign-in) or redirected (sign-out); must be one of the application's callbacks. Defaults to the first callback."}
+        - {name: wctx, in: query, schema: {type: string, maxLength: 2048}, description: "Relying party state, returned as `wctx` and as the RSTR `Context`."}
+        - {name: whr, in: query, schema: {type: string, maxLength: 128}, description: Connection to log in with (skips the login page).}
+        - {name: wfresh, in: query, schema: {type: string, maxLength: 16}, description: "`0` requires the user to authenticate again even with a session."}
+      responses:
+        "200":
+          description: Login page, or the auto-submitting form that posts `wa=wsignin1.0`, `wresult` (a `t:RequestSecurityTokenResponse` carrying a signed SAML 1.1 assertion) and `wctx` to `wreply`.
+          content:
+            text/html:
+              schema: {type: string}
+        "302":
+          description: Redirect into the hosted login, or after sign-out to `wreply`.
+        "400":
+          description: Invalid request (unknown realm, `wreply` outside the callbacks); an error page, nothing is sent to the relying party.
+          content:
+            text/html:
+              schema: {type: string}
+        "404":
+          $ref: "#/components/responses/UnknownTenant"
+        "500":
+          description: Error page.
+          content:
+            text/html:
+              schema: {type: string}
+  /wsfed/FederationMetadata/2007-06/FederationMetadata.xml:
+    get:
+      operationId: wsfedMetadata
+      tags: [WS-Federation]
+      summary: Tenant WS-Federation metadata
+      description: Federation metadata for the tenant; the passive requestor endpoint is `/wsfed`.
+      x-source:
+        - https://auth0.com/docs/authenticate/protocols/ws-fed-protocol
+        - https://docs.oasis-open.org/wsfed/federation/v1.2/os/ws-federation-1.2-spec-os.html
+      responses:
+        "200":
+          description: "Federation metadata: an EntityDescriptor with a `fed:SecurityTokenServiceType` role (signing certificates, offered token types and claim types, passive requestor endpoint)."
+          content:
+            application/xml:
+              schema: {type: string}
+  /wsfed/{client_id}:
+    get:
+      operationId: wsfedClientSignIn
+      tags: [WS-Federation]
+      summary: WS-Federation sign-in and sign-out for an application
+      description: |
+        Passive requestor endpoint of an application with the `wsfed` add-on.
+        `wa=wsignin1.0` (default) authenticates the user and posts a token to
+        `wreply`; `wa=wsignout1.0` ends the session and redirects to `wreply`;
+        `wa=wsignoutcleanup1.0` ends the session and answers without a
+        redirect when no `wreply` is given. `wtrealm`, when present, must name
+        this application.
+      x-source:
+        - https://auth0.com/docs/authenticate/protocols/ws-fed-protocol
+        - https://docs.oasis-open.org/wsfed/federation/v1.2/os/ws-federation-1.2-spec-os.html
+      parameters:
+        - {name: client_id, in: path, required: true, schema: {type: string}}
+        - {name: wa, in: query, schema: {type: string, enum: [wsignin1.0, wsignout1.0, wsignoutcleanup1.0], default: wsignin1.0}, description: "Action: issue a token (default), end the session, or clean up the session."}
+        - {name: wtrealm, in: query, schema: {type: string, maxLength: 1024}, description: "Realm of the relying party: the client ID or one of its `client_aliases`; it is the token audience."}
+        - {name: wreply, in: query, schema: {type: string, maxLength: 2048}, description: "Where the response is posted (sign-in) or redirected (sign-out); must be one of the application's callbacks. Defaults to the first callback."}
+        - {name: wctx, in: query, schema: {type: string, maxLength: 2048}, description: "Relying party state, returned as `wctx` and as the RSTR `Context`."}
+        - {name: whr, in: query, schema: {type: string, maxLength: 128}, description: Connection to log in with (skips the login page).}
+        - {name: wfresh, in: query, schema: {type: string, maxLength: 16}, description: "`0` requires the user to authenticate again even with a session."}
+      responses:
+        "200":
+          description: Login page, or the auto-submitting form that posts `wa=wsignin1.0`, `wresult` (a `t:RequestSecurityTokenResponse` carrying a signed SAML 1.1 assertion) and `wctx` to `wreply`.
+          content:
+            text/html:
+              schema: {type: string}
+        "302":
+          description: Redirect into the hosted login, or after sign-out to `wreply`.
+        "400":
+          description: Invalid request (unknown realm, `wreply` outside the callbacks); an error page, nothing is sent to the relying party.
+          content:
+            text/html:
+              schema: {type: string}
+        "404":
+          $ref: "#/components/responses/UnknownTenant"
+        "500":
+          description: Error page.
+          content:
+            text/html:
+              schema: {type: string}
+  /wsfed/{client_id}/FederationMetadata/2007-06/FederationMetadata.xml:
+    get:
+      operationId: wsfedClientMetadata
+      tags: [WS-Federation]
+      summary: WS-Federation metadata of an application
+      description: Federation metadata whose passive requestor endpoint is `/wsfed/{client_id}`.
+      x-source:
+        - https://auth0.com/docs/authenticate/protocols/ws-fed-protocol
+        - https://docs.oasis-open.org/wsfed/federation/v1.2/os/ws-federation-1.2-spec-os.html
+      parameters:
+        - {name: client_id, in: path, required: true, schema: {type: string}}
+      responses:
+        "200":
+          description: "Federation metadata: an EntityDescriptor with a `fed:SecurityTokenServiceType` role (signing certificates, offered token types and claim types, passive requestor endpoint)."
+          content:
+            application/xml:
+              schema: {type: string}
+        "404":
+          description: Unknown application or the wsfed add-on is not enabled.
   /oidc/logout:
     get:
       operationId: oidcLogout

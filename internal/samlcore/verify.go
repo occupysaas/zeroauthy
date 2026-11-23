@@ -90,8 +90,8 @@ func detach(el *etree.Element) (*etree.Element, error) {
 
 // checkSignatureShape enforces the one signature, one reference to el's own
 // ID, enveloped + exclusive c14n only, and the SHA-1 policy.
-func checkSignatureShape(el, sig *etree.Element, t Trust) error {
-	id := el.SelectAttrValue("ID", "")
+func checkSignatureShape(el, sig *etree.Element, t Trust, idAttr string) error {
+	id := el.SelectAttrValue(idAttr, "")
 	si := directChildren(sig, NSDSig, "SignedInfo")
 	if id == "" || len(si) != 1 {
 		return ErrStructure
@@ -175,6 +175,12 @@ func roots(sig *etree.Element, t Trust) []*x509.Certificate {
 // so values read from it are exactly what was signed. Callers must read only
 // from the returned element.
 func VerifyEnveloped(el *etree.Element, t Trust) (*etree.Element, error) {
+	return verifyEnveloped(el, t, "ID")
+}
+
+// verifyEnveloped is VerifyEnveloped for an element whose ID attribute is
+// idAttr (AssertionID in SAML 1.1).
+func verifyEnveloped(el *etree.Element, t Trust, idAttr string) (*etree.Element, error) {
 	if el == nil {
 		return nil, ErrStructure
 	}
@@ -189,7 +195,7 @@ func VerifyEnveloped(el *etree.Element, t Trust) (*etree.Element, error) {
 	// A nested signature (a signed Assertion inside a signed Response) is
 	// allowed, but none may claim to cover this element: goxmldsig would
 	// accept any signature in the subtree that references its ID.
-	id := standalone.SelectAttrValue("ID", "")
+	id := standalone.SelectAttrValue(idAttr, "")
 	for _, nested := range descendants(standalone, NSDSig, "Signature") {
 		if nested == sigs[0] {
 			continue
@@ -202,7 +208,7 @@ func VerifyEnveloped(el *etree.Element, t Trust) (*etree.Element, error) {
 			}
 		}
 	}
-	if err := checkSignatureShape(standalone, sigs[0], t); err != nil {
+	if err := checkSignatureShape(standalone, sigs[0], t, idAttr); err != nil {
 		return nil, err
 	}
 	trusted := roots(sigs[0], t)
@@ -223,7 +229,7 @@ func VerifyEnveloped(el *etree.Element, t Trust) (*etree.Element, error) {
 	}
 	for _, set := range candidates {
 		ctx := dsig.NewDefaultValidationContext(&dsig.MemoryX509CertificateStore{Roots: set})
-		ctx.IdAttribute = "ID"
+		ctx.IdAttribute = idAttr
 		ctx.Clock = clock
 		ctx.IgnoreCertificateValidity = true
 		verified, err := ctx.Validate(standalone)

@@ -63,7 +63,7 @@ func TestSignatureShapeRules(t *testing.T) {
 	} {
 		t.Run(name, func(t *testing.T) {
 			el := mustRoot(t, strings.Replace(assertionXML("_a", "x"), "</saml:Issuer>", "</saml:Issuer>"+tc.sig, 1))
-			err := checkSignatureShape(el, directChildren(el, NSDSig, "Signature")[0], Trust{})
+			err := checkSignatureShape(el, directChildren(el, NSDSig, "Signature")[0], Trust{}, "ID")
 			if tc.ok != (err == nil) {
 				t.Fatalf("ok=%v err=%v", tc.ok, err)
 			}
@@ -76,10 +76,10 @@ func TestSignatureShapeRules(t *testing.T) {
 	} {
 		el := mustRoot(t, strings.Replace(assertionXML("_a", "x"), "</saml:Issuer>", "</saml:Issuer>"+sha1, 1))
 		sig := directChildren(el, NSDSig, "Signature")[0]
-		if err := checkSignatureShape(el, sig, Trust{}); !errors.Is(err, ErrWeakAlg) {
+		if err := checkSignatureShape(el, sig, Trust{}, "ID"); !errors.Is(err, ErrWeakAlg) {
 			t.Fatalf("SHA-1 without opt-in: %v", err)
 		}
-		if err := checkSignatureShape(el, sig, Trust{AllowSHA1: true}); err != nil {
+		if err := checkSignatureShape(el, sig, Trust{AllowSHA1: true}, "ID"); err != nil {
 			t.Fatalf("SHA-1 with opt-in: %v", err)
 		}
 	}

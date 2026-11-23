@@ -308,13 +308,18 @@ func (h *Handlers) CreateClient(w http.ResponseWriter, r *http.Request) {
 				return err
 			}
 		}
+		if body["client_aliases"] != nil || body["form_template"] != nil || store.ClientNeedsWSFed(c) {
+			if err := checkWSFedWrite(r.Context(), tx); err != nil {
+				return err
+			}
+		}
 		if in.policiesSet || c.RequireProofOfPossession || c.TokenQuota != nil {
 			if err := checkMRRTSupport(r.Context(), tx); err != nil {
 				return err
 			}
 		}
 		if err := tx.Clients().Create(r.Context(), c); err != nil {
-			return err
+			return aliasConflict(err)
 		}
 		if !in.cred.any() {
 			return nil
@@ -396,6 +401,11 @@ func (h *Handlers) UpdateClient(w http.ResponseWriter, r *http.Request, id strin
 				return err
 			}
 		}
+		if body["client_aliases"] != nil || body["form_template"] != nil || len(spec.ClientAliases) > 0 || spec.FormTemplate != "" {
+			if err := checkWSFedWrite(r.Context(), tx); err != nil {
+				return err
+			}
+		}
 		pkj, err := in.cred.authenticationState(&spec, c.PrivateKeyJWTCredentials != nil)
 		if err != nil {
 			return err
@@ -433,7 +443,7 @@ func (h *Handlers) UpdateClient(w http.ResponseWriter, r *http.Request, id strin
 			return err
 		}
 		out = c
-		return tx.Clients().Update(r.Context(), c)
+		return aliasConflict(tx.Clients().Update(r.Context(), c))
 	})
 	if err != nil {
 		h.failTx(w, r, "update client", err)
@@ -614,6 +624,13 @@ func (h *Handlers) clientView(ctx context.Context, tn *store.Tenant, c *store.Cl
 		},
 		RequirePushedAuthorizationRequests: c.RequirePushedAuthorizationRequests, RequireProofOfPossession: &c.RequireProofOfPossession,
 		CreatedAt: &created,
+	}
+	if len(c.ClientAliases) > 0 {
+		aliases := slices.Clone(c.ClientAliases)
+		v.ClientAliases = &aliases
+	}
+	if c.FormTemplate != "" {
+		v.FormTemplate = &c.FormTemplate
 	}
 	if c.Addons != nil {
 		raw, _ := json.Marshal(clientrules.PublicAddons(c.Addons))
@@ -882,6 +899,10 @@ func readClientBody(body map[string]json.RawMessage, s *clientrules.Spec) (clien
 			s.OIDCLogout, err = clientrules.ParseOIDCLogout(raw)
 		case "addons":
 			s.Addons, err = clientrules.ParseAddons(raw)
+		case "client_aliases":
+			s.ClientAliases, err = clientrules.ParseClientAliases(raw)
+		case "form_template":
+			s.FormTemplate, err = clientrules.ParseFormTemplate(raw)
 		case "oidc_support":
 			s.OIDCSupport, err = clientrules.ParseOIDCSupport(raw)
 		case "jwt_configuration":
@@ -1036,6 +1057,29 @@ func checkMRRTSupport(ctx context.Context, st store.Store) error {
 	err := store.CheckRefreshTokensIISupport(ctx, st)
 	if errors.Is(err, store.ErrRefreshTokensIIUnavailable) && !errors.Is(err, store.ErrRefreshTokensIISupportLost) {
 		return badBody("refresh token policies require storage support")
+	}
+	return err
+}
+
+// checkWSFedWrite refuses client_aliases and form_template writes (and
+// clears) on a plugin without wsfed.v1 (Plan 37b).
+func checkWSFedWrite(ctx context.Context, st store.Store) error {
+	err := store.CheckWSFedSupport(ctx, st)
+	if errors.Is(err, store.ErrWSFedUnavailable) {
+		return badBody("storage plugin lacks wsfed.v1")
+	}
+	return err
+}
+
+// errAliasTaken answers a client write whose client_aliases another
+// application of the tenant uses (LR37b-3).
+var errAliasTaken = &Error{Status: http.StatusConflict, Code: "conflict", Message: "client_aliases: an alias is already used by another application"}
+
+// aliasConflict maps a store conflict on a client write to errAliasTaken:
+// client IDs are random, so the alias index is the only unique key left.
+func aliasConflict(err error) error {
+	if errors.Is(err, store.ErrConflict) {
+		return errAliasTaken
 	}
 	return err
 }

@@ -516,3 +516,24 @@ func TestOldPluginFederationUnavailable(t *testing.T) {
 		}
 	}
 }
+
+// A plugin without wsfed.v1 (Plan 37b) cannot store client_aliases or
+// form_template: such writes fail before reaching it.
+func TestOldPluginWSFedUnavailable(t *testing.T) {
+	c := serveOldPlugin(t)
+	defer c.Close()
+	ctx := context.Background()
+	if err := c.CheckWSFedSupport(ctx); !errors.Is(err, store.ErrWSFedUnavailable) {
+		t.Fatalf("capability: %v", err)
+	}
+	withAlias := &store.Client{TenantID: "t", ClientID: "c", ClientAliases: []string{"urn:rp"}}
+	withForm := &store.Client{TenantID: "t", ClientID: "c", FormTemplate: "<form></form>"}
+	for name, err := range map[string]error{
+		"create alias": c.Clients().Create(ctx, withAlias), "update alias": c.Clients().Update(ctx, withAlias),
+		"create form": c.Clients().Create(ctx, withForm), "update form": c.Clients().Update(ctx, withForm),
+	} {
+		if !errors.Is(err, store.ErrWSFedUnavailable) {
+			t.Errorf("%s: %v", name, err)
+		}
+	}
+}

@@ -29,6 +29,20 @@ func (c *Client) validateOIDC() []error {
 			errs = append(errs, fmt.Errorf("addons: %w", err))
 		}
 	}
+	if c.ClientAliases != nil {
+		raw, _ := json.Marshal(c.ClientAliases)
+		aliases, err := clientrules.ParseClientAliases(raw)
+		if err != nil {
+			errs = append(errs, fmt.Errorf("client_aliases: %w", err))
+		}
+		c.ClientAliases = aliases
+	}
+	if c.FormTemplate != "" {
+		raw, _ := json.Marshal(c.FormTemplate)
+		if _, err := clientrules.ParseFormTemplate(raw); err != nil {
+			errs = append(errs, fmt.Errorf("form_template: %w", err))
+		}
+	}
 	if c.OIDCLogout != nil {
 		raw, err := json.Marshal(c.OIDCLogout)
 		if err == nil {
@@ -67,6 +81,11 @@ func checkOIDCStorage(ctx context.Context, st store.Store, f *File) error {
 		for _, c := range t.Clients {
 			if c.addons != nil {
 				if err := store.CheckSAMLSupport(ctx, st); err != nil {
+					return err
+				}
+			}
+			if len(c.ClientAliases) > 0 || c.FormTemplate != "" {
+				if err := store.CheckWSFedSupport(ctx, st); err != nil {
 					return err
 				}
 			}

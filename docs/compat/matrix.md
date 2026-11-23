@@ -77,6 +77,7 @@ evidence log; the user-facing summary, with the gaps listed first, is
 | Deploy CLI migration | Implemented for four supported families (Plan 20; local verification) | Pinned CLI 9.1.0 passes YAML/directory generated/preserved-ID imports, repeat/update checks and runtime credentials. Database/generic connections/attack-protection handlers are explicitly tool-unsupported pending required APIs. Upstream lane unavailable. See [deploy-cli.md](../deploy-cli.md). |
 | Admin console (`/admin` on the system host) and system API (`/api/system/tenants`, `/api/system/operators`) | Implemented | zeroauthy extension, not an Auth0 surface. Guide: `docs/console.md`; D-0040. Verified in Chromium (m13-console) |
 | SAML 2.0 (IdP add-on `addons.samlp`, SP `samlp` connections) | Implemented (Plan 37a; local verification) | Redirect/POST bindings, signed SLO both ways, encrypted assertions, replay store, metadata. No artifact/SOAP/ECP. Verified with pinned @node-saml/node-saml 5.2.0, samlify 2.15.1 and the Deploy CLI. See [SAML](../saml.md), D-0130. |
+| WS-Federation (IdP add-on `addons.wsfed`, RP `adfs` connections) | Implemented (Plan 37b; local verification) | SAML 1.1 RSTR tokens, `client_aliases` realms, federation metadata, `wsignout1.0`/`wsignoutcleanup1.0`; ADFS from `adfs_server` or `fedMetadataXml`, thumbprint trust, SAML 1.1 and 2.0 tokens, replay store, HRD, upstream sign-out. No WS-Trust, no JWT tokens. Verified with xml-crypto 6.4.0 fixtures and the Deploy CLI. See [WS-Federation](../ws-federation.md), D-0140. |
 | WS-Federation | Planned (Plan 37b) | |
 | Deprecated endpoints (`/oauth/ro`, `/delegation`, `/tokeninfo`, `/oauth/access_token`, impersonation) | Not planned | Deprecated by Auth0 |
 | Hosted page languages (`ui_locales`, `Accept-Language`, `enabled_locales`, per-tenant `custom_text`) | Implemented | English catalog only; verified with @auth0/auth0-spa-js 2.28.3 (`ui_locales`) and browser `Accept-Language`; the custom-text Management API is implemented (Plan 22, below) |
@@ -278,3 +279,15 @@ for limitations and verification. No new certification is claimed here.
 | Weak algorithms | RSA-SHA1, SHA-1 digests and RSA-1_5 only by explicit configuration. |
 
 See [SAML](../saml.md) and the [implementation record](../superpowers/2026-11-16-plan-37a-implementation-record.md).
+
+## Plan 37b WS-Federation
+
+| Surface | Behavior |
+| --- | --- |
+| IdP add-on | `addons.wsfed` enables; reply URLs are callbacks (`redirect_uri` rules), realms are `client_aliases` (unique per tenant, `409`); SAML 1.1 token, 8 hours, RSA-SHA256, `Context` = `wctx`. |
+| Actions | `api.samlResponse.*` applies to WS-Fed tokens; `event.transaction.protocol` `wsfed`. |
+| Sign-out | `wsignout1.0` through `/v2/logout` (allowed logout URLs); `wsignoutcleanup1.0` ends the session. No propagation to other relying parties. |
+| ADFS connections | `adfs_server` xor `fedMetadataXml`; read-only endpoint and thumbprints with `prev_thumbprints` on rotation; `entityId` as `wtrealm` and audience; SAML 1.1 and 2.0 tokens; single use; HRD; `wsignout1.0` upstream. |
+| Weak algorithms | SHA-1 signatures refused on ADFS tokens; the IdP signs with RSA-SHA256 unless an Action selects otherwise. |
+
+See [WS-Federation](../ws-federation.md) and the [implementation record](../superpowers/2026-11-22-plan-37b-implementation-record.md).

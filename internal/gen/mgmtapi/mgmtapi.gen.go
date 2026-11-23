@@ -1580,6 +1580,7 @@ func (e ClientUpdateThirdPartySecurityMode) Valid() bool {
 
 // Defines values for ConnectionCreateStrategy.
 const (
+	ConnectionCreateStrategyAdfs         ConnectionCreateStrategy = "adfs"
 	ConnectionCreateStrategyApple        ConnectionCreateStrategy = "apple"
 	ConnectionCreateStrategyAuth0        ConnectionCreateStrategy = "auth0"
 	ConnectionCreateStrategyEmail        ConnectionCreateStrategy = "email"
@@ -1597,6 +1598,8 @@ const (
 // Valid indicates whether the value is a known member of the ConnectionCreateStrategy enum.
 func (e ConnectionCreateStrategy) Valid() bool {
 	switch e {
+	case ConnectionCreateStrategyAdfs:
+		return true
 	case ConnectionCreateStrategyApple:
 		return true
 	case ConnectionCreateStrategyAuth0:
@@ -1638,6 +1641,45 @@ func (e ConnectionKeyKeyUse) Valid() bool {
 	case ConnectionKeyKeyUseEncryption:
 		return true
 	case ConnectionKeyKeyUseSigning:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ConnectionOptionsADFSSetUserRootAttributes.
+const (
+	ConnectionOptionsADFSSetUserRootAttributesNeverOnLogin ConnectionOptionsADFSSetUserRootAttributes = "never_on_login"
+	ConnectionOptionsADFSSetUserRootAttributesOnEachLogin  ConnectionOptionsADFSSetUserRootAttributes = "on_each_login"
+	ConnectionOptionsADFSSetUserRootAttributesOnFirstLogin ConnectionOptionsADFSSetUserRootAttributes = "on_first_login"
+)
+
+// Valid indicates whether the value is a known member of the ConnectionOptionsADFSSetUserRootAttributes enum.
+func (e ConnectionOptionsADFSSetUserRootAttributes) Valid() bool {
+	switch e {
+	case ConnectionOptionsADFSSetUserRootAttributesNeverOnLogin:
+		return true
+	case ConnectionOptionsADFSSetUserRootAttributesOnEachLogin:
+		return true
+	case ConnectionOptionsADFSSetUserRootAttributesOnFirstLogin:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ConnectionOptionsADFSShouldTrustEmailVerifiedConnection.
+const (
+	AlwaysSetEmailsAsVerified ConnectionOptionsADFSShouldTrustEmailVerifiedConnection = "always_set_emails_as_verified"
+	NeverSetEmailsAsVerified  ConnectionOptionsADFSShouldTrustEmailVerifiedConnection = "never_set_emails_as_verified"
+)
+
+// Valid indicates whether the value is a known member of the ConnectionOptionsADFSShouldTrustEmailVerifiedConnection enum.
+func (e ConnectionOptionsADFSShouldTrustEmailVerifiedConnection) Valid() bool {
+	switch e {
+	case AlwaysSetEmailsAsVerified:
+		return true
+	case NeverSetEmailsAsVerified:
 		return true
 	default:
 		return false
@@ -8330,9 +8372,9 @@ type CaptchaUpdateActiveProviderId string
 
 // Client An application.
 type Client struct {
-	// Addons Application add-ons. Only `samlp` (SAML2 Web App, Plan 37a) is
-	// supported; any other add-on key is refused with `400`. `null` removes
-	// an add-on.
+	// Addons Application add-ons. `samlp` (SAML2 Web App, Plan 37a) and `wsfed`
+	// (WS-Fed Web App, Plan 37b) are supported; any other add-on key is
+	// refused with `400`. `null` removes an add-on.
 	Addons            *ClientAddons `json:"addons,omitempty"`
 	AllowedLogoutUrls []string      `json:"allowed_logout_urls"`
 	AllowedOrigins    []string      `json:"allowed_origins"`
@@ -8342,6 +8384,12 @@ type Client struct {
 	AppType             AppType                   `json:"app_type"`
 	CallbackUrlTemplate ClientCallbackUrlTemplate `json:"callback_url_template"`
 	Callbacks           []string                  `json:"callbacks"`
+
+	// ClientAliases Realms (`wtrealm` values) and audiences accepted for the `wsfed`
+	// add-on, besides the client ID (Plan 37b). Each alias is unique
+	// within the tenant: an alias another application uses is refused
+	// with `409` (LR37b-3).
+	ClientAliases *[]string `json:"client_aliases,omitempty"`
 
 	// ClientAuthenticationMethods `private_key_jwt` makes the application authenticate with a signed
 	// JWT; it requires `token_endpoint_auth_method` null. `null` reverts to
@@ -8353,8 +8401,11 @@ type Client struct {
 	// ClientSecret Only with `read:client_keys`, and only for confidential
 	// applications whose secret zeroauthy can reveal (not for secrets
 	// stored before D-0038 until they are rotated).
-	ClientSecret *string      `json:"client_secret,omitempty"`
-	CreatedAt    *time.Time   `json:"created_at,omitempty"`
+	ClientSecret *string    `json:"client_secret,omitempty"`
+	CreatedAt    *time.Time `json:"created_at,omitempty"`
+
+	// FormTemplate HTML form template for WS-Federation. Stored and returned only; zeroauthy always posts with its own form (LR37b-5).
+	FormTemplate *string      `json:"form_template,omitempty"`
 	Global       ClientGlobal `json:"global"`
 	GrantTypes   []string     `json:"grant_types"`
 
@@ -8523,11 +8574,21 @@ type ClientAddonSAML_Mappings_AdditionalProperties struct {
 // ClientAddonSAMLSignatureAlgorithm defines model for ClientAddonSAML.SignatureAlgorithm.
 type ClientAddonSAMLSignatureAlgorithm string
 
-// ClientAddons Application add-ons. Only `samlp` (SAML2 Web App, Plan 37a) is
-// supported; any other add-on key is refused with `400`. `null` removes
-// an add-on.
+// ClientAddonWSFed WS-Fed (WIF) add-on indicator (Plan 37b, D-0140): its presence lets
+// the application sign users in at `/wsfed/{client_id}` with a SAML 1.1
+// token. As in Auth0, the configuration is stored in `callbacks` (the
+// allowed `wreply` URLs) and `client_aliases` (realms accepted as
+// `wtrealm`); the object's own properties are stored and returned
+// unchanged (at most 4 KiB of JSON) and have no effect (LR37b-4).
+// Claims are customised with `api.samlResponse` in a post-login Action.
+type ClientAddonWSFed map[string]interface{}
+
+// ClientAddons Application add-ons. `samlp` (SAML2 Web App, Plan 37a) and `wsfed`
+// (WS-Fed Web App, Plan 37b) are supported; any other add-on key is
+// refused with `400`. `null` removes an add-on.
 type ClientAddons struct {
-	Samlp *ClientAddonSAML `json:"samlp,omitempty"`
+	Samlp *ClientAddonSAML  `json:"samlp,omitempty"`
+	Wsfed *ClientAddonWSFed `json:"wsfed,omitempty"`
 }
 
 // ClientAuthenticationMethods `private_key_jwt` makes the application authenticate with a signed
@@ -8548,9 +8609,9 @@ type ClientAuthenticationMethods struct {
 // `is_first_party` true, refresh tokens rotating for `spa` and
 // non-rotating otherwise.
 type ClientCreate struct {
-	// Addons Application add-ons. Only `samlp` (SAML2 Web App, Plan 37a) is
-	// supported; any other add-on key is refused with `400`. `null` removes
-	// an add-on.
+	// Addons Application add-ons. `samlp` (SAML2 Web App, Plan 37a) and `wsfed`
+	// (WS-Fed Web App, Plan 37b) are supported; any other add-on key is
+	// refused with `400`. `null` removes an add-on.
 	Addons *ClientAddons `json:"addons,omitempty"`
 
 	// AllowedClients Accepted and ignored.
@@ -8568,6 +8629,12 @@ type ClientCreate struct {
 
 	// Callbacks Allowed redirect URIs.
 	Callbacks *[]string `json:"callbacks,omitempty"`
+
+	// ClientAliases Realms (`wtrealm` values) and audiences accepted for the `wsfed`
+	// add-on, besides the client ID (Plan 37b). Each alias is unique
+	// within the tenant: an alias another application uses is refused
+	// with `409` (LR37b-3).
+	ClientAliases *[]string `json:"client_aliases,omitempty"`
 
 	// ClientAuthenticationMethods `private_key_jwt` makes the application authenticate with a signed
 	// JWT; it requires `token_endpoint_auth_method` null. `null` reverts to
@@ -8598,6 +8665,9 @@ type ClientCreate struct {
 
 	// Description Accepted and ignored.
 	Description interface{} `json:"description,omitempty"`
+
+	// FormTemplate HTML form template for WS-Federation. Stored and returned only; zeroauthy always posts with its own form (LR37b-5).
+	FormTemplate *string `json:"form_template,omitempty"`
 
 	// GrantTypes Grant types the application may use. zeroauthy serves
 	// authorization_code, refresh_token, client_credentials, password,
@@ -8967,9 +9037,9 @@ type ClientPage struct {
 
 // ClientSettings The writable settings of an application.
 type ClientSettings struct {
-	// Addons Application add-ons. Only `samlp` (SAML2 Web App, Plan 37a) is
-	// supported; any other add-on key is refused with `400`. `null` removes
-	// an add-on.
+	// Addons Application add-ons. `samlp` (SAML2 Web App, Plan 37a) and `wsfed`
+	// (WS-Fed Web App, Plan 37b) are supported; any other add-on key is
+	// refused with `400`. `null` removes an add-on.
 	Addons *ClientAddons `json:"addons,omitempty"`
 
 	// AllowedClients Accepted and ignored.
@@ -8987,6 +9057,12 @@ type ClientSettings struct {
 
 	// Callbacks Allowed redirect URIs.
 	Callbacks *[]string `json:"callbacks,omitempty"`
+
+	// ClientAliases Realms (`wtrealm` values) and audiences accepted for the `wsfed`
+	// add-on, besides the client ID (Plan 37b). Each alias is unique
+	// within the tenant: an alias another application uses is refused
+	// with `409` (LR37b-3).
+	ClientAliases *[]string `json:"client_aliases,omitempty"`
 
 	// ClientAuthenticationMethods `private_key_jwt` makes the application authenticate with a signed
 	// JWT; it requires `token_endpoint_auth_method` null. `null` reverts to
@@ -9017,6 +9093,9 @@ type ClientSettings struct {
 
 	// Description Accepted and ignored.
 	Description interface{} `json:"description,omitempty"`
+
+	// FormTemplate HTML form template for WS-Federation. Stored and returned only; zeroauthy always posts with its own form (LR37b-5).
+	FormTemplate *string `json:"form_template,omitempty"`
 
 	// GrantTypes Grant types the application may use. zeroauthy serves
 	// authorization_code, refresh_token, client_credentials, password,
@@ -9142,9 +9221,9 @@ type ClientTokenExchangeAllowAnyProfileOfType string
 // `third_party_security_mode` may be sent only with their current
 // values.
 type ClientUpdate struct {
-	// Addons Application add-ons. Only `samlp` (SAML2 Web App, Plan 37a) is
-	// supported; any other add-on key is refused with `400`. `null` removes
-	// an add-on.
+	// Addons Application add-ons. `samlp` (SAML2 Web App, Plan 37a) and `wsfed`
+	// (WS-Fed Web App, Plan 37b) are supported; any other add-on key is
+	// refused with `400`. `null` removes an add-on.
 	Addons *ClientAddons `json:"addons,omitempty"`
 
 	// AllowedClients Accepted and ignored.
@@ -9162,6 +9241,12 @@ type ClientUpdate struct {
 
 	// Callbacks Allowed redirect URIs.
 	Callbacks *[]string `json:"callbacks,omitempty"`
+
+	// ClientAliases Realms (`wtrealm` values) and audiences accepted for the `wsfed`
+	// add-on, besides the client ID (Plan 37b). Each alias is unique
+	// within the tenant: an alias another application uses is refused
+	// with `409` (LR37b-3).
+	ClientAliases *[]string `json:"client_aliases,omitempty"`
 
 	// ClientAuthenticationMethods `private_key_jwt` makes the application authenticate with a signed
 	// JWT; it requires `token_endpoint_auth_method` null. `null` reverts to
@@ -9192,6 +9277,9 @@ type ClientUpdate struct {
 
 	// Description Accepted and ignored.
 	Description interface{} `json:"description,omitempty"`
+
+	// FormTemplate HTML form template for WS-Federation. Stored and returned only; zeroauthy always posts with its own form (LR37b-5).
+	FormTemplate *string `json:"form_template,omitempty"`
 
 	// GrantTypes Grant types the application may use. zeroauthy serves
 	// authorization_code, refresh_token, client_credentials, password,
@@ -9392,11 +9480,11 @@ type ConnectionCreate struct {
 	Realms       *[]string               `json:"realms,omitempty"`
 	ShowAsButton *bool                   `json:"show_as_button,omitempty"`
 
-	// Strategy `samlp` follows ConnectionOptionsSAML (Plan 37a). `email` and `sms` are passwordless connections whose name must equal the strategy; options follow ConnectionOptionsEmail and ConnectionOptionsSMS (Plan 34). `apple` follows ConnectionOptionsApple; web/native login is active (D-0170). `github` follows ConnectionOptionsGitHub (Plan 39c).
+	// Strategy `samlp` follows ConnectionOptionsSAML (Plan 37a). `adfs` follows ConnectionOptionsADFS (Plan 37b). `email` and `sms` are passwordless connections whose name must equal the strategy; options follow ConnectionOptionsEmail and ConnectionOptionsSMS (Plan 34). `apple` follows ConnectionOptionsApple; web/native login is active (D-0170). `github` follows ConnectionOptionsGitHub (Plan 39c).
 	Strategy ConnectionCreateStrategy `json:"strategy"`
 }
 
-// ConnectionCreateStrategy `samlp` follows ConnectionOptionsSAML (Plan 37a). `email` and `sms` are passwordless connections whose name must equal the strategy; options follow ConnectionOptionsEmail and ConnectionOptionsSMS (Plan 34). `apple` follows ConnectionOptionsApple; web/native login is active (D-0170). `github` follows ConnectionOptionsGitHub (Plan 39c).
+// ConnectionCreateStrategy `samlp` follows ConnectionOptionsSAML (Plan 37a). `adfs` follows ConnectionOptionsADFS (Plan 37b). `email` and `sms` are passwordless connections whose name must equal the strategy; options follow ConnectionOptionsEmail and ConnectionOptionsSMS (Plan 34). `apple` follows ConnectionOptionsApple; web/native login is active (D-0170). `github` follows ConnectionOptionsGitHub (Plan 39c).
 type ConnectionCreateStrategy string
 
 // ConnectionDeleted defines model for ConnectionDeleted.
@@ -9422,6 +9510,61 @@ type ConnectionKey struct {
 
 // ConnectionKeyKeyUse defines model for ConnectionKey.KeyUse.
 type ConnectionKeyKeyUse string
+
+// ConnectionOptionsADFS ADFS connection (`adfs`, Plan 37b, D-0140): zeroauthy is a
+// WS-Federation relying party of an ADFS server or any WS-Fed identity
+// provider. Exactly one of `adfs_server` (federation metadata host or
+// HTTPS URL, fetched through the federation outbound policy when the
+// options are written, at most 128 KB) and `fedMetadataXml` is required. `signInEndpoint`
+// and `thumbprints` are taken from the metadata; `thumbprints`,
+// `thumbprints_sha384` and `prev_thumbprints` are computed on write
+// and read-only. `entityId` (sent as `wtrealm`) defaults to
+// `urn:auth0:{tenant}:{connection}`. Tokens are posted as `wresult` to
+// `POST /login/callback`; SAML 1.1 and SAML 2.0 assertions are
+// accepted. `upstream_params` is stored only.
+type ConnectionOptionsADFS struct {
+	// AdfsServer ADFS federation metadata host (the metadata path `/FederationMetadata/2007-06/FederationMetadata.xml` is added) or HTTPS metadata URL. Refused together with fedMetadataXml.
+	AdfsServer *string `json:"adfs_server,omitempty"`
+
+	// DomainAliases Email domains for home realm discovery.
+	DomainAliases *[]string `json:"domain_aliases,omitempty"`
+
+	// EntityId Relying party identifier sent as `wtrealm` and required as the token audience; defaults to `urn:auth0:{tenant}:{connection}`.
+	EntityId *string `json:"entityId,omitempty"`
+
+	// FedMetadataXml Inline federation metadata. Refused together with adfs_server.
+	FedMetadataXml     *string   `json:"fedMetadataXml,omitempty"`
+	IconUrl            *string   `json:"icon_url,omitempty"`
+	NonPersistentAttrs *[]string `json:"non_persistent_attrs,omitempty"`
+
+	// PrevThumbprints Thumbprints from before the latest metadata change, still trusted until the next change.
+	PrevThumbprints                    *[]string                                                `json:"prev_thumbprints,omitempty"`
+	SetUserRootAttributes              *ConnectionOptionsADFSSetUserRootAttributes              `json:"set_user_root_attributes,omitempty"`
+	ShouldTrustEmailVerifiedConnection *ConnectionOptionsADFSShouldTrustEmailVerifiedConnection `json:"should_trust_email_verified_connection,omitempty"`
+
+	// SignInEndpoint Passive requestor (WS-Fed) sign-in endpoint discovered from the metadata.
+	SignInEndpoint *string `json:"signInEndpoint,omitempty"`
+	TenantDomain   *string `json:"tenant_domain,omitempty"`
+
+	// Thumbprints SHA-1 thumbprints of the signing certificates in the metadata.
+	Thumbprints *[]string `json:"thumbprints,omitempty"`
+
+	// ThumbprintsSha384 SHA-384 thumbprints of the signing certificates.
+	ThumbprintsSha384 *[]string `json:"thumbprints_sha384,omitempty"`
+
+	// UpstreamParams Stored only (LR37b-6).
+	UpstreamParams *map[string]interface{} `json:"upstream_params,omitempty"`
+
+	// UserIdAttribute Claim used first as the user ID; then the name identifier, UPN and email claims (LR37b-7).
+	UserIdAttribute      *string                `json:"user_id_attribute,omitempty"`
+	AdditionalProperties map[string]interface{} `json:"-"`
+}
+
+// ConnectionOptionsADFSSetUserRootAttributes defines model for ConnectionOptionsADFS.SetUserRootAttributes.
+type ConnectionOptionsADFSSetUserRootAttributes string
+
+// ConnectionOptionsADFSShouldTrustEmailVerifiedConnection defines model for ConnectionOptionsADFS.ShouldTrustEmailVerifiedConnection.
+type ConnectionOptionsADFSShouldTrustEmailVerifiedConnection string
 
 // ConnectionOptionsApple Apple web and native connection contract (D-0170). Create requires client_id (Services ID), team_id, kid and
 // app_secret; no developer credentials are supplied. The Services ID
@@ -16422,6 +16565,284 @@ func (a ClientMobileIOS) MarshalJSON() ([]byte, error) {
 		object["team_id"], err = json.Marshal(a.TeamId)
 		if err != nil {
 			return nil, fmt.Errorf("error marshaling 'team_id': %w", err)
+		}
+	}
+
+	for fieldName, field := range a.AdditionalProperties {
+		object[fieldName], err = json.Marshal(field)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling '%s': %w", fieldName, err)
+		}
+	}
+	return json.Marshal(object)
+}
+
+// Getter for additional properties for ConnectionOptionsADFS. Returns the specified
+// element and whether it was found
+func (a ConnectionOptionsADFS) Get(fieldName string) (value interface{}, found bool) {
+	if a.AdditionalProperties != nil {
+		value, found = a.AdditionalProperties[fieldName]
+	}
+	return
+}
+
+// Setter for additional properties for ConnectionOptionsADFS
+func (a *ConnectionOptionsADFS) Set(fieldName string, value interface{}) {
+	if a.AdditionalProperties == nil {
+		a.AdditionalProperties = make(map[string]interface{})
+	}
+	a.AdditionalProperties[fieldName] = value
+}
+
+// Override default JSON handling for ConnectionOptionsADFS to handle AdditionalProperties
+func (a *ConnectionOptionsADFS) UnmarshalJSON(b []byte) error {
+	object := make(map[string]json.RawMessage)
+	err := json.Unmarshal(b, &object)
+	if err != nil {
+		return err
+	}
+
+	if raw, found := object["adfs_server"]; found {
+		err = json.Unmarshal(raw, &a.AdfsServer)
+		if err != nil {
+			return fmt.Errorf("error reading 'adfs_server': %w", err)
+		}
+		delete(object, "adfs_server")
+	}
+
+	if raw, found := object["domain_aliases"]; found {
+		err = json.Unmarshal(raw, &a.DomainAliases)
+		if err != nil {
+			return fmt.Errorf("error reading 'domain_aliases': %w", err)
+		}
+		delete(object, "domain_aliases")
+	}
+
+	if raw, found := object["entityId"]; found {
+		err = json.Unmarshal(raw, &a.EntityId)
+		if err != nil {
+			return fmt.Errorf("error reading 'entityId': %w", err)
+		}
+		delete(object, "entityId")
+	}
+
+	if raw, found := object["fedMetadataXml"]; found {
+		err = json.Unmarshal(raw, &a.FedMetadataXml)
+		if err != nil {
+			return fmt.Errorf("error reading 'fedMetadataXml': %w", err)
+		}
+		delete(object, "fedMetadataXml")
+	}
+
+	if raw, found := object["icon_url"]; found {
+		err = json.Unmarshal(raw, &a.IconUrl)
+		if err != nil {
+			return fmt.Errorf("error reading 'icon_url': %w", err)
+		}
+		delete(object, "icon_url")
+	}
+
+	if raw, found := object["non_persistent_attrs"]; found {
+		err = json.Unmarshal(raw, &a.NonPersistentAttrs)
+		if err != nil {
+			return fmt.Errorf("error reading 'non_persistent_attrs': %w", err)
+		}
+		delete(object, "non_persistent_attrs")
+	}
+
+	if raw, found := object["prev_thumbprints"]; found {
+		err = json.Unmarshal(raw, &a.PrevThumbprints)
+		if err != nil {
+			return fmt.Errorf("error reading 'prev_thumbprints': %w", err)
+		}
+		delete(object, "prev_thumbprints")
+	}
+
+	if raw, found := object["set_user_root_attributes"]; found {
+		err = json.Unmarshal(raw, &a.SetUserRootAttributes)
+		if err != nil {
+			return fmt.Errorf("error reading 'set_user_root_attributes': %w", err)
+		}
+		delete(object, "set_user_root_attributes")
+	}
+
+	if raw, found := object["should_trust_email_verified_connection"]; found {
+		err = json.Unmarshal(raw, &a.ShouldTrustEmailVerifiedConnection)
+		if err != nil {
+			return fmt.Errorf("error reading 'should_trust_email_verified_connection': %w", err)
+		}
+		delete(object, "should_trust_email_verified_connection")
+	}
+
+	if raw, found := object["signInEndpoint"]; found {
+		err = json.Unmarshal(raw, &a.SignInEndpoint)
+		if err != nil {
+			return fmt.Errorf("error reading 'signInEndpoint': %w", err)
+		}
+		delete(object, "signInEndpoint")
+	}
+
+	if raw, found := object["tenant_domain"]; found {
+		err = json.Unmarshal(raw, &a.TenantDomain)
+		if err != nil {
+			return fmt.Errorf("error reading 'tenant_domain': %w", err)
+		}
+		delete(object, "tenant_domain")
+	}
+
+	if raw, found := object["thumbprints"]; found {
+		err = json.Unmarshal(raw, &a.Thumbprints)
+		if err != nil {
+			return fmt.Errorf("error reading 'thumbprints': %w", err)
+		}
+		delete(object, "thumbprints")
+	}
+
+	if raw, found := object["thumbprints_sha384"]; found {
+		err = json.Unmarshal(raw, &a.ThumbprintsSha384)
+		if err != nil {
+			return fmt.Errorf("error reading 'thumbprints_sha384': %w", err)
+		}
+		delete(object, "thumbprints_sha384")
+	}
+
+	if raw, found := object["upstream_params"]; found {
+		err = json.Unmarshal(raw, &a.UpstreamParams)
+		if err != nil {
+			return fmt.Errorf("error reading 'upstream_params': %w", err)
+		}
+		delete(object, "upstream_params")
+	}
+
+	if raw, found := object["user_id_attribute"]; found {
+		err = json.Unmarshal(raw, &a.UserIdAttribute)
+		if err != nil {
+			return fmt.Errorf("error reading 'user_id_attribute': %w", err)
+		}
+		delete(object, "user_id_attribute")
+	}
+
+	if len(object) != 0 {
+		a.AdditionalProperties = make(map[string]interface{})
+		for fieldName, fieldBuf := range object {
+			var fieldVal interface{}
+			err := json.Unmarshal(fieldBuf, &fieldVal)
+			if err != nil {
+				return fmt.Errorf("error unmarshaling field %s: %w", fieldName, err)
+			}
+			a.AdditionalProperties[fieldName] = fieldVal
+		}
+	}
+	return nil
+}
+
+// Override default JSON handling for ConnectionOptionsADFS to handle AdditionalProperties
+func (a ConnectionOptionsADFS) MarshalJSON() ([]byte, error) {
+	var err error
+	object := make(map[string]json.RawMessage)
+
+	if a.AdfsServer != nil {
+		object["adfs_server"], err = json.Marshal(a.AdfsServer)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'adfs_server': %w", err)
+		}
+	}
+
+	if a.DomainAliases != nil {
+		object["domain_aliases"], err = json.Marshal(a.DomainAliases)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'domain_aliases': %w", err)
+		}
+	}
+
+	if a.EntityId != nil {
+		object["entityId"], err = json.Marshal(a.EntityId)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'entityId': %w", err)
+		}
+	}
+
+	if a.FedMetadataXml != nil {
+		object["fedMetadataXml"], err = json.Marshal(a.FedMetadataXml)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'fedMetadataXml': %w", err)
+		}
+	}
+
+	if a.IconUrl != nil {
+		object["icon_url"], err = json.Marshal(a.IconUrl)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'icon_url': %w", err)
+		}
+	}
+
+	if a.NonPersistentAttrs != nil {
+		object["non_persistent_attrs"], err = json.Marshal(a.NonPersistentAttrs)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'non_persistent_attrs': %w", err)
+		}
+	}
+
+	if a.PrevThumbprints != nil {
+		object["prev_thumbprints"], err = json.Marshal(a.PrevThumbprints)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'prev_thumbprints': %w", err)
+		}
+	}
+
+	if a.SetUserRootAttributes != nil {
+		object["set_user_root_attributes"], err = json.Marshal(a.SetUserRootAttributes)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'set_user_root_attributes': %w", err)
+		}
+	}
+
+	if a.ShouldTrustEmailVerifiedConnection != nil {
+		object["should_trust_email_verified_connection"], err = json.Marshal(a.ShouldTrustEmailVerifiedConnection)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'should_trust_email_verified_connection': %w", err)
+		}
+	}
+
+	if a.SignInEndpoint != nil {
+		object["signInEndpoint"], err = json.Marshal(a.SignInEndpoint)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'signInEndpoint': %w", err)
+		}
+	}
+
+	if a.TenantDomain != nil {
+		object["tenant_domain"], err = json.Marshal(a.TenantDomain)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'tenant_domain': %w", err)
+		}
+	}
+
+	if a.Thumbprints != nil {
+		object["thumbprints"], err = json.Marshal(a.Thumbprints)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'thumbprints': %w", err)
+		}
+	}
+
+	if a.ThumbprintsSha384 != nil {
+		object["thumbprints_sha384"], err = json.Marshal(a.ThumbprintsSha384)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'thumbprints_sha384': %w", err)
+		}
+	}
+
+	if a.UpstreamParams != nil {
+		object["upstream_params"], err = json.Marshal(a.UpstreamParams)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'upstream_params': %w", err)
+		}
+	}
+
+	if a.UserIdAttribute != nil {
+		object["user_id_attribute"], err = json.Marshal(a.UserIdAttribute)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'user_id_attribute': %w", err)
 		}
 	}
 

@@ -28,6 +28,8 @@ type BootstrapOptions struct{ ExcludedClientIDs []string }
 type exportedClient struct {
 	OIDCLogout               map[string]any       `json:"oidc_logout"`
 	Addons                   map[string]any       `json:"addons"`
+	ClientAliases            []string             `json:"client_aliases"`
+	FormTemplate             string               `json:"form_template"`
 	OIDCSupport              map[string]any       `json:"oidc_support"`
 	RequireProofOfPossession bool                 `json:"require_proof_of_possession"`
 	TokenQuota               map[string]any       `json:"token_quota"`
@@ -148,7 +150,7 @@ func PrepareBootstrap(source Export, bootstrap *seed.File, credentials map[strin
 		t.Clients = append(t.Clients, seed.Client{
 			OrganizationUsage: c.OrganizationUsage, OrganizationRequireBehavior: c.OrganizationRequireBehavior, OrganizationDiscoveryMethods: slices.Clone(c.OrganizationDiscoveryMethods),
 			ClientID: c.ClientID, Name: c.Name, AppType: c.AppType, ClientSecret: secret,
-			Addons: c.Addons, OIDCLogout: c.OIDCLogout, OIDCSupport: c.OIDCSupport, JWTConfiguration: &seed.JWTConfiguration{Alg: c.JWTConfiguration.Alg},
+			Addons: c.Addons, ClientAliases: slices.Clone(c.ClientAliases), FormTemplate: c.FormTemplate, OIDCLogout: c.OIDCLogout, OIDCSupport: c.OIDCSupport, JWTConfiguration: &seed.JWTConfiguration{Alg: c.JWTConfiguration.Alg},
 			RequireProofOfPossession: c.RequireProofOfPossession, TokenQuota: c.TokenQuota,
 			Mobile:                  c.Mobile,
 			TokenEndpointAuthMethod: c.AuthMethod, GrantTypes: slices.Clone(c.GrantTypes), Callbacks: slices.Clone(c.Callbacks),

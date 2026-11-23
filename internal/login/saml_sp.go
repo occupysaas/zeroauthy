@@ -68,6 +68,9 @@ func (h *Handlers) UpstreamLogout(w http.ResponseWriter, r *http.Request, res te
 	if h.Federation == nil || ended == nil {
 		return false
 	}
+	if h.adfsUpstreamLogout(w, r, res, ended, returnTo) {
+		return true
+	}
 	lo, err := h.Federation.SAMLLogoutRequest(r.Context(), res.Tenant, ended)
 	if err != nil {
 		h.log().WarnContext(r.Context(), "saml: upstream logout request", "tenant", res.Tenant.ID, "err", err)

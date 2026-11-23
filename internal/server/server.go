@@ -585,3 +585,20 @@ func (a authAPI) SamlpIdPLogout(w http.ResponseWriter, r *http.Request, clientID
 func (a authAPI) SamlpIdPLogoutPost(w http.ResponseWriter, r *http.Request, clientID string) {
 	a.saml.Logout(w, r, clientID)
 }
+
+// WS-Federation routes (Plan 37b).
+func wsfedParams(wa, realm, reply, ctx, whr, fresh *string) samlidp.WSFedParams {
+	return samlidp.WSFedParams{Action: deref(wa), Realm: deref(realm), Reply: deref(reply), Context: deref(ctx), HomeRealm: deref(whr), Fresh: deref(fresh)}
+}
+func (a authAPI) WsfedSignIn(w http.ResponseWriter, r *http.Request, p authapi.WsfedSignInParams) {
+	a.saml.WSFed(w, r, "", wsfedParams((*string)(p.Wa), p.Wtrealm, p.Wreply, p.Wctx, p.Whr, p.Wfresh))
+}
+func (a authAPI) WsfedClientSignIn(w http.ResponseWriter, r *http.Request, clientID string, p authapi.WsfedClientSignInParams) {
+	a.saml.WSFed(w, r, clientID, wsfedParams((*string)(p.Wa), p.Wtrealm, p.Wreply, p.Wctx, p.Whr, p.Wfresh))
+}
+func (a authAPI) WsfedMetadata(w http.ResponseWriter, r *http.Request) {
+	a.saml.WSFedMetadata(w, r, "")
+}
+func (a authAPI) WsfedClientMetadata(w http.ResponseWriter, r *http.Request, clientID string) {
+	a.saml.WSFedMetadata(w, r, clientID)
+}

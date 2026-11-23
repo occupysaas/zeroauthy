@@ -535,6 +535,48 @@ func (e PasswordlessVerifyRedirectParamsConnection) Valid() bool {
 	}
 }
 
+// Defines values for WsfedSignInParamsWa.
+const (
+	WsfedSignInParamsWaWsignin10         WsfedSignInParamsWa = "wsignin1.0"
+	WsfedSignInParamsWaWsignout10        WsfedSignInParamsWa = "wsignout1.0"
+	WsfedSignInParamsWaWsignoutcleanup10 WsfedSignInParamsWa = "wsignoutcleanup1.0"
+)
+
+// Valid indicates whether the value is a known member of the WsfedSignInParamsWa enum.
+func (e WsfedSignInParamsWa) Valid() bool {
+	switch e {
+	case WsfedSignInParamsWaWsignin10:
+		return true
+	case WsfedSignInParamsWaWsignout10:
+		return true
+	case WsfedSignInParamsWaWsignoutcleanup10:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for WsfedClientSignInParamsWa.
+const (
+	WsfedClientSignInParamsWaWsignin10         WsfedClientSignInParamsWa = "wsignin1.0"
+	WsfedClientSignInParamsWaWsignout10        WsfedClientSignInParamsWa = "wsignout1.0"
+	WsfedClientSignInParamsWaWsignoutcleanup10 WsfedClientSignInParamsWa = "wsignoutcleanup1.0"
+)
+
+// Valid indicates whether the value is a known member of the WsfedClientSignInParamsWa enum.
+func (e WsfedClientSignInParamsWa) Valid() bool {
+	switch e {
+	case WsfedClientSignInParamsWaWsignin10:
+		return true
+	case WsfedClientSignInParamsWaWsignout10:
+		return true
+	case WsfedClientSignInParamsWaWsignoutcleanup10:
+		return true
+	default:
+		return false
+	}
+}
+
 // AuthorizeRequest The parameters of `GET /authorize`, form-encoded.
 type AuthorizeRequest struct {
 	AcrValues *string `json:"acr_values,omitempty"`
@@ -1684,6 +1726,54 @@ type LogoutParams struct {
 	// Federated Accepted and ignored; there are no upstream identity providers yet.
 	Federated *string `form:"federated,omitempty" json:"federated,omitempty"`
 }
+
+// WsfedSignInParams defines parameters for WsfedSignIn.
+type WsfedSignInParams struct {
+	// Wa Action: issue a token (default), end the session, or clean up the session.
+	Wa *WsfedSignInParamsWa `form:"wa,omitempty" json:"wa,omitempty"`
+
+	// Wtrealm Realm of the relying party: the client ID or one of its `client_aliases`; it is the token audience.
+	Wtrealm *string `form:"wtrealm,omitempty" json:"wtrealm,omitempty"`
+
+	// Wreply Where the response is posted (sign-in) or redirected (sign-out); must be one of the application's callbacks. Defaults to the first callback.
+	Wreply *string `form:"wreply,omitempty" json:"wreply,omitempty"`
+
+	// Wctx Relying party state, returned as `wctx` and as the RSTR `Context`.
+	Wctx *string `form:"wctx,omitempty" json:"wctx,omitempty"`
+
+	// Whr Connection to log in with (skips the login page).
+	Whr *string `form:"whr,omitempty" json:"whr,omitempty"`
+
+	// Wfresh `0` requires the user to authenticate again even with a session.
+	Wfresh *string `form:"wfresh,omitempty" json:"wfresh,omitempty"`
+}
+
+// WsfedSignInParamsWa defines parameters for WsfedSignIn.
+type WsfedSignInParamsWa string
+
+// WsfedClientSignInParams defines parameters for WsfedClientSignIn.
+type WsfedClientSignInParams struct {
+	// Wa Action: issue a token (default), end the session, or clean up the session.
+	Wa *WsfedClientSignInParamsWa `form:"wa,omitempty" json:"wa,omitempty"`
+
+	// Wtrealm Realm of the relying party: the client ID or one of its `client_aliases`; it is the token audience.
+	Wtrealm *string `form:"wtrealm,omitempty" json:"wtrealm,omitempty"`
+
+	// Wreply Where the response is posted (sign-in) or redirected (sign-out); must be one of the application's callbacks. Defaults to the first callback.
+	Wreply *string `form:"wreply,omitempty" json:"wreply,omitempty"`
+
+	// Wctx Relying party state, returned as `wctx` and as the RSTR `Context`.
+	Wctx *string `form:"wctx,omitempty" json:"wctx,omitempty"`
+
+	// Whr Connection to log in with (skips the login page).
+	Whr *string `form:"whr,omitempty" json:"whr,omitempty"`
+
+	// Wfresh `0` requires the user to authenticate again even with a session.
+	Wfresh *string `form:"wfresh,omitempty" json:"wfresh,omitempty"`
+}
+
+// WsfedClientSignInParamsWa defines parameters for WsfedClientSignIn.
+type WsfedClientSignInParamsWa string
 
 // AuthorizePostFormdataRequestBody defines body for AuthorizePost for application/x-www-form-urlencoded ContentType.
 type AuthorizePostFormdataRequestBody = AuthorizeRequest
@@ -2896,6 +2986,18 @@ type ServerInterface interface {
 	// Logout Log the user out
 	// (GET /v2/logout)
 	Logout(w http.ResponseWriter, r *http.Request, params LogoutParams)
+	// WsfedSignIn WS-Federation sign-in and sign-out by realm
+	// (GET /wsfed)
+	WsfedSignIn(w http.ResponseWriter, r *http.Request, params WsfedSignInParams)
+	// WsfedMetadata Tenant WS-Federation metadata
+	// (GET /wsfed/FederationMetadata/2007-06/FederationMetadata.xml)
+	WsfedMetadata(w http.ResponseWriter, r *http.Request)
+	// WsfedClientSignIn WS-Federation sign-in and sign-out for an application
+	// (GET /wsfed/{client_id})
+	WsfedClientSignIn(w http.ResponseWriter, r *http.Request, clientId string, params WsfedClientSignInParams)
+	// WsfedClientMetadata WS-Federation metadata of an application
+	// (GET /wsfed/{client_id}/FederationMetadata/2007-06/FederationMetadata.xml)
+	WsfedClientMetadata(w http.ResponseWriter, r *http.Request, clientId string)
 }
 
 // Unimplemented server implementation that returns http.StatusNotImplemented for each endpoint.
@@ -3109,6 +3211,30 @@ func (_ Unimplemented) UserinfoPost(w http.ResponseWriter, r *http.Request) {
 // Logout Log the user out
 // (GET /v2/logout)
 func (_ Unimplemented) Logout(w http.ResponseWriter, r *http.Request, params LogoutParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// WsfedSignIn WS-Federation sign-in and sign-out by realm
+// (GET /wsfed)
+func (_ Unimplemented) WsfedSignIn(w http.ResponseWriter, r *http.Request, params WsfedSignInParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// WsfedMetadata Tenant WS-Federation metadata
+// (GET /wsfed/FederationMetadata/2007-06/FederationMetadata.xml)
+func (_ Unimplemented) WsfedMetadata(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// WsfedClientSignIn WS-Federation sign-in and sign-out for an application
+// (GET /wsfed/{client_id})
+func (_ Unimplemented) WsfedClientSignIn(w http.ResponseWriter, r *http.Request, clientId string, params WsfedClientSignInParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// WsfedClientMetadata WS-Federation metadata of an application
+// (GET /wsfed/{client_id}/FederationMetadata/2007-06/FederationMetadata.xml)
+func (_ Unimplemented) WsfedClientMetadata(w http.ResponseWriter, r *http.Request, clientId string) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -4756,6 +4882,251 @@ func (siw *ServerInterfaceWrapper) Logout(w http.ResponseWriter, r *http.Request
 	handler.ServeHTTP(w, r)
 }
 
+// WsfedSignIn operation middleware
+func (siw *ServerInterfaceWrapper) WsfedSignIn(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params WsfedSignInParams
+
+	// ------------- Optional query parameter "wa" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "wa", r.URL.Query(), &params.Wa, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "wa"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "wa", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "wtrealm" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "wtrealm", r.URL.Query(), &params.Wtrealm, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "wtrealm"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "wtrealm", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "wreply" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "wreply", r.URL.Query(), &params.Wreply, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "wreply"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "wreply", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "wctx" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "wctx", r.URL.Query(), &params.Wctx, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "wctx"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "wctx", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "whr" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "whr", r.URL.Query(), &params.Whr, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "whr"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "whr", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "wfresh" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "wfresh", r.URL.Query(), &params.Wfresh, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "wfresh"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "wfresh", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.WsfedSignIn(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// WsfedMetadata operation middleware
+func (siw *ServerInterfaceWrapper) WsfedMetadata(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.WsfedMetadata(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// WsfedClientSignIn operation middleware
+func (siw *ServerInterfaceWrapper) WsfedClientSignIn(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "client_id" -------------
+	var clientId string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "client_id", chi.URLParam(r, "client_id"), &clientId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "client_id", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params WsfedClientSignInParams
+
+	// ------------- Optional query parameter "wa" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "wa", r.URL.Query(), &params.Wa, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "wa"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "wa", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "wtrealm" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "wtrealm", r.URL.Query(), &params.Wtrealm, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "wtrealm"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "wtrealm", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "wreply" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "wreply", r.URL.Query(), &params.Wreply, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "wreply"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "wreply", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "wctx" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "wctx", r.URL.Query(), &params.Wctx, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "wctx"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "wctx", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "whr" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "whr", r.URL.Query(), &params.Whr, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "whr"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "whr", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "wfresh" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "wfresh", r.URL.Query(), &params.Wfresh, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "wfresh"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "wfresh", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.WsfedClientSignIn(w, r, clientId, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// WsfedClientMetadata operation middleware
+func (siw *ServerInterfaceWrapper) WsfedClientMetadata(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "client_id" -------------
+	var clientId string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "client_id", chi.URLParam(r, "client_id"), &clientId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "client_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.WsfedClientMetadata(w, r, clientId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 type UnescapedCookieParamError struct {
 	ParamName string
 	Err       error
@@ -4928,6 +5299,18 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/samlp/{client_id}/logout", wrapper.SamlpIdPLogoutPost)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/wsfed", wrapper.WsfedSignIn)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/wsfed/FederationMetadata/2007-06/FederationMetadata.xml", wrapper.WsfedMetadata)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/wsfed/{client_id}", wrapper.WsfedClientSignIn)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/wsfed/{client_id}/FederationMetadata/2007-06/FederationMetadata.xml", wrapper.WsfedClientMetadata)
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/oidc/logout", wrapper.OidcLogout)

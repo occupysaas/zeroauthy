@@ -861,3 +861,58 @@ func TestSAMLContracts(t *testing.T) {
 		}
 	}
 }
+
+// TestWSFedContracts pins Plan 37b's contract (D-0140): the wsfed client
+// add-on, client_aliases, the adfs connection strategy and options, and the
+// WS-Federation routes.
+func TestWSFedContracts(t *testing.T) {
+	m, err := openapi3.NewLoader().LoadFromData(ManagementYAML)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, name := range []string{"ClientSettings", "Client"} {
+		props := m.Components.Schemas[name].Value.Properties
+		if props["addons"] == nil || props["addons"].Value.Properties["wsfed"] == nil {
+			t.Errorf("%s missing addons.wsfed", name)
+		}
+		for _, field := range []string{"client_aliases", "form_template"} {
+			if props[field] == nil {
+				t.Errorf("%s missing %s", name, field)
+			}
+		}
+	}
+	if m.Components.Schemas["ClientAddonWSFed"] == nil {
+		t.Fatal("missing ClientAddonWSFed")
+	}
+	strategies := m.Components.Schemas["ConnectionCreate"].Value.AllOf[1].Value.Properties["strategy"].Value.Enum
+	if !slices.Contains(strategies, any("adfs")) {
+		t.Errorf("connection strategies %v lack adfs", strategies)
+	}
+	opts := m.Components.Schemas["ConnectionOptionsADFS"]
+	if opts == nil {
+		t.Fatal("missing ConnectionOptionsADFS")
+	}
+	for _, field := range []string{"adfs_server", "fedMetadataXml", "signInEndpoint", "thumbprints", "prev_thumbprints",
+		"thumbprints_sha384", "entityId", "user_id_attribute", "should_trust_email_verified_connection", "domain_aliases",
+		"set_user_root_attributes", "icon_url", "non_persistent_attrs", "upstream_params", "tenant_domain"} {
+		if opts.Value.Properties[field] == nil {
+			t.Errorf("ConnectionOptionsADFS missing %s", field)
+		}
+	}
+	for _, field := range []string{"thumbprints", "prev_thumbprints", "thumbprints_sha384", "signInEndpoint"} {
+		if !opts.Value.Properties[field].Value.ReadOnly {
+			t.Errorf("ConnectionOptionsADFS.%s must be read-only (taken from the metadata)", field)
+		}
+	}
+	a, err := openapi3.NewLoader().LoadFromData(AuthenticationYAML)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, path := range []string{"/wsfed", "/wsfed/{client_id}", "/wsfed/FederationMetadata/2007-06/FederationMetadata.xml",
+		"/wsfed/{client_id}/FederationMetadata/2007-06/FederationMetadata.xml"} {
+		item := a.Paths.Value(path)
+		if item == nil || item.Get == nil {
+			t.Errorf("route GET %s missing", path)
+		}
+	}
+}

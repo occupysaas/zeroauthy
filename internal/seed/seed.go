@@ -198,6 +198,8 @@ type Scope struct {
 type Client struct {
 	OIDCLogout               map[string]any    `yaml:"oidc_logout"`
 	Addons                   map[string]any    `yaml:"addons"`
+	ClientAliases            []string          `yaml:"client_aliases"`
+	FormTemplate             string            `yaml:"form_template"`
 	OIDCSupport              map[string]any    `yaml:"oidc_support"`
 	JWTConfiguration         *JWTConfiguration `yaml:"jwt_configuration"`
 	oidcLogout               *store.OIDCLogout
@@ -275,7 +277,7 @@ func (c *Client) spec() clientrules.Spec {
 		method = store.AuthMethodClientSecretPost
 	}
 	return clientrules.Spec{
-		TokenQuota: c.tokenQuota, Addons: c.addons.Clone(), OIDCLogout: c.oidcLogout.Clone(), OIDCSupport: c.oidcSupport.Clone(), IDTokenAlg: alg,
+		TokenQuota: c.tokenQuota, Addons: c.addons.Clone(), ClientAliases: slices.Clone(c.ClientAliases), FormTemplate: c.FormTemplate, OIDCLogout: c.oidcLogout.Clone(), OIDCSupport: c.oidcSupport.Clone(), IDTokenAlg: alg,
 		Name: c.Name, AppType: c.AppType, TokenEndpointAuthMethod: method,
 		OrganizationUsage: c.OrganizationUsage, OrganizationRequireBehavior: c.OrganizationRequireBehavior, OrganizationDiscoveryMethods: slices.Clone(c.OrganizationDiscoveryMethods),
 		GrantTypes: c.GrantTypes, Callbacks: c.Callbacks, AllowedLogoutURLs: c.AllowedLogoutURLs,

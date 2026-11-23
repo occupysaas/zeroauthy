@@ -53,7 +53,16 @@ func ValidateRequest(ctx context.Context, st store.Store, t *store.Tenant, req *
 	if req.RedirectURI == "" {
 		return client, pageErr(errInvalidRequest("redirect_uri is required")), false
 	}
-	if req.SAML != "" {
+	if IsWSFedBinding(req.SAML) {
+		// A WS-Fed sign-in (Plan 37b): the reply must be a callback. As for
+		// SAML, no code is issued and the OAuth rules below do not apply.
+		if client.Addons == nil || client.Addons.WSFed == nil {
+			return client, pageErr(errInvalidRequest("the WS-Fed Web App add-on is not enabled for this application")), false
+		}
+		if !WSFedReplyAllowed(client, req.RedirectURI) {
+			return client, pageErr(errInvalidRequest("the wreply URL is not registered for this application")), false
+		}
+	} else if req.SAML != "" {
 		// A SAML IdP request (Plan 37a): the ACS URL must exactly equal a
 		// callback or the add-on recipient. No code is issued, so the OAuth
 		// response_type, grant, PKCE, PAR and request-object rules below do

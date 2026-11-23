@@ -20,7 +20,9 @@ const (
 	ProtocolWebAuthn   = "oauth2-webauthn"
 	ProtocolDeviceCode = "oauth2-device-code"
 	// ProtocolSAMLP is a SAML IdP transaction (Plan 37a).
-	ProtocolSAMLP             = "samlp"
+	ProtocolSAMLP = "samlp"
+	// ProtocolWSFed is a WS-Federation sign-in (Plan 37b).
+	ProtocolWSFed             = "wsfed"
 	ProtocolPassword          = "oauth2-password"
 	ProtocolResourceOwner     = "oauth2-resource-owner"
 	ProtocolRefreshToken      = "oauth2-refresh-token"

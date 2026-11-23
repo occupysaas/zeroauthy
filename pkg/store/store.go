@@ -17,6 +17,7 @@ type (
 	SAMLAddon                      = store.SAMLAddon
 	SAMLAddonLogout                = store.SAMLAddonLogout
 	SAMLSupporter                  = store.SAMLSupporter
+	WSFedSupporter                 = store.WSFedSupporter
 	SAMLParticipant                = store.SAMLParticipant
 	SAMLSessionRecorder            = store.SAMLSessionRecorder
 	SAMLReplayStore                = store.SAMLReplayStore
@@ -451,3 +452,9 @@ var ErrSAMLUnavailable = store.ErrSAMLUnavailable
 
 // CheckSAMLSupport reports whether s implements saml.v1.
 func CheckSAMLSupport(ctx context.Context, s Store) error { return store.CheckSAMLSupport(ctx, s) }
+
+// ErrWSFedUnavailable reports a plugin without wsfed.v1 (Plan 37b).
+var ErrWSFedUnavailable = store.ErrWSFedUnavailable
+
+// CheckWSFedSupport reports whether s implements wsfed.v1.
+func CheckWSFedSupport(ctx context.Context, s Store) error { return store.CheckWSFedSupport(ctx, s) }

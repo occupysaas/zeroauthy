@@ -1,4 +1,4 @@
-.PHONY: e2e-saml e2e-logout e2e-refresh-tokens e2e-apple e2e-github e2e-client-auth e2e-passkeys e2e-passwordless e2e-mfa e2e-events e2e-logs e2e-organizations-ii e2e-organizations build test test-group test-groups test-sql lint generate check-sources e2e e2e-actions e2e-actions-ii e2e-rbac e2e-email-accounts e2e-social e2e-deploy e2e-signing e2e-email e2e-branding e2e-domains conformance console
+.PHONY: e2e-saml e2e-wsfed e2e-logout e2e-refresh-tokens e2e-apple e2e-github e2e-client-auth e2e-passkeys e2e-passwordless e2e-mfa e2e-events e2e-logs e2e-organizations-ii e2e-organizations build test test-group test-groups test-sql lint generate check-sources e2e e2e-actions e2e-actions-ii e2e-rbac e2e-email-accounts e2e-social e2e-deploy e2e-signing e2e-email e2e-branding e2e-domains conformance console
 
 build:
 	CGO_ENABLED=0 go build -trimpath -o bin/zeroauthy ./cmd/zeroauthy
@@ -114,3 +114,6 @@ e2e-logout:
 
 e2e-saml:
 	./tests/e2e/run-m37a-saml.sh
+
+e2e-wsfed:
+	./tests/e2e/run-m37b-wsfed.sh

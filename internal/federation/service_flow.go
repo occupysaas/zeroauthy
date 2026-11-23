@@ -143,7 +143,7 @@ func (s *FlowService) Begin(ctx context.Context, in BeginInput) (*Begun, error) 
 	}
 	spec := connrules.FromConnection(conn)
 	cfg, err := ParseConfig(*spec)
-	if err != nil || !cfg.AuthenticationActive || cfg.SAML == nil && len(conn.FederationSecretsSealed) == 0 && cfg.Channel != "front_channel" && cfg.TokenAuth != "private_key_jwt" {
+	if err != nil || !cfg.AuthenticationActive || !cfg.Secretless() && len(conn.FederationSecretsSealed) == 0 {
 		return nil, ErrConnectionUnusable
 	}
 	if cfg.Strategy == StrategyOAuth2 {
@@ -172,6 +172,11 @@ func (s *FlowService) Begin(ctx context.Context, in BeginInput) (*Begun, error) 
 			return nil, ErrConnectionUnusable
 		}
 		endpoints, issuer = Endpoints{AuthorizationURL: cfg.SAML.SignInEndpoint}, cfg.SAML.IdPEntityID
+	case StrategyADFS:
+		if cfg.ADFS.SignInEndpoint == "" {
+			return nil, ErrConnectionUnusable
+		}
+		endpoints = Endpoints{AuthorizationURL: cfg.ADFS.SignInEndpoint}
 	case StrategyWindowsLive, StrategyWAAD, StrategyOIDC, StrategyOkta:
 		var meta Metadata
 		var err error
@@ -221,6 +226,13 @@ func (s *FlowService) Begin(ctx context.Context, in BeginInput) (*Begun, error) 
 	}
 	if err := s.Store.Federation().CreateAttempt(ctx, a); err != nil {
 		return nil, err
+	}
+	if cfg.ADFS != nil {
+		u, err := adfsSignInURL(in.Tenant, conn, cfg, callback, state)
+		if err != nil {
+			return nil, err
+		}
+		return &Begun{URL: u, CookieName: AttemptCookiePrefix + stateHash[:16], CookieValue: cookie, ExpiresAt: expires}, nil
 	}
 	if cfg.SAML != nil {
 		u, form, err := s.samlAuthnRequest(ctx, in.Tenant, conn, cfg, callback, state, nonce)
@@ -275,7 +287,9 @@ type CallbackParams struct {
 	IDToken            string
 	// SAMLResponse is a posted SAML response (samlp ACS, Plan 37a).
 	SAMLResponse string
-	FormPost     bool
+	// WResult is a posted WS-Federation token (adfs, Plan 37b).
+	WResult  string
+	FormPost bool
 	// User is untrusted, optional Apple first-authorization name JSON.
 	User string
 }
@@ -346,7 +360,7 @@ type Completion struct {
 // provider identity and commits identity, tokens, attempt and session in one
 // transaction.
 func (s *FlowService) Complete(ctx context.Context, in CompleteInput) (*Completion, error) {
-	ctx = logscrub.WithCredentials(logscrub.WithValues(ctx, in.Params.Code, in.Params.IDToken, in.Params.SAMLResponse), in.Params.Code, in.Params.IDToken, in.Params.SAMLResponse)
+	ctx = logscrub.WithCredentials(logscrub.WithValues(ctx, in.Params.Code, in.Params.IDToken, in.Params.SAMLResponse, in.Params.WResult), in.Params.Code, in.Params.IDToken, in.Params.SAMLResponse, in.Params.WResult)
 	if in.CookieValue == "" || in.Tenant == nil {
 		return nil, ErrCallbackRejected
 	}
@@ -388,7 +402,13 @@ func (s *FlowService) Complete(ctx context.Context, in CompleteInput) (*Completi
 		a.Endpoints.PKCEMethod = "S256"
 	}
 	front := cfg.Channel == "front_channel"
-	if cfg.SAML != nil {
+	if cfg.ADFS != nil {
+		if !in.Params.FormPost || in.Params.WResult == "" || in.Params.SAMLResponse != "" || in.Params.Code != "" || in.Params.IDToken != "" {
+			return nil, ErrCallbackRejected
+		}
+	} else if in.Params.WResult != "" {
+		return nil, ErrCallbackRejected
+	} else if cfg.SAML != nil {
 		if !in.Params.FormPost || in.Params.SAMLResponse == "" || in.Params.Code != "" || in.Params.IDToken != "" {
 			return nil, ErrCallbackRejected
 		}
@@ -411,7 +431,7 @@ func (s *FlowService) Complete(ctx context.Context, in CompleteInput) (*Completi
 		if err != nil {
 			return nil, fmt.Errorf("%w: credentials", ErrConnectionUnusable)
 		}
-	} else if cfg.SAML == nil && cfg.Channel != "front_channel" && cfg.TokenAuth != "private_key_jwt" {
+	} else if !cfg.Secretless() {
 		return nil, ErrConnectionUnusable
 	}
 	var appleUser *AppleUser
@@ -437,7 +457,12 @@ func (s *FlowService) Complete(ctx context.Context, in CompleteInput) (*Completi
 	}
 	var res ProviderResult
 	var assertion *samlAssertion
-	if cfg.SAML != nil {
+	if cfg.ADFS != nil {
+		assertion, err = s.adfsValidate(in.Tenant, conn, cfg, in.Params.WResult)
+		if err == nil {
+			res = assertion.Result
+		}
+	} else if cfg.SAML != nil {
 		assertion, err = s.samlValidate(ctx, in.Tenant, conn, cfg, in.Origin, samlRequestID(pr.Nonce), in.Params.SAMLResponse)
 		if err == nil {
 			res = assertion.Result
@@ -634,7 +659,7 @@ func SocialChoices(client *store.Client, conns []*store.Connection, includeHidde
 		}
 		spec := connrules.FromConnection(c)
 		cfg, err := ParseConfig(*spec)
-		if err != nil || cfg.SAML == nil && len(c.FederationSecretsSealed) == 0 && cfg.Channel != "front_channel" && cfg.TokenAuth != "private_key_jwt" {
+		if err != nil || !cfg.Secretless() && len(c.FederationSecretsSealed) == 0 {
 			continue
 		}
 		if active, ok := spec.Authentication["active"].(bool); ok && !active {

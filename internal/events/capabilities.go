@@ -89,6 +89,11 @@ func (s *capture) GitHubFederationSupported(ctx context.Context) error {
 	return store.ErrFederationUnavailable
 }
 
+// CheckWSFedSupport passes wsfed.v1 (Plan 37b) through.
+func (s *capture) CheckWSFedSupport(ctx context.Context) error {
+	return store.CheckWSFedSupport(ctx, s.Store)
+}
+
 // SAML (Plan 37a): the capability and the replay store pass through, also
 // on transaction stores, where SP logins consume assertion IDs.
 func (s *capture) CheckSAMLSupport(ctx context.Context) error {

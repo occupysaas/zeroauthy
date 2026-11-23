@@ -397,6 +397,7 @@ func clientToPB(c *store.Client) (*storev1.Client, error) {
 	if pb.Addons, err = optJSON(c.Addons, c.Addons == nil); err != nil {
 		return nil, err
 	}
+	pb.ClientAliases, pb.FormTemplate = slices.Clone(c.ClientAliases), c.FormTemplate
 	if pb.NativeSocialLogin, err = optJSON(c.NativeSocialLogin, c.NativeSocialLogin == nil); err != nil {
 		return nil, err
 	}
@@ -451,6 +452,10 @@ func clientFromPB(pb *storev1.Client) (*store.Client, error) {
 	if err := fromOptJSON(pb.Addons, &c.Addons); err != nil {
 		return nil, err
 	}
+	if len(pb.ClientAliases) > 0 {
+		c.ClientAliases = slices.Clone(pb.ClientAliases)
+	}
+	c.FormTemplate = pb.FormTemplate
 	if pb.Secrets != nil {
 		c.Secrets = make([]store.ClientSecret, 0, len(pb.Secrets.Values))
 		for _, s := range pb.Secrets.Values {

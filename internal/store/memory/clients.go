@@ -15,11 +15,27 @@ func (r clients) Create(_ context.Context, c *store.Client) error {
 	r.s.lock()
 	defer r.s.unlock()
 	k := key{c.TenantID, c.ClientID}
-	if _, ok := r.s.clients[k]; ok {
+	if _, ok := r.s.clients[k]; ok || r.aliasTaken(c) {
 		return store.ErrConflict
 	}
 	r.s.clients[k] = cloneClient(c)
 	return nil
+}
+
+// aliasTaken reports whether another client of c's tenant has one of c's
+// client_aliases (LR37b-3).
+func (r clients) aliasTaken(c *store.Client) bool {
+	for k, other := range r.s.clients {
+		if k.tenant != c.TenantID || k.id == c.ClientID {
+			continue
+		}
+		for _, a := range c.ClientAliases {
+			if slices.Contains(other.ClientAliases, a) {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 func (r clients) Get(_ context.Context, tenantID, clientID string) (*store.Client, error) {
@@ -38,6 +54,9 @@ func (r clients) Update(_ context.Context, c *store.Client) error {
 	k := key{c.TenantID, c.ClientID}
 	if _, ok := r.s.clients[k]; !ok {
 		return store.ErrNotFound
+	}
+	if r.aliasTaken(c) {
+		return store.ErrConflict
 	}
 	r.s.clients[k] = cloneClient(c)
 	return nil
@@ -83,7 +102,7 @@ func (r clients) List(_ context.Context, tenantID string, f store.ClientFilter, 
 	var all []*store.Client
 	for k, c := range r.s.clients {
 		if k.tenant == tenantID && (len(f.AppTypes) == 0 || slices.Contains(f.AppTypes, string(c.AppType))) &&
-			(f.IsFirstParty == nil || c.IsFirstParty == *f.IsFirstParty) {
+			(f.IsFirstParty == nil || c.IsFirstParty == *f.IsFirstParty) && (f.Alias == "" || slices.Contains(c.ClientAliases, f.Alias)) {
 			all = append(all, c)
 		}
 	}

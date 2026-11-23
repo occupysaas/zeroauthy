@@ -72,6 +72,8 @@ var strictGrantTypes = []string{GrantAuthorizationCode, GrantRefreshToken, Grant
 // default", which Normalize fills in.
 type Spec struct {
 	Addons                   *store.ClientAddons
+	ClientAliases            []string // Plan 37b
+	FormTemplate             string   // Plan 37b, stored only
 	OIDCLogout               *store.OIDCLogout
 	IDTokenAlg               string
 	OIDCSupport              *store.OIDCSupport
@@ -410,6 +412,8 @@ func CheckImmutable(c *store.Client, s *Spec) error {
 // client ID, creation time, origin) and the secrets alone.
 func Apply(c *store.Client, s *Spec) {
 	c.Addons = s.Addons.Clone()
+	c.ClientAliases = slices.Clone(s.ClientAliases)
+	c.FormTemplate = s.FormTemplate
 	c.OIDCLogout = s.OIDCLogout.Clone()
 	c.IDTokenAlg = s.IDTokenAlg
 	c.OIDCSupport = s.OIDCSupport.Clone()
@@ -453,7 +457,7 @@ func Apply(c *store.Client, s *Spec) {
 func FromClient(c *store.Client) Spec {
 	firstParty := c.IsFirstParty
 	s := Spec{
-		Addons: c.Addons.Clone(), OIDCLogout: c.OIDCLogout.Clone(), IDTokenAlg: c.IDTokenAlg, OIDCSupport: c.OIDCSupport.Clone(),
+		Addons: c.Addons.Clone(), ClientAliases: slices.Clone(c.ClientAliases), FormTemplate: c.FormTemplate, OIDCLogout: c.OIDCLogout.Clone(), IDTokenAlg: c.IDTokenAlg, OIDCSupport: c.OIDCSupport.Clone(),
 		Mobile:            c.Mobile.Clone(),
 		TokenQuota:        cloneTokenQuota(c.TokenQuota),
 		NativeSocialLogin: maps.Clone(c.NativeSocialLogin),

@@ -32,3 +32,11 @@ func TestMatchHomeRealmSAML(t *testing.T) {
 		t.Fatalf("samlp HRD: %v", got)
 	}
 }
+
+// adfs connections take part in home realm discovery (Plan 37b).
+func TestMatchHomeRealmADFS(t *testing.T) {
+	c := &store.Connection{ID: "a", Name: "corp-adfs", Strategy: "adfs", EnabledClients: []string{"client"}, Extra: map[string]any{"domain_aliases": []any{"adfs.example"}}}
+	if got := MatchHomeRealm("a@adfs.example", []*store.Connection{c}); got != c {
+		t.Fatalf("adfs HRD: %v", got)
+	}
+}

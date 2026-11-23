@@ -22,3 +22,21 @@ func FuzzParse(f *testing.F) {
 		_, _ = Canonicalize(doc.Root(), true)
 	})
 }
+
+// FuzzVerifyWSFedToken feeds arbitrary wresult documents to the WS-Fed
+// token verifier (Plan 37b): it must never panic and never accept a token
+// without a trusted signature.
+func FuzzVerifyWSFedToken(f *testing.F) {
+	for _, seed := range []string{
+		`<t:RequestSecurityTokenResponse xmlns:t="` + NSTrust2005 + `"><t:RequestedSecurityToken><saml:Assertion xmlns:saml="` + NSAssertion11 + `" MajorVersion="1" AssertionID="_1"/></t:RequestedSecurityToken></t:RequestSecurityTokenResponse>`,
+		`<trust:RequestSecurityTokenResponseCollection xmlns:trust="` + NSTrust13 + `"><trust:RequestSecurityTokenResponse><trust:RequestedSecurityToken><saml:Assertion xmlns:saml="` + NSAssertion + `" ID="_2"/></trust:RequestedSecurityToken></trust:RequestSecurityTokenResponse></trust:RequestSecurityTokenResponseCollection>`,
+		`<a/>`,
+	} {
+		f.Add([]byte(seed))
+	}
+	f.Fuzz(func(t *testing.T, raw []byte) {
+		if tok, err := VerifyWSFedToken(raw, Trust{}); err == nil {
+			t.Fatalf("accepted a token with no trust anchors: %+v", tok)
+		}
+	})
+}

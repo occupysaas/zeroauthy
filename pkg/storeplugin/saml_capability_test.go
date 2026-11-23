@@ -19,3 +19,13 @@ func TestOpenedForwardsSAMLCapability(t *testing.T) {
 		t.Fatalf("wrapper without saml.v1: %v", err)
 	}
 }
+
+// The process wrapper must forward wsfed.v1 (Plan 37b) the same way.
+func TestOpenedForwardsWSFedCapability(t *testing.T) {
+	var _ store.WSFedSupporter = (*opened)(nil)
+	o := &opened{Store: memory.New()}
+	defer o.Store.Close()
+	if err := store.CheckWSFedSupport(context.Background(), o); !errors.Is(err, store.ErrWSFedUnavailable) {
+		t.Fatalf("wrapper without wsfed.v1: %v", err)
+	}
+}

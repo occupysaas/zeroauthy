@@ -17,7 +17,7 @@ async function credentials(wrapper: Awaited<ReturnType<typeof open>>['wrapper'])
 describe('Enterprise setup', () => {
   it('offers generic OIDC and Microsoft work/school without duplicating Google', async () => {
     const { wrapper } = await open()
-    expect(wrapper.findAll('input[name="strategy"]').map(i => (i.element as HTMLInputElement).value)).toEqual(['oidc', 'okta', 'waad', 'samlp'])
+    expect(wrapper.findAll('input[name="strategy"]').map(i => (i.element as HTMLInputElement).value)).toEqual(['oidc', 'okta', 'waad', 'samlp', 'adfs'])
     expect(wrapper.find('[data-testid="oidc-subset"]').text()).toContain('Enterprise OIDC')
     expect(wrapper.find('#social-discovery').exists()).toBe(true)
     wrapper.unmount()

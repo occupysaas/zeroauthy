@@ -70,8 +70,8 @@ func ApplyConnection(w keys.Wrapper, prev *store.Connection, spec *connrules.Spe
 	if err != nil {
 		return fmt.Errorf("%w: %v", ErrInvalidConfig, err)
 	}
-	if cfg.SAML != nil {
-		// samlp has no client secret: SP keys live in the connection keys
+	if cfg.SAML != nil || cfg.ADFS != nil {
+		// samlp and adfs have no client secret: SP keys live in the connection keys
 		// repository. Any change revises cached state and pending attempts.
 		next.FederationSecretsSealed = nil
 		if prev == nil {

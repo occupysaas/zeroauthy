@@ -132,8 +132,9 @@ func ParseCertificate(s string) (*x509.Certificate, error) {
 	return x509.ParseCertificate(der)
 }
 
-// ParseAddons validates the addons object. null, {} and {"samlp": null}
-// mean no add-ons. Add-ons other than samlp are refused (LR37a-5).
+// ParseAddons validates the addons object. null, {} and null add-ons mean no
+// add-ons. samlp (Plan 37a) and wsfed (Plan 37b) are supported; other
+// add-ons are refused (LR37a-5).
 func ParseAddons(raw json.RawMessage) (*store.ClientAddons, error) {
 	if isJSONNull(raw) {
 		return nil, nil
@@ -143,19 +144,25 @@ func ParseAddons(raw json.RawMessage) (*store.ClientAddons, error) {
 		return nil, fmt.Errorf("addons %v", err)
 	}
 	for k := range fields {
-		if k != "samlp" {
+		if k != "samlp" && k != "wsfed" {
 			return nil, fmt.Errorf("addons.%s is not supported", k)
 		}
 	}
-	samlp, ok := fields["samlp"]
-	if !ok || isJSONNull(samlp) {
+	out := &store.ClientAddons{}
+	if samlp, ok := fields["samlp"]; ok && !isJSONNull(samlp) {
+		if out.SAMLP, err = parseSAMLAddon(samlp); err != nil {
+			return nil, err
+		}
+	}
+	if wsfed, ok := fields["wsfed"]; ok && !isJSONNull(wsfed) {
+		if out.WSFed, err = parseWSFedAddon(wsfed); err != nil {
+			return nil, err
+		}
+	}
+	if out.SAMLP == nil && out.WSFed == nil {
 		return nil, nil
 	}
-	s, err := parseSAMLAddon(samlp)
-	if err != nil {
-		return nil, err
-	}
-	return &store.ClientAddons{SAMLP: s}, nil
+	return out, nil
 }
 
 func parseSAMLAddon(raw json.RawMessage) (*store.SAMLAddon, error) {
@@ -281,8 +288,15 @@ func parseSAMLAddon(raw json.RawMessage) (*store.SAMLAddon, error) {
 
 // PublicAddons is the Management API form: a mapping to one name is a string.
 func PublicAddons(a *store.ClientAddons) map[string]any {
-	if a == nil || a.SAMLP == nil {
+	if a == nil || a.SAMLP == nil && a.WSFed == nil {
 		return nil
+	}
+	out := map[string]any{}
+	if a.WSFed != nil {
+		out["wsfed"] = json.RawMessage(a.WSFed)
+	}
+	if a.SAMLP == nil {
+		return out
 	}
 	raw, _ := json.Marshal(a.SAMLP)
 	var samlp map[string]any
@@ -298,5 +312,6 @@ func PublicAddons(a *store.ClientAddons) map[string]any {
 		}
 		samlp["mappings"] = m
 	}
-	return map[string]any{"samlp": samlp}
+	out["samlp"] = samlp
+	return out
 }

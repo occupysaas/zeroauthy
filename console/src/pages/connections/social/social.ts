@@ -2,9 +2,9 @@ import type { Connection, SystemTenant } from '../../../api/client'
 
 // Classification and route support are distinct: historical social routes
 // must continue opening generic OIDC connections.
-export const federatedStrategies = ['google-oauth2', 'oauth2', 'oidc', 'windowslive', 'waad', 'apple', 'github', 'okta', 'samlp'] as const
+export const federatedStrategies = ['google-oauth2', 'oauth2', 'oidc', 'windowslive', 'waad', 'apple', 'github', 'okta', 'samlp', 'adfs'] as const
 export const socialStrategies = ['google-oauth2', 'oauth2', 'windowslive', 'apple', 'github'] as const
-export const enterpriseStrategies = ['oidc', 'okta', 'waad', 'samlp'] as const
+export const enterpriseStrategies = ['oidc', 'okta', 'waad', 'samlp', 'adfs'] as const
 export type FederatedStrategy = (typeof federatedStrategies)[number]
 export type SocialStrategy = (typeof socialStrategies)[number]
 export type EnterpriseStrategy = (typeof enterpriseStrategies)[number]
@@ -132,6 +132,14 @@ export function githubFlagOptions(email: boolean, flags: Record<string, boolean>
   const out: Options = { email }
   for (const f of githubScopeFlags) if (flags[f.option] === true) out[f.option] = true
   return out
+}
+
+/** The ADFS relying party endpoint and identifier (Plan 37b). */
+export function adfsCallback(t: SystemTenant): string {
+  return `https://${t.host}/login/callback`
+}
+export function adfsRealm(t: SystemTenant, connection: string, entityId?: unknown): string {
+  return typeof entityId === 'string' && entityId !== '' ? entityId : `urn:auth0:${t.name}:${connection}`
 }
 
 /** The SAML ACS of a samlp connection (Plan 37a). */
