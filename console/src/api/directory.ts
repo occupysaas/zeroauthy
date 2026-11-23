@@ -21,6 +21,12 @@ export const scimScopes = ['get:users', 'post:users', 'put:users', 'patch:users'
 // The strategies that accept SCIM provisioning.
 export const scimStrategies = ['samlp', 'oidc', 'okta', 'waad']
 
+// Google Workspace directory provisioning (Plan 37c Phase C).
+export type DirectoryProvisioning = components['schemas']['GetDirectoryProvisioningResponseContent']
+export type DirectoryProvisioningUpdate = components['schemas']['UpdateDirectoryProvisioningRequestContent']
+export type DirectoryMappingItem = components['schemas']['DirectoryProvisioningMappingItem']
+export type SynchronizedGroup = components['schemas']['SynchronizedGroupPayload']
+
 // Self-service SSO (Plan 37c Phase B).
 export type SelfServiceProfile = components['schemas']['SelfServiceProfile']
 export type SelfServiceProfileCreate = components['schemas']['CreateSelfServiceProfileRequestContent']

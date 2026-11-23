@@ -1,7 +1,7 @@
 import type { components } from './schema'
 import type { Role, RolePage, PermissionKey, PermissionPage, RoleUserPage, OffsetPage } from './rbac'
 export type { Role, RolePage, PermissionKey, Permission, PermissionSource, PermissionPage, RoleUser, RoleUserPage } from './rbac'
-import type { Group, GroupPage, GroupCheckpoint, GroupMemberPage, GroupRolePage, UserGroupPage, ScimConfiguration, ScimMappingItem, ScimToken, ScimTokenCreate, ScimTokenCreated, SelfServiceProfile, SelfServiceProfileCreate, SelfServiceProfileUpdate, SsoTicketRequest, ConnectionProfile, ConnectionProfileCreate } from './directory'
+import type { Group, GroupPage, GroupCheckpoint, GroupMemberPage, GroupRolePage, UserGroupPage, ScimConfiguration, ScimMappingItem, ScimToken, ScimTokenCreate, ScimTokenCreated, SelfServiceProfile, SelfServiceProfileCreate, SelfServiceProfileUpdate, SsoTicketRequest, ConnectionProfile, ConnectionProfileCreate, DirectoryProvisioning, DirectoryProvisioningUpdate, DirectoryMappingItem, SynchronizedGroup } from './directory'
 export type { Group, GroupPage, GroupCheckpoint, GroupMember, GroupMemberPage, GroupRolePage, UserGroup, UserGroupPage, ScimConfiguration, ScimMappingItem, ScimToken, ScimTokenCreate, ScimTokenCreated, SelfServiceProfile, SelfServiceProfileCreate, SelfServiceProfileUpdate, SsoTicketRequest, ConnectionProfile, ConnectionProfileCreate } from './directory'
 
 // A thin, typed wrapper over fetch for the Management and system APIs.
@@ -605,6 +605,37 @@ export class Api {
   deleteScimToken(t: SystemTenant, connection: string, id: string): Promise<void> {
     return this.tenantRequest(t, 'DELETE', scimPath(connection) + '/tokens/' + encodeURIComponent(id))
   }
+  // Google Workspace directory provisioning (Plan 37c Phase C).
+  getDirectoryProvisioning(t: SystemTenant, connection: string): Promise<DirectoryProvisioning> {
+    return this.tenantRequest(t, 'GET', dirPath(connection))
+  }
+  createDirectoryProvisioning(t: SystemTenant, connection: string, body: DirectoryProvisioningUpdate = {}): Promise<DirectoryProvisioning> {
+    return this.tenantRequest(t, 'POST', dirPath(connection), { body })
+  }
+  updateDirectoryProvisioning(t: SystemTenant, connection: string, body: DirectoryProvisioningUpdate): Promise<DirectoryProvisioning> {
+    return this.tenantRequest(t, 'PATCH', dirPath(connection), { body })
+  }
+  deleteDirectoryProvisioning(t: SystemTenant, connection: string): Promise<void> {
+    return this.tenantRequest(t, 'DELETE', dirPath(connection))
+  }
+  getDirectoryDefaultMapping(t: SystemTenant, connection: string): Promise<{ mapping?: DirectoryMappingItem[] }> {
+    return this.tenantRequest(t, 'GET', dirPath(connection) + '/default-mapping')
+  }
+  synchronizeDirectory(t: SystemTenant, connection: string): Promise<{ connection_id: string; synchronization_id: string; status: string }> {
+    return this.tenantRequest(t, 'POST', dirPath(connection) + '/synchronizations', { body: {} })
+  }
+  listSynchronizedGroups(t: SystemTenant, connection: string): Promise<{ groups: SynchronizedGroup[]; next?: string }> {
+    return this.tenantRequest(t, 'GET', dirPath(connection) + '/synchronized-groups?take=100')
+  }
+  replaceSynchronizedGroups(t: SystemTenant, connection: string, groups: SynchronizedGroup[]): Promise<void> {
+    return this.tenantRequest(t, 'PUT', dirPath(connection) + '/synchronized-groups', { body: { groups } })
+  }
+  // directoryConsentLink is a system API extension: a 15-minute link a
+  // Google Workspace administrator opens to grant directory access.
+  directoryConsentLink(t: Pick<SystemTenant, 'name'>, connection: string): Promise<{ url: string; redirect_uri: string; expires_at: string }> {
+    const path = `/api/system/tenants/${encodeURIComponent(t.name)}/connections/${encodeURIComponent(connection)}/directory-provisioning/consent`
+    return this.request(this.systemOrigin, 'POST', path, {})
+  }
   listPermissions(t: SystemTenant, kind: 'roles' | 'users', id: string, q: OffsetPage): Promise<PermissionPage> {
     return this.tenantRequest(t, 'GET', '/api/v2/' + kind + '/' + encodeURIComponent(id) + '/permissions', { query: { ...q, include_totals: true } })
   }
@@ -1169,6 +1200,10 @@ export class Api {
 }
 
 const ALL_PER_PAGE = 100
+
+function dirPath(connection: string): string {
+  return '/api/v2/connections/' + encodeURIComponent(connection) + '/directory-provisioning'
+}
 
 function scimPath(connection: string): string {
   return '/api/v2/connections/' + encodeURIComponent(connection) + '/scim-configuration'

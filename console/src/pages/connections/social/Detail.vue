@@ -15,6 +15,7 @@ import EnterpriseSettings from '../enterprise/Settings.vue'
 import Mapping from '../enterprise/Mapping.vue'
 import Keys from '../enterprise/Keys.vue'
 import Provisioning from '../enterprise/Provisioning.vue'
+import DirectorySync from '../enterprise/DirectorySync.vue'
 import { scimStrategies } from '../../../api/directory'
 import LoginExperience from '../enterprise/LoginExperience.vue'
 import SamlSettings from '../enterprise/SamlSettings.vue'
@@ -32,9 +33,10 @@ const notFound = ref(false)
 const tab = ref('settings')
 const oidc = computed(() => ['oidc','okta'].includes(connection.value?.strategy ?? ''))
 const scimConnection = computed(() => scimStrategies.includes(connection.value?.strategy ?? ''))
-const enterpriseConnection = computed(() => ['oidc','okta','waad','samlp','adfs'].includes(connection.value?.strategy ?? ''))
+const enterpriseConnection = computed(() => ['oidc','okta','waad','samlp','adfs','google-apps'].includes(connection.value?.strategy ?? ''))
 const saml = computed(() => connection.value?.strategy === 'samlp')
 const adfs = computed(() => connection.value?.strategy === 'adfs')
+const workspace = computed(() => connection.value?.strategy === 'google-apps')
 let seq = 0
 
 // A reload keeps the shown connection (and the editor's draft) when it
@@ -77,14 +79,14 @@ watch([tenant, () => route.params.id], load, { immediate: true })
       <TabsRoot v-model="tab">
         <TabsList class="tabs flex-wrap" :aria-label="connection.name">
           <TabsTrigger class="tab" value="settings">{{ t('social.settings') }}</TabsTrigger>
-          <TabsTrigger v-if="oidc" class="tab" value="mapping">Mapping</TabsTrigger><TabsTrigger v-if="oidc" class="tab" value="keys">Keys</TabsTrigger><TabsTrigger v-if="enterpriseConnection" class="tab" value="experience">Login experience</TabsTrigger><TabsTrigger v-if="scimConnection" class="tab" value="provisioning">{{ t('scim.tab') }}</TabsTrigger>
+          <TabsTrigger v-if="oidc" class="tab" value="mapping">Mapping</TabsTrigger><TabsTrigger v-if="oidc" class="tab" value="keys">Keys</TabsTrigger><TabsTrigger v-if="enterpriseConnection" class="tab" value="experience">Login experience</TabsTrigger><TabsTrigger v-if="scimConnection || workspace" class="tab" value="provisioning">{{ t('scim.tab') }}</TabsTrigger>
           <TabsTrigger class="tab" value="clients">{{ t('social.applications') }}</TabsTrigger>
           <TabsTrigger class="tab" value="danger">{{ t('social.danger') }}</TabsTrigger>
         </TabsList>
         <TabsContent value="settings">
           <SamlSettings v-if="saml" :tenant="tenant" :connection="connection" @saved="connection = $event" /><AdfsSettings v-else-if="adfs" :tenant="tenant" :connection="connection" @saved="connection = $event" /><EnterpriseSettings v-else-if="oidc" :tenant="tenant" :connection="connection" @saved="connection = $event" /><Settings v-else :tenant="tenant" :connection="connection" @saved="connection = $event" />
         </TabsContent>
-        <TabsContent v-if="oidc" value="mapping"><Mapping :tenant="tenant" :connection="connection" @saved="connection = $event" /></TabsContent><TabsContent v-if="oidc" value="keys"><Keys :tenant="tenant" :connection="connection" /></TabsContent><TabsContent v-if="enterpriseConnection" value="experience"><LoginExperience :tenant="tenant" :connection="connection" @saved="connection = $event" /></TabsContent><TabsContent v-if="scimConnection" value="provisioning"><Provisioning :tenant="tenant" :connection="connection" /></TabsContent>
+        <TabsContent v-if="oidc" value="mapping"><Mapping :tenant="tenant" :connection="connection" @saved="connection = $event" /></TabsContent><TabsContent v-if="oidc" value="keys"><Keys :tenant="tenant" :connection="connection" /></TabsContent><TabsContent v-if="enterpriseConnection" value="experience"><LoginExperience :tenant="tenant" :connection="connection" @saved="connection = $event" /></TabsContent><TabsContent v-if="scimConnection" value="provisioning"><Provisioning :tenant="tenant" :connection="connection" /></TabsContent><TabsContent v-if="workspace" value="provisioning"><DirectorySync :tenant="tenant" :connection="connection" /></TabsContent>
         <TabsContent value="clients">
           <ClientsTab :tenant="tenant" :connection="connection" />
         </TabsContent>

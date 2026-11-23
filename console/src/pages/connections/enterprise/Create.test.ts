@@ -17,7 +17,7 @@ async function credentials(wrapper: Awaited<ReturnType<typeof open>>['wrapper'])
 describe('Enterprise setup', () => {
   it('offers generic OIDC and Microsoft work/school without duplicating Google', async () => {
     const { wrapper } = await open()
-    expect(wrapper.findAll('input[name="strategy"]').map(i => (i.element as HTMLInputElement).value)).toEqual(['oidc', 'okta', 'waad', 'samlp', 'adfs'])
+    expect(wrapper.findAll('input[name="strategy"]').map(i => (i.element as HTMLInputElement).value)).toEqual(['oidc', 'okta', 'waad', 'samlp', 'adfs', 'google-apps'])
     expect(wrapper.find('[data-testid="oidc-subset"]').text()).toContain('Enterprise OIDC')
     expect(wrapper.find('#social-discovery').exists()).toBe(true)
     wrapper.unmount()
@@ -86,4 +86,24 @@ it('creates an Okta connection from its domain',async()=>{
  const body=calls.find(c=>c.method==='POST')?.body as {strategy:string;options:Record<string,unknown>}
  expect(body.strategy).toBe('okta');expect(body.options.domain).toBe('dev-1.okta.com');expect(body.options.type).toBe('back_channel')
  expect(body.options).not.toHaveProperty('discovery_url');wrapper.unmount()
+})
+
+describe('Google Workspace setup', () => {
+  it('sends the Workspace domain and shows the directory consent callback', async () => {
+    const { wrapper, calls } = await open()
+    await wrapper.find('input[value="google-apps"]').setValue(true)
+    await wrapper.find('#social-name').setValue('workspace')
+    await wrapper.find('#social-client-id').setValue('ws-client')
+    await wrapper.find('#social-client-secret').setValue('secret')
+    expect(wrapper.find('[data-testid="callbacks"]').text()).toContain('/directory-provisioning/callback')
+    await wrapper.find('#workspace-domain').setValue('localhost')
+    await wrapper.find('form').trigger('submit')
+    await flushPromises()
+    expect(calls.find(c => c.method === 'POST')).toBeUndefined()
+    await wrapper.find('#workspace-domain').setValue('Corp.Example.com')
+    await wrapper.find('form').trigger('submit')
+    await flushPromises()
+    expect(calls.find(c => c.method === 'POST')?.body).toEqual({ name: 'workspace', strategy: 'google-apps', enabled_clients: [], options: { client_id: 'ws-client', client_secret: 'secret', domain: 'corp.example.com', tenant_domain: 'corp.example.com' } })
+    wrapper.unmount()
+  })
 })
