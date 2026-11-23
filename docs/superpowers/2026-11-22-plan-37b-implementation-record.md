@@ -40,7 +40,7 @@ Local toolchain: Go `1.27.4-X:nodwarf5`; Node 26.8.1.
 | `make e2e-wsfed` (`tests/e2e/run-m37b-wsfed.sh`) | first run: server refused the seed (an intranet ADFS sign-in endpoint was required to be public; fixed with a regression test). Second run: Playwright 3 passed (relying-party fixture sign-in and `wsignout1.0`; `wreply` outside callbacks refused; ADFS stand-in login, ID token claims and upstream `wsignout1.0`), secret scan passed, Deploy CLI four cells passed |
 | `make e2e-saml` (regression for shared SAML code) | Playwright 3 passed, secret scan passed, Deploy CLI four cells passed |
 | Fast tier `go test -count=1 -p 4 ./...` (no `-race`, tmpfs), commit `dde15c87` | exit 0, 111 packages ok, no failures |
-| Fast tier rerun after the final-review fix | PENDING |
+| Fast tier rerun after the final-review fix, commit `6a53930d` | exit 0, 111 packages ok, no failures |
 | PostgreSQL and MySQL | not run locally (containers); plan-branch CI runs the SQL databases |
 
 ## Findings during the plan
