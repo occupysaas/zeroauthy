@@ -19,7 +19,7 @@ import (
 
 var (
 	errSCIMConfigNotFound = &Error{Status: http.StatusNotFound, Code: "inexistent_scim_configuration", Message: "The connection has no SCIM configuration"}
-	errSCIMConfigExists   = &Error{Status: http.StatusConflict, Code: "scim_configuration_exists", Message: "The connection already has a SCIM configuration"}
+	errSCIMConfigExists   = &Error{Status: http.StatusBadRequest, Code: "scim_configuration_exists", Message: "A SCIM configuration already exists for this connection"}
 	errSCIMTokenNotFound  = &Error{Status: http.StatusNotFound, Code: "inexistent_scim_token", Message: "The SCIM token does not exist"}
 	errSCIMTokenLimit     = &Error{Status: http.StatusConflict, Code: "scim_token_limit", Message: "Maximum of 2 tokens already issued for this connection"}
 )

@@ -14075,10 +14075,12 @@ paths:
                 $ref: '#/components/schemas/ScimConfiguration'
         '404':
           description: The connection does not exist
-        '409':
-          $ref: '#/components/responses/Conflict'
         '400':
-          $ref: '#/components/responses/BadRequest'
+          description: Invalid body, a connection that does not accept SCIM, or a configuration that already exists (Auth0's "already exists" message)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':

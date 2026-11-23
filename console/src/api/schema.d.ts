@@ -25417,7 +25417,15 @@ export interface operations {
                     "application/json": components["schemas"]["ScimConfiguration"];
                 };
             };
-            400: components["responses"]["BadRequest"];
+            /** @description Invalid body, a connection that does not accept SCIM, or a configuration that already exists (Auth0's "already exists" message) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             /** @description The connection does not exist */
@@ -25427,7 +25435,6 @@ export interface operations {
                 };
                 content?: never;
             };
-            409: components["responses"]["Conflict"];
         };
     };
     DeleteScimConfiguration: {

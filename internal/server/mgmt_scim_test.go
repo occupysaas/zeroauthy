@@ -70,8 +70,10 @@ func TestSCIMManagementRoutes(t *testing.T) {
 	if cfg["user_id_attribute"] != "externalId" || cfg["strategy"] != "okta" || cfg["connection_name"] != "corp-okta" || len(cfg["mapping"].([]any)) != len(scim.DefaultMapping()) {
 		t.Fatalf("created %v", cfg)
 	}
-	if code, _, _ := a.call("POST", base, admin, nil); code != 409 {
-		t.Fatalf("second configuration %d", code)
+	// Auth0 answers 400 "... already exists" (the Deploy CLI 9.1.0
+	// scimHandler matches on that message).
+	if code, out, _ := a.call("POST", base, admin, nil); code != 400 || !strings.Contains(out["message"].(string), "already exists") {
+		t.Fatalf("second configuration %d %v", code, out)
 	}
 	for name, body := range map[string]any{
 		"unknown auth0 field": map[string]any{"user_id_attribute": "externalId", "mapping": []any{map[string]any{"auth0": "password", "scim": "password"}}},
