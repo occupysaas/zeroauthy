@@ -132,3 +132,61 @@ func TestADConnectionUnavailable(t *testing.T) {
 		t.Fatalf("create without AD service: %d %v", r.Code, v)
 	}
 }
+
+// passwordAD records ChangePassword calls and answers with err.
+type passwordAD struct {
+	*adhub.Service
+	got []string
+	err error
+}
+
+func (p *passwordAD) ChangePassword(_ context.Context, _ *store.Connection, username, password string) error {
+	p.got = append(p.got, username+":"+password)
+	return p.err
+}
+
+// An ad user's password changes in the directory through a connector
+// (Plan 38a); zeroauthy stores nothing.
+func TestADUserPasswordChange(t *testing.T) {
+	e, svc := adEnv(t)
+	stub := &passwordAD{Service: svc}
+	e.h.AD = stub
+	ctx := context.Background()
+	r, v := e.call(t, e.tn, m2mCaller(), "POST", "/connections", map[string]any{"name": "corp", "strategy": "ad"}, e.h.CreateConnection)
+	if r.Code != 201 {
+		t.Fatalf("create: %d %v", r.Code, v)
+	}
+	users := map[string]map[string]any{"ad|corp|guid1": {"ad_username": "jdoe"}, "ad|corp|guid2": {}}
+	for id, pd := range users {
+		if err := e.st.Users().Create(ctx, &store.User{TenantID: e.tn.ID, UserID: id, Email: "j@corp.example", CreatedAt: now, UpdatedAt: now,
+			Identities: []store.Identity{{Connection: "corp", Provider: "ad", UserID: strings.TrimPrefix(id, "ad|"), ProviderData: pd}}}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	patch := func(id string, body map[string]any) (int, any) {
+		r, v := e.call(t, e.tn, m2mCaller("update:users"), "PATCH", "/users/"+id, body, func(w http.ResponseWriter, r *http.Request) { e.h.UpdateUser(w, r, id) })
+		return r.Code, v
+	}
+	if code, v := patch("ad|corp|guid1", map[string]any{"password": "N3w-Directory-Pw!", "connection": "corp"}); code != 200 {
+		t.Fatalf("change: %d %v", code, v)
+	}
+	if len(stub.got) != 1 || stub.got[0] != "jdoe:N3w-Directory-Pw!" {
+		t.Fatalf("connector request %v", stub.got)
+	}
+	for name, tc := range map[string]struct {
+		id   string
+		body map[string]any
+		err  error
+		code int
+	}{
+		"with other fields": {"ad|corp|guid1", map[string]any{"password": "x", "email": "n@corp.example"}, nil, 400},
+		"never signed in":   {"ad|corp|guid2", map[string]any{"password": "x"}, nil, 400},
+		"directory refuses": {"ad|corp|guid1", map[string]any{"password": "x"}, adhub.ErrPasswordRejected, 400},
+		"no connector":      {"ad|corp|guid1", map[string]any{"password": "x"}, adhub.ErrUnavailable, 503},
+	} {
+		stub.err = tc.err
+		if code, v := patch(tc.id, tc.body); code != tc.code {
+			t.Errorf("%s: %d %v", name, code, v)
+		}
+	}
+}

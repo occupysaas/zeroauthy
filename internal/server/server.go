@@ -308,6 +308,7 @@ func New(d Deps) http.Handler {
 		Actions:           d.Actions,
 		Resets:            dbconnHandlers,
 		Federation:        d.Federation,
+		AD:                adAuthenticator(d.AD),
 		Verification:      verification,
 		Protection:        sharedProtection,
 		DeviceTxnThrottle: d.DeviceTxnThrottle, DeviceIPThrottle: d.DeviceIPThrottle, DeviceTenantThrottle: d.DeviceTenantThrottle,
@@ -638,6 +639,14 @@ func (a authAPI) AdTicketConfigure(w http.ResponseWriter, r *http.Request, ticke
 
 // adConnections keeps a nil service a nil interface.
 func adConnections(s *adhub.Service) mgmt.ADConnections {
+	if s == nil {
+		return nil
+	}
+	return s
+}
+
+// adAuthenticator keeps a nil service a nil interface.
+func adAuthenticator(s *adhub.Service) login.ADAuthenticator {
 	if s == nil {
 		return nil
 	}

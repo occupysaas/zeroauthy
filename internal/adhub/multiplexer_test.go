@@ -186,3 +186,59 @@ func TestHubDisconnectAndFailover(t *testing.T) {
 		}
 	}
 }
+
+// The request API maps connector errors (LR38a-9) and returns groups.
+func TestServiceRequests(t *testing.T) {
+	e := newEnv(t)
+	h := newHub(e)
+	srv := hubServer(t, e, h, e.ta)
+	k := newConnectorKey(t, 2048)
+	key := register(t, e, k)
+	connect(t, e, srv, k, key, func(op string, c map[string]any) any {
+		switch op {
+		case string(OpListGroups):
+			return map[string]any{"groups": []string{"users", "administrators"}}
+		case string(OpChangePassword):
+			if c["password"] == "weak" {
+				return map[string]any{"err": map[string]any{"name": "PasswordComplexityError", "message": "Password doesn’t meet minimum requirements"}}
+			}
+			return map[string]any{"profile": map[string]any{"id": c["username"]}}
+		}
+		switch c["username"] {
+		case "jdoe":
+			if c["password"] == "right" && c["escaped"] == false {
+				return profileReply(c)
+			}
+			return map[string]any{"err": map[string]any{"name": "WrongPassword", "message": "Wrong password"}, "profile": map[string]any{"id": "jdoe"}}
+		case "locked":
+			return map[string]any{"err": map[string]any{"name": "AccountLocked"}}
+		case "expired":
+			return map[string]any{"err": map[string]any{"name": "PasswordExpired"}}
+		case "weird":
+			return map[string]any{"err": map[string]any{"message": "Unexpected Error"}}
+		}
+		return map[string]any{"err": map[string]any{"name": "WrongUsername"}, "profile": map[string]any{"username": c["username"]}}
+	})
+	ctx := context.Background()
+	if p, err := e.svc.Authenticate(ctx, e.conn, "jdoe", "right"); err != nil || len(p) == 0 {
+		t.Fatalf("authenticate: %v", err)
+	}
+	for user, want := range map[string]error{"jdoe": ErrWrongCredentials, "nobody": ErrWrongCredentials, "locked": ErrAccountBlocked,
+		"expired": ErrPasswordChangeRequired, "weird": ErrUnavailable} {
+		if p, err := e.svc.Authenticate(ctx, e.conn, user, "wrong"); !errors.Is(err, want) || p != nil {
+			t.Errorf("%s: %v (profile %s)", user, err, p)
+		}
+	}
+	if g, err := e.svc.ListGroups(ctx, e.conn, 10); err != nil || string(g) != `["users","administrators"]` {
+		t.Fatalf("groups %s %v", g, err)
+	}
+	if err := e.svc.ChangePassword(ctx, e.conn, "jdoe", "N3w!"); err != nil {
+		t.Fatal(err)
+	}
+	if err := e.svc.ChangePassword(ctx, e.conn, "jdoe", "weak"); !errors.Is(err, ErrPasswordRejected) {
+		t.Fatalf("weak: %v", err)
+	}
+	if _, err := e.svc.Authenticate(ctx, e.connB, "jdoe", "right"); !errors.Is(err, ErrUnavailable) {
+		t.Fatalf("other tenant's connection has no connector: %v", err)
+	}
+}

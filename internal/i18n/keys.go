@@ -37,6 +37,7 @@ const (
 	KeyUsernameTooLong               = "zeroauthy.signup.username-too-long"
 	KeyErrSessionExpired             = "zeroauthy.error.session-expired"
 	KeyErrNoConnection               = "zeroauthy.error.no-connection"
+	KeyErrConnectionUnavailable      = "zeroauthy.error.connection-unavailable"
 	KeyErrSignupDisabled             = "zeroauthy.error.signup-disabled"
 	KeyErrServer                     = "zeroauthy.error.server-error"
 	KeyErrReference                  = "zeroauthy.error.reference"

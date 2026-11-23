@@ -654,7 +654,8 @@ func (s *FlowService) eligible(ctx context.Context, st store.Store, a *store.Fed
 func SocialChoices(client *store.Client, conns []*store.Connection, includeHidden bool) []*store.Connection {
 	var out []*store.Connection
 	for _, c := range conns {
-		if !IsFederated(c.Strategy) || !access.ConnectionUsable(client, c) {
+		// ad connections take a username and password, never a button.
+		if !IsFederated(c.Strategy) || c.Strategy == StrategyAD || !access.ConnectionUsable(client, c) {
 			continue
 		}
 		spec := connrules.FromConnection(c)

@@ -213,6 +213,7 @@
       "description": "Return to the application and try again.",
       "session-expired": "Your login session has expired or is invalid. Return to the application and start again.",
       "no-connection": "No login method is enabled for this application.",
+      "connection-unavailable": "This login method is not available right now. Try again later or contact your administrator.",
       "signup-disabled": "Sign-up is not available for this application.",
       "server-error": "Something went wrong on our side. Please try again.",
       "reference": "Reference: ${reference}",
