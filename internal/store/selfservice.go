@@ -23,12 +23,14 @@ type SelfServiceProfile struct {
 
 // SSOTicket is a self-service SSO ticket of a profile. Doc is the validated
 // ticket request. A ticket can be used until ExpiresAt, unless revoked or
-// consumed (UsedAt: the assistant completed).
+// consumed (UsedAt: the assistant completed). ConnectionID is the one
+// connection the ticket may change: the request's connection_id, or the
+// connection the assistant created (BindTicketConnection).
 type SSOTicket struct {
-	TenantID, ID, ProfileID, Hash string
-	Doc                           json.RawMessage
-	CreatedAt, ExpiresAt          time.Time
-	RevokedAt, UsedAt             *time.Time
+	TenantID, ID, ProfileID, Hash, ConnectionID string
+	Doc                                         json.RawMessage
+	CreatedAt, ExpiresAt                        time.Time
+	RevokedAt, UsedAt                           *time.Time
 }
 
 // Usable reports whether the ticket can still be used at now.
@@ -98,6 +100,11 @@ type SelfService interface {
 	// UseTicket consumes a usable ticket; ErrPrecondition when it is
 	// revoked, used or expired at now.
 	UseTicket(ctx context.Context, tenantID, id string, now time.Time) error
+	// BindTicketConnection records the connection a ticket created. It
+	// succeeds when the ticket has no connection or already this one, and
+	// returns ErrPrecondition for another one; ErrNotFound for an unknown
+	// ticket.
+	BindTicketConnection(ctx context.Context, tenantID, id, connectionID string) error
 
 	// CreateConnectionProfile returns ErrConflict if the ID or name exists.
 	CreateConnectionProfile(ctx context.Context, p *ConnectionProfile) error
@@ -153,6 +160,9 @@ func (UnimplementedSelfService) RevokeTicket(context.Context, string, string, st
 	return ErrSelfServiceUnavailable
 }
 func (UnimplementedSelfService) UseTicket(context.Context, string, string, time.Time) error {
+	return ErrSelfServiceUnavailable
+}
+func (UnimplementedSelfService) BindTicketConnection(context.Context, string, string, string) error {
 	return ErrSelfServiceUnavailable
 }
 func (UnimplementedSelfService) CreateConnectionProfile(context.Context, *ConnectionProfile) error {

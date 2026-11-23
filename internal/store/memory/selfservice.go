@@ -234,6 +234,23 @@ func (r selfService) UseTicket(_ context.Context, tid, id string, now time.Time)
 	return nil
 }
 
+func (r selfService) BindTicketConnection(_ context.Context, tid, id, conn string) error {
+	r.s.lock()
+	defer r.s.unlock()
+	t, ok := r.s.selfService.tickets[key{tid, id}]
+	if !ok {
+		return store.ErrNotFound
+	}
+	switch t.ConnectionID {
+	case "":
+		t.ConnectionID = conn
+	case conn:
+	default:
+		return store.ErrPrecondition
+	}
+	return nil
+}
+
 func (r selfService) CreateConnectionProfile(_ context.Context, p *store.ConnectionProfile) error {
 	r.s.lock()
 	defer r.s.unlock()

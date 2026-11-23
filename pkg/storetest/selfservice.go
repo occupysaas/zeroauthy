@@ -120,6 +120,15 @@ func testSelfService(t *testing.T, newStore Factory) {
 		}
 		mustErrIs(t, ss.UseTicket(ctx, "ss-a", "tkt_3", ts(11*time.Minute)), store.ErrPrecondition)
 		mustErrIs(t, ss.RevokeTicket(ctx, "ss-a", "ssp_1", "tkt_9", ts(10*time.Minute)), store.ErrNotFound)
+		// A ticket is bound to at most one connection.
+		mustNoErr(t, ss.BindTicketConnection(ctx, "ss-a", "tkt_3", "con_x"))
+		mustNoErr(t, ss.BindTicketConnection(ctx, "ss-a", "tkt_3", "con_x"))
+		mustErrIs(t, ss.BindTicketConnection(ctx, "ss-a", "tkt_3", "con_y"), store.ErrPrecondition)
+		mustErrIs(t, ss.BindTicketConnection(ctx, "ss-a", "tkt_9", "con_x"), store.ErrNotFound)
+		got, _ = ss.GetTicketByHash(ctx, "ss-a", "h3")
+		if got.ConnectionID != "con_x" {
+			t.Fatalf("bound %+v", got)
+		}
 	})
 
 	t.Run("connection profiles", func(t *testing.T) {

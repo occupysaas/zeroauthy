@@ -157,14 +157,14 @@ func (r selfService) SetCustomText(ctx context.Context, tid, pid, lang, page str
 	})
 }
 
-const ticketCols = `tenant_id, id, profile_id, token_hash, doc, created_at, expires_at, revoked_at, used_at`
+const ticketCols = `tenant_id, id, profile_id, token_hash, connection_id, doc, created_at, expires_at, revoked_at, used_at`
 
 func scanTicket(row scanner) (*store.SSOTicket, error) {
 	var t store.SSOTicket
 	var raw string
 	var created, expires int64
 	var revoked, used sql.NullInt64
-	if err := row.Scan(&t.TenantID, &t.ID, &t.ProfileID, &t.Hash, &raw, &created, &expires, &revoked, &used); err != nil {
+	if err := row.Scan(&t.TenantID, &t.ID, &t.ProfileID, &t.Hash, &t.ConnectionID, &raw, &created, &expires, &revoked, &used); err != nil {
 		return nil, err
 	}
 	t.Doc, t.CreatedAt, t.ExpiresAt, t.RevokedAt, t.UsedAt = json.RawMessage(raw), fromMicros(created), fromMicros(expires), optTime(revoked), optTime(used)
@@ -176,8 +176,8 @@ func (r selfService) CreateTicket(ctx context.Context, t *store.SSOTicket) error
 		if err := r.profileExists(ctx, tx, t.TenantID, t.ProfileID, true); err != nil {
 			return err
 		}
-		_, err := tx.exec(ctx, `INSERT INTO sso_tickets (`+ticketCols+`) VALUES (?,?,?,?,?,?,?,?,?)`,
-			t.TenantID, t.ID, t.ProfileID, t.Hash, string(t.Doc), micros(t.CreatedAt), micros(t.ExpiresAt), nullMicros(t.RevokedAt), nullMicros(t.UsedAt))
+		_, err := tx.exec(ctx, `INSERT INTO sso_tickets (`+ticketCols+`) VALUES (?,?,?,?,?,?,?,?,?,?)`,
+			t.TenantID, t.ID, t.ProfileID, t.Hash, t.ConnectionID, string(t.Doc), micros(t.CreatedAt), micros(t.ExpiresAt), nullMicros(t.RevokedAt), nullMicros(t.UsedAt))
 		return tx.conflict(err)
 	})
 }
@@ -223,6 +223,25 @@ func (r selfService) UseTicket(ctx context.Context, tid, id string, now time.Tim
 			return store.ErrNotFound
 		} else if err != nil {
 			return err
+		}
+		return store.ErrPrecondition
+	})
+}
+
+func (r selfService) BindTicketConnection(ctx context.Context, tid, id, conn string) error {
+	return r.s.atomicRetry(ctx, nil, func(tx *Store) error {
+		var cur string
+		if err := tx.queryRow(ctx, `SELECT connection_id FROM sso_tickets WHERE tenant_id = ? AND id = ?`+tx.d.forUpdate, tid, id).Scan(&cur); errors.Is(err, sql.ErrNoRows) {
+			return store.ErrNotFound
+		} else if err != nil {
+			return err
+		}
+		switch cur {
+		case "":
+			_, err := tx.exec(ctx, `UPDATE sso_tickets SET connection_id = ? WHERE tenant_id = ? AND id = ?`, conn, tid, id)
+			return err
+		case conn:
+			return nil
 		}
 		return store.ErrPrecondition
 	})

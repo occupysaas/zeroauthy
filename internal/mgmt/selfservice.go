@@ -444,7 +444,7 @@ func (h *Handlers) CreateSsoTicket(w http.ResponseWriter, r *http.Request, id st
 	}
 	now := h.now()
 	token := secrets.RandomString(ticketTokenChars)
-	t := &store.SSOTicket{TenantID: tid, ID: "tkt_" + secrets.RandomString(22), ProfileID: id, Hash: scim.HashToken(token), Doc: raw,
+	t := &store.SSOTicket{TenantID: tid, ID: "tkt_" + secrets.RandomString(22), ProfileID: id, Hash: scim.HashToken(token), ConnectionID: req.ConnectionID, Doc: raw,
 		CreatedAt: now, ExpiresAt: now.Add(time.Duration(ttl) * time.Second)}
 	if err := ss.CreateTicket(ctx, t); err != nil {
 		h.selfServiceError(w, r, err)

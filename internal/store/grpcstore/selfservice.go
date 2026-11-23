@@ -22,13 +22,13 @@ import (
 const selfServicePrefix = "SelfService."
 
 type ssArgs struct {
-	TenantID, ID, ProfileID, Hash, Language, TextPage string `json:",omitempty"`
-	Profile                                           *store.SelfServiceProfile
-	Ticket                                            *store.SSOTicket
-	ConnectionProfile                                 *store.ConnectionProfile
-	Text                                              json.RawMessage `json:",omitempty"`
-	PageArg                                           store.Page
-	Now                                               time.Time
+	TenantID, ID, ProfileID, Hash, Language, TextPage, ConnID string `json:",omitempty"`
+	Profile                                                   *store.SelfServiceProfile
+	Ticket                                                    *store.SSOTicket
+	ConnectionProfile                                         *store.ConnectionProfile
+	Text                                                      json.RawMessage `json:",omitempty"`
+	PageArg                                                   store.Page
+	Now                                                       time.Time
 }
 
 type ssResult struct {
@@ -166,6 +166,10 @@ func (d clientSelfService) UseTicket(ctx context.Context, tid, id string, now ti
 	_, err := d.call(ctx, "UseTicket", ssArgs{TenantID: tid, ID: id, Now: now})
 	return err
 }
+func (d clientSelfService) BindTicketConnection(ctx context.Context, tid, id, conn string) error {
+	_, err := d.call(ctx, "BindTicketConnection", ssArgs{TenantID: tid, ID: id, ConnID: conn})
+	return err
+}
 func (d clientSelfService) CreateConnectionProfile(ctx context.Context, p *store.ConnectionProfile) error {
 	_, err := d.call(ctx, "CreateConnectionProfile", ssArgs{ConnectionProfile: p})
 	return err
@@ -222,6 +226,8 @@ func serveSelfService(ctx context.Context, ss store.SelfService, method string, 
 		e = ss.RevokeTicket(ctx, a.TenantID, a.ProfileID, a.ID, a.Now)
 	case "UseTicket":
 		e = ss.UseTicket(ctx, a.TenantID, a.ID, a.Now)
+	case "BindTicketConnection":
+		e = ss.BindTicketConnection(ctx, a.TenantID, a.ID, a.ConnID)
 	case "CreateConnectionProfile":
 		e = ss.CreateConnectionProfile(ctx, a.ConnectionProfile)
 	case "GetConnectionProfile":
