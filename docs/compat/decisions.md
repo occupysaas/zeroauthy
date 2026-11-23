@@ -3915,6 +3915,10 @@ names (1–128 printable ASCII) and response shapes.
 | LR37c-3 | The SCIM base is `https://{tenant host}/scim/v2/connections/{connection_id}` (Q3; Auth0 shows the URL only in its Dashboard). |
 | LR37c-4 | `POST .../scim-configuration` with an empty body takes the default mapping and `user_id_attribute` `externalId` (the Okta and OpenID instructions rely on `externalId`). |
 | LR37c-5 | `/organizations/{id}/roles/{role_id}/groups` (Early Access) is not implemented; `organization groups` are the groups of the organization's enabled connections. |
+| LR37c-6 | SCIM discovery (`ServiceProviderConfig`, `ResourceTypes`, `Schemas`) needs a valid token of the connection, so SCIM-enabled connections cannot be enumerated. |
+| LR37c-7 | Group roles enter tokens through the one authorization snapshot every token path uses: tenant group roles always, organization group roles only in that organization and only for groups of connections enabled on it (400 otherwise). Organization effective roles list only organization roles, with the `group` source (Q14). |
+| LR37c-8 | A second SCIM configuration answers 400 with "already exists" (the Deploy CLI 9.1.0 `scimHandler` matches that message); group-list cursors are offsets (Q15); `hasGroupMembership` matches any listed group by name or ID (Q13). |
+| LR37c-9 | A path-less PATCH value key that parses as an attribute path (`name.givenName`, URN-qualified extension attributes, as Entra ID sends) is set at that path. |
 
-Observation points Q1–Q11 (spec §9) are listed in
+Observation points Q1–Q15 (spec §9 and implementation) are listed in
 [plan-1-followups.md](../superpowers/plan-1-followups.md#plan-37c-observation-points).

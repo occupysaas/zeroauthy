@@ -2,7 +2,8 @@
 
 SAML connections (`samlp`) and the SAML2 Web App add-on are described in
 [SAML](saml.md). ADFS connections (`adfs`) and the WS-Fed Web App add-on are
-described in [WS-Federation](ws-federation.md).
+described in [WS-Federation](ws-federation.md). SCIM provisioning of
+enterprise connections and directory groups are described in [SCIM](scim.md).
 
 Create enterprise connections in **Enterprise** in the console, through
 `POST /api/v2/connections`, or in the seed file. Enable each connection for

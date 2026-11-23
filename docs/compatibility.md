@@ -20,7 +20,8 @@ Auth0 or Okta.
 | MFA | Push notifications (Guardian app) and Duo: settings are stored, not enforced | not planned yet |
 | Enterprise login | SAML 2.0 identity provider add-on and `samlp` connections implemented; artifact binding, SOAP and ECP are not | [Guide](saml.md) |
 | WS-Federation | WS-Fed Web App add-on (SAML 1.1 tokens, metadata, sign-out) and `adfs` connections implemented; WS-Trust active endpoints and JWT tokens are not | [Guide](ws-federation.md) |
-| Enterprise login | WS-Federation and ADFS, SCIM, self-service SSO | Plans 37b and 37c |
+| SCIM and groups | Inbound SCIM 2.0 provisioning of enterprise connections; directory groups with tenant and organization group roles | [Guide](scim.md) |
+| Enterprise login | Self-service SSO, directory provisioning | Plan 37c phases B and C |
 | Enterprise login | OIDC/Okta front/back channel, mapping, PAR, JWE, connection keys and domain routing implemented; Entra Graph extras remain deferred | [Guide](enterprise-connections.md) |
 | Enterprise login | Active Directory / LDAP connector | Plan 38 |
 | Social login | Providers beyond Apple, Google, Microsoft, GitHub and generic OAuth 2 / OIDC (Facebook, ...) | Plan 39b |

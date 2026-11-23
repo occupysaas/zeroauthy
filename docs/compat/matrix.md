@@ -78,6 +78,7 @@ evidence log; the user-facing summary, with the gaps listed first, is
 | Admin console (`/admin` on the system host) and system API (`/api/system/tenants`, `/api/system/operators`) | Implemented | zeroauthy extension, not an Auth0 surface. Guide: `docs/console.md`; D-0040. Verified in Chromium (m13-console) |
 | SAML 2.0 (IdP add-on `addons.samlp`, SP `samlp` connections) | Implemented (Plan 37a; local verification) | Redirect/POST bindings, signed SLO both ways, encrypted assertions, replay store, metadata. No artifact/SOAP/ECP. Verified with pinned @node-saml/node-saml 5.2.0, samlify 2.15.1 and the Deploy CLI. See [SAML](../saml.md), D-0130. |
 | WS-Federation (IdP add-on `addons.wsfed`, RP `adfs` connections) | Implemented (Plan 37b; local verification) | SAML 1.1 RSTR tokens, `client_aliases` realms, federation metadata, `wsignout1.0`/`wsignoutcleanup1.0`; ADFS from `adfs_server` or `fedMetadataXml`, thumbprint trust, SAML 1.1 and 2.0 tokens, replay store, HRD, upstream sign-out. No WS-Trust, no JWT tokens. Verified with xml-crypto 6.4.0 fixtures and the Deploy CLI. See [WS-Federation](../ws-federation.md), D-0140. |
+| Inbound SCIM 2.0 and directory groups | Implemented (Plan 37c Phase A; local verification) | SCIM Users and Groups for `samlp`, `oidc`, `okta` and `waad` connections (`eq`/`and`/`or` filters, PATCH with Entra and Okta shapes, deactivation ends sessions and refresh tokens); configuration, mapping and hashed tokens (two active, scoped); groups with tenant and organization group roles in tokens, effective-role sources and Actions `api.groups`. No bulk, sort, ETags. Verified with node-auth0 7.4.0, an RFC 7644 client and the Deploy CLI. See [SCIM](../scim.md), D-0150. |
 | WS-Federation | Planned (Plan 37b) | |
 | Deprecated endpoints (`/oauth/ro`, `/delegation`, `/tokeninfo`, `/oauth/access_token`, impersonation) | Not planned | Deprecated by Auth0 |
 | Hosted page languages (`ui_locales`, `Accept-Language`, `enabled_locales`, per-tenant `custom_text`) | Implemented | English catalog only; verified with @auth0/auth0-spa-js 2.28.3 (`ui_locales`) and browser `Accept-Language`; the custom-text Management API is implemented (Plan 22, below) |
@@ -142,8 +143,8 @@ explicit-org M2M policy, discovery domains/email discovery, search and applicati
 entitlement. Domain verification is administrator attestation, not a DNS check.
 MFA is unavailable and first-time federated invitation provisioning fails closed.
 See the [Plan 30 record](../superpowers/2026-10-29-plan-30-implementation-record.md)
-for actual verification outcomes and retained limitations. Groups/inherited roles
-remain Plan 38. `require` applications reject
+for actual verification outcomes and retained limitations. Directory groups and
+organization group roles arrive with Plan 37c ([SCIM](../scim.md)). `require` applications reject
 password/password-realm/device grants at configuration time (400).
 Organization grants persist their original connection across session expiry
 and refresh rotation; current membership, connection and client policy are
