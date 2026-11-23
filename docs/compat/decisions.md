@@ -3921,6 +3921,10 @@ names (1–128 printable ASCII) and response shapes.
 | LR37c-6 | SCIM discovery (`ServiceProviderConfig`, `ResourceTypes`, `Schemas`) needs a valid token of the connection, so SCIM-enabled connections cannot be enumerated. |
 | LR37c-7 | Group roles enter tokens through the one authorization snapshot every token path uses: tenant group roles always, organization group roles only in that organization and only for groups of connections enabled on it (400 otherwise). Organization effective roles list only organization roles, with the `group` source (Q14). |
 | LR37c-8 | A second SCIM configuration answers 400 with "already exists" (the Deploy CLI 9.1.0 `scimHandler` matches that message); group-list cursors are offsets (Q15); `hasGroupMembership` matches any listed group by name or ID (Q13). |
+| LR37c-10 | Self-service storage is scim.v1 capability version 2 over the same plugin RPC; request bodies are validated against Auth0's schemas in the embedded contract at runtime (kin-openapi). |
+| LR37c-11 | `allowed_strategies`: `samlp`, `oidc`, `okta`, `waad`, `adfs` (Q7); ticket lifetime default and maximum 432000 s (Q8, from the OpenAPI); ticket link `https://{host}/self-service/connections-flow?ticket=` (Q2); revocation takes the token; built-in connection profile templates `cpt_sso` and `cpt_scim` (Q10). |
+| LR37c-12 | The assistant writes through the Management handlers as `self-service-assistant` with six scopes; the ticket binds the one connection it creates and later steps change only that one; domain aliases only from `pending_domains` (domain verification otherwise: Q9); Entra ID single directory only. |
+| LR37c-13 | The test sign-in is an ordinary login through the ticket's first application (no side-effect-free test mode); revisit with the maintainer. |
 | LR37c-9 | A path-less PATCH value key that parses as an attribute path (`name.givenName`, URN-qualified extension attributes, as Entra ID sends) is set at that path. |
 
 Observation points Q1–Q15 (spec §9 and implementation) are listed in

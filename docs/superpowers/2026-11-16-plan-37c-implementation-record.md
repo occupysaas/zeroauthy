@@ -83,3 +83,27 @@ Recorded in the ledger and D-0150: discovery needs a connection token
 semantics (LR37c-8); path-less PATCH paths (LR37c-9); `Group` and
 `UserGroup` have no required properties because `fields` can project any
 away.
+
+## Phase B (self-service SSO)
+
+1. B1 `e9af1acc`, `70658145`, `35e1c891`: contracts imported from Auth0's
+   Management OpenAPI (16 operations, 75 schemas; one lookahead pattern
+   restated for RE2); `store.SelfService` on memory, SQLite, PostgreSQL,
+   MySQL (migration 0047) and gRPC (scim.v1 version 2 over DirectoryCall);
+   tickets bound to their one connection.
+2. B2 `fc1f39b9`: Management routes, validated against the contract's
+   schemas at runtime.
+3. B3 `f9482ccc`: the hosted assistant (`internal/selfservice`) with a
+   fuzzed allowlist sanitizer for custom text.
+4. B4 `9bfa8c42`, `f1613494` and this update: console, `make
+   e2e-self-service`, [Self-service SSO](../self-service-sso.md).
+
+Findings: Chrome posts with `Origin: null` under `Referrer-Policy:
+no-referrer`, which the assistant's origin check refused (now
+`same-origin`); SPA applications need PKCE on the test sign-in link; the
+connection list omits `enabled_clients` (the E2E reads
+`/connections/{id}/clients`).
+
+Mutation checks: ticket hashing, version-2 capability gating, the domain
+allowlist, the fixed strategy after creation and the edit ticket's `sso`
+switch were each broken on purpose and caught.

@@ -889,5 +889,10 @@ Recorded under [D-0150](../compat/decisions.md); observe on a live tenant when o
 - **Q14** Whether a tenant-wide group role appears in an organization
   member's effective roles (zeroauthy: no; only organization group roles,
   matching direct roles, which are organization-scoped).
+- **Q16** The assistant's test sign-in: Auth0 shows a test result inside
+  the flow; zeroauthy logs in through the ticket's first application
+  (LR37c-13).
+- **Q17** Defaults of `enabled_features` on edit tickets (zeroauthy: sso on,
+  domain verification and provisioning off).
 - **Q15** Checkpoint cursors of group lists (zeroauthy: opaque offsets; an
   insert or delete between pages can shift a later page by one).

@@ -152,8 +152,14 @@ func (e *assistantEnv) open(t *testing.T, token string) *assistantBrowser {
 func TestAssistantFlow(t *testing.T) {
 	e := newAssistantEnv(t)
 	ctx := context.Background()
+	code, org, raw := e.a.call("POST", "/organizations", e.a.admin, map[string]any{"name": "partner-corp"})
+	if code != 201 {
+		t.Fatalf("organization %d %s", code, raw)
+	}
+	orgID := org["id"].(string)
 	token := e.ticket(t, map[string]any{"connection_config": map[string]any{"name": "partner-saml", "display_name": "Partner"},
 		"enabled_clients":       []string{e.appID},
+		"enabled_organizations": []any{map[string]any{"organization_id": orgID, "assign_membership_on_login": true}},
 		"domain_aliases_config": map[string]any{"domain_verification": "optional", "pending_domains": []string{"partner.example.test"}},
 		"provisioning_config":   map[string]any{"scopes": []string{"get:users", "post:users"}}})
 	b := e.open(t, token)
@@ -201,6 +207,10 @@ func TestAssistantFlow(t *testing.T) {
 	}
 	if _, err := e.st.Connections().GetByName(ctx, e.tn.ID, "hijack"); err == nil {
 		t.Fatal("a form field named the connection")
+	}
+	oc, err := e.st.Organizations().GetConnection(ctx, e.tn.ID, orgID, conn.ID)
+	if err != nil || !oc.AssignMembershipOnLogin {
+		t.Fatalf("organization connection %+v %v", oc, err)
 	}
 	tk, _ := e.st.SelfService().GetTicketByHash(ctx, e.tn.ID, scim.HashToken(token))
 	if tk.ConnectionID != conn.ID {
