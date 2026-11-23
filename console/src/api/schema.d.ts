@@ -26549,6 +26549,15 @@ export interface operations {
                     "application/json": components["schemas"]["SetSelfServiceProfileCustomTextResponseContent"];
                 };
             };
+            /** @description Invalid custom text. Auth0's OpenAPI lists no 400 here; zeroauthy refuses values over 2000 characters and more than 50 keys with 400 (Plan 37c). */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             /** @description Self-service profile not found. */

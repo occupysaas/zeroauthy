@@ -14539,6 +14539,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SetSelfServiceProfileCustomTextResponseContent'
+        '400':
+          description: Invalid custom text. Auth0's OpenAPI lists no 400 here; zeroauthy refuses values over 2000 characters and more than 50 keys with 400 (Plan 37c).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
