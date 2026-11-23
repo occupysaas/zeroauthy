@@ -3792,7 +3792,9 @@ Observation points S37-1…S37-16 are listed in
 
 ## D-0140: WS-Federation identity provider and ADFS connections (Plan 37b)
 
-**Contract frozen 2026-11-22.** The
+**Contract frozen and implemented 2026-11-22 (local verification;
+plan-branch CI and maintainer approval pending).** Operator guide:
+[WS-Federation](../ws-federation.md). The
 [spec](../superpowers/specs/2026-11-16-zeroauthy-ws-federation-design.md) and
 [plan](../superpowers/plans/2026-11-16-zeroauthy-plan-37b-ws-federation.md)
 reserve D-0140–0149. No live Auth0 tenant was observed by the implementer.
@@ -3844,6 +3846,20 @@ copied):
 | LR37b-4 | `addons.wsfed` enables the add-on; its own properties are stored and returned unchanged (at most 4 KiB) and have no effect, as Auth0 keeps the configuration in `callbacks` and `client_aliases`. Both `samlp` and `wsfed` may be enabled; each endpoint uses its own add-on (Auth0 calls the combination unsupported). |
 | LR37b-5 | `form_template` is stored and returned only; zeroauthy always posts with its own form. |
 | LR37b-6 | ADFS `upstream_params` is stored only. |
+
+Implementation rulings (recorded in the
+[implementation record](../superpowers/2026-11-22-plan-37b-implementation-record.md)):
+
+| Local ruling | Contract |
+|---|---|
+| LR37b-7 | ADFS user ID: the `user_id_attribute` claim, else the subject NameIdentifier, else the `nameidentifier`, `upn` or `emailaddress` claim (W3). |
+| LR37b-8 | A WS-Fed sign-in that cannot complete ends at an error page; nothing is posted to the relying party (WS-Fed has no error token). |
+| LR37b-9 | `wsignout1.0` is `/v2/logout` for the application (`wreply` must be an allowed logout URL); `wsignoutcleanup1.0` ends the session and shows the signed-out page. No front-channel sign-out of other relying parties and no WS-Fed session participants. |
+| LR37b-10 | Logout of a session from an `adfs` connection redirects to the IdP's `wa=wsignout1.0` with `wreply` = `returnTo`. |
+| LR37b-11 | `wreply` follows the `redirect_uri` callback rules (wildcard subdomains), http or https only; absent, the first callback. On `/wsfed/{client_id}`, a `wtrealm` must be the client ID or an alias. The audience is `wtrealm`, else `wreply`, `urn:`-prefixed as node-wsfed does. |
+| LR37b-12 | WS-Fed tokens use the SAML profile mapper with the add-on defaults and `api.samlResponse` effects; `setRelayState` has no effect. |
+| LR37b-13 | ADFS trust is by thumbprint (`thumbprints` ∪ `prev_thumbprints`, `thumbprints_sha384`); SHA-1 signatures are refused. `adfs_server` is fetched on create and on options writes (no daily refresh). The sign-in endpoint may be an intranet host (a browser redirect); `adfs_server` must be public HTTPS (a server-side fetch). |
+| LR37b-14 | No unsolicited (IdP-initiated) WS-Fed login: `wctx` must name the browser's login attempt. |
 
 Observation points W1–W5 (spec §4) and later W-n are listed in
 [plan-1-followups.md](../superpowers/plan-1-followups.md#plan-37b-observation-points).

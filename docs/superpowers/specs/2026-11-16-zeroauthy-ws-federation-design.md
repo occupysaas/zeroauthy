@@ -1,6 +1,6 @@
 # Plan 37b — WS-Federation (the `wsfed` addon) and ADFS connections
 
-**Date:** 2026-11-16. **Status:** contract frozen 2026-11-22 (D-0140); implementation in progress.
+**Date:** 2026-11-16. **Status:** implemented 2026-11-22 (D-0140; [implementation record](../2026-11-22-plan-37b-implementation-record.md)); merge pending CI and maintainer approval.
 
 **Roadmap entry:** [management roadmap, Plan 37](2026-10-19-zeroauthy-management-roadmap-design.md);
 [parallel paths](2026-11-13-zeroauthy-parallel-paths-design.md) item **F3**

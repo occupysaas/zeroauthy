@@ -19,6 +19,7 @@ Auth0 or Okta.
 | MFA | WebAuthn (security keys, device biometrics) and passkeys | Plan 33b |
 | MFA | Push notifications (Guardian app) and Duo: settings are stored, not enforced | not planned yet |
 | Enterprise login | SAML 2.0 identity provider add-on and `samlp` connections implemented; artifact binding, SOAP and ECP are not | [Guide](saml.md) |
+| WS-Federation | WS-Fed Web App add-on (SAML 1.1 tokens, metadata, sign-out) and `adfs` connections implemented; WS-Trust active endpoints and JWT tokens are not | [Guide](ws-federation.md) |
 | Enterprise login | WS-Federation and ADFS, SCIM, self-service SSO | Plans 37b and 37c |
 | Enterprise login | OIDC/Okta front/back channel, mapping, PAR, JWE, connection keys and domain routing implemented; Entra Graph extras remain deferred | [Guide](enterprise-connections.md) |
 | Enterprise login | Active Directory / LDAP connector | Plan 38 |

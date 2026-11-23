@@ -8,6 +8,14 @@ All notable changes to zeroauthy are recorded here. The format follows
 
 ### Added
 
+- WS-Federation: the WS-Fed Web App add-on (`addons.wsfed`, with realms in
+  the new `client_aliases`) makes zeroauthy a WS-Fed identity provider with
+  signed SAML 1.1 tokens, federation metadata and sign-out, and `adfs`
+  enterprise connections sign users in through ADFS or any WS-Fed identity
+  provider. Migration 0045 adds `client_aliases` (unique per tenant) and
+  `form_template`; storage plugins need the `wsfed.v1` capability. Console,
+  seed and Deploy CLI support accompany it. See
+  [WS-Federation](docs/ws-federation.md).
 - SAML 2.0: the SAML2 Web App add-on (`addons.samlp`) makes zeroauthy a
   SAML identity provider, with `api.samlResponse` in post-login Actions, and
   `samlp` enterprise connections sign users in through upstream SAML

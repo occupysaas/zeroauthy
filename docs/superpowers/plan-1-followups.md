@@ -856,3 +856,10 @@ Recorded under [D-0140](../compat/decisions.md); observe on a live tenant when o
 - **W5** WS-Fed endpoint paths beyond the documented ones (realm-only
   `/wsfed?wtrealm=`, per-application metadata), the default `wreply`, and
   the sign-out (`wsignout1.0`, `wsignoutcleanup1.0`) responses.
+- **W6** Whether Auth0 requires the sign-out `wreply` to be an allowed
+  logout URL or a callback (zeroauthy: allowed logout URL, LR37b-9).
+- **Follow-ups (Plan 37b):** front-channel `wsignoutcleanup1.0` to the other
+  WS-Fed relying parties of a session; profile attributes from extra ADFS
+  claim types (Auth0 uses the claim type's last segment); a scheduled
+  refresh of `adfs_server` (and samlp `metadataUrl`) metadata; IdP-initiated
+  WS-Fed login; encrypted WS-Fed tokens if Auth0 documents them.

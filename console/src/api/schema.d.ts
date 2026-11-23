@@ -4985,8 +4985,8 @@ export interface components {
          * @description ADFS connection (`adfs`, Plan 37b, D-0140): zeroauthy is a
          *     WS-Federation relying party of an ADFS server or any WS-Fed identity
          *     provider. Exactly one of `adfs_server` (federation metadata host or
-         *     HTTPS URL, fetched through the federation outbound policy and
-         *     refreshed daily) and `fedMetadataXml` is required. `signInEndpoint`
+         *     HTTPS URL, fetched through the federation outbound policy when the
+         *     options are written, at most 128 KB) and `fedMetadataXml` is required. `signInEndpoint`
          *     and `thumbprints` are taken from the metadata; `thumbprints`,
          *     `thumbprints_sha384` and `prev_thumbprints` are computed on write
          *     and read-only. `entityId` (sent as `wtrealm`) defaults to
