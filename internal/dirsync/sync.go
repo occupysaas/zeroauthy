@@ -22,7 +22,7 @@ import (
 // 40 minutes).
 const (
 	AutomaticInterval = 40 * time.Minute
-	lease             = 15 * time.Minute
+	lease             = time.Hour
 	claimBatch        = 4
 	pollInterval      = 30 * time.Second
 	// maxUsers bounds one run.
@@ -449,6 +449,9 @@ func (r *run) blockMissing() error {
 // groups no longer selected.
 func (r *run) groups(p *store.DirectoryProvisioning, all bool) error {
 	var targets []Group
+	// Selected groups the Directory API could not read this run keep their
+	// local group (and its roles) until a run reads them again.
+	keep := map[string]bool{}
 	if all {
 		if err := r.client.Groups(r.ctx, r.token, r.cfg.GoogleApps.Domain, func(g Group) error {
 			targets = append(targets, g)
@@ -465,6 +468,7 @@ func (r *run) groups(p *store.DirectoryProvisioning, all bool) error {
 			g, err := r.client.Group(r.ctx, r.token, sg.GroupID)
 			if err != nil {
 				r.failures++
+				keep[sg.GroupID] = true
 				continue
 			}
 			targets = append(targets, g)
@@ -479,7 +483,6 @@ func (r *run) groups(p *store.DirectoryProvisioning, all bool) error {
 	for _, g := range existing {
 		byExternal[g.ExternalID] = g
 	}
-	keep := map[string]bool{}
 	for _, g := range targets {
 		if g.ID == "" {
 			continue

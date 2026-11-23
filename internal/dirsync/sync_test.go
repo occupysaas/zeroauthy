@@ -172,3 +172,40 @@ func TestSyncGroups(t *testing.T) {
 		})
 	}
 }
+
+// A user the run cannot update (here: an invalid mapped email) is still in
+// the directory and must not be blocked as removed.
+func TestSyncFailedUserNotBlocked(t *testing.T) {
+	e := newEnv(t, "", false)
+	e.dir.users = []map[string]any{wsUser("ann@corp.example.com", "Ann", false)}
+	e.runNow(t)
+	bad := wsUser("ann@corp.example.com", "Ann", false)
+	bad["name"] = map[string]any{"fullName": 12345}
+	e.dir.users = []map[string]any{bad}
+	if p := e.runNow(t); p.LastSyncStatus != StatusFailed {
+		t.Fatalf("status %+v", p)
+	}
+	if ann := e.user(t, "ann@corp.example.com"); ann.Blocked {
+		t.Fatal("a user whose update failed was blocked as removed")
+	}
+}
+
+// A selected group the Directory API cannot read this time keeps its local
+// group (and the group's role assignments).
+func TestSyncUnreadableGroupKept(t *testing.T) {
+	ctx := context.Background()
+	e := newEnv(t, `{"mapping":[{"auth0":"email","scim":"primaryEmail"}],"synchronize_groups":"selected"}`, true)
+	e.dir.users = []map[string]any{wsUser("ann@corp.example.com", "Ann", false)}
+	e.dir.groups = []Group{{ID: "g1", Name: "Engineering"}}
+	if err := e.st.DirectorySync().ReplaceGroups(ctx, "ten_a", "con_ws", []store.SynchronizedGroup{{GroupID: "g1", Doc: json.RawMessage(`{}`)}}); err != nil {
+		t.Fatal(err)
+	}
+	e.runNow(t)
+	e.dir.groups = nil // the fixture answers 404 for g1
+	if p := e.runNow(t); p.LastSyncStatus != StatusFailed {
+		t.Fatalf("status %+v", p)
+	}
+	if gs, _, _ := e.st.Directory().ListGroups(ctx, "ten_a", store.GroupFilter{ConnectionID: "con_ws"}, store.Page{}); len(gs) != 1 {
+		t.Fatalf("unreadable group deleted: %+v", gs)
+	}
+}
