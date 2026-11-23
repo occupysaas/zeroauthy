@@ -9,6 +9,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -94,7 +95,7 @@ func connect(t *testing.T, e *env, srv *httptest.Server, k connectorKey, signing
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got := authenticateRaw(t, ws, hubToken(t, k, "corp", "urn:auth0:acme:corp", e.now.Add(time.Minute))); got != evAuthenticated {
+	if got := authenticateRaw(t, ws, hubToken(t, k, "corp", "urn:auth0:acme:corp", e.now.Add(time.Minute+time.Duration(connectSeq.Add(1))*time.Second))); got != evAuthenticated {
 		t.Fatalf("authenticate: %s", got)
 	}
 	_ = ws.SetReadDeadline(time.Time{})
@@ -179,5 +180,9 @@ func sessions(t *testing.T, e *env, conn *store.Connection) []*store.ADHubSessio
 	}
 	return list
 }
+
+// connectSeq makes each test connection's token distinct (tokens are
+// single use; the real connector signs a new one per connection).
+var connectSeq atomic.Int64
 
 var errNoReply = errors.New("no reply")
