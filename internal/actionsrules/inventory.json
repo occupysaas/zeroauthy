@@ -602,7 +602,7 @@
           "name": "roles.getUserEffectiveRoles",
           "support": "supported",
           "evidence": "documented",
-          "note": "direct roles only; no groups"
+          "note": "direct roles plus directory group roles (Plan 37c)"
         },
         {
           "name": "roles.getUserEffectiveRolesByIds",
@@ -616,15 +616,15 @@
         },
         {
           "name": "groups.getUserGroups",
-          "support": "empty",
+          "support": "supported",
           "evidence": "local",
-          "note": "zeroauthy has no groups"
+          "note": "directory groups (Plan 37c) from the flow-start snapshot; take/from paging like roles"
         },
         {
           "name": "groups.hasGroupMembership",
-          "support": "empty",
+          "support": "supported",
           "evidence": "local",
-          "note": "always false"
+          "note": "true when the user is in any listed group, by name or ID (Plan 37c Q-observation)"
         },
         {
           "name": "redirect.sendUserTo",

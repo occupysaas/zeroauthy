@@ -114,6 +114,15 @@ type roleJSON struct {
 	Description string `json:"description"`
 }
 
+// groupJSON is a directory group of the user for api.groups (Plan 37c).
+type groupJSON struct {
+	ID           string `json:"id"`
+	Name         string `json:"name"`
+	ExternalID   string `json:"external_id,omitempty"`
+	ConnectionID string `json:"connection_id"`
+	CreatedAt    string `json:"created_at"`
+}
+
 // wireRequest is the runner.mjs request; the Pool adds "id".
 type wireRequest struct {
 	VersionKey     string                 `json:"version_key"`
@@ -127,6 +136,7 @@ type wireRequest struct {
 	Modules        []wireModule           `json:"modules"`
 	Cache          map[string]cacheRecord `json:"cache"`
 	Roles          []roleJSON             `json:"roles"`
+	Groups         []groupJSON            `json:"groups"`
 	State          map[string]any         `json:"state"`
 	Hostname       string                 `json:"hostname"`
 }
@@ -157,6 +167,7 @@ type flow struct {
 	tenantID, trigger, handler, hostname string
 	units                                []unit
 	roles                                []roleJSON
+	groups                               []groupJSON
 	acc                                  *accum
 	event                                func() map[string]any
 	validate                             func(*Effects) error
@@ -222,8 +233,12 @@ func (e *Engine) PostLogin(ctx context.Context, in PostLoginInput) (*Result, err
 		in.Transaction.ID = secrets.RandomString(24)
 	}
 	var roles []roleJSON
+	var groups []groupJSON
 	if in.User != nil {
 		if roles, err = e.organizationRoleSnapshot(ctx, tenantID, in.User.UserID, in.OrganizationID); err != nil {
+			return nil, e.unrecorded(tenantID, TriggerPostLogin, err)
+		}
+		if groups, err = e.groupSnapshot(ctx, tenantID, in.User.UserID); err != nil {
 			return nil, e.unrecorded(tenantID, TriggerPostLogin, err)
 		}
 	}
@@ -242,7 +257,7 @@ func (e *Engine) PostLogin(ctx context.Context, in PostLoginInput) (*Result, err
 		names[i] = r.Name
 	}
 	f := &flow{tenantID: tenantID, trigger: TriggerPostLogin, handler: handlerFor(TriggerPostLogin), hostname: in.Tenant.Host,
-		units: pinned(bound), roles: roles, acc: newAccum(TriggerPostLogin, in.TargetScopes, nil, in.CanRedirect),
+		units: pinned(bound), roles: roles, groups: groups, acc: newAccum(TriggerPostLogin, in.TargetScopes, nil, in.CanRedirect),
 		cache: e.caches.get(tenantID, TriggerPostLogin), input: &in}
 	if in.User != nil && in.ResourceServer != nil && !in.ResourceServer.IsSystem && in.ResourceServer.EnforcePolicies {
 		snapshotOrg := in.OrganizationID
@@ -313,6 +328,53 @@ func (e *Engine) roleSnapshot(ctx context.Context, tenantID, userID string) ([]r
 		if len(res.Items) == 0 || len(out) >= res.Total {
 			break
 		}
+	}
+	groupRoles, err := store.UserGroupRoles(ctx, e.Store, tenantID, userID, "")
+	if err != nil {
+		return nil, err
+	}
+	return e.appendRoles(ctx, tenantID, out, groupRoles)
+}
+
+// appendRoles adds the roles of ids not already in out (Plan 37c group
+// roles); a role deleted meanwhile is skipped.
+func (e *Engine) appendRoles(ctx context.Context, tenantID string, out []roleJSON, ids []string) ([]roleJSON, error) {
+	for _, id := range ids {
+		if slices.ContainsFunc(out, func(r roleJSON) bool { return r.ID == id }) {
+			continue
+		}
+		r, err := e.Store.RBAC().GetRole(ctx, tenantID, id)
+		if errors.Is(err, store.ErrNotFound) {
+			continue
+		}
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, roleJSON{ID: r.ID, Name: r.Name, Description: r.Description})
+	}
+	return out, nil
+}
+
+// groupSnapshot reads the user's directory groups once, oldest membership
+// first (Plan 37c); empty when the store has no directory.
+func (e *Engine) groupSnapshot(ctx context.Context, tenantID, userID string) ([]groupJSON, error) {
+	out := []groupJSON{}
+	if !store.DirectoryAvailable(e.Store) {
+		return out, nil
+	}
+	ms, err := e.Store.Directory().ListUserGroups(ctx, tenantID, userID)
+	if err != nil {
+		return nil, err
+	}
+	for _, m := range ms {
+		g, err := e.Store.Directory().GetGroup(ctx, tenantID, m.GroupID)
+		if errors.Is(err, store.ErrNotFound) {
+			continue
+		}
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, groupJSON{ID: g.ID, Name: g.Name, ExternalID: g.ExternalID, ConnectionID: g.ConnectionID, CreatedAt: g.CreatedAt.UTC().Format(time.RFC3339Nano)})
 	}
 	return out, nil
 }
@@ -565,11 +627,14 @@ func (e *Engine) step(ctx context.Context, f *flow, u unit, event map[string]any
 		return nil, ErrTimeout
 	}
 	req := wireRequest{VersionKey: u.versionKey, Code: u.code, DepsRoot: u.depsRoot, Handler: f.handler, Event: event,
-		Secrets: vals, Modules: modules, Cache: f.cache.snapshot(e.now()), Roles: f.roles,
+		Secrets: vals, Modules: modules, Cache: f.cache.snapshot(e.now()), Roles: f.roles, Groups: f.groups,
 		API: triggerSpecs[f.trigger].API, UnsupportedAPI: triggerSpecs[f.trigger].unsupported,
 		State: map[string]any{"canRedirect": f.acc.canRedirect, "state": f.state}, Hostname: f.hostname}
 	if req.Roles == nil {
 		req.Roles = []roleJSON{}
+	}
+	if req.Groups == nil {
+		req.Groups = []groupJSON{}
 	}
 	var executed *procState
 	raw, err := e.Runner.CallWith(ctx, f.tenantID, req, noderunner.CallOptions{
@@ -743,10 +808,13 @@ func (e *Engine) Test(ctx context.Context, tenantID, actionID string, payload js
 			return nil, ErrInvalidPayload
 		}
 	}
-	roles := []roleJSON{}
+	roles, groups := []roleJSON{}, []groupJSON{}
 	if u, ok := event["user"].(map[string]any); ok {
 		if id, ok := u["user_id"].(string); ok && id != "" {
 			if roles, err = e.roleSnapshot(ctx, tenantID, id); err != nil {
+				return nil, err
+			}
+			if groups, err = e.groupSnapshot(ctx, tenantID, id); err != nil {
 				return nil, err
 			}
 		}
@@ -773,7 +841,7 @@ func (e *Engine) Test(ctx context.Context, tenantID, actionID string, payload js
 			}
 		}
 	}
-	f := &flow{tenantID: tenantID, trigger: a.Trigger, handler: handlerFor(a.Trigger), roles: roles,
+	f := &flow{tenantID: tenantID, trigger: a.Trigger, handler: handlerFor(a.Trigger), roles: roles, groups: groups,
 		acc:   newAccum(a.Trigger, target, nil, a.Trigger == TriggerPostLogin || a.Trigger == TriggerResetPostChallenge),
 		cache: newActionCache(), deadline: time.Now().Add(e.budget())}
 	if t, err := e.Store.Tenants().Get(ctx, tenantID); err == nil {
@@ -867,7 +935,17 @@ func (e *Engine) organizationRoleSnapshot(ctx context.Context, tid, uid, oid str
 				break
 			}
 		}
-		return nil
+		sources, err := store.UserGroupRoleSources(ctx, tx, tid, uid, oid, true)
+		if err != nil {
+			return err
+		}
+		ids := make([]string, 0, len(sources))
+		for id := range sources {
+			ids = append(ids, id)
+		}
+		slices.Sort(ids)
+		out, err = view.appendRoles(ctx, tid, out, ids)
+		return err
 	})
 	return out, err
 }

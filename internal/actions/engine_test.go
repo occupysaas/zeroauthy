@@ -1018,3 +1018,44 @@ func TestSAMLResponseSetters(t *testing.T) {
 		})
 	}
 }
+
+// TestEngineGroups: api.groups and event.authorization.roles see the
+// user's directory groups and their roles (Plan 37c).
+func TestEngineGroups(t *testing.T) {
+	h := newHarness(t)
+	ctx := context.Background()
+	now := time.Now()
+	d := h.st.Directory()
+	if err := h.st.RBAC().CreateRole(ctx, &store.Role{TenantID: "t1", ID: "rol_g", Name: "from-group"}); err != nil {
+		t.Fatal(err)
+	}
+	for i, name := range []string{"Engineering", "Sales"} {
+		id := fmt.Sprintf("grp_aaaaaaaaaaaaaaaaaaa%d", i)
+		if err := d.CreateGroup(ctx, &store.Group{TenantID: "t1", ID: id, ConnectionID: "con_x", Name: name, CreatedAt: now, UpdatedAt: now}); err != nil {
+			t.Fatal(err)
+		}
+		if err := d.UpdateGroupMembers(ctx, "t1", id, []string{"auth0|u1"}, nil, false, now.Add(time.Duration(i)*time.Second)); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := d.AddGroupRoles(ctx, "t1", "grp_aaaaaaaaaaaaaaaaaaa0", "", []string{"rol_g"}); err != nil {
+		t.Fatal(err)
+	}
+	a := h.action("t1", trigLogin, "groups", `exports.onExecutePostLogin = async (event, api) => {
+	  const p1 = await api.groups.getUserGroups({ take: 1 });
+	  const p2 = await api.groups.getUserGroups({ take: 1, from: p1.next });
+	  api.accessToken.setCustomClaim("https://x.test/g", {
+	    pages: [p1.groups[0].name, p2.groups[0].name, p2.next === undefined],
+	    member: [await api.groups.hasGroupMembership(["Sales"]), await api.groups.hasGroupMembership(["grp_aaaaaaaaaaaaaaaaaaa0"]), await api.groups.hasGroupMembership(["Nope"])],
+	    roles: event.authorization.roles,
+	    effective: (await api.roles.getUserEffectiveRoles()).roles.map((r) => r.id),
+	  });
+	};`, nil, false)
+	h.bind("t1", trigLogin, a)
+	r := h.mustPostLogin("t1")
+	got := mustJSON(t, r.Effects.AccessClaims["https://x.test/g"])
+	want := `{"effective":["rol_g"],"member":[true,true,false],"pages":["Engineering","Sales",true],"roles":["from-group"]}`
+	if got != want {
+		t.Fatalf("got %s\nwant %s", got, want)
+	}
+}

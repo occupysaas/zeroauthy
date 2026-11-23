@@ -15196,13 +15196,7 @@ components:
     Group:
       type: object
       additionalProperties: false
-      required:
-      - id
-      - name
-      - tenant_name
-      - created_at
-      - updated_at
-      description: A directory group (Plan 37c). Groups belong to one connection and are created by SCIM.
+      description: A directory group (Plan 37c). Groups belong to one connection and are created by SCIM. No property is required because `fields` can project any away.
       properties:
         id:
           $ref: '#/components/schemas/GroupID'
@@ -15256,13 +15250,29 @@ components:
         next:
           type: string
     UserGroup:
-      allOf:
-      - $ref: '#/components/schemas/Group'
-      - type: object
-        properties:
-          membership_created_at:
-            type: string
-            format: date-time
+      type: object
+      additionalProperties: false
+      description: A group of the user, with the membership's creation time.
+      properties:
+        id:
+          $ref: '#/components/schemas/GroupID'
+        name:
+          type: string
+        external_id:
+          type: string
+        connection_id:
+          type: string
+        tenant_name:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        membership_created_at:
+          type: string
+          format: date-time
     UserGroupPage:
       type: object
       additionalProperties: false
@@ -21333,8 +21343,8 @@ components:
         description: {type: string}
         sources:
           type: array
-          items: {type: string, enum: [direct]}
-          description: Where the role comes from; only `direct` until groups exist.
+          items: {type: string, enum: [direct, group]}
+          description: Where the role comes from; `group` when a directory group of the member holds it in the organization (Plan 37c).
       required: [id, name, description, sources]
     OrganizationEffectiveRoles:
       type: object

@@ -4825,18 +4825,18 @@ export interface components {
     schemas: {
         /** @description `grp_` and 14 to 22 base58 characters. */
         GroupID: string;
-        /** @description A directory group (Plan 37c). Groups belong to one connection and are created by SCIM. */
+        /** @description A directory group (Plan 37c). Groups belong to one connection and are created by SCIM. No property is required because `fields` can project any away. */
         Group: {
-            id: components["schemas"]["GroupID"];
+            id?: components["schemas"]["GroupID"];
             /** @description Unique within its connection. */
-            name: string;
+            name?: string;
             external_id?: string;
             connection_id?: string;
-            tenant_name: string;
+            tenant_name?: string;
             /** Format: date-time */
-            created_at: string;
+            created_at?: string;
             /** Format: date-time */
-            updated_at: string;
+            updated_at?: string;
         };
         GroupPage: {
             groups: components["schemas"]["Group"][];
@@ -4849,7 +4849,17 @@ export interface components {
             groups: components["schemas"]["Group"][];
             next?: string;
         };
-        UserGroup: components["schemas"]["Group"] & {
+        /** @description A group of the user, with the membership's creation time. */
+        UserGroup: {
+            id?: components["schemas"]["GroupID"];
+            name?: string;
+            external_id?: string;
+            connection_id?: string;
+            tenant_name?: string;
+            /** Format: date-time */
+            created_at?: string;
+            /** Format: date-time */
+            updated_at?: string;
             /** Format: date-time */
             membership_created_at?: string;
         };
@@ -7682,8 +7692,8 @@ export interface components {
             id: string;
             name: string;
             description: string;
-            /** @description Where the role comes from; only `direct` until groups exist. */
-            sources: "direct"[];
+            /** @description Where the role comes from; `group` when a directory group of the member holds it in the organization (Plan 37c). */
+            sources: ("direct" | "group")[];
         };
         OrganizationEffectiveRoles: {
             roles: components["schemas"]["OrganizationEffectiveRole"][];

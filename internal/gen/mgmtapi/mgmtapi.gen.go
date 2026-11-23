@@ -6240,12 +6240,15 @@ func (e MFAUpdateAuthenticationMethodRequestPreferredAuthenticationMethod) Valid
 // Defines values for OrganizationEffectiveRoleSources.
 const (
 	OrganizationEffectiveRoleSourcesDirect OrganizationEffectiveRoleSources = "direct"
+	OrganizationEffectiveRoleSourcesGroup  OrganizationEffectiveRoleSources = "group"
 )
 
 // Valid indicates whether the value is a known member of the OrganizationEffectiveRoleSources enum.
 func (e OrganizationEffectiveRoleSources) Valid() bool {
 	switch e {
 	case OrganizationEffectiveRoleSourcesDirect:
+		return true
+	case OrganizationEffectiveRoleSourcesGroup:
 		return true
 	default:
 		return false
@@ -10833,19 +10836,19 @@ type EventsUpdateEventStreamResponseContent struct {
 	union json.RawMessage
 }
 
-// Group A directory group (Plan 37c). Groups belong to one connection and are created by SCIM.
+// Group A directory group (Plan 37c). Groups belong to one connection and are created by SCIM. No property is required because `fields` can project any away.
 type Group struct {
-	ConnectionId *string   `json:"connection_id,omitempty"`
-	CreatedAt    time.Time `json:"created_at"`
-	ExternalId   *string   `json:"external_id,omitempty"`
+	ConnectionId *string    `json:"connection_id,omitempty"`
+	CreatedAt    *time.Time `json:"created_at,omitempty"`
+	ExternalId   *string    `json:"external_id,omitempty"`
 
 	// Id `grp_` and 14 to 22 base58 characters.
-	Id GroupID `json:"id"`
+	Id *GroupID `json:"id,omitempty"`
 
 	// Name Unique within its connection.
-	Name       string    `json:"name"`
-	TenantName string    `json:"tenant_name"`
-	UpdatedAt  time.Time `json:"updated_at"`
+	Name       *string    `json:"name,omitempty"`
+	TenantName *string    `json:"tenant_name,omitempty"`
+	UpdatedAt  *time.Time `json:"updated_at,omitempty"`
 }
 
 // GroupCheckpoint defines model for GroupCheckpoint.
@@ -13152,7 +13155,7 @@ type OrganizationEffectiveRole struct {
 	Id          string `json:"id"`
 	Name        string `json:"name"`
 
-	// Sources Where the role comes from; only `direct` until groups exist.
+	// Sources Where the role comes from; `group` when a directory group of the member holds it in the organization (Plan 37c).
 	Sources []OrganizationEffectiveRoleSources `json:"sources"`
 }
 
@@ -14860,20 +14863,18 @@ type UserGrantPage struct {
 	Total int `json:"total"`
 }
 
-// UserGroup defines model for UserGroup.
+// UserGroup A group of the user, with the membership's creation time.
 type UserGroup struct {
-	ConnectionId *string   `json:"connection_id,omitempty"`
-	CreatedAt    time.Time `json:"created_at"`
-	ExternalId   *string   `json:"external_id,omitempty"`
+	ConnectionId *string    `json:"connection_id,omitempty"`
+	CreatedAt    *time.Time `json:"created_at,omitempty"`
+	ExternalId   *string    `json:"external_id,omitempty"`
 
 	// Id `grp_` and 14 to 22 base58 characters.
-	Id                  GroupID    `json:"id"`
+	Id                  *GroupID   `json:"id,omitempty"`
 	MembershipCreatedAt *time.Time `json:"membership_created_at,omitempty"`
-
-	// Name Unique within its connection.
-	Name       string    `json:"name"`
-	TenantName string    `json:"tenant_name"`
-	UpdatedAt  time.Time `json:"updated_at"`
+	Name                *string    `json:"name,omitempty"`
+	TenantName          *string    `json:"tenant_name,omitempty"`
+	UpdatedAt           *time.Time `json:"updated_at,omitempty"`
 }
 
 // UserGroupPage defines model for UserGroupPage.

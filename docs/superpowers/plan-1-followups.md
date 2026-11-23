@@ -882,3 +882,12 @@ Recorded under [D-0150](../compat/decisions.md); observe on a live tenant when o
   check (ruled 2026-11-22: fixture coverage ships first).
 - **Q12** The default SCIM token lifetime (not documented; zeroauthy: no
   expiry unless `token_lifetime` is given).
+- **Q13** `api.groups.hasGroupMembership(groups)`: whether it matches any or
+  all of the listed groups, and by name or ID (zeroauthy: any, by name or
+  ID). `api.groups.getUserGroups` paging parameters (zeroauthy: `take`/`from`
+  like `api.roles.getUserEffectiveRoles`).
+- **Q14** Whether a tenant-wide group role appears in an organization
+  member's effective roles (zeroauthy: no; only organization group roles,
+  matching direct roles, which are organization-scoped).
+- **Q15** Checkpoint cursors of group lists (zeroauthy: opaque offsets; an
+  insert or delete between pages can shift a later page by one).

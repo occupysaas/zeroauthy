@@ -404,7 +404,31 @@ function buildApi(req, commands, event, parse) {
       return out({ roles: roles.filter((r) => names.includes(r && r.name)) });
     },
   };
-  api.groups = { getUserGroups: () => out({ groups: [] }), hasGroupMembership: () => Promise.resolve(false) };
+  // Directory groups (Plan 37c) come from the same flow-start snapshot.
+  const groups = Array.isArray(req.groups) ? req.groups : [];
+  api.groups = {
+    getUserGroups(params) {
+      const p = params ?? {};
+      const take = p.take === undefined ? rolesTakeDefault : p.take;
+      if (!Number.isInteger(take) || take < 1 || take > rolesTakeMax) return Promise.reject(new RangeError(`api.groups.getUserGroups: take must be 1-${rolesTakeMax}`));
+      let from = 0;
+      if (p.from !== undefined && p.from !== null && p.from !== '') {
+        const n = /^[0-9]{1,9}$/.test(String(p.from)) ? Number(p.from) : NaN;
+        if (!Number.isInteger(n) || n > groups.length) return Promise.reject(new TypeError('api.groups.getUserGroups: invalid from'));
+        from = n;
+      }
+      const res = { groups: groups.slice(from, from + take) };
+      if (from + take < groups.length) res.next = String(from + take);
+      return out(res);
+    },
+    // hasGroupMembership is true when the user belongs to any of the named
+    // groups (by name or ID).
+    hasGroupMembership(names) {
+      if (!Array.isArray(names) || names.some((x) => typeof x !== 'string')) return Promise.reject(new TypeError('api.groups.hasGroupMembership: expects an array of strings'));
+      if (names.length > rolesIdsMax) return Promise.reject(new RangeError(`api.groups.hasGroupMembership: at most ${rolesIdsMax} values`));
+      return Promise.resolve(groups.some((g) => g && (names.includes(g.name) || names.includes(g.id))));
+    },
+  };
   api.rules = { wasExecuted: () => false };
   for (const name of unsupportedNamespaces) api[name] = unsupported(name);
   api.refreshToken = ns('refreshToken', ['revoke']);
