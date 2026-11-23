@@ -148,7 +148,7 @@ func (ps *Providers) For(cfg Config) Provider {
 		return githubProvider{ps}
 	case StrategyWindowsLive, StrategyWAAD:
 		return microsoftProvider{ps}
-	case StrategyOIDC, StrategyOkta, StrategyGoogle:
+	case StrategyOIDC, StrategyOkta, StrategyGoogle, StrategyGoogleApps:
 		return oidcProvider{ps}
 	default:
 		return unsupportedProvider{}

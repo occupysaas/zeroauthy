@@ -1585,6 +1585,7 @@ const (
 	ConnectionCreateStrategyAuth0        ConnectionCreateStrategy = "auth0"
 	ConnectionCreateStrategyEmail        ConnectionCreateStrategy = "email"
 	ConnectionCreateStrategyGithub       ConnectionCreateStrategy = "github"
+	ConnectionCreateStrategyGoogleApps   ConnectionCreateStrategy = "google-apps"
 	ConnectionCreateStrategyGoogleOauth2 ConnectionCreateStrategy = "google-oauth2"
 	ConnectionCreateStrategyOauth2       ConnectionCreateStrategy = "oauth2"
 	ConnectionCreateStrategyOidc         ConnectionCreateStrategy = "oidc"
@@ -1607,6 +1608,8 @@ func (e ConnectionCreateStrategy) Valid() bool {
 	case ConnectionCreateStrategyEmail:
 		return true
 	case ConnectionCreateStrategyGithub:
+		return true
+	case ConnectionCreateStrategyGoogleApps:
 		return true
 	case ConnectionCreateStrategyGoogleOauth2:
 		return true
@@ -1755,6 +1758,27 @@ func (e ConnectionOptionsGitHubSetUserRootAttributes) Valid() bool {
 	case ConnectionOptionsGitHubSetUserRootAttributesOnEachLogin:
 		return true
 	case ConnectionOptionsGitHubSetUserRootAttributesOnFirstLogin:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ConnectionOptionsGoogleAppsSetUserRootAttributes.
+const (
+	ConnectionOptionsGoogleAppsSetUserRootAttributesNeverOnLogin ConnectionOptionsGoogleAppsSetUserRootAttributes = "never_on_login"
+	ConnectionOptionsGoogleAppsSetUserRootAttributesOnEachLogin  ConnectionOptionsGoogleAppsSetUserRootAttributes = "on_each_login"
+	ConnectionOptionsGoogleAppsSetUserRootAttributesOnFirstLogin ConnectionOptionsGoogleAppsSetUserRootAttributes = "on_first_login"
+)
+
+// Valid indicates whether the value is a known member of the ConnectionOptionsGoogleAppsSetUserRootAttributes enum.
+func (e ConnectionOptionsGoogleAppsSetUserRootAttributes) Valid() bool {
+	switch e {
+	case ConnectionOptionsGoogleAppsSetUserRootAttributesNeverOnLogin:
+		return true
+	case ConnectionOptionsGoogleAppsSetUserRootAttributesOnEachLogin:
+		return true
+	case ConnectionOptionsGoogleAppsSetUserRootAttributesOnFirstLogin:
 		return true
 	default:
 		return false
@@ -9793,7 +9817,7 @@ type ClientUpdateThirdPartySecurityMode string
 // Connection A connection. `options.configuration` values are opaque blobs, never
 // plaintext. `enabled_clients` is returned by create only. `fields`
 // can leave out any property but `id` and `is_domain_connection`.
-// For `google-oauth2`, `github`, `oauth2`, `oidc`, `windowslive` and `waad` connections
+// For `google-oauth2`, `google-apps`, `github`, `oauth2`, `oidc`, `windowslive` and `waad` connections
 // `options.client_secret` is write-only: it is sealed when written and
 // never returned.
 // Microsoft connections require GUID client IDs and request exactly
@@ -9873,11 +9897,11 @@ type ConnectionCreate struct {
 	Realms       *[]string               `json:"realms,omitempty"`
 	ShowAsButton *bool                   `json:"show_as_button,omitempty"`
 
-	// Strategy `samlp` follows ConnectionOptionsSAML (Plan 37a). `adfs` follows ConnectionOptionsADFS (Plan 37b). `email` and `sms` are passwordless connections whose name must equal the strategy; options follow ConnectionOptionsEmail and ConnectionOptionsSMS (Plan 34). `apple` follows ConnectionOptionsApple; web/native login is active (D-0170). `github` follows ConnectionOptionsGitHub (Plan 39c).
+	// Strategy `samlp` follows ConnectionOptionsSAML (Plan 37a). `adfs` follows ConnectionOptionsADFS (Plan 37b). `google-apps` follows ConnectionOptionsGoogleApps (Plan 37c). `email` and `sms` are passwordless connections whose name must equal the strategy; options follow ConnectionOptionsEmail and ConnectionOptionsSMS (Plan 34). `apple` follows ConnectionOptionsApple; web/native login is active (D-0170). `github` follows ConnectionOptionsGitHub (Plan 39c).
 	Strategy ConnectionCreateStrategy `json:"strategy"`
 }
 
-// ConnectionCreateStrategy `samlp` follows ConnectionOptionsSAML (Plan 37a). `adfs` follows ConnectionOptionsADFS (Plan 37b). `email` and `sms` are passwordless connections whose name must equal the strategy; options follow ConnectionOptionsEmail and ConnectionOptionsSMS (Plan 34). `apple` follows ConnectionOptionsApple; web/native login is active (D-0170). `github` follows ConnectionOptionsGitHub (Plan 39c).
+// ConnectionCreateStrategy `samlp` follows ConnectionOptionsSAML (Plan 37a). `adfs` follows ConnectionOptionsADFS (Plan 37b). `google-apps` follows ConnectionOptionsGoogleApps (Plan 37c). `email` and `sms` are passwordless connections whose name must equal the strategy; options follow ConnectionOptionsEmail and ConnectionOptionsSMS (Plan 34). `apple` follows ConnectionOptionsApple; web/native login is active (D-0170). `github` follows ConnectionOptionsGitHub (Plan 39c).
 type ConnectionCreateStrategy string
 
 // ConnectionDeleted defines model for ConnectionDeleted.
@@ -10127,6 +10151,52 @@ type ConnectionOptionsGitHub struct {
 
 // ConnectionOptionsGitHubSetUserRootAttributes defines model for ConnectionOptionsGitHub.SetUserRootAttributes.
 type ConnectionOptionsGitHubSetUserRootAttributes string
+
+// ConnectionOptionsGoogleApps Google Workspace connection (`google-apps`, Plan 37c, D-0150
+// LR37c-14): OpenID Connect sign-in with Google restricted to one
+// Workspace. `domain` is the primary domain; a login succeeds only when
+// the verified ID token's `hd` claim equals it and the email is
+// verified. `user_id` is `google-apps|{email}`, or
+// `google-apps|{Google subject}` with `map_user_id_to_id` (both fixed
+// after creation). `client_secret` is write-only. `api_enable_users`
+// (default true) and `api_enable_groups` gate directory provisioning;
+// the Directory API credentials come from the directory provisioning
+// administrator consent, so `admin_access_token`,
+// `admin_refresh_token` and `admin_access_token_expiresin` are refused.
+// `ext_*` flags are stored only. `allow_setting_login_scopes` and
+// `handle_login_from_social` must be false.
+type ConnectionOptionsGoogleApps struct {
+	ApiEnableGroups *bool   `json:"api_enable_groups,omitempty"`
+	ApiEnableUsers  *bool   `json:"api_enable_users,omitempty"`
+	ClientId        string  `json:"client_id"`
+	ClientSecret    *string `json:"client_secret,omitempty"`
+
+	// Domain Primary Google Workspace domain.
+	Domain string `json:"domain"`
+
+	// DomainAliases Email domains for home realm discovery.
+	DomainAliases     *[]string `json:"domain_aliases,omitempty"`
+	Email             *bool     `json:"email,omitempty"`
+	ExtAgreedTerms    *bool     `json:"ext_agreed_terms,omitempty"`
+	ExtGroups         *bool     `json:"ext_groups,omitempty"`
+	ExtGroupsExtended *bool     `json:"ext_groups_extended,omitempty"`
+	ExtIsAdmin        *bool     `json:"ext_is_admin,omitempty"`
+	ExtIsSuspended    *bool     `json:"ext_is_suspended,omitempty"`
+	IconUrl           *string   `json:"icon_url,omitempty"`
+	MapUserIdToId     *bool     `json:"map_user_id_to_id,omitempty"`
+	Profile           *bool     `json:"profile,omitempty"`
+
+	// Scope Must match the email and profile flags.
+	Scope                 *[]string                                         `json:"scope,omitempty"`
+	SetUserRootAttributes *ConnectionOptionsGoogleAppsSetUserRootAttributes `json:"set_user_root_attributes,omitempty"`
+
+	// TenantDomain Must equal domain when set.
+	TenantDomain         *string                `json:"tenant_domain,omitempty"`
+	AdditionalProperties map[string]interface{} `json:"-"`
+}
+
+// ConnectionOptionsGoogleAppsSetUserRootAttributes defines model for ConnectionOptionsGoogleApps.SetUserRootAttributes.
+type ConnectionOptionsGoogleAppsSetUserRootAttributes string
 
 // ConnectionOptionsOIDC defines model for ConnectionOptionsOIDC.
 type ConnectionOptionsOIDC struct {
@@ -19540,6 +19610,325 @@ func (a ConnectionOptionsGitHub) MarshalJSON() ([]byte, error) {
 		object["write_repo_hook"], err = json.Marshal(a.WriteRepoHook)
 		if err != nil {
 			return nil, fmt.Errorf("error marshaling 'write_repo_hook': %w", err)
+		}
+	}
+
+	for fieldName, field := range a.AdditionalProperties {
+		object[fieldName], err = json.Marshal(field)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling '%s': %w", fieldName, err)
+		}
+	}
+	return json.Marshal(object)
+}
+
+// Getter for additional properties for ConnectionOptionsGoogleApps. Returns the specified
+// element and whether it was found
+func (a ConnectionOptionsGoogleApps) Get(fieldName string) (value interface{}, found bool) {
+	if a.AdditionalProperties != nil {
+		value, found = a.AdditionalProperties[fieldName]
+	}
+	return
+}
+
+// Setter for additional properties for ConnectionOptionsGoogleApps
+func (a *ConnectionOptionsGoogleApps) Set(fieldName string, value interface{}) {
+	if a.AdditionalProperties == nil {
+		a.AdditionalProperties = make(map[string]interface{})
+	}
+	a.AdditionalProperties[fieldName] = value
+}
+
+// Override default JSON handling for ConnectionOptionsGoogleApps to handle AdditionalProperties
+func (a *ConnectionOptionsGoogleApps) UnmarshalJSON(b []byte) error {
+	object := make(map[string]json.RawMessage)
+	err := json.Unmarshal(b, &object)
+	if err != nil {
+		return err
+	}
+
+	if raw, found := object["api_enable_groups"]; found {
+		err = json.Unmarshal(raw, &a.ApiEnableGroups)
+		if err != nil {
+			return fmt.Errorf("error reading 'api_enable_groups': %w", err)
+		}
+		delete(object, "api_enable_groups")
+	}
+
+	if raw, found := object["api_enable_users"]; found {
+		err = json.Unmarshal(raw, &a.ApiEnableUsers)
+		if err != nil {
+			return fmt.Errorf("error reading 'api_enable_users': %w", err)
+		}
+		delete(object, "api_enable_users")
+	}
+
+	if raw, found := object["client_id"]; found {
+		err = json.Unmarshal(raw, &a.ClientId)
+		if err != nil {
+			return fmt.Errorf("error reading 'client_id': %w", err)
+		}
+		delete(object, "client_id")
+	}
+
+	if raw, found := object["client_secret"]; found {
+		err = json.Unmarshal(raw, &a.ClientSecret)
+		if err != nil {
+			return fmt.Errorf("error reading 'client_secret': %w", err)
+		}
+		delete(object, "client_secret")
+	}
+
+	if raw, found := object["domain"]; found {
+		err = json.Unmarshal(raw, &a.Domain)
+		if err != nil {
+			return fmt.Errorf("error reading 'domain': %w", err)
+		}
+		delete(object, "domain")
+	}
+
+	if raw, found := object["domain_aliases"]; found {
+		err = json.Unmarshal(raw, &a.DomainAliases)
+		if err != nil {
+			return fmt.Errorf("error reading 'domain_aliases': %w", err)
+		}
+		delete(object, "domain_aliases")
+	}
+
+	if raw, found := object["email"]; found {
+		err = json.Unmarshal(raw, &a.Email)
+		if err != nil {
+			return fmt.Errorf("error reading 'email': %w", err)
+		}
+		delete(object, "email")
+	}
+
+	if raw, found := object["ext_agreed_terms"]; found {
+		err = json.Unmarshal(raw, &a.ExtAgreedTerms)
+		if err != nil {
+			return fmt.Errorf("error reading 'ext_agreed_terms': %w", err)
+		}
+		delete(object, "ext_agreed_terms")
+	}
+
+	if raw, found := object["ext_groups"]; found {
+		err = json.Unmarshal(raw, &a.ExtGroups)
+		if err != nil {
+			return fmt.Errorf("error reading 'ext_groups': %w", err)
+		}
+		delete(object, "ext_groups")
+	}
+
+	if raw, found := object["ext_groups_extended"]; found {
+		err = json.Unmarshal(raw, &a.ExtGroupsExtended)
+		if err != nil {
+			return fmt.Errorf("error reading 'ext_groups_extended': %w", err)
+		}
+		delete(object, "ext_groups_extended")
+	}
+
+	if raw, found := object["ext_is_admin"]; found {
+		err = json.Unmarshal(raw, &a.ExtIsAdmin)
+		if err != nil {
+			return fmt.Errorf("error reading 'ext_is_admin': %w", err)
+		}
+		delete(object, "ext_is_admin")
+	}
+
+	if raw, found := object["ext_is_suspended"]; found {
+		err = json.Unmarshal(raw, &a.ExtIsSuspended)
+		if err != nil {
+			return fmt.Errorf("error reading 'ext_is_suspended': %w", err)
+		}
+		delete(object, "ext_is_suspended")
+	}
+
+	if raw, found := object["icon_url"]; found {
+		err = json.Unmarshal(raw, &a.IconUrl)
+		if err != nil {
+			return fmt.Errorf("error reading 'icon_url': %w", err)
+		}
+		delete(object, "icon_url")
+	}
+
+	if raw, found := object["map_user_id_to_id"]; found {
+		err = json.Unmarshal(raw, &a.MapUserIdToId)
+		if err != nil {
+			return fmt.Errorf("error reading 'map_user_id_to_id': %w", err)
+		}
+		delete(object, "map_user_id_to_id")
+	}
+
+	if raw, found := object["profile"]; found {
+		err = json.Unmarshal(raw, &a.Profile)
+		if err != nil {
+			return fmt.Errorf("error reading 'profile': %w", err)
+		}
+		delete(object, "profile")
+	}
+
+	if raw, found := object["scope"]; found {
+		err = json.Unmarshal(raw, &a.Scope)
+		if err != nil {
+			return fmt.Errorf("error reading 'scope': %w", err)
+		}
+		delete(object, "scope")
+	}
+
+	if raw, found := object["set_user_root_attributes"]; found {
+		err = json.Unmarshal(raw, &a.SetUserRootAttributes)
+		if err != nil {
+			return fmt.Errorf("error reading 'set_user_root_attributes': %w", err)
+		}
+		delete(object, "set_user_root_attributes")
+	}
+
+	if raw, found := object["tenant_domain"]; found {
+		err = json.Unmarshal(raw, &a.TenantDomain)
+		if err != nil {
+			return fmt.Errorf("error reading 'tenant_domain': %w", err)
+		}
+		delete(object, "tenant_domain")
+	}
+
+	if len(object) != 0 {
+		a.AdditionalProperties = make(map[string]interface{})
+		for fieldName, fieldBuf := range object {
+			var fieldVal interface{}
+			err := json.Unmarshal(fieldBuf, &fieldVal)
+			if err != nil {
+				return fmt.Errorf("error unmarshaling field %s: %w", fieldName, err)
+			}
+			a.AdditionalProperties[fieldName] = fieldVal
+		}
+	}
+	return nil
+}
+
+// Override default JSON handling for ConnectionOptionsGoogleApps to handle AdditionalProperties
+func (a ConnectionOptionsGoogleApps) MarshalJSON() ([]byte, error) {
+	var err error
+	object := make(map[string]json.RawMessage)
+
+	if a.ApiEnableGroups != nil {
+		object["api_enable_groups"], err = json.Marshal(a.ApiEnableGroups)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'api_enable_groups': %w", err)
+		}
+	}
+
+	if a.ApiEnableUsers != nil {
+		object["api_enable_users"], err = json.Marshal(a.ApiEnableUsers)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'api_enable_users': %w", err)
+		}
+	}
+
+	object["client_id"], err = json.Marshal(a.ClientId)
+	if err != nil {
+		return nil, fmt.Errorf("error marshaling 'client_id': %w", err)
+	}
+
+	if a.ClientSecret != nil {
+		object["client_secret"], err = json.Marshal(a.ClientSecret)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'client_secret': %w", err)
+		}
+	}
+
+	object["domain"], err = json.Marshal(a.Domain)
+	if err != nil {
+		return nil, fmt.Errorf("error marshaling 'domain': %w", err)
+	}
+
+	if a.DomainAliases != nil {
+		object["domain_aliases"], err = json.Marshal(a.DomainAliases)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'domain_aliases': %w", err)
+		}
+	}
+
+	if a.Email != nil {
+		object["email"], err = json.Marshal(a.Email)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'email': %w", err)
+		}
+	}
+
+	if a.ExtAgreedTerms != nil {
+		object["ext_agreed_terms"], err = json.Marshal(a.ExtAgreedTerms)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'ext_agreed_terms': %w", err)
+		}
+	}
+
+	if a.ExtGroups != nil {
+		object["ext_groups"], err = json.Marshal(a.ExtGroups)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'ext_groups': %w", err)
+		}
+	}
+
+	if a.ExtGroupsExtended != nil {
+		object["ext_groups_extended"], err = json.Marshal(a.ExtGroupsExtended)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'ext_groups_extended': %w", err)
+		}
+	}
+
+	if a.ExtIsAdmin != nil {
+		object["ext_is_admin"], err = json.Marshal(a.ExtIsAdmin)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'ext_is_admin': %w", err)
+		}
+	}
+
+	if a.ExtIsSuspended != nil {
+		object["ext_is_suspended"], err = json.Marshal(a.ExtIsSuspended)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'ext_is_suspended': %w", err)
+		}
+	}
+
+	if a.IconUrl != nil {
+		object["icon_url"], err = json.Marshal(a.IconUrl)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'icon_url': %w", err)
+		}
+	}
+
+	if a.MapUserIdToId != nil {
+		object["map_user_id_to_id"], err = json.Marshal(a.MapUserIdToId)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'map_user_id_to_id': %w", err)
+		}
+	}
+
+	if a.Profile != nil {
+		object["profile"], err = json.Marshal(a.Profile)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'profile': %w", err)
+		}
+	}
+
+	if a.Scope != nil {
+		object["scope"], err = json.Marshal(a.Scope)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'scope': %w", err)
+		}
+	}
+
+	if a.SetUserRootAttributes != nil {
+		object["set_user_root_attributes"], err = json.Marshal(a.SetUserRootAttributes)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'set_user_root_attributes': %w", err)
+		}
+	}
+
+	if a.TenantDomain != nil {
+		object["tenant_domain"], err = json.Marshal(a.TenantDomain)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'tenant_domain': %w", err)
 		}
 	}
 

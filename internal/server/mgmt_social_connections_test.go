@@ -164,7 +164,16 @@ func socialConnectionsContract(t *testing.T, bodies map[string]map[string]any) {
 			if rec, _ := e.do("PATCH", connBase+"/"+id, map[string]any{"options": o}); rec.Code != 400 {
 				t.Errorf("omitted immutable client_id = %d", rec.Code)
 			}
-			if strategy != "google-oauth2" {
+			if strategy == "google-apps" {
+				for k, v := range map[string]any{"domain": "other.example.com", "map_user_id_to_id": true, "admin_refresh_token": "1//x", "tenant_domain": "other.example.com"} {
+					o := fresh()
+					o[k] = v
+					if rec, _ := e.do("PATCH", connBase+"/"+id, map[string]any{"options": o}); rec.Code != 400 {
+						t.Errorf("%s = %d %s", k, rec.Code, rec.Body)
+					}
+				}
+			}
+			if strategy != "google-oauth2" && strategy != "google-apps" {
 				o := fresh()
 				if strategy == "oidc" {
 					o["discovery_url"] = "https://other.example/.well-known/openid-configuration"
@@ -274,4 +283,10 @@ func TestSocialIssuerPin(t *testing.T) {
 	if rec.Code != 200 || strings.Contains(rec.Body.String(), "federation_issuer") {
 		t.Fatalf("issuer leaks into the view: %v", view)
 	}
+}
+
+func TestGoogleAppsConnectionsContract(t *testing.T) {
+	socialConnectionsContract(t, map[string]map[string]any{"google-apps": {"name": "workspace", "strategy": "google-apps",
+		"options": map[string]any{"client_id": "ws-client", "client_secret": socialSecret, "domain": "corp.example.com",
+			"tenant_domain": "corp.example.com", "domain_aliases": []any{"corp.example.net"}, "ext_groups": true}}})
 }

@@ -52,6 +52,8 @@ type fakeIDP struct {
 	badMetadata     bool
 	badToken        bool
 	accessToken     string
+	// extraClaims are added to every ID token.
+	extraClaims map[string]any
 }
 
 type idpCode struct {
@@ -104,8 +106,12 @@ func (p *fakeIDP) serve(w http.ResponseWriter, r *http.Request) {
 		if p.beforeToken != nil {
 			p.beforeToken()
 		}
-		claims, _ := json.Marshal(map[string]any{"iss": iss, "aud": "client", "sub": c.sub, "nonce": c.nonce,
-			"iat": fixedNow().Unix(), "exp": fixedNow().Add(time.Hour).Unix(), "email": c.sub + "@idp.example", "email_verified": true})
+		m := map[string]any{"iss": iss, "aud": "client", "sub": c.sub, "nonce": c.nonce,
+			"iat": fixedNow().Unix(), "exp": fixedNow().Add(time.Hour).Unix(), "email": c.sub + "@idp.example", "email_verified": true}
+		for k, v := range p.extraClaims {
+			m[k] = v
+		}
+		claims, _ := json.Marshal(m)
 		signer, _ := jose.NewSigner(jose.SigningKey{Algorithm: jose.RS256, Key: p.key}, (&jose.SignerOptions{}).WithHeader("kid", "k"))
 		obj, _ := signer.Sign(claims)
 		tok, _ := obj.CompactSerialize()

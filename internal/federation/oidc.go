@@ -48,6 +48,15 @@ func authorizationURL(endpoint string, cfg Config, in StartInput, withNonce bool
 			}
 		}
 	}
+	if cfg.GoogleApps != nil {
+		// hd only preselects the account; Exchange enforces the hd claim.
+		q.Set("hd", cfg.GoogleApps.Domain)
+		if len(in.DirectoryConsent) > 0 {
+			scopes = append(scopes, in.DirectoryConsent...)
+			q.Set("access_type", "offline")
+			q.Set("prompt", "consent")
+		}
+	}
 	q.Set("scope", strings.Join(scopes, " "))
 	q.Set("state", in.State)
 	if in.LoginHint != "" {
@@ -206,8 +215,14 @@ func parseTokenResponse(body []byte, now time.Time) (TokenSet, error) {
 // a validated RS256 ID token, then optional UserInfo.
 type oidcProvider struct{ ps *Providers }
 
+// googleIssued reports whether cfg's ID tokens come from Google's fixed
+// issuer: google-oauth2 and google-apps.
+func googleIssued(cfg Config) bool {
+	return cfg.Strategy == StrategyGoogle || cfg.Strategy == StrategyGoogleApps
+}
+
 func (p oidcProvider) endpoints(in Endpoints, cfg Config) Endpoints {
-	if cfg.Strategy == StrategyGoogle {
+	if googleIssued(cfg) {
 		g := GoogleEndpoints()
 		if in.JWKSURL != "" { // a fixture may pin its own endpoints
 			return in
@@ -235,6 +250,11 @@ func (p oidcProvider) Exchange(ctx context.Context, in ExchangeInput) (ProviderR
 		return ProviderResult{}, err
 	}
 	sub, _ := claims["sub"].(string)
+	if in.Config.GoogleApps != nil {
+		if sub, err = googleAppsSubject(*in.Config.GoogleApps, sub, claims); err != nil {
+			return ProviderResult{}, err
+		}
+	}
 	compiled, mapErr := CompileAttrMap(in.Config.AttrMap, in.Config.Strategy, in.Config.Channel)
 	if mapErr != nil {
 		return ProviderResult{}, mapErr
@@ -270,7 +290,7 @@ func (p oidcProvider) Exchange(ctx context.Context, in ExchangeInput) (ProviderR
 // issuerMatches applies exact issuer equality, with Google's two documented
 // issuer forms as the only exception.
 func issuerMatches(cfg Config, expected, got string) bool {
-	if cfg.Strategy == StrategyGoogle && expected == rules.GoogleIssuer {
+	if googleIssued(cfg) && expected == rules.GoogleIssuer {
 		return got == rules.GoogleIssuer || got == rules.GoogleIssuerAlias
 	}
 	return expected != "" && got == expected
@@ -291,7 +311,7 @@ func (ps *Providers) validateIDToken(ctx context.Context, in ExchangeInput, e En
 		tokens.IDToken = raw
 	}
 	allowed := in.Config.IDTokenAlgs
-	if in.Config.Strategy == StrategyGoogle {
+	if googleIssued(in.Config) {
 		allowed = []string{"RS256"}
 	}
 	obj, err := parseIDTokenAlgorithms(tokens.IDToken, allowed)
@@ -299,7 +319,7 @@ func (ps *Providers) validateIDToken(ctx context.Context, in ExchangeInput, e En
 		return nil, err
 	}
 	issuer := in.Issuer
-	if in.Config.Strategy == StrategyGoogle && issuer == "" {
+	if googleIssued(in.Config) && issuer == "" {
 		issuer = rules.GoogleIssuer
 	}
 	key, err := ps.keys.keyForAlgorithm(ctx, in.Cache.with("jwks", issuer, e.JWKSURL), e.JWKSURL, obj.Signatures[0].Header.KeyID, obj.Signatures[0].Header.Algorithm)
@@ -380,4 +400,24 @@ func (p oauth2Provider) Exchange(ctx context.Context, in ExchangeInput) (Provide
 		return ProviderResult{}, err
 	}
 	return ProviderResult{Profile: profile, Tokens: tokens}, nil
+}
+
+// googleAppsSubject enforces a google-apps login's Workspace binding: the
+// verified ID token's hd claim must equal the connection's domain (an email
+// suffix proves nothing; consumer accounts have no hd) and the email must be
+// verified. The subject is the lowercase email, or Google's numeric subject
+// with map_user_id_to_id.
+func googleAppsSubject(g rules.GoogleAppsSettings, sub string, claims map[string]any) (string, error) {
+	hd, _ := claims["hd"].(string)
+	if g.Domain == "" || !strings.EqualFold(hd, g.Domain) {
+		return "", fmt.Errorf("%w: the account is not in the connection's Google Workspace domain", ErrProviderResponse)
+	}
+	email, _ := claims["email"].(string)
+	if email == "" || claims["email_verified"] != true {
+		return "", fmt.Errorf("%w: the Google Workspace account has no verified email", ErrProviderResponse)
+	}
+	if g.MapUserIDToID {
+		return sub, nil
+	}
+	return strings.ToLower(email), nil
 }

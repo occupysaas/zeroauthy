@@ -106,9 +106,9 @@ func (s *Service) resolveIdentity(ctx context.Context, tx store.Store, conn *sto
 }
 
 // identityUserID is the identity's user_id: Apple, GitHub, Google and Microsoft
-// personal use the raw subject; OAuth2, OIDC and Entra use "<connection>|<subject>".
+// personal and Google Workspace use the raw subject; OAuth2, OIDC and Entra use "<connection>|<subject>".
 func identityUserID(conn *store.Connection, sub string) string {
-	if conn.Strategy == rules.Google || conn.Strategy == rules.WindowsLive || conn.Strategy == rules.Apple || conn.Strategy == rules.GitHub {
+	if conn.Strategy == rules.Google || conn.Strategy == rules.GoogleApps || conn.Strategy == rules.WindowsLive || conn.Strategy == rules.Apple || conn.Strategy == rules.GitHub {
 		return sub
 	}
 	return conn.Name + "|" + sub

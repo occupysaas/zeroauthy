@@ -6483,6 +6483,56 @@ export interface components {
             [key: string]: unknown;
         };
         /**
+         * @description Google Workspace connection (`google-apps`, Plan 37c, D-0150
+         *     LR37c-14): OpenID Connect sign-in with Google restricted to one
+         *     Workspace. `domain` is the primary domain; a login succeeds only when
+         *     the verified ID token's `hd` claim equals it and the email is
+         *     verified. `user_id` is `google-apps|{email}`, or
+         *     `google-apps|{Google subject}` with `map_user_id_to_id` (both fixed
+         *     after creation). `client_secret` is write-only. `api_enable_users`
+         *     (default true) and `api_enable_groups` gate directory provisioning;
+         *     the Directory API credentials come from the directory provisioning
+         *     administrator consent, so `admin_access_token`,
+         *     `admin_refresh_token` and `admin_access_token_expiresin` are refused.
+         *     `ext_*` flags are stored only. `allow_setting_login_scopes` and
+         *     `handle_login_from_social` must be false.
+         */
+        ConnectionOptionsGoogleApps: {
+            client_id: string;
+            client_secret?: string;
+            /** @description Primary Google Workspace domain. */
+            domain: string;
+            /** @description Must equal domain when set. */
+            tenant_domain?: string;
+            /** @description Email domains for home realm discovery. */
+            domain_aliases?: string[];
+            /** @default false */
+            map_user_id_to_id?: boolean;
+            /** @default true */
+            api_enable_users?: boolean;
+            /** @default false */
+            api_enable_groups?: boolean;
+            /** @default true */
+            email?: boolean;
+            /** @default true */
+            profile?: boolean;
+            /** @description Must match the email and profile flags. */
+            scope?: string[];
+            ext_agreed_terms?: boolean;
+            ext_groups?: boolean;
+            ext_groups_extended?: boolean;
+            ext_is_admin?: boolean;
+            ext_is_suspended?: boolean;
+            icon_url?: string;
+            /**
+             * @default on_each_login
+             * @enum {string}
+             */
+            set_user_root_attributes?: "on_each_login" | "on_first_login" | "never_on_login";
+        } & {
+            [key: string]: unknown;
+        };
+        /**
          * @description ADFS connection (`adfs`, Plan 37b, D-0140): zeroauthy is a
          *     WS-Federation relying party of an ADFS server or any WS-Fed identity
          *     provider. Exactly one of `adfs_server` (federation metadata host or
@@ -10771,10 +10821,10 @@ export interface components {
             /** @description Letters and digits with single hyphens between them. */
             name: string;
             /**
-             * @description `samlp` follows ConnectionOptionsSAML (Plan 37a). `adfs` follows ConnectionOptionsADFS (Plan 37b). `email` and `sms` are passwordless connections whose name must equal the strategy; options follow ConnectionOptionsEmail and ConnectionOptionsSMS (Plan 34). `apple` follows ConnectionOptionsApple; web/native login is active (D-0170). `github` follows ConnectionOptionsGitHub (Plan 39c).
+             * @description `samlp` follows ConnectionOptionsSAML (Plan 37a). `adfs` follows ConnectionOptionsADFS (Plan 37b). `google-apps` follows ConnectionOptionsGoogleApps (Plan 37c). `email` and `sms` are passwordless connections whose name must equal the strategy; options follow ConnectionOptionsEmail and ConnectionOptionsSMS (Plan 34). `apple` follows ConnectionOptionsApple; web/native login is active (D-0170). `github` follows ConnectionOptionsGitHub (Plan 39c).
              * @enum {string}
              */
-            strategy: "auth0" | "google-oauth2" | "oauth2" | "oidc" | "windowslive" | "waad" | "email" | "sms" | "apple" | "github" | "okta" | "samlp" | "adfs";
+            strategy: "auth0" | "google-oauth2" | "oauth2" | "oidc" | "windowslive" | "waad" | "email" | "sms" | "apple" | "github" | "okta" | "samlp" | "adfs" | "google-apps";
             /** @description Applications to enable on the connection; accepted on create only. */
             enabled_clients?: string[];
         };
@@ -10787,7 +10837,7 @@ export interface components {
          * @description A connection. `options.configuration` values are opaque blobs, never
          *     plaintext. `enabled_clients` is returned by create only. `fields`
          *     can leave out any property but `id` and `is_domain_connection`.
-         *     For `google-oauth2`, `github`, `oauth2`, `oidc`, `windowslive` and `waad` connections
+         *     For `google-oauth2`, `google-apps`, `github`, `oauth2`, `oidc`, `windowslive` and `waad` connections
          *     `options.client_secret` is write-only: it is sealed when written and
          *     never returned.
          *     Microsoft connections require GUID client IDs and request exactly

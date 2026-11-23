@@ -22,6 +22,7 @@ const (
 	StrategyOAuth2      = rules.OAuth2
 	StrategyOIDC        = rules.OIDC
 	StrategyOkta        = rules.Okta
+	StrategyGoogleApps  = rules.GoogleApps
 )
 
 // Store model aliases used throughout the package.
@@ -50,6 +51,9 @@ type StartInput struct {
 	State         string
 	Nonce         string
 	CodeChallenge string // S256 of the attempt's verifier
+	// DirectoryConsent asks a google-apps administrator for offline access
+	// to the Directory API (the directory provisioning consent).
+	DirectoryConsent []string
 }
 
 // ExchangeInput is what an adapter needs to redeem a code. ClientSecret is

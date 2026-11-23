@@ -18284,6 +18284,57 @@ components:
           maxItems: 96
           items: {type: string, maxLength: 255}
           description: Stored only.
+    ConnectionOptionsGoogleApps:
+      type: object
+      description: |
+        Google Workspace connection (`google-apps`, Plan 37c, D-0150
+        LR37c-14): OpenID Connect sign-in with Google restricted to one
+        Workspace. `domain` is the primary domain; a login succeeds only when
+        the verified ID token's `hd` claim equals it and the email is
+        verified. `user_id` is `google-apps|{email}`, or
+        `google-apps|{Google subject}` with `map_user_id_to_id` (both fixed
+        after creation). `client_secret` is write-only. `api_enable_users`
+        (default true) and `api_enable_groups` gate directory provisioning;
+        the Directory API credentials come from the directory provisioning
+        administrator consent, so `admin_access_token`,
+        `admin_refresh_token` and `admin_access_token_expiresin` are refused.
+        `ext_*` flags are stored only. `allow_setting_login_scopes` and
+        `handle_login_from_social` must be false.
+      x-source:
+        - https://auth0.com/docs/authenticate/identity-providers/enterprise-identity-providers/google-apps
+        - https://auth0.com/docs/oas/management/v2/management-api-oas.json
+      additionalProperties: true
+      required: [client_id, domain]
+      properties:
+        client_id: {type: string, minLength: 1, maxLength: 128}
+        client_secret: {type: string, minLength: 1, maxLength: 4096, writeOnly: true}
+        domain: {type: string, minLength: 1, maxLength: 253, description: Primary Google Workspace domain.}
+        tenant_domain: {type: string, maxLength: 253, description: Must equal domain when set.}
+        domain_aliases:
+          type: array
+          maxItems: 1000
+          items: {type: string, maxLength: 255}
+          description: Email domains for home realm discovery.
+        map_user_id_to_id: {type: boolean, default: false}
+        api_enable_users: {type: boolean, default: true}
+        api_enable_groups: {type: boolean, default: false}
+        email: {type: boolean, default: true}
+        profile: {type: boolean, default: true}
+        scope:
+          type: array
+          maxItems: 64
+          items: {type: string, maxLength: 255}
+          description: Must match the email and profile flags.
+        ext_agreed_terms: {type: boolean}
+        ext_groups: {type: boolean}
+        ext_groups_extended: {type: boolean}
+        ext_is_admin: {type: boolean}
+        ext_is_suspended: {type: boolean}
+        icon_url: {type: string, maxLength: 2048}
+        set_user_root_attributes:
+          type: string
+          enum: [on_each_login, on_first_login, never_on_login]
+          default: on_each_login
     ConnectionOptionsADFS:
       type: object
       description: |
@@ -27346,7 +27397,7 @@ components:
           required: [name, strategy]
           properties:
             name: {type: string, minLength: 1, maxLength: 128, description: "Letters and digits with single hyphens between them."}
-            strategy: {type: string, enum: [auth0, google-oauth2, oauth2, oidc, windowslive, waad, email, sms, apple, github, okta, samlp, adfs], description: "`samlp` follows ConnectionOptionsSAML (Plan 37a). `adfs` follows ConnectionOptionsADFS (Plan 37b). `email` and `sms` are passwordless connections whose name must equal the strategy; options follow ConnectionOptionsEmail and ConnectionOptionsSMS (Plan 34). `apple` follows ConnectionOptionsApple; web/native login is active (D-0170). `github` follows ConnectionOptionsGitHub (Plan 39c)."}
+            strategy: {type: string, enum: [auth0, google-oauth2, oauth2, oidc, windowslive, waad, email, sms, apple, github, okta, samlp, adfs, google-apps], description: "`samlp` follows ConnectionOptionsSAML (Plan 37a). `adfs` follows ConnectionOptionsADFS (Plan 37b). `google-apps` follows ConnectionOptionsGoogleApps (Plan 37c). `email` and `sms` are passwordless connections whose name must equal the strategy; options follow ConnectionOptionsEmail and ConnectionOptionsSMS (Plan 34). `apple` follows ConnectionOptionsApple; web/native login is active (D-0170). `github` follows ConnectionOptionsGitHub (Plan 39c)."}
             enabled_clients:
               type: array
               items: {type: string}
@@ -27363,7 +27414,7 @@ components:
         A connection. `options.configuration` values are opaque blobs, never
         plaintext. `enabled_clients` is returned by create only. `fields`
         can leave out any property but `id` and `is_domain_connection`.
-        For `google-oauth2`, `github`, `oauth2`, `oidc`, `windowslive` and `waad` connections
+        For `google-oauth2`, `google-apps`, `github`, `oauth2`, `oidc`, `windowslive` and `waad` connections
         `options.client_secret` is write-only: it is sealed when written and
         never returned.
         Microsoft connections require GUID client IDs and request exactly
