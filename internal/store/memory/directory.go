@@ -17,6 +17,9 @@ type directoryState struct {
 	groups  map[key]*store.Group      // key{tenant, group id}
 	members map[memberKey]store.GroupMember
 	roles   map[roleKey]bool
+	// Phase C: directory provisioning by connection, and its groups.
+	provisionings map[key]*store.DirectoryProvisioning // key{tenant, connection}
+	syncGroups    map[key][]store.SynchronizedGroup    // key{tenant, connection}
 }
 
 type memberKey struct{ tenant, group, user string }
@@ -29,11 +32,18 @@ type roleKey struct {
 
 func newDirectoryState() *directoryState {
 	return &directoryState{configs: map[key]*store.SCIMConfig{}, tokens: map[key]*store.SCIMToken{}, groups: map[key]*store.Group{},
-		members: map[memberKey]store.GroupMember{}, roles: map[roleKey]bool{}}
+		members: map[memberKey]store.GroupMember{}, roles: map[roleKey]bool{},
+		provisionings: map[key]*store.DirectoryProvisioning{}, syncGroups: map[key][]store.SynchronizedGroup{}}
 }
 
 func (d *directoryState) clone() *directoryState {
 	out := newDirectoryState()
+	for k, v := range d.provisionings {
+		out.provisionings[k] = v.Clone()
+	}
+	for k, v := range d.syncGroups {
+		out.syncGroups[k] = cloneSyncGroups(v)
+	}
 	for k, v := range d.configs {
 		out.configs[k] = v.Clone()
 	}
@@ -409,6 +419,8 @@ func (d *directoryState) dropOrganization(tid, org string) {
 
 func (d *directoryState) dropConnection(tid, conn string) {
 	delete(d.configs, key{tid, conn})
+	delete(d.provisionings, key{tid, conn})
+	delete(d.syncGroups, key{tid, conn})
 	d.dropTokens(tid, conn)
 	for k, g := range d.groups {
 		if k.tenant == tid && g.ConnectionID == conn {
@@ -418,6 +430,16 @@ func (d *directoryState) dropConnection(tid, conn string) {
 }
 
 func (d *directoryState) dropTenant(tid string) {
+	for k := range d.provisionings {
+		if k.tenant == tid {
+			delete(d.provisionings, k)
+		}
+	}
+	for k := range d.syncGroups {
+		if k.tenant == tid {
+			delete(d.syncGroups, k)
+		}
+	}
 	for k := range d.configs {
 		if k.tenant == tid {
 			delete(d.configs, k)

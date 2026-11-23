@@ -20,7 +20,7 @@ var ErrImmutable = errors.New("federation: immutable connection setting changed"
 type Config struct {
 	// SAML is set for samlp connections (Plan 37a).
 	SAML                       *rules.SAMLSettings
-	ADFS                       *rules.ADFSSettings // Plan 37b
+	ADFS                       *rules.ADFSSettings       // Plan 37b
 	GoogleApps                 *rules.GoogleAppsSettings // Plan 37c
 	Channel                    string
 	Explicit                   *rules.ExplicitEndpoints

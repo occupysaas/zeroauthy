@@ -338,6 +338,15 @@ func (o *opened) DirectorySupported() bool {
 	return false
 }
 
+// DirectorySyncSupported keeps scim.v1 version 3 (Plan 37c Phase C) visible
+// through the process wrapper.
+func (o *opened) DirectorySyncSupported() bool {
+	if repo, ok := o.Store.(store.DirectorySyncSupporter); ok {
+		return repo.DirectorySyncSupported()
+	}
+	return false
+}
+
 // SelfServiceSupported keeps scim.v1 version 2 (Plan 37c Phase B) visible
 // through the process wrapper.
 func (o *opened) SelfServiceSupported() bool {

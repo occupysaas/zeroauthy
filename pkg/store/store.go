@@ -25,6 +25,11 @@ type (
 	SelfServiceSupporter           = store.SelfServiceSupporter
 	UnimplementedSelfService       = store.UnimplementedSelfService
 	SelfServiceProfile             = store.SelfServiceProfile
+	DirectorySync                  = store.DirectorySync
+	DirectorySyncSupporter         = store.DirectorySyncSupporter
+	UnimplementedDirectorySync     = store.UnimplementedDirectorySync
+	DirectoryProvisioning          = store.DirectoryProvisioning
+	SynchronizedGroup              = store.SynchronizedGroup
 	SSOTicket                      = store.SSOTicket
 	ConnectionProfile              = store.ConnectionProfile
 	SCIMConfig                     = store.SCIMConfig
@@ -483,3 +488,6 @@ var ErrSCIMTokenLimit = store.ErrSCIMTokenLimit
 
 // ErrSelfServiceUnavailable reports a plugin without scim.v1 version 2.
 var ErrSelfServiceUnavailable = store.ErrSelfServiceUnavailable
+
+// ErrDirectorySyncUnavailable reports a plugin without scim.v1 version 3.
+var ErrDirectorySyncUnavailable = store.ErrDirectorySyncUnavailable

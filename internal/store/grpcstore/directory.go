@@ -42,6 +42,8 @@ type dirResult struct {
 	Total   int                 `json:",omitempty"`
 	// SelfService is the result of a SelfService.* method.
 	SelfService json.RawMessage `json:",omitempty"`
+	// DirectorySync is the result of a DirectorySync.* method.
+	DirectorySync json.RawMessage `json:",omitempty"`
 }
 
 type clientDirectory struct{ c *Client }
@@ -215,6 +217,9 @@ func (s *Server) DirectoryCapabilities(_ context.Context, _ *storev1.PingRequest
 	if !store.DirectoryAvailable(s.st) {
 		return &storev1.EventsCapabilitiesResult{}, nil
 	}
+	if store.SelfServiceAvailable(s.st) && store.DirectorySyncAvailable(s.st) {
+		return &storev1.EventsCapabilitiesResult{Version: 3}, nil
+	}
 	if store.SelfServiceAvailable(s.st) {
 		return &storev1.EventsCapabilitiesResult{Version: 2}, nil
 	}
@@ -272,6 +277,9 @@ func (s *Server) DirectoryCall(ctx context.Context, r *storev1.DirectoryCallRequ
 		case "ListGroupRoles":
 			out.Roles, e = d.ListGroupRoles(ctx, a.TenantID, a.GroupID, a.RoleID, a.OrganizationID)
 		default:
+			if method, ok := strings.CutPrefix(r.GetMethod(), directorySyncPrefix); ok && store.DirectorySyncAvailable(st) {
+				return serveDirectorySync(ctx, st.DirectorySync(), method, r.GetArgs(), &out.DirectorySync)
+			}
 			if method, ok := strings.CutPrefix(r.GetMethod(), selfServicePrefix); ok && store.SelfServiceAvailable(st) {
 				return serveSelfService(ctx, st.SelfService(), method, r.GetArgs(), &out.SelfService)
 			}

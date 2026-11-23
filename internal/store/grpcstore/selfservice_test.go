@@ -33,3 +33,29 @@ func TestSelfServiceNeedsCapabilityVersion2(t *testing.T) {
 		t.Fatal("version 2 plugin hid self-service")
 	}
 }
+
+// selfServiceOnly is a backing store with scim.v1 version 2 only.
+type selfServiceOnly struct{ store.Store }
+
+func (selfServiceOnly) DirectorySyncSupported() bool { return false }
+func (selfServiceOnly) SelfServiceSupported() bool   { return true }
+
+// A plugin answering scim.v1 version 2 keeps self-service but has no
+// directory provisioning; its calls fail closed.
+func TestDirectorySyncNeedsCapabilityVersion3(t *testing.T) {
+	m := memory.New()
+	c := serve(t, selfServiceOnly{m})
+	if !store.SelfServiceAvailable(c) {
+		t.Fatal("self-service lost")
+	}
+	if store.DirectorySyncAvailable(c) {
+		t.Fatal("version 2 plugin reported directory provisioning")
+	}
+	_, err := c.DirectorySync().GetProvisioning(context.Background(), "t", "con_1")
+	if !errors.Is(err, store.ErrDirectorySyncUnavailable) {
+		t.Fatalf("got %v", err)
+	}
+	if !store.DirectorySyncAvailable(serve(t, m)) {
+		t.Fatal("version 3 plugin hid directory provisioning")
+	}
+}

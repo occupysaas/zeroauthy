@@ -471,7 +471,7 @@ func (s *Store) dropDirectoryConnection(ctx context.Context, tid, conn string) e
 			return err
 		}
 	}
-	for _, table := range []string{"directory_groups", "scim_tokens", "scim_configurations"} {
+	for _, table := range []string{"directory_groups", "scim_tokens", "scim_configurations", "directory_synchronized_groups", "directory_provisionings"} {
 		if _, err := s.exec(ctx, `DELETE FROM `+table+` WHERE tenant_id = ? AND connection_id = ?`, tid, conn); err != nil {
 			return err
 		}

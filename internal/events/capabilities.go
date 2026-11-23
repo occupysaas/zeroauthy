@@ -95,6 +95,9 @@ func (s *capture) DirectorySupported() bool { return store.DirectoryAvailable(s.
 // SelfServiceSupported passes scim.v1 version 2 (Plan 37c Phase B) through.
 func (s *capture) SelfServiceSupported() bool { return store.SelfServiceAvailable(s.Store) }
 
+// DirectorySyncSupported passes scim.v1 version 3 (Plan 37c Phase C) through.
+func (s *capture) DirectorySyncSupported() bool { return store.DirectorySyncAvailable(s.Store) }
+
 // CheckWSFedSupport passes wsfed.v1 (Plan 37b) through.
 func (s *capture) CheckWSFedSupport(ctx context.Context) error {
 	return store.CheckWSFedSupport(ctx, s.Store)
