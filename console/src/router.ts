@@ -51,6 +51,8 @@ import OperatorList from './pages/operators/List.vue'
 import RoleList from './pages/roles/List.vue'
 import RoleCreate from './pages/roles/Create.vue'
 import RoleDetail from './pages/roles/Detail.vue'
+import GroupList from './pages/groups/List.vue'
+import GroupDetail from './pages/groups/Detail.vue'
 import UserCreate from './pages/users/Create.vue'
 import UserDetail from './pages/users/Detail.vue'
 import UserList from './pages/users/List.vue'
@@ -127,6 +129,12 @@ export const routes: RouteRecordRaw[] = [
     name: 'roles',
     component: RoleList,
     children: [{ path: 'new', name: 'role-new', component: RoleCreate }, { path: ':id', name: 'role', component: RoleDetail }],
+  },
+  {
+    path: '/t/:tenant/groups',
+    name: 'groups',
+    component: GroupList,
+    children: [{ path: ':id', name: 'group', component: GroupDetail }],
   },
   {
     path: '/t/:tenant/users',

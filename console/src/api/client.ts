@@ -1,6 +1,8 @@
 import type { components } from './schema'
 import type { Role, RolePage, PermissionKey, PermissionPage, RoleUserPage, OffsetPage } from './rbac'
 export type { Role, RolePage, PermissionKey, Permission, PermissionSource, PermissionPage, RoleUser, RoleUserPage } from './rbac'
+import type { Group, GroupPage, GroupCheckpoint, GroupMemberPage, GroupRolePage, UserGroupPage, ScimConfiguration, ScimMappingItem, ScimToken, ScimTokenCreate, ScimTokenCreated } from './directory'
+export type { Group, GroupPage, GroupCheckpoint, GroupMember, GroupMemberPage, GroupRolePage, UserGroup, UserGroupPage, ScimConfiguration, ScimMappingItem, ScimToken, ScimTokenCreate, ScimTokenCreated } from './directory'
 
 // A thin, typed wrapper over fetch for the Management and system APIs.
 
@@ -512,6 +514,59 @@ export class Api {
   }
   changeUserRoles(t: SystemTenant, id: string, method: 'POST' | 'DELETE', roles: string[]): Promise<void> {
     return this.tenantRequest(t, method, userPath(id) + '/roles', { body: { roles } })
+  }
+  // Directory groups (Plan 37c).
+  listGroups(t: SystemTenant, q: OffsetPage & { search?: string; connection_id?: string }): Promise<GroupPage> {
+    const query: Record<string, string | number | boolean> = { page: q.page, per_page: q.per_page, include_totals: true }
+    if (q.search) query.search = q.search
+    if (q.connection_id) query.connection_id = q.connection_id
+    return this.tenantRequest(t, 'GET', '/api/v2/groups', { query })
+  }
+  getGroup(t: SystemTenant, id: string): Promise<Group> {
+    return this.tenantRequest(t, 'GET', '/api/v2/groups/' + encodeURIComponent(id))
+  }
+  deleteGroup(t: SystemTenant, id: string): Promise<void> {
+    return this.tenantRequest(t, 'DELETE', '/api/v2/groups/' + encodeURIComponent(id))
+  }
+  listGroupMembers(t: SystemTenant, id: string, from?: string): Promise<GroupMemberPage> {
+    return this.tenantRequest(t, 'GET', '/api/v2/groups/' + encodeURIComponent(id) + '/members', { query: from ? { take: 50, from } : { take: 50 } })
+  }
+  listGroupRoles(t: SystemTenant, id: string): Promise<GroupRolePage> {
+    return this.tenantRequest(t, 'GET', '/api/v2/groups/' + encodeURIComponent(id) + '/roles', { query: { take: 100 } })
+  }
+  changeGroupRoles(t: SystemTenant, id: string, method: 'POST' | 'DELETE', roles: string[]): Promise<void> {
+    return this.tenantRequest(t, method, '/api/v2/groups/' + encodeURIComponent(id) + '/roles', { body: { roles } })
+  }
+  listRoleGroups(t: SystemTenant, id: string): Promise<GroupCheckpoint> {
+    return this.tenantRequest(t, 'GET', '/api/v2/roles/' + encodeURIComponent(id) + '/groups', { query: { take: 100 } })
+  }
+  listUserGroups(t: SystemTenant, id: string): Promise<UserGroupPage> {
+    return this.tenantRequest(t, 'GET', userPath(id) + '/groups', { query: { take: 100 } })
+  }
+  // SCIM provisioning of an enterprise connection (Plan 37c).
+  getScimConfiguration(t: SystemTenant, connection: string): Promise<ScimConfiguration> {
+    return this.tenantRequest(t, 'GET', scimPath(connection))
+  }
+  createScimConfiguration(t: SystemTenant, connection: string): Promise<ScimConfiguration> {
+    return this.tenantRequest(t, 'POST', scimPath(connection), { body: {} })
+  }
+  updateScimConfiguration(t: SystemTenant, connection: string, body: { user_id_attribute: string; mapping: ScimMappingItem[] }): Promise<ScimConfiguration> {
+    return this.tenantRequest(t, 'PATCH', scimPath(connection), { body })
+  }
+  getScimDefaultMapping(t: SystemTenant, connection: string): Promise<{ mapping?: ScimMappingItem[] }> {
+    return this.tenantRequest(t, 'GET', scimPath(connection) + '/default-mapping')
+  }
+  deleteScimConfiguration(t: SystemTenant, connection: string): Promise<void> {
+    return this.tenantRequest(t, 'DELETE', scimPath(connection))
+  }
+  listScimTokens(t: SystemTenant, connection: string): Promise<ScimToken[]> {
+    return this.tenantRequest(t, 'GET', scimPath(connection) + '/tokens')
+  }
+  createScimToken(t: SystemTenant, connection: string, body: ScimTokenCreate): Promise<ScimTokenCreated> {
+    return this.tenantRequest(t, 'POST', scimPath(connection) + '/tokens', { body })
+  }
+  deleteScimToken(t: SystemTenant, connection: string, id: string): Promise<void> {
+    return this.tenantRequest(t, 'DELETE', scimPath(connection) + '/tokens/' + encodeURIComponent(id))
   }
   listPermissions(t: SystemTenant, kind: 'roles' | 'users', id: string, q: OffsetPage): Promise<PermissionPage> {
     return this.tenantRequest(t, 'GET', '/api/v2/' + kind + '/' + encodeURIComponent(id) + '/permissions', { query: { ...q, include_totals: true } })
@@ -1078,6 +1133,9 @@ export class Api {
 
 const ALL_PER_PAGE = 100
 
+function scimPath(connection: string): string {
+  return '/api/v2/connections/' + encodeURIComponent(connection) + '/scim-configuration'
+}
 function userPath(id: string): string {
   return '/api/v2/users/' + encodeURIComponent(id)
 }
