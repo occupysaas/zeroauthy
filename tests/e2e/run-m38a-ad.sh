@@ -28,7 +28,12 @@ cleanup() {
  trap - EXIT INT TERM
  "$runtime" rm -f "$container" >/dev/null 2>&1 || true
  for p in "${pids[@]}"; do kill -TERM -- "-$p" 2>/dev/null || true; done
- if [[ ${E2E_KEEP_WORK:-0} == 1 ]]; then echo "Plan 38a private artifacts: $work"; else rm -rf "$work"; fi
+ if [[ ${E2E_KEEP_WORK:-0} == 1 ]]; then echo "Plan 38a private artifacts: $work"; else
+  # Files the container wrote may belong to a user-namespace ID (rootless
+  # podman): remove them through the runtime first.
+  [[ -d "$work/connector-run" ]] && "$runtime" run --rm --user "$(id -u):$(id -g)" -v "$work/connector-run:/work" "$NODE_IMAGE" rm -rf /work/node_modules /work/data >/dev/null 2>&1 || true
+  rm -rf "$work" 2>/dev/null || true
+ fi
 }
 trap cleanup EXIT
 trap 'exit 130' INT
@@ -93,7 +98,11 @@ node tests/e2e/m38a-ad-sdk.mjs setup || fail 'SDK setup failed'
 # SSL_CA_PATH, which replaces Node's list (lib/add_certs.js).
 cp -r "$work/connector-src/." "$work/connector-run/"
 chmod -R a+rwX "$work/connector-run"
-"$runtime" run -d --name "$container" --network host \
+# TS_KEYRING_BACKEND=null selects cross-keychain's null backend: the
+# connector reads its LDAP bind password from the OS keychain at start, and
+# CI runners have no secret service (the suite searches anonymously). The
+# container runs as the invoking user so the run directory stays removable.
+"$runtime" run -d --name "$container" --network host --user "$(id -u):$(id -g)" -e HOME=/tmp -e TS_KEYRING_BACKEND=null \
  -v "$work/connector-run:/work" -v "$PWD/tests/e2e/ad:/e2e:ro" -v "$work/ca:/certs:ro" \
  -e SSL_CA_PATH=/certs -e NODE_EXTRA_CA_CERTS=/certs/zeroauthy-test.pem -e OVERRIDE_CONFIG=false \
  -e PROVISIONING_TICKET="$(cat "$work/ticket")" -e LDAP_URL=ldap://127.0.0.1:4444 -e LDAP_BASE=dc=example,dc=org \
