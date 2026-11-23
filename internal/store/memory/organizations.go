@@ -202,6 +202,7 @@ func (r organizations) Delete(_ context.Context, tid, id string) error {
 		return store.ErrNotFound
 	}
 	r.s.deleteOrg(tid, id)
+	r.s.directory.dropOrganization(tid, id)
 	return nil
 }
 

@@ -206,6 +206,7 @@ func (r users) Delete(_ context.Context, tenantID, userID string) error {
 // holds the lock; Connections.Delete uses it too.
 func (s *Store) deleteUsers(tenantID string, gone map[string]bool) {
 	s.dropFederation(tenantID, gone)
+	s.directory.dropUsers(tenantID, gone)
 	for id := range gone {
 		s.deleteUserMFA(tenantID, id)
 		s.cleanupRBACUser(tenantID, id)

@@ -72,6 +72,7 @@ func (r rbac) DeleteRole(_ context.Context, tid, id string) error {
 	}
 	delete(r.s.roles, key{tid, id})
 	r.s.cleanupOrgRole(tid, id)
+	r.s.directory.dropRole(tid, id)
 	for k := range r.s.rolePermissions {
 		if k.tenant == tid && k.owner == id {
 			delete(r.s.rolePermissions, k)

@@ -304,7 +304,7 @@ func (r organizations) Delete(ctx context.Context, tid, id string) error {
 		if err := t.orgExists(ctx, tid, id); err != nil {
 			return err
 		}
-		for _, table := range []string{"organization_member_roles", "organization_members", "organization_connections"} {
+		for _, table := range []string{"organization_member_roles", "organization_members", "organization_connections", "directory_group_roles"} {
 			if _, err := t.s.exec(ctx, `DELETE FROM `+table+` WHERE tenant_id=? AND organization_id=?`, tid, id); err != nil {
 				return err
 			}

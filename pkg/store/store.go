@@ -18,6 +18,16 @@ type (
 	SAMLAddonLogout                = store.SAMLAddonLogout
 	SAMLSupporter                  = store.SAMLSupporter
 	WSFedSupporter                 = store.WSFedSupporter
+	Directory                      = store.Directory
+	DirectorySupporter             = store.DirectorySupporter
+	UnimplementedDirectory         = store.UnimplementedDirectory
+	SCIMConfig                     = store.SCIMConfig
+	SCIMMapping                    = store.SCIMMapping
+	SCIMToken                      = store.SCIMToken
+	Group                          = store.Group
+	GroupMember                    = store.GroupMember
+	GroupFilter                    = store.GroupFilter
+	GroupRole                      = store.GroupRole
 	SAMLParticipant                = store.SAMLParticipant
 	SAMLSessionRecorder            = store.SAMLSessionRecorder
 	SAMLReplayStore                = store.SAMLReplayStore
@@ -458,3 +468,9 @@ var ErrWSFedUnavailable = store.ErrWSFedUnavailable
 
 // CheckWSFedSupport reports whether s implements wsfed.v1.
 func CheckWSFedSupport(ctx context.Context, s Store) error { return store.CheckWSFedSupport(ctx, s) }
+
+// ErrDirectoryUnavailable reports a plugin without scim.v1 (Plan 37c).
+var ErrDirectoryUnavailable = store.ErrDirectoryUnavailable
+
+// ErrSCIMTokenLimit reports a SCIM token beyond the per-connection limit.
+var ErrSCIMTokenLimit = store.ErrSCIMTokenLimit

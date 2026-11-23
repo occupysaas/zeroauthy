@@ -89,6 +89,9 @@ func (s *capture) GitHubFederationSupported(ctx context.Context) error {
 	return store.ErrFederationUnavailable
 }
 
+// DirectorySupported passes scim.v1 (Plan 37c) through.
+func (s *capture) DirectorySupported() bool { return store.DirectoryAvailable(s.Store) }
+
 // CheckWSFedSupport passes wsfed.v1 (Plan 37b) through.
 func (s *capture) CheckWSFedSupport(ctx context.Context) error {
 	return store.CheckWSFedSupport(ctx, s.Store)

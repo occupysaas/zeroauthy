@@ -125,6 +125,10 @@ func errToPB(err error) *storev1.Error {
 		return nil
 	case errors.Is(err, store.ErrPhoneUnavailable):
 		return &storev1.Error{Kind: storev1.Error_KIND_PHONE_UNAVAILABLE, Message: err.Error()}
+	case errors.Is(err, store.ErrDirectoryUnavailable):
+		return &storev1.Error{Kind: storev1.Error_KIND_DIRECTORY_UNAVAILABLE, Message: err.Error()}
+	case errors.Is(err, store.ErrSCIMTokenLimit):
+		return &storev1.Error{Kind: storev1.Error_KIND_SCIM_TOKEN_LIMIT, Message: err.Error()}
 	case errors.Is(err, store.ErrRefreshTokensIISupportLost):
 		return &storev1.Error{Kind: storev1.Error_KIND_REFRESH_TOKENS_II_SUPPORT_LOST}
 	case errors.Is(err, store.ErrRefreshTokensIIUnavailable):
@@ -181,6 +185,10 @@ func errFromPB(e *storev1.Error) error {
 	switch e.Kind {
 	case storev1.Error_KIND_PHONE_UNAVAILABLE:
 		return store.ErrPhoneUnavailable
+	case storev1.Error_KIND_DIRECTORY_UNAVAILABLE:
+		return store.ErrDirectoryUnavailable
+	case storev1.Error_KIND_SCIM_TOKEN_LIMIT:
+		return store.ErrSCIMTokenLimit
 	case storev1.Error_KIND_REFRESH_TOKENS_II_SUPPORT_LOST:
 		return store.ErrRefreshTokensIISupportLost
 	case storev1.Error_KIND_REFRESH_TOKENS_II_UNAVAILABLE:

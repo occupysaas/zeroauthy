@@ -447,6 +447,7 @@ func (s capabilityStore) CheckEventsSupport(context.Context) error            { 
 func (s capabilityStore) EventsSupported() bool                               { return false }
 func (s capabilityStore) CheckSAMLSupport(context.Context) error              { return s.sentinel }
 func (s capabilityStore) CheckWSFedSupport(context.Context) error             { return s.sentinel }
+func (s capabilityStore) DirectorySupported() bool                            { return false }
 func (s capabilityStore) CheckOIDCLogoutSupport(context.Context) error        { return s.sentinel }
 func (s capabilityStore) CheckClientCredentialsSupport(context.Context) error { return s.sentinel }
 func (s capabilityStore) ClientCredentialsSupported() bool                    { return false }
@@ -465,7 +466,7 @@ func TestDecoratorForwardsCapabilities(t *testing.T) {
 		}
 	}
 	if s.(store.OrganizationsSupporter).OrganizationsSupported() || s.(store.OrganizationsIISupporter).OrganizationsIISupported() || s.(store.LogsSupporter).LogsSupported() || s.(store.EventsSupporter).EventsSupported() ||
-		s.(store.ClientCredentialsSupporter).ClientCredentialsSupported() || s.(store.MFASupporter).MFASupported() || s.(store.PhoneSupporter).PhoneSupported() || s.(store.ConnectionKeysSupporter).ConnectionKeysSupported() {
+		s.(store.ClientCredentialsSupporter).ClientCredentialsSupported() || s.(store.MFASupporter).MFASupported() || s.(store.PhoneSupporter).PhoneSupported() || s.(store.ConnectionKeysSupporter).ConnectionKeysSupported() || s.(store.DirectorySupporter).DirectorySupported() {
 		t.Fatal("unsupported capability became supported")
 	}
 	if err := s.Users().Create(ctx, user("u")); !errors.Is(err, sentinel) {
