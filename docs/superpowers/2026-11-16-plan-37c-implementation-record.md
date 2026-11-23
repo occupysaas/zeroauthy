@@ -146,4 +146,14 @@ the branch alike. With both on tmpfs they take 25 s (sqlstore) and 77 s
 | `go test ./api/... ./internal/mgmt/... ./internal/dirsync/... ./internal/federation/... ./internal/login/... ./internal/app/...` | ok |
 | `go test ./internal/server -run 'DirectoryProvisioning|GoogleApps|SocialConnections|MicrosoftConnections'` | ok |
 | Console `npm test`, lint, typecheck; `make console` | 98 files, 754 tests passed; clean; `console/dist` rebuilt |
-| Fast tier `go test ./...` | see the final review section |
+| Fast tier `go test -p 4 ./...` (tmpfs) at `4acd22a2` | 112 packages ok; 2 failed: `internal/server` `TestEveryAuthenticationRouteIsRateLimited` (CONNECT on the Phase B assistant route answered 404 before the limiter) and `internal/store/sqlstore` `TestEventsMigrationFrom30` (expected migration 47); both fixed in `3f4d09b1` |
+| `go test ./internal/server ./internal/store/sqlstore ./internal/dirsync` at `3f4d09b1` | ok (49 s, 25 s, 1 s) |
+| `make e2e-self-service` at `3f4d09b1` | passed, no skips |
+
+## Final review
+
+Reviewed the Phase C diff (federation `hd` binding, consent flow, syncer,
+Management routes, operator target). One finding fixed in `46a40c4b`: a
+transient failure reading one selected group deleted the local group and
+its role assignments. The run lease is now one hour. A user whose update
+fails is still counted as present (regression test).
