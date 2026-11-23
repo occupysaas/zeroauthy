@@ -614,7 +614,13 @@ func (a authAPI) WsfedClientMetadata(w http.ResponseWriter, r *http.Request, cli
 func adNotImplemented(w http.ResponseWriter) {
 	httpx.WriteError(w, http.StatusNotImplemented, "not_implemented", "AD/LDAP connections are not implemented yet")
 }
-func (authAPI) AdHub(w http.ResponseWriter, _ *http.Request) { adNotImplemented(w) }
+func (a authAPI) AdHub(w http.ResponseWriter, r *http.Request) {
+	if a.ad == nil || a.ad.Hub == nil {
+		adNotImplemented(w)
+		return
+	}
+	a.ad.Hub.ServeHTTP(w, r)
+}
 func (a authAPI) AdTicketInfo(w http.ResponseWriter, r *http.Request, ticket string) {
 	if a.ad == nil {
 		adNotImplemented(w)

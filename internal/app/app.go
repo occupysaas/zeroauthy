@@ -410,6 +410,7 @@ func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.S
 	engine.InvitationEmail = tenantEmail
 	flows := &federation.FlowService{Service: federation.Service{Wrapper: wrapper}, Store: st, Providers: providers, Log: log}
 	adService := &adhub.Service{Store: st, Wrapper: wrapper, Log: log, TrustProxyHeaders: cfg.Server.TrustProxyHeaders}
+	adService.Hub = &adhub.Hub{Service: adService, ReplicaID: adhub.NewReplicaID()}
 	sec := cfg.Security
 	buildsOwned = true
 	eventDeliveryWorker := eventstream.NewWorker(st, wrapper, events.Config{AllowPrivateNetworks: cfg.Events.AllowPrivateNetworks, AllowInsecureHTTP: cfg.Events.AllowInsecureHTTP}, nil, eventstream.NewActionRunner(engine), log)
