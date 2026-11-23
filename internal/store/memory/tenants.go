@@ -124,6 +124,7 @@ func (r tenants) Delete(_ context.Context, id string) error {
 	purge(r.s.domainAttempts, id)
 	r.s.deleteTenantMFA(id)
 	r.s.directory.dropTenant(id)
+	r.s.selfService.dropTenant(id)
 	r.s.deleteTenantPhone(id)
 	r.s.deleteActionsTenant(id)
 	for k := range r.s.roles {

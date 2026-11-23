@@ -338,6 +338,15 @@ func (o *opened) DirectorySupported() bool {
 	return false
 }
 
+// SelfServiceSupported keeps scim.v1 version 2 (Plan 37c Phase B) visible
+// through the process wrapper.
+func (o *opened) SelfServiceSupported() bool {
+	if repo, ok := o.Store.(store.SelfServiceSupporter); ok {
+		return repo.SelfServiceSupported()
+	}
+	return false
+}
+
 // CheckWSFedSupport keeps wsfed.v1 (Plan 37b) visible through the process
 // wrapper; without it, CheckWSFedSupport would treat the wrapper as supporting.
 func (o *opened) CheckWSFedSupport(ctx context.Context) error {

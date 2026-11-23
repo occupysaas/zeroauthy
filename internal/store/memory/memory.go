@@ -32,6 +32,7 @@ type Store struct {
 type state struct {
 	connectionKeys         map[key]*store.ConnectionKey
 	directory              *directoryState // Plan 37c
+	selfService            *selfServiceState
 	guardian               map[string]*store.GuardianSettings
 	authenticators         map[key]*store.Authenticator
 	mfaTokens              map[key]*store.MFAToken
@@ -169,6 +170,7 @@ func New() *Store {
 		connections:            map[key]*store.Connection{},
 		connectionKeys:         map[key]*store.ConnectionKey{},
 		directory:              newDirectoryState(),
+		selfService:            newSelfServiceState(),
 		passwordHistories:      map[key][][]byte{},
 		users:                  map[key]*store.User{},
 		sessions:               map[key]*store.LoginSession{},

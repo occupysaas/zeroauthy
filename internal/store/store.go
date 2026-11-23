@@ -43,6 +43,7 @@ type Store interface {
 	ConnectionKeys() ConnectionKeys
 	// Directory is Plan 37c's SCIM and group state (scim.v1).
 	Directory() Directory
+	SelfService() SelfService
 	MFA() MFA
 	Phone() Phone
 	WebAuthn() WebAuthn

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/zeroauthy/zeroauthy/internal/store"
@@ -39,6 +40,8 @@ type dirResult struct {
 	Members []store.GroupMember `json:",omitempty"`
 	Roles   []store.GroupRole   `json:",omitempty"`
 	Total   int                 `json:",omitempty"`
+	// SelfService is the result of a SelfService.* method.
+	SelfService json.RawMessage `json:",omitempty"`
 }
 
 type clientDirectory struct{ c *Client }
@@ -212,6 +215,9 @@ func (s *Server) DirectoryCapabilities(_ context.Context, _ *storev1.PingRequest
 	if !store.DirectoryAvailable(s.st) {
 		return &storev1.EventsCapabilitiesResult{}, nil
 	}
+	if store.SelfServiceAvailable(s.st) {
+		return &storev1.EventsCapabilitiesResult{Version: 2}, nil
+	}
 	return &storev1.EventsCapabilitiesResult{Version: 1}, nil
 }
 
@@ -266,6 +272,9 @@ func (s *Server) DirectoryCall(ctx context.Context, r *storev1.DirectoryCallRequ
 		case "ListGroupRoles":
 			out.Roles, e = d.ListGroupRoles(ctx, a.TenantID, a.GroupID, a.RoleID, a.OrganizationID)
 		default:
+			if method, ok := strings.CutPrefix(r.GetMethod(), selfServicePrefix); ok && store.SelfServiceAvailable(st) {
+				return serveSelfService(ctx, st.SelfService(), method, r.GetArgs(), &out.SelfService)
+			}
 			return status.Error(codes.Unimplemented, "DirectoryCall: unknown method")
 		}
 		return e

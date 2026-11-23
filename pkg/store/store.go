@@ -21,6 +21,12 @@ type (
 	Directory                      = store.Directory
 	DirectorySupporter             = store.DirectorySupporter
 	UnimplementedDirectory         = store.UnimplementedDirectory
+	SelfService                    = store.SelfService
+	SelfServiceSupporter           = store.SelfServiceSupporter
+	UnimplementedSelfService       = store.UnimplementedSelfService
+	SelfServiceProfile             = store.SelfServiceProfile
+	SSOTicket                      = store.SSOTicket
+	ConnectionProfile              = store.ConnectionProfile
 	SCIMConfig                     = store.SCIMConfig
 	SCIMMapping                    = store.SCIMMapping
 	SCIMToken                      = store.SCIMToken
@@ -474,3 +480,6 @@ var ErrDirectoryUnavailable = store.ErrDirectoryUnavailable
 
 // ErrSCIMTokenLimit reports a SCIM token beyond the per-connection limit.
 var ErrSCIMTokenLimit = store.ErrSCIMTokenLimit
+
+// ErrSelfServiceUnavailable reports a plugin without scim.v1 version 2.
+var ErrSelfServiceUnavailable = store.ErrSelfServiceUnavailable

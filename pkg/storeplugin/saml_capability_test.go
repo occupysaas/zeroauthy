@@ -47,3 +47,20 @@ func TestOpenedForwardsDirectoryCapability(t *testing.T) {
 type noDirectory struct{ store.Store }
 
 func (noDirectory) DirectorySupported() bool { return false }
+
+// The process wrapper must forward scim.v1 version 2 (Plan 37c Phase B).
+func TestOpenedForwardsSelfServiceCapability(t *testing.T) {
+	var _ store.SelfServiceSupporter = (*opened)(nil)
+	o := &opened{Store: noSelfService{memory.New()}}
+	defer o.Store.Close()
+	if store.SelfServiceAvailable(o) {
+		t.Fatal("wrapper without self-service reported support")
+	}
+	if !store.SelfServiceAvailable(&opened{Store: memory.New()}) {
+		t.Fatal("wrapper hid self-service")
+	}
+}
+
+type noSelfService struct{ store.Store }
+
+func (noSelfService) SelfServiceSupported() bool { return false }
