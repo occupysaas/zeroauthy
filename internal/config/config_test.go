@@ -683,3 +683,19 @@ func TestNoncompliantCompatEnvironment(t *testing.T) {
 		t.Fatal("misspelled switch silently accepted")
 	}
 }
+
+// server.replica_url (Plan 38a) must be an https:// URL without a path.
+func TestReplicaURL(t *testing.T) {
+	for url, ok := range map[string]bool{
+		"https://10.0.0.5:9443": true, "https://replica-a.internal/": true,
+		"http://10.0.0.5:9443": false, "https://10.0.0.5/forward": false, "10.0.0.5:9443": false, "https://u:p@host": false,
+	} {
+		cfg, err := Load("", []string{"ZEROAUTHY_STORAGE__DSN=memory://", sysHost, "ZEROAUTHY_SERVER__REPLICA_URL=" + url})
+		if ok && (err != nil || cfg.Server.ReplicaURL != url) {
+			t.Errorf("%s refused: %v", url, err)
+		}
+		if !ok && err == nil {
+			t.Errorf("%s accepted", url)
+		}
+	}
+}

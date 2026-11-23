@@ -253,6 +253,11 @@ func New(d Deps) http.Handler {
 	r := chi.NewRouter()
 	r.Use(middleware.RequestID, requestLog(d.Log), recoverer(d.Log))
 
+	// AD/LDAP Connector forwarding between replicas (Plan 38a) answers on
+	// any host; requests are authenticated per connection.
+	if d.AD != nil && d.AD.Hub != nil {
+		r.Post(adhub.ForwardPath, d.AD.Hub.ServeForward)
+	}
 	// Operational endpoints answer on any host.
 	r.Get("/healthz", func(w http.ResponseWriter, _ *http.Request) {
 		httpx.WriteJSON(w, http.StatusOK, map[string]string{"status": "ok"})
@@ -517,7 +522,7 @@ func New(d Deps) http.Handler {
 		// registry, so liveness survives a store outage.
 		admitted := d.Domains.Middleware(r)
 		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-			if req.URL.Path == "/healthz" || req.URL.Path == "/readyz" {
+			if req.URL.Path == "/healthz" || req.URL.Path == "/readyz" || req.URL.Path == adhub.ForwardPath {
 				r.ServeHTTP(w, req)
 				return
 			}
