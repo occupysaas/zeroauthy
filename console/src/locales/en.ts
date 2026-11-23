@@ -10,6 +10,13 @@ const en = {
   acs: 'Assertion consumer service URL:', sp: 'Service provider', entityID: 'Entity ID', spMetadata: 'Service provider metadata',
   replaceCertHint: 'Paste a PEM certificate to replace the stored one; leave empty to keep it.', signOut: 'Sign-out URL', signRequest: 'Sign authentication requests', disableSignout: 'Do not log out of the identity provider', idpInitiated: 'Allow IdP-initiated login', idpClient: 'Application for IdP-initiated login', idpQuery: 'Authorization query for IdP-initiated login', fieldsMap: 'Attribute mapping (JSON)',
  },
+ wsfed37: {
+  tab: 'WS-Fed Web App', enable: 'Enable the WS-Fed Web App add-on', realms: 'Realms (client_aliases)', realmsHint: 'One wtrealm value per line, unique in the tenant. The client ID is always accepted.',
+  callbacksHint: 'Reply URLs (wreply) are the application\'s Allowed Callback URLs; sign-out return URLs are its Allowed Logout URLs.',
+  usage: 'Usage', loginURL: 'Sign-in URL', metadata: 'Federation metadata', realmsAccepted: 'Accepted realms', issuer: 'Issuer',
+  source: 'Federation metadata', fromServer: 'ADFS server', fromXML: 'Metadata document', server: 'ADFS server or metadata URL', serverHint: 'A host name, such as adfs.example.com, or an HTTPS metadata URL.',
+  xml: 'Federation metadata XML', realm: 'Realm identifier', callback: 'Endpoint for the ADFS relying party trust:', userIdAttribute: 'User ID claim', emailVerified: 'Trust email addresses as verified',
+ },
  oidc41: {
   tab: 'OIDC and logout', logout: 'Back-channel logout', receiver: 'Logout receiver URL', receiverHint: 'One HTTPS URL, up to 2,048 bytes. Organization name and ID placeholders are supported. Clear to remove.', invalidURL: 'Enter one HTTPS URL without credentials, spaces or a fragment.',
   initiators: 'Send logout notifications when', custom: 'Selected events', all: 'All supported events', metadata: 'Include session metadata in logout tokens', tokens: 'OpenID Connect', algorithm: 'ID token signing algorithm', hsHint: 'HS256 requires a confidential application using a retrievable client secret of at least 32 characters. Rotate an unavailable secret in Settings.',
@@ -1300,6 +1307,7 @@ const en = {
       github: 'GitHub',
       waad: 'Microsoft work or school account',
       samlp: 'SAML',
+      adfs: 'ADFS',
     },
     enterpriseLink: 'Set up generic OpenID Connect or Microsoft work and school in Enterprise',
     appleServices: 'Services ID',

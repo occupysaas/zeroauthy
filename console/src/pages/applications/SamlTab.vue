@@ -33,6 +33,11 @@ function parsed(): Addon | undefined {
   return v !== null && typeof v === 'object' && !Array.isArray(v) ? v as Addon : undefined
  } catch { return undefined }
 }
+// PATCH replaces the whole addons object: keep the WS-Fed add-on (Plan 37b).
+function keep(): NonNullable<ClientUpdate['addons']> {
+ const wsfed = props.client.addons?.wsfed
+ return wsfed != null ? { wsfed } : {}
+}
 async function save() {
  if (busy.value) return
  const mine = epoch, tenant = props.tenant, id = props.client.client_id
@@ -41,10 +46,10 @@ async function save() {
  if (enabled.value) {
   const addon = parsed()
   if (!addon) { error.value = t('saml37.invalidJSON'); return }
-  body = { addons: { samlp: addon } }
+  body = { addons: { ...keep(), samlp: addon } }
  } else {
   if (props.client.addons?.samlp == null) return
-  body = { addons: { samlp: null } }
+  body = { addons: { ...keep(), samlp: null } }
  }
  busy.value = true
  try { const result = await api.updateClient(tenant, id, body); if (mine !== epoch) return; emit('saved', result); status.value = t('saved') }
