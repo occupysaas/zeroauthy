@@ -880,3 +880,9 @@ Recorded under [D-0160](../compat/decisions.md); observe on a live tenant when o
 - **D38-10** Log event types Auth0 records for AD failures.
 - **D38-11** Forwarding alternative through the store or a job queue.
 - **D38-12** Several connectors per connection (two certificates kept, LR38a-5).
+- **Follow-ups (Plan 38a):** the hosted forgot-password flow for `ad`
+  users through `change_password` (LR38a-12); `groups` as a root attribute
+  and directory groups (Plan 37c) from the connector's groups (D38-4); a
+  console view of `list_groups`; ticket rotation without recreating the
+  connection; Kerberos on custom domains (the connector accepts one
+  `postTokenUrl`, LR38a-10).

@@ -22,7 +22,7 @@ Auth0 or Okta.
 | WS-Federation | WS-Fed Web App add-on (SAML 1.1 tokens, metadata, sign-out) and `adfs` connections implemented; WS-Trust active endpoints and JWT tokens are not | [Guide](ws-federation.md) |
 | Enterprise login | WS-Federation and ADFS, SCIM, self-service SSO | Plans 37b and 37c |
 | Enterprise login | OIDC/Okta front/back channel, mapping, PAR, JWE, connection keys and domain routing implemented; Entra Graph extras remain deferred | [Guide](enterprise-connections.md) |
-| Enterprise login | Active Directory / LDAP connector | Plan 38 |
+| Enterprise login | `ad` connections through Auth0's AD/LDAP Connector implemented (password login, Kerberos, password change, status, several replicas); a native LDAP bind and the hosted forgot-password flow for `ad` users are not | [Guide](ad-ldap.md) |
 | Social login | Providers beyond Apple, Google, Microsoft, GitHub and generic OAuth 2 / OIDC (Facebook, ...) | Plan 39b |
 | Social login | GitHub: OAuth app sign-in and token retrieval implemented; GitHub Enterprise, device flow and token refresh are not | [Guide](social-connections.md#github) |
 | Native social login | Google and Facebook exchanges (switches are stored only); Apple is implemented | Plan 39b |

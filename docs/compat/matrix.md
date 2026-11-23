@@ -79,6 +79,7 @@ evidence log; the user-facing summary, with the gaps listed first, is
 | SAML 2.0 (IdP add-on `addons.samlp`, SP `samlp` connections) | Implemented (Plan 37a; local verification) | Redirect/POST bindings, signed SLO both ways, encrypted assertions, replay store, metadata. No artifact/SOAP/ECP. Verified with pinned @node-saml/node-saml 5.2.0, samlify 2.15.1 and the Deploy CLI. See [SAML](../saml.md), D-0130. |
 | WS-Federation (IdP add-on `addons.wsfed`, RP `adfs` connections) | Implemented (Plan 37b; local verification) | SAML 1.1 RSTR tokens, `client_aliases` realms, federation metadata, `wsignout1.0`/`wsignoutcleanup1.0`; ADFS from `adfs_server` or `fedMetadataXml`, thumbprint trust, SAML 1.1 and 2.0 tokens, replay store, HRD, upstream sign-out. No WS-Trust, no JWT tokens. Verified with xml-crypto 6.4.0 fixtures and the Deploy CLI. See [WS-Federation](../ws-federation.md), D-0140. |
 | WS-Federation | Planned (Plan 37b) | |
+| Active Directory / LDAP (`ad` connections) | Implemented (Plan 38a; local verification) | Auth0's AD/LDAP Connector v8.0.5 unchanged: provisioning ticket, WebSocket hub with certificate-signed connector tokens, password login, Kerberos through the connector's WS-Fed endpoint, groups as profile data, password change through `PATCH /users/{id}`, `GET /connections/{id}/status`, forwarding between replicas. No native LDAP bind, no credential cache. Verified with the real connector and its mock LDAP server, node-auth0 and the Deploy CLI. See [AD/LDAP](../ad-ldap.md), D-0160. |
 | Deprecated endpoints (`/oauth/ro`, `/delegation`, `/tokeninfo`, `/oauth/access_token`, impersonation) | Not planned | Deprecated by Auth0 |
 | Hosted page languages (`ui_locales`, `Accept-Language`, `enabled_locales`, per-tenant `custom_text`) | Implemented | English catalog only; verified with @auth0/auth0-spa-js 2.28.3 (`ui_locales`) and browser `Accept-Language`; the custom-text Management API is implemented (Plan 22, below) |
 | Storage plugins (`plugin://` DSN, gRPC) | Implemented | zeroauthy extension, not an Auth0 surface; Go SDK in `pkg/storeplugin`; see D-0021 |
@@ -291,3 +292,15 @@ See [SAML](../saml.md) and the [implementation record](../superpowers/2026-11-16
 | Weak algorithms | SHA-1 signatures refused on ADFS tokens; the IdP signs with RSA-SHA256 unless an Action selects otherwise. |
 
 See [WS-Federation](../ws-federation.md) and the [implementation record](../superpowers/2026-11-22-plan-37b-implementation-record.md).
+
+## Plan 38a Active Directory / LDAP
+
+| Surface | Behavior |
+| --- | --- |
+| Provisioning | `provisioning_ticket_url` on `ad` connections, valid for the connection's life; `GET {ticket}/info`, `POST {ticket}` (certificate, `signInEndpoint`, agent mode and version; returns the signing key); `GET /test` for the connector's latency test. |
+| Hub | `wss://{host}/ad-hub`, TLS only; RS256 connector token for the connection and realm, single use; HS256 requests with a random `pid`, replies matched by pid and op; 10 s timeout, 64 in flight. |
+| Login | Username/password form (by `connection`, as the only password connection, or by home realm discovery); connector errors mapped to wrong credentials, blocked, password change required, unavailable; `ad\|{connection}\|{id}`. |
+| Kerberos | `kerberos` + `ips` on the canonical host: WS-Fed round trip through the connector. |
+| Management | Connector-managed options read-only (ignored on writes); `PATCH /users/{id}` password through the connector; status 200/404. |
+
+See [AD/LDAP](../ad-ldap.md) and the [implementation record](../superpowers/2026-11-16-plan-38a-implementation-record.md).

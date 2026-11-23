@@ -3876,7 +3876,9 @@ Observation points W1–W5 (spec §4) and later W-n are listed in
 
 ## D-0160: AD/LDAP connections through the AD/LDAP Connector (Plan 38a)
 
-**Contract frozen 2026-11-23.** The
+**Contract frozen and implemented 2026-11-23 (local verification;
+plan-branch CI and maintainer approval pending).** Operator guide:
+[AD/LDAP](../ad-ldap.md). The
 [spec](../superpowers/specs/2026-11-16-zeroauthy-ad-ldap-design.md) and
 [plan](../superpowers/plans/2026-11-16-zeroauthy-plan-38a-ad-ldap.md)
 reserve D-0160–0169. Maintainer rulings (2026-11-22): zeroauthy speaks the
@@ -3917,8 +3919,8 @@ real connector):
 | ID | Ruling |
 |---|---|
 | LR38a-1 | No zeroauthy-side credential cache; `disable_cache` is stored and returned. |
-| LR38a-2 | The hub requires TLS on public listeners (plain HTTP is refused unless the server runs in development mode). |
-| LR38a-3 | Replica-to-replica forwarding over internal HTTPS with a secret derived from the master key. |
+| LR38a-2 | The hub requires TLS: a TLS listener, or a proxy trusted with `server.trust_proxy_headers` that sends `X-Forwarded-Proto: https`; there is no development exemption (tests use TLS servers). |
+| LR38a-3 | Replica-to-replica forwarding over HTTPS (`server.replica_url`, `server.replica_ca_file`), signed with an HMAC key derived from the connection's signing key (sealed by the master key), with a one-minute window and single-use nonces; the receiver answers from its own sockets only. |
 | LR38a-4 | One provisioning ticket per connection, created with it, sealed in the store and returned as `provisioning_ticket_url`. It stays valid for the connection's life because the connector reads and posts it at every start (the spec's single-use ticket would break connector restarts). |
 | LR38a-5 | A registration adds the connector's certificate to `certs`, keeping the two most recent (the OpenAPI maximum); sockets authenticated with an evicted certificate are closed. The signing key is generated once per connection and returned to every registration, so several connectors can serve one connection. |
 | LR38a-6 | Connector-managed options (`agentIP`, `agentMode`, `agentVersion`, `signInEndpoint`, `certs`, `thumbprints`, `thumbprints_sha384`) sent through the Management API are ignored and the stored values kept, so Deploy CLI exports round-trip. |
@@ -3927,3 +3929,6 @@ real connector):
 | LR38a-9 | Error mapping: `WrongUsername`, `WrongPassword` → wrong credentials; `AccountDisabled`, `AccountExpired`, `AccountLocked` → user blocked; `PasswordExpired`, `PasswordChangeRequired` → password change required; anything else, a timeout or no connector online → the connection is not available. Nothing falls back. |
 | LR38a-10 | Kerberos redirects only on the host the ticket names (the connector accepts one `postTokenUrl`); elsewhere the username/password form is shown. |
 | LR38a-11 | Requests time out after 10 s; at most 64 are in flight per connection. |
+| LR38a-12 | Directory passwords change through `PATCH /api/v2/users/{id}` (password alone) and the connector's `change_password` (it needs `ENABLE_WRITE_BACK`); the hosted forgot-password flow is not offered for `ad` connections, whose passwords live in the directory. The sign-in name is kept as identity provider data `ad_username` for it. |
+| LR38a-13 | `groups` and the connector profile's other attributes are identity provider data (`identities[].profileData`), not root attributes (D38-4). |
+| LR38a-14 | A connector socket silent for 30 s is closed (the connector pings every 5 s); session rows are refreshed every 30 s and count as online for 90 s. |

@@ -166,8 +166,9 @@ can use the identifier prompt, including hidden workforce connections; an
 unmatched identifier has no password fallback without an eligible database.
 Single-screen username/password login does not use this routing.
 
-`GET /api/v2/connections/{id}/status` is an AD/LDAP-only online check. The
-current strategies answer 404. `DELETE /api/v2/connections/{id}/users?email=`
+`GET /api/v2/connections/{id}/status` is an AD/LDAP-only online check: `ad`
+connections answer 200 while a connector is connected ([AD/LDAP](ad-ldap.md));
+every other connection answers 404. `DELETE /api/v2/connections/{id}/users?email=`
 requires `delete:users`, supports database connections, and uses the same
 cleanup and operator protections as deleting a user by ID. Unknown emails
 answer 204; all matching users on the connection are removed.
