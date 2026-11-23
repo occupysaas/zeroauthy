@@ -45,8 +45,6 @@ func (h *Handlers) now() time.Time {
 // Configuration is OpenID Provider metadata (OpenID Connect Discovery 1.0
 // §3). It lists only what this server implements.
 type Configuration struct {
-	GlobalTokenRevocationEndpoint      string   `json:"global_token_revocation_endpoint,omitempty"`
-	GlobalTokenRevocationAuthMethods   []string `json:"global_token_revocation_endpoint_auth_methods_supported,omitempty"`
 	BackchannelLogoutSupported         bool     `json:"backchannel_logout_supported,omitempty"`
 	BackchannelLogoutSessionSupported  bool     `json:"backchannel_logout_session_supported,omitempty"`
 	ACRValuesSupported                 []string `json:"acr_values_supported"`
@@ -120,10 +118,9 @@ func (h *Handlers) Discovery(w http.ResponseWriter, r *http.Request) {
 	if h.Store != nil && store.CheckOIDCLogoutSupport(r.Context(), h.Store) == nil {
 		cfg.BackchannelLogoutSupported = true
 		cfg.BackchannelLogoutSessionSupported = true
-		if _, ok := h.Store.(store.GlobalRevocationStore); ok {
-			cfg.GlobalTokenRevocationEndpoint = base + "/oauth/global-token-revocation/connection/{connectionName}"
-			cfg.GlobalTokenRevocationAuthMethods = []string{"global-token-revocation+jwt"}
-		}
+		// The global token revocation endpoint is per connection
+		// (.../connection/{connectionName}): a template is not a URL, so
+		// discovery does not list it (D-0080, maintainer 2026-11-22).
 	}
 	if !h.Compat.IgnoreClaimsParameter {
 		yes := true
