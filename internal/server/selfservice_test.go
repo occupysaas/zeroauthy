@@ -164,6 +164,11 @@ func TestAssistantFlow(t *testing.T) {
 	if !strings.Contains(page, "urn:auth0:acme:partner-saml") || !strings.Contains(page, "https://acme.example.test/login/callback?connection=partner-saml") {
 		t.Fatal("service provider values missing")
 	}
+	// no-referrer would make browsers send Origin: null on the assistant's
+	// own form posts, which the origin check refuses.
+	if rp := rec.Header().Get("Referrer-Policy"); rp != "same-origin" {
+		t.Fatalf("Referrer-Policy %q", rp)
+	}
 	if csp := rec.Header().Get("Content-Security-Policy"); !strings.Contains(csp, "default-src 'none'") || !strings.Contains(csp, "frame-ancestors 'none'") {
 		t.Fatalf("CSP %q", csp)
 	}

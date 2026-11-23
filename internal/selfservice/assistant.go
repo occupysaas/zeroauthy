@@ -18,6 +18,7 @@ import (
 
 	"github.com/zeroauthy/zeroauthy/internal/mgmt"
 	"github.com/zeroauthy/zeroauthy/internal/scim"
+	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/tenant"
 )
@@ -332,7 +333,7 @@ func (h *Handler) render(w http.ResponseWriter, s *session, v view, status int) 
 func securityHeaders(w http.ResponseWriter) {
 	w.Header().Set("Content-Security-Policy", "default-src 'none'; style-src 'self' 'unsafe-inline'; img-src https:; form-action 'self'; frame-ancestors 'none'; base-uri 'none'")
 	w.Header().Set("X-Frame-Options", "DENY")
-	w.Header().Set("Referrer-Policy", "no-referrer")
+	w.Header().Set("Referrer-Policy", "same-origin")
 	w.Header().Set("X-Content-Type-Options", "nosniff")
 	w.Header().Set("Cache-Control", "no-store")
 }
@@ -345,8 +346,13 @@ func (h *Handler) testURL(s *session) string {
 	if err != nil || len(c.Callbacks) == 0 {
 		return ""
 	}
+	// A discarded S256 challenge makes the request valid for public
+	// applications too; the application cannot redeem the code.
+	verifier := secrets.RandomString(43)
+	sum := sha256.Sum256([]byte(verifier))
 	q := url.Values{"client_id": {c.ClientID}, "response_type": {"code"}, "redirect_uri": {c.Callbacks[0]}, "scope": {"openid profile email"},
-		"connection": {s.conn.Name}, "prompt": {"login"}}
+		"connection": {s.conn.Name}, "prompt": {"login"}, "state": {secrets.RandomString(16)},
+		"code_challenge": {base64.RawURLEncoding.EncodeToString(sum[:])}, "code_challenge_method": {"S256"}}
 	return "https://" + s.host + "/authorize?" + q.Encode()
 }
 
