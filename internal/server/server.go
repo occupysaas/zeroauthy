@@ -43,6 +43,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/protection"
 	"github.com/zeroauthy/zeroauthy/internal/ratelimit"
 	"github.com/zeroauthy/zeroauthy/internal/scim"
+	"github.com/zeroauthy/zeroauthy/internal/selfservice"
 	"github.com/zeroauthy/zeroauthy/internal/session"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/tenant"
@@ -331,6 +332,10 @@ func New(d Deps) http.Handler {
 			return d.Logout.WithStore(tx).EndUserSessions(ctx, tid, uid, logout.SessionRevoked)
 		}}
 
+	// The self-service SSO assistant (Plan 37c Phase B) writes through the
+	// Management API's handlers, wired once mh exists.
+	assistant := &selfservice.Handler{Store: d.Store, Log: d.Log}
+
 	// Authentication API: every route is tenant-scoped.
 	r.Group(func(tr chi.Router) {
 		// The limiter runs right after tenant resolution, ahead of any
@@ -411,6 +416,7 @@ func New(d Deps) http.Handler {
 		tr.Post("/u/login/social", lg.SocialStart)
 		tr.Get("/login/callback", lg.SocialCallback)
 		tr.Mount("/scim/v2/connections/{connection_id}", scimHandler.Routes())
+		tr.Handle(selfservice.Path, assistant)
 		tr.Post("/login/callback", lg.SocialCallback)
 		tr.Get("/u/consent", lg.ConsentPage)
 		tr.Post("/u/consent", lg.ConsentSubmit)
@@ -472,6 +478,7 @@ func New(d Deps) http.Handler {
 		RestrictSharedRPIDs:    d.RestrictSharedRPIDs,
 	}
 	scimDelete = mh.SCIMDeleteUser
+	assistant.Writes = mh
 	mr.Use(d.Resolver.Middleware, systemOnly, mgmtCORS(systemOrigin), auth, mh.LogMiddleware, operatorOnly)
 	if len(d.ExportKey) > 0 {
 		mh.Export = &mgmt.ExportLink{Key: d.ExportKey}
