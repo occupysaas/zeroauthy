@@ -244,7 +244,6 @@ func (h *Handler) respondWSFed(w http.ResponseWriter, r *http.Request, res tenan
 		h.page(w, r, res, http.StatusInternalServerError, "Something went wrong.")
 		return
 	}
-	h.recordWSFedParticipant(r, res, client, sess, spec.NameID)
 	ui.RenderFormPost(w, i18n.ForRequest(res.Tenant, r, ""), b.Reply, url.Values{"wa": {wsfedSignIn}, "wresult": {wresult}, "wctx": {b.Context}})
 }
 

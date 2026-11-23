@@ -190,3 +190,114 @@ func TestWSFedBindingNotInjectable(t *testing.T) {
 		t.Fatal("WS-Fed binding accepted from request parameters")
 	}
 }
+
+func TestWSFedMetadata(t *testing.T) {
+	e, tn := wsfedEnv(t)
+	c := e.client(t)
+	certs := tenantCerts(t, e, tn.ID)
+	for path, endpoint := range map[string]string{
+		"/wsfed/FederationMetadata/2007-06/FederationMetadata.xml":          e.base + "/wsfed",
+		"/wsfed/wsfed-rp/FederationMetadata/2007-06/FederationMetadata.xml": e.base + "/wsfed/wsfed-rp",
+	} {
+		resp, body := fetch(t, c, e.base+path)
+		if resp.StatusCode != 200 || !strings.HasPrefix(resp.Header.Get("Content-Type"), "application/xml") {
+			t.Fatalf("%s: %d %s", path, resp.StatusCode, resp.Header.Get("Content-Type"))
+		}
+		doc, err := samlcore.Parse([]byte(body))
+		if err != nil {
+			t.Fatal(err)
+		}
+		root := doc.Root()
+		if root.Tag != "EntityDescriptor" || root.SelectAttrValue("entityID", "") != "urn:"+strings.TrimPrefix(e.base, "https://") {
+			t.Fatalf("%s: root %s %v", path, root.Tag, root.Attr)
+		}
+		role := root.FindElement("RoleDescriptor")
+		if role == nil || role.SelectAttrValue("xsi:type", "") != "fed:SecurityTokenServiceType" ||
+			role.SelectAttrValue("protocolSupportEnumeration", "") != "http://docs.oasis-open.org/wsfed/federation/200706" {
+			t.Fatalf("%s: role descriptor", path)
+		}
+		if addr := role.FindElement("PassiveRequestorEndpoint/EndpointReference/Address"); addr == nil || addr.Text() != endpoint {
+			t.Fatalf("%s: passive requestor endpoint", path)
+		}
+		x509s := role.FindElements("KeyDescriptor/KeyInfo/X509Data/X509Certificate")
+		if len(x509s) == 0 || len(x509s) != len(certs) {
+			t.Fatalf("%s: %d signing certificates, want %d", path, len(x509s), len(certs))
+		}
+		if len(role.FindElements("TokenTypesOffered/TokenType")) != 2 || len(role.FindElements("ClaimTypesOffered/ClaimType")) != 5 {
+			t.Fatalf("%s: token or claim types", path)
+		}
+	}
+	for _, path := range []string{"/wsfed/nobody/FederationMetadata/2007-06/FederationMetadata.xml"} {
+		if resp, _ := fetch(t, c, e.base+path); resp.StatusCode != 404 {
+			t.Fatalf("%s: %d", path, resp.StatusCode)
+		}
+	}
+}
+
+func wsfedSignedIn(t *testing.T, e *flowEnv) *http.Client {
+	t.Helper()
+	c := e.client(t)
+	if resp, page := e.follow(t, c, e.base+"/wsfed/wsfed-rp"); resp.StatusCode != 200 || !strings.Contains(page, "wresult") {
+		t.Fatalf("sign-in %d", resp.StatusCode)
+	}
+	return c
+}
+
+func wsfedNeedsLogin(t *testing.T, e *flowEnv, c *http.Client) bool {
+	t.Helper()
+	resp, _ := fetch(t, c, e.base+"/wsfed/wsfed-rp")
+	loc, _ := resp.Location()
+	return resp.StatusCode == http.StatusFound && loc != nil && loc.Path == "/u/login"
+}
+
+// wsignout1.0 ends the session and returns to wreply, which must be an
+// allowed logout URL (the /v2/logout rule).
+func TestWSFedSignOut(t *testing.T) {
+	e, tn := wsfedEnv(t)
+	rp, _ := e.st.Clients().Get(t.Context(), tn.ID, "wsfed-rp")
+	rp.AllowedLogoutURLs = []string{"https://rp.flow.test/signed-out"}
+	if err := e.st.Clients().Update(t.Context(), rp); err != nil {
+		t.Fatal(err)
+	}
+	c := wsfedSignedIn(t, e)
+	resp, _ := fetch(t, c, wsfedURL(e.base, "/wsfed/wsfed-rp", url.Values{"wa": {"wsignout1.0"}, "wreply": {"https://evil.flow.test/"}}))
+	for i := 0; i < 3 && resp.StatusCode == http.StatusFound; i++ {
+		loc, _ := resp.Location()
+		if !strings.HasPrefix(loc.String(), e.base) {
+			t.Fatalf("redirected to %s", loc)
+		}
+		resp, _ = fetch(t, c, loc.String())
+	}
+	if resp.StatusCode != 400 || wsfedNeedsLogin(t, e, c) {
+		t.Fatalf("disallowed wreply: status %d; the session must survive", resp.StatusCode)
+	}
+	resp, _ = fetch(t, c, wsfedURL(e.base, "/wsfed/wsfed-rp", url.Values{"wa": {"wsignout1.0"}, "wreply": {"https://rp.flow.test/signed-out"}}))
+	var final string
+	for i := 0; i < 3 && resp.StatusCode == http.StatusFound; i++ {
+		loc, _ := resp.Location()
+		if !strings.HasPrefix(loc.String(), e.base) {
+			final = loc.String()
+			break
+		}
+		resp, _ = fetch(t, c, loc.String())
+	}
+	if final != "https://rp.flow.test/signed-out" {
+		t.Fatalf("sign-out ended at %q (status %d)", final, resp.StatusCode)
+	}
+	if !wsfedNeedsLogin(t, e, c) {
+		t.Fatal("session survived wsignout1.0")
+	}
+}
+
+// wsignoutcleanup1.0 ends the session and answers without redirecting.
+func TestWSFedSignOutCleanup(t *testing.T) {
+	e, _ := wsfedEnv(t)
+	c := wsfedSignedIn(t, e)
+	resp, _ := fetch(t, c, wsfedURL(e.base, "/wsfed/wsfed-rp", url.Values{"wa": {"wsignoutcleanup1.0"}}))
+	if resp.StatusCode != 200 || resp.Header.Get("Location") != "" {
+		t.Fatalf("cleanup: status %d location %q", resp.StatusCode, resp.Header.Get("Location"))
+	}
+	if !wsfedNeedsLogin(t, e, c) {
+		t.Fatal("session survived wsignoutcleanup1.0")
+	}
+}

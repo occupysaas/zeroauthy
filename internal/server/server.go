@@ -596,10 +596,9 @@ func (a authAPI) WsfedSignIn(w http.ResponseWriter, r *http.Request, p authapi.W
 func (a authAPI) WsfedClientSignIn(w http.ResponseWriter, r *http.Request, clientID string, p authapi.WsfedClientSignInParams) {
 	a.saml.WSFed(w, r, clientID, wsfedParams((*string)(p.Wa), p.Wtrealm, p.Wreply, p.Wctx, p.Whr, p.Wfresh))
 }
-func wsfedNotImplemented(w http.ResponseWriter) {
-	httpx.WriteError(w, http.StatusNotImplemented, "not_implemented", "WS-Federation is not implemented yet")
+func (a authAPI) WsfedMetadata(w http.ResponseWriter, r *http.Request) {
+	a.saml.WSFedMetadata(w, r, "")
 }
-func (authAPI) WsfedMetadata(w http.ResponseWriter, _ *http.Request) { wsfedNotImplemented(w) }
-func (authAPI) WsfedClientMetadata(w http.ResponseWriter, _ *http.Request, _ string) {
-	wsfedNotImplemented(w)
+func (a authAPI) WsfedClientMetadata(w http.ResponseWriter, r *http.Request, clientID string) {
+	a.saml.WSFedMetadata(w, r, clientID)
 }
