@@ -50,6 +50,12 @@ func TestParseADFS(t *testing.T) {
 		s.ADFS.SignInEndpoint != "https://adfs.example.test/adfs/ls/" || len(s.ADFS.Thumbprints) != 1 || len(s.ADFS.PrevThumbprints) != 1 || s.ADFS.EntityID != "urn:custom" {
 		t.Fatalf("adfs_server: %+v %v", s.ADFS, errs)
 	}
+	// The sign-in endpoint is a browser redirect: an intranet ADFS host is
+	// fine (found by make e2e-wsfed); only adfs_server is fetched.
+	intranet := strings.Replace(md, "https://adfs.example.test/adfs/ls/", "https://10.0.0.5/adfs/ls/", 1)
+	if s, errs := Parse(Input{Strategy: ADFS, Name: "corp-adfs", Options: map[string]any{"fedMetadataXml": intranet}}); len(errs) > 0 || s.ADFS.SignInEndpoint != "https://10.0.0.5/adfs/ls/" {
+		t.Fatalf("intranet sign-in endpoint: %v", errs)
+	}
 	if got := ADFSMetadataURL("https://adfs.example.test/custom/md.xml"); got != "https://adfs.example.test/custom/md.xml" {
 		t.Fatalf("metadata URL kept as given: %s", got)
 	}
@@ -58,6 +64,8 @@ func TestParseADFS(t *testing.T) {
 		"both sources":        {"adfs_server": "adfs.example.test", "fedMetadataXml": md},
 		"bad metadata":        {"fedMetadataXml": "<a/>"},
 		"http server":         {"adfs_server": "http://adfs.example.test/md.xml"},
+		"private server":      {"adfs_server": "10.0.0.5"},
+		"javascript endpoint": {"fedMetadataXml": strings.Replace(md, "https://adfs.example.test/adfs/ls/", "javascript:alert(1)", 1)},
 		"bad user id attr":    {"fedMetadataXml": md, "user_id_attribute": strings.Repeat("a", 129)},
 		"bad email policy":    {"fedMetadataXml": md, "should_trust_email_verified_connection": "sometimes"},
 		"bad entity id":       {"fedMetadataXml": md, "entityId": ""},

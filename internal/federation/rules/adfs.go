@@ -134,10 +134,9 @@ func parseADFS(in Input) (Settings, []error) {
 			fail("options.fedMetadataXml is not WS-Federation metadata with a signing certificate")
 			break
 		}
-		if err := ValidateEndpoint(md.PassiveEndpoint, true); err != nil {
-			fail("options.fedMetadataXml passive requestor endpoint %v", err)
-		}
-		a.SignInEndpoint = md.PassiveEndpoint
+		// The sign-in endpoint is only a browser redirect target, so an
+		// intranet ADFS host is allowed (as samlp's signInEndpoint).
+		a.SignInEndpoint = samlURL(md.PassiveEndpoint, "fedMetadataXml passive requestor endpoint", fail)
 		for _, c := range md.SigningCerts {
 			s1, s384 := ADFSThumbprints(c.Raw)
 			a.Thumbprints = append(a.Thumbprints, s1)
@@ -148,11 +147,8 @@ func parseADFS(in Input) (Settings, []error) {
 		if err := ValidateEndpoint(a.MetadataURL, false); err != nil {
 			fail("options.adfs_server must be a host or https URL: %v", err)
 		}
-		if ep, ok := str("signInEndpoint", 1, maxURLBytes); ok {
-			if err := ValidateEndpoint(ep, true); err != nil {
-				fail("options.signInEndpoint %v", err)
-			}
-			a.SignInEndpoint = ep
+		if v, ok := o["signInEndpoint"]; ok {
+			a.SignInEndpoint = samlURL(v, "signInEndpoint", fail)
 		}
 		if v, ok := o["thumbprints"]; ok {
 			if a.Thumbprints, ok = hexList(v, 40); !ok {
