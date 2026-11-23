@@ -199,6 +199,10 @@ source line references in D-0160.
 
 ## 9. Decisions needed from the maintainer
 
+**Ruled 2026-11-22 (maintainer): the recommended options** — the
+connector protocol (1), the connector release with its mock LDAP server as
+the E2E pin (2), and internal HTTPS between replicas (3).
+
 1. **Connector protocol (recommended) or native LDAP bind** (the roadmap
    question).
 2. **E2E pin** of the connector release and its mock LDAP server (or an

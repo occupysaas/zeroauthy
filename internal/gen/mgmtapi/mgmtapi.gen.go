@@ -3243,6 +3243,45 @@ func (e EventsEventStreamWebhookDestinationTypeEnum) Valid() bool {
 	}
 }
 
+// Defines values for GroupMemberMemberType.
+const (
+	GroupMemberMemberTypeGroup GroupMemberMemberType = "group"
+	GroupMemberMemberTypeUser  GroupMemberMemberType = "user"
+)
+
+// Valid indicates whether the value is a known member of the GroupMemberMemberType enum.
+func (e GroupMemberMemberType) Valid() bool {
+	switch e {
+	case GroupMemberMemberTypeGroup:
+		return true
+	case GroupMemberMemberTypeUser:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for GroupMemberType.
+const (
+	GroupMemberTypeConnection   GroupMemberType = "connection"
+	GroupMemberTypeOrganization GroupMemberType = "organization"
+	GroupMemberTypeTenant       GroupMemberType = "tenant"
+)
+
+// Valid indicates whether the value is a known member of the GroupMemberType enum.
+func (e GroupMemberType) Valid() bool {
+	switch e {
+	case GroupMemberTypeConnection:
+		return true
+	case GroupMemberTypeOrganization:
+		return true
+	case GroupMemberTypeTenant:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for IICreateOrganizationAllConnectionRequestContentOrganizationAccessLevel.
 const (
 	IICreateOrganizationAllConnectionRequestContentOrganizationAccessLevelFull     IICreateOrganizationAllConnectionRequestContentOrganizationAccessLevel = "full"
@@ -6725,13 +6764,55 @@ func (e RoamingUVSettingsUserVerification) Valid() bool {
 
 // Defines values for RoleCreateType.
 const (
-	Tenant RoleCreateType = "tenant"
+	RoleCreateTypeTenant RoleCreateType = "tenant"
 )
 
 // Valid indicates whether the value is a known member of the RoleCreateType enum.
 func (e RoleCreateType) Valid() bool {
 	switch e {
-	case Tenant:
+	case RoleCreateTypeTenant:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ScimTokenCreateScopes.
+const (
+	DeleteGroups ScimTokenCreateScopes = "delete:groups"
+	DeleteUsers  ScimTokenCreateScopes = "delete:users"
+	GetGroups    ScimTokenCreateScopes = "get:groups"
+	GetUsers     ScimTokenCreateScopes = "get:users"
+	PatchGroups  ScimTokenCreateScopes = "patch:groups"
+	PatchUsers   ScimTokenCreateScopes = "patch:users"
+	PostGroups   ScimTokenCreateScopes = "post:groups"
+	PostUsers    ScimTokenCreateScopes = "post:users"
+	PutGroups    ScimTokenCreateScopes = "put:groups"
+	PutUsers     ScimTokenCreateScopes = "put:users"
+)
+
+// Valid indicates whether the value is a known member of the ScimTokenCreateScopes enum.
+func (e ScimTokenCreateScopes) Valid() bool {
+	switch e {
+	case DeleteGroups:
+		return true
+	case DeleteUsers:
+		return true
+	case GetGroups:
+		return true
+	case GetUsers:
+		return true
+	case PatchGroups:
+		return true
+	case PatchUsers:
+		return true
+	case PostGroups:
+		return true
+	case PostUsers:
+		return true
+	case PutGroups:
+		return true
+	case PutUsers:
 		return true
 	default:
 		return false
@@ -10752,6 +10833,71 @@ type EventsUpdateEventStreamResponseContent struct {
 	union json.RawMessage
 }
 
+// Group A directory group (Plan 37c). Groups belong to one connection and are created by SCIM.
+type Group struct {
+	ConnectionId *string   `json:"connection_id,omitempty"`
+	CreatedAt    time.Time `json:"created_at"`
+	ExternalId   *string   `json:"external_id,omitempty"`
+
+	// Id `grp_` and 14 to 22 base58 characters.
+	Id GroupID `json:"id"`
+
+	// Name Unique within its connection.
+	Name       string    `json:"name"`
+	TenantName string    `json:"tenant_name"`
+	UpdatedAt  time.Time `json:"updated_at"`
+}
+
+// GroupCheckpoint defines model for GroupCheckpoint.
+type GroupCheckpoint struct {
+	Groups []Group `json:"groups"`
+	Next   *string `json:"next,omitempty"`
+}
+
+// GroupID `grp_` and 14 to 22 base58 characters.
+type GroupID = string
+
+// GroupIDList defines model for GroupIDList.
+type GroupIDList struct {
+	Groups []GroupID `json:"groups"`
+}
+
+// GroupMember defines model for GroupMember.
+type GroupMember struct {
+	ConnectionId *string                `json:"connection_id,omitempty"`
+	CreatedAt    *time.Time             `json:"created_at,omitempty"`
+	Id           *string                `json:"id,omitempty"`
+	MemberType   *GroupMemberMemberType `json:"member_type,omitempty"`
+	Type         *GroupMemberType       `json:"type,omitempty"`
+}
+
+// GroupMemberMemberType defines model for GroupMember.MemberType.
+type GroupMemberMemberType string
+
+// GroupMemberType defines model for GroupMember.Type.
+type GroupMemberType string
+
+// GroupMemberPage defines model for GroupMemberPage.
+type GroupMemberPage struct {
+	Members []GroupMember `json:"members"`
+	Next    *string       `json:"next,omitempty"`
+}
+
+// GroupPage defines model for GroupPage.
+type GroupPage struct {
+	Groups []Group  `json:"groups"`
+	Limit  *float32 `json:"limit,omitempty"`
+	Next   *string  `json:"next,omitempty"`
+	Start  *float32 `json:"start,omitempty"`
+	Total  *float32 `json:"total,omitempty"`
+}
+
+// GroupRolePage defines model for GroupRolePage.
+type GroupRolePage struct {
+	Next  *string `json:"next,omitempty"`
+	Roles []Role  `json:"roles"`
+}
+
 // IIAppMetadata defines model for IIAppMetadata.
 type IIAppMetadata map[string]interface{}
 
@@ -13777,6 +13923,11 @@ type RoleCreate struct {
 // RoleCreateType defines model for RoleCreate.Type.
 type RoleCreateType string
 
+// RoleIDList defines model for RoleIDList.
+type RoleIDList struct {
+	Roles []string `json:"roles"`
+}
+
 // RolePage defines model for RolePage.
 type RolePage struct {
 	Limit int    `json:"limit"`
@@ -13816,6 +13967,79 @@ type RoleUserPage struct {
 	Start int        `json:"start"`
 	Total int        `json:"total"`
 	Users []RoleUser `json:"users"`
+}
+
+// ScimConfiguration defines model for ScimConfiguration.
+type ScimConfiguration struct {
+	ConnectionId    string            `json:"connection_id"`
+	ConnectionName  string            `json:"connection_name"`
+	CreatedAt       time.Time         `json:"created_at"`
+	Mapping         []ScimMappingItem `json:"mapping"`
+	Strategy        string            `json:"strategy"`
+	TenantName      string            `json:"tenant_name"`
+	UpdatedOn       time.Time         `json:"updated_on"`
+	UserIdAttribute string            `json:"user_id_attribute"`
+}
+
+// ScimConfigurationCreate defines model for ScimConfigurationCreate.
+type ScimConfigurationCreate struct {
+	Mapping         *[]ScimMappingItem `json:"mapping,omitempty"`
+	UserIdAttribute *string            `json:"user_id_attribute,omitempty"`
+}
+
+// ScimConfigurationList defines model for ScimConfigurationList.
+type ScimConfigurationList struct {
+	Next               *string             `json:"next,omitempty"`
+	ScimConfigurations []ScimConfiguration `json:"scim_configurations"`
+}
+
+// ScimConfigurationUpdate defines model for ScimConfigurationUpdate.
+type ScimConfigurationUpdate struct {
+	Mapping         []ScimMappingItem `json:"mapping"`
+	UserIdAttribute string            `json:"user_id_attribute"`
+}
+
+// ScimDefaultMapping defines model for ScimDefaultMapping.
+type ScimDefaultMapping struct {
+	Mapping *[]ScimMappingItem `json:"mapping,omitempty"`
+}
+
+// ScimMappingItem defines model for ScimMappingItem.
+type ScimMappingItem struct {
+	// Auth0 The Auth0 profile field (`email`, `app_metadata.department`, …).
+	Auth0 string `json:"auth0"`
+
+	// Scim The SCIM attribute path (`emails[primary eq true].value`, …).
+	Scim string `json:"scim"`
+}
+
+// ScimToken defines model for ScimToken.
+type ScimToken struct {
+	CreatedAt  *time.Time `json:"created_at,omitempty"`
+	LastUsedAt *time.Time `json:"last_used_at,omitempty"`
+	Scopes     *[]string  `json:"scopes,omitempty"`
+	TokenId    *string    `json:"token_id,omitempty"`
+	ValidUntil *time.Time `json:"valid_until,omitempty"`
+}
+
+// ScimTokenCreate SCIM token request. `token_lifetime` in seconds must be greater than 900; null or absent means no expiry.
+type ScimTokenCreate struct {
+	Scopes        *[]ScimTokenCreateScopes `json:"scopes,omitempty"`
+	TokenLifetime *int                     `json:"token_lifetime,omitempty"`
+}
+
+// ScimTokenCreateScopes defines model for ScimTokenCreate.Scopes.
+type ScimTokenCreateScopes string
+
+// ScimTokenCreated defines model for ScimTokenCreated.
+type ScimTokenCreated struct {
+	CreatedAt *time.Time `json:"created_at,omitempty"`
+	Scopes    *[]string  `json:"scopes,omitempty"`
+
+	// Token Shown once.
+	Token      *string    `json:"token,omitempty"`
+	TokenId    *string    `json:"token_id,omitempty"`
+	ValidUntil *time.Time `json:"valid_until,omitempty"`
 }
 
 // ScriptTry defines model for ScriptTry.
@@ -14636,6 +14860,31 @@ type UserGrantPage struct {
 	Total int `json:"total"`
 }
 
+// UserGroup defines model for UserGroup.
+type UserGroup struct {
+	ConnectionId *string   `json:"connection_id,omitempty"`
+	CreatedAt    time.Time `json:"created_at"`
+	ExternalId   *string   `json:"external_id,omitempty"`
+
+	// Id `grp_` and 14 to 22 base58 characters.
+	Id                  GroupID    `json:"id"`
+	MembershipCreatedAt *time.Time `json:"membership_created_at,omitempty"`
+
+	// Name Unique within its connection.
+	Name       string    `json:"name"`
+	TenantName string    `json:"tenant_name"`
+	UpdatedAt  time.Time `json:"updated_at"`
+}
+
+// UserGroupPage defines model for UserGroupPage.
+type UserGroupPage struct {
+	Groups []UserGroup `json:"groups"`
+	Limit  *float32    `json:"limit,omitempty"`
+	Next   *string     `json:"next,omitempty"`
+	Start  *float32    `json:"start,omitempty"`
+	Total  *float32    `json:"total,omitempty"`
+}
+
 // UserIdentity defines model for UserIdentity.
 type UserIdentity struct {
 	Connection string `json:"connection"`
@@ -15198,6 +15447,15 @@ type GetConnections200JSONResponseBody struct {
 	union json.RawMessage
 }
 
+// ListScimConfigurationsParams defines parameters for ListScimConfigurations.
+type ListScimConfigurationsParams struct {
+	// From Checkpoint cursor (`next` of the previous page).
+	From *string `form:"from,omitempty" json:"from,omitempty"`
+
+	// Take Number of results, 1 to 100 (default 50).
+	Take *int `form:"take,omitempty" json:"take,omitempty"`
+}
+
 // GetConnectionParams defines parameters for GetConnection.
 type GetConnectionParams struct {
 	// Fields Comma-separated fields to include or, with `include_fields=false`, to leave out. `id` and `is_domain_connection` are always returned.
@@ -15218,6 +15476,9 @@ type GetConnectionClientsParams struct {
 
 // UpdateConnectionClientsJSONBody defines parameters for UpdateConnectionClients.
 type UpdateConnectionClientsJSONBody = []ConnectionClientStatus
+
+// CreateScimConfigurationJSONBody defines parameters for CreateScimConfiguration.
+type CreateScimConfigurationJSONBody = ScimConfigurationCreate
 
 // DeleteConnectionUsersByEmailParams defines parameters for DeleteConnectionUsersByEmail.
 type DeleteConnectionUsersByEmailParams struct {
@@ -15307,6 +15568,56 @@ type GetGrants200JSONResponseBody0 = []UserGrant
 // GetGrants200JSONResponseBody defines parameters for GetGrants.
 type GetGrants200JSONResponseBody struct {
 	union json.RawMessage
+}
+
+// ListGroupsParams defines parameters for ListGroups.
+type ListGroupsParams struct {
+	ConnectionId *string `form:"connection_id,omitempty" json:"connection_id,omitempty"`
+	Name         *string `form:"name,omitempty" json:"name,omitempty"`
+	ExternalId   *string `form:"external_id,omitempty" json:"external_id,omitempty"`
+
+	// Search Case-insensitive prefix of the group name.
+	Search        *string `form:"search,omitempty" json:"search,omitempty"`
+	Fields        *string `form:"fields,omitempty" json:"fields,omitempty"`
+	IncludeFields *bool   `form:"include_fields,omitempty" json:"include_fields,omitempty"`
+	Page          *int    `form:"page,omitempty" json:"page,omitempty"`
+	PerPage       *int    `form:"per_page,omitempty" json:"per_page,omitempty"`
+	IncludeTotals *bool   `form:"include_totals,omitempty" json:"include_totals,omitempty"`
+
+	// From Checkpoint cursor (`next` of the previous page).
+	From *string `form:"from,omitempty" json:"from,omitempty"`
+
+	// Take Number of results, 1 to 100 (default 50).
+	Take *int `form:"take,omitempty" json:"take,omitempty"`
+}
+
+// ListGroups200JSONResponseBody0 defines parameters for ListGroups.
+type ListGroups200JSONResponseBody0 = []Group
+
+// ListGroups200JSONResponseBody defines parameters for ListGroups.
+type ListGroups200JSONResponseBody struct {
+	union json.RawMessage
+}
+
+// ListGroupMembersParams defines parameters for ListGroupMembers.
+type ListGroupMembersParams struct {
+	Fields        *string `form:"fields,omitempty" json:"fields,omitempty"`
+	IncludeFields *bool   `form:"include_fields,omitempty" json:"include_fields,omitempty"`
+
+	// From Checkpoint cursor (`next` of the previous page).
+	From *string `form:"from,omitempty" json:"from,omitempty"`
+
+	// Take Number of results, 1 to 100 (default 50).
+	Take *int `form:"take,omitempty" json:"take,omitempty"`
+}
+
+// ListGroupRolesParams defines parameters for ListGroupRoles.
+type ListGroupRolesParams struct {
+	// From Checkpoint cursor (`next` of the previous page).
+	From *string `form:"from,omitempty" json:"from,omitempty"`
+
+	// Take Number of results, 1 to 100 (default 50).
+	Take *int `form:"take,omitempty" json:"take,omitempty"`
 }
 
 // CreateGuardianEnrollmentTicketParams defines parameters for CreateGuardianEnrollmentTicket.
@@ -15478,6 +15789,24 @@ type ListOrganizationConnections200JSONResponseBody struct {
 	union json.RawMessage
 }
 
+// ListOrganizationGroupsParams defines parameters for ListOrganizationGroups.
+type ListOrganizationGroupsParams struct {
+	// From Checkpoint cursor (`next` of the previous page).
+	From *string `form:"from,omitempty" json:"from,omitempty"`
+
+	// Take Number of results, 1 to 100 (default 50).
+	Take *int `form:"take,omitempty" json:"take,omitempty"`
+}
+
+// ListOrganizationGroupRolesParams defines parameters for ListOrganizationGroupRoles.
+type ListOrganizationGroupRolesParams struct {
+	// From Checkpoint cursor (`next` of the previous page).
+	From *string `form:"from,omitempty" json:"from,omitempty"`
+
+	// Take Number of results, 1 to 100 (default 50).
+	Take *int `form:"take,omitempty" json:"take,omitempty"`
+}
+
 // ListOrganizationInvitationsParams defines parameters for ListOrganizationInvitations.
 type ListOrganizationInvitationsParams struct {
 	Page          *int    `form:"page,omitempty" json:"page,omitempty"`
@@ -15533,6 +15862,17 @@ type ListOrganizationMembers200JSONResponseBody struct {
 
 // ListOrganizationMemberEffectiveRolesParams defines parameters for ListOrganizationMemberEffectiveRoles.
 type ListOrganizationMemberEffectiveRolesParams struct {
+	// From Checkpoint cursor (`next` of the previous page).
+	From *string `form:"from,omitempty" json:"from,omitempty"`
+
+	// Take Number of results, 1 to 100 (default 50).
+	Take *int `form:"take,omitempty" json:"take,omitempty"`
+}
+
+// ListOrganizationMemberRoleSourceGroupsParams defines parameters for ListOrganizationMemberRoleSourceGroups.
+type ListOrganizationMemberRoleSourceGroupsParams struct {
+	RoleId string `form:"role_id" json:"role_id"`
+
 	// From Checkpoint cursor (`next` of the previous page).
 	From *string `form:"from,omitempty" json:"from,omitempty"`
 
@@ -15668,6 +16008,15 @@ type GetRoles200JSONResponseBody0 = []Role
 // GetRoles200JSONResponseBody defines parameters for GetRoles.
 type GetRoles200JSONResponseBody struct {
 	union json.RawMessage
+}
+
+// ListRoleGroupsParams defines parameters for ListRoleGroups.
+type ListRoleGroupsParams struct {
+	// From Checkpoint cursor (`next` of the previous page).
+	From *string `form:"from,omitempty" json:"from,omitempty"`
+
+	// Take Number of results, 1 to 100 (default 50).
+	Take *int `form:"take,omitempty" json:"take,omitempty"`
 }
 
 // GetRolePermissionsParams defines parameters for GetRolePermissions.
@@ -15829,6 +16178,40 @@ type GetAuthenticationMethodsParams struct {
 	Page          *int  `form:"page,omitempty" json:"page,omitempty"`
 	PerPage       *int  `form:"per_page,omitempty" json:"per_page,omitempty"`
 	IncludeTotals *bool `form:"include_totals,omitempty" json:"include_totals,omitempty"`
+}
+
+// ListUserRoleSourceGroupsParams defines parameters for ListUserRoleSourceGroups.
+type ListUserRoleSourceGroupsParams struct {
+	RoleId string `form:"role_id" json:"role_id"`
+
+	// From Checkpoint cursor (`next` of the previous page).
+	From *string `form:"from,omitempty" json:"from,omitempty"`
+
+	// Take Number of results, 1 to 100 (default 50).
+	Take *int `form:"take,omitempty" json:"take,omitempty"`
+}
+
+// ListUserGroupsParams defines parameters for ListUserGroups.
+type ListUserGroupsParams struct {
+	Fields        *string `form:"fields,omitempty" json:"fields,omitempty"`
+	IncludeFields *bool   `form:"include_fields,omitempty" json:"include_fields,omitempty"`
+	Page          *int    `form:"page,omitempty" json:"page,omitempty"`
+	PerPage       *int    `form:"per_page,omitempty" json:"per_page,omitempty"`
+	IncludeTotals *bool   `form:"include_totals,omitempty" json:"include_totals,omitempty"`
+
+	// From Checkpoint cursor (`next` of the previous page).
+	From *string `form:"from,omitempty" json:"from,omitempty"`
+
+	// Take Number of results, 1 to 100 (default 50).
+	Take *int `form:"take,omitempty" json:"take,omitempty"`
+}
+
+// ListUserGroups200JSONResponseBody0 defines parameters for ListUserGroups.
+type ListUserGroups200JSONResponseBody0 = []UserGroup
+
+// ListUserGroups200JSONResponseBody defines parameters for ListUserGroups.
+type ListUserGroups200JSONResponseBody struct {
+	union json.RawMessage
 }
 
 // GetUserLogsParams defines parameters for GetUserLogs.
@@ -16067,6 +16450,15 @@ type PostConnectionKeysJSONRequestBody = PostConnectionKeysRequestContent
 // PostConnectionKeysRotateJSONRequestBody defines body for PostConnectionKeysRotate for application/json ContentType.
 type PostConnectionKeysRotateJSONRequestBody = PostConnectionKeysRequestContent
 
+// UpdateScimConfigurationJSONRequestBody defines body for UpdateScimConfiguration for application/json ContentType.
+type UpdateScimConfigurationJSONRequestBody = ScimConfigurationUpdate
+
+// CreateScimConfigurationJSONRequestBody defines body for CreateScimConfiguration for application/json ContentType.
+type CreateScimConfigurationJSONRequestBody = CreateScimConfigurationJSONBody
+
+// CreateScimTokenJSONRequestBody defines body for CreateScimToken for application/json ContentType.
+type CreateScimTokenJSONRequestBody = ScimTokenCreate
+
 // CreateCustomDomainJSONRequestBody defines body for CreateCustomDomain for application/json ContentType.
 type CreateCustomDomainJSONRequestBody = CustomDomainCreate
 
@@ -16102,6 +16494,12 @@ type RedeliverEventsJSONRequestBody = EventsCreateEventStreamRedeliveryRequestCo
 
 // TestEventStreamJSONRequestBody defines body for TestEventStream for application/json ContentType.
 type TestEventStreamJSONRequestBody = EventsCreateEventStreamTestEventRequestContent
+
+// RemoveGroupRolesJSONRequestBody defines body for RemoveGroupRoles for application/json ContentType.
+type RemoveGroupRolesJSONRequestBody = RoleIDList
+
+// AssignGroupRolesJSONRequestBody defines body for AssignGroupRoles for application/json ContentType.
+type AssignGroupRolesJSONRequestBody = RoleIDList
 
 // CreateGuardianEnrollmentTicketJSONRequestBody defines body for CreateGuardianEnrollmentTicket for application/json ContentType.
 type CreateGuardianEnrollmentTicketJSONRequestBody = MFACreateGuardianEnrollmentTicketRequest
@@ -16229,6 +16627,12 @@ type CreateOrganizationConnectionJSONRequestBody = OrganizationEnabledConnection
 // UpdateOrganizationConnectionJSONRequestBody defines body for UpdateOrganizationConnection for application/json ContentType.
 type UpdateOrganizationConnectionJSONRequestBody = OrganizationEnabledConnectionUpdate
 
+// RemoveOrganizationGroupRolesJSONRequestBody defines body for RemoveOrganizationGroupRoles for application/json ContentType.
+type RemoveOrganizationGroupRolesJSONRequestBody = RoleIDList
+
+// AssignOrganizationGroupRolesJSONRequestBody defines body for AssignOrganizationGroupRoles for application/json ContentType.
+type AssignOrganizationGroupRolesJSONRequestBody = RoleIDList
+
 // CreateOrganizationInvitationJSONRequestBody defines body for CreateOrganizationInvitation for application/json ContentType.
 type CreateOrganizationInvitationJSONRequestBody = OrganizationInvitationCreate
 
@@ -16270,6 +16674,12 @@ type PostRolesJSONRequestBody = RoleCreate
 
 // PatchRolesByIdJSONRequestBody defines body for PatchRolesById for application/json ContentType.
 type PatchRolesByIdJSONRequestBody = RoleUpdate
+
+// RemoveRoleGroupsJSONRequestBody defines body for RemoveRoleGroups for application/json ContentType.
+type RemoveRoleGroupsJSONRequestBody = GroupIDList
+
+// AssignRoleGroupsJSONRequestBody defines body for AssignRoleGroups for application/json ContentType.
+type AssignRoleGroupsJSONRequestBody = GroupIDList
 
 // DeleteRolePermissionsJSONRequestBody defines body for DeleteRolePermissions for application/json ContentType.
 type DeleteRolePermissionsJSONRequestBody = RBACPermissionBatch
@@ -23128,6 +23538,68 @@ func (t *GetGrants200JSONResponseBody) UnmarshalJSON(b []byte) error {
 	return err
 }
 
+// AsListGroups200JSONResponseBody0 returns the union data inside the ListGroups200JSONResponseBody as a ListGroups200JSONResponseBody0
+func (t ListGroups200JSONResponseBody) AsListGroups200JSONResponseBody0() (ListGroups200JSONResponseBody0, error) {
+	var body ListGroups200JSONResponseBody0
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromListGroups200JSONResponseBody0 overwrites any union data inside the ListGroups200JSONResponseBody as the provided ListGroups200JSONResponseBody0
+func (t *ListGroups200JSONResponseBody) FromListGroups200JSONResponseBody0(v ListGroups200JSONResponseBody0) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeListGroups200JSONResponseBody0 performs a merge with any union data inside the ListGroups200JSONResponseBody, using the provided ListGroups200JSONResponseBody0
+func (t *ListGroups200JSONResponseBody) MergeListGroups200JSONResponseBody0(v ListGroups200JSONResponseBody0) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsGroupPage returns the union data inside the ListGroups200JSONResponseBody as a GroupPage
+func (t ListGroups200JSONResponseBody) AsGroupPage() (GroupPage, error) {
+	var body GroupPage
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromGroupPage overwrites any union data inside the ListGroups200JSONResponseBody as the provided GroupPage
+func (t *ListGroups200JSONResponseBody) FromGroupPage(v GroupPage) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeGroupPage performs a merge with any union data inside the ListGroups200JSONResponseBody, using the provided GroupPage
+func (t *ListGroups200JSONResponseBody) MergeGroupPage(v GroupPage) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t ListGroups200JSONResponseBody) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *ListGroups200JSONResponseBody) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
 // AsGetJobErrors200JSONResponseBody0 returns the union data inside the GetJobErrors200JSONResponseBody as a GetJobErrors200JSONResponseBody0
 func (t GetJobErrors200JSONResponseBody) AsGetJobErrors200JSONResponseBody0() (GetJobErrors200JSONResponseBody0, error) {
 	var body GetJobErrors200JSONResponseBody0
@@ -23826,6 +24298,68 @@ func (t *GetUsers200JSONResponseBody) UnmarshalJSON(b []byte) error {
 	return err
 }
 
+// AsListUserGroups200JSONResponseBody0 returns the union data inside the ListUserGroups200JSONResponseBody as a ListUserGroups200JSONResponseBody0
+func (t ListUserGroups200JSONResponseBody) AsListUserGroups200JSONResponseBody0() (ListUserGroups200JSONResponseBody0, error) {
+	var body ListUserGroups200JSONResponseBody0
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromListUserGroups200JSONResponseBody0 overwrites any union data inside the ListUserGroups200JSONResponseBody as the provided ListUserGroups200JSONResponseBody0
+func (t *ListUserGroups200JSONResponseBody) FromListUserGroups200JSONResponseBody0(v ListUserGroups200JSONResponseBody0) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeListUserGroups200JSONResponseBody0 performs a merge with any union data inside the ListUserGroups200JSONResponseBody, using the provided ListUserGroups200JSONResponseBody0
+func (t *ListUserGroups200JSONResponseBody) MergeListUserGroups200JSONResponseBody0(v ListUserGroups200JSONResponseBody0) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsUserGroupPage returns the union data inside the ListUserGroups200JSONResponseBody as a UserGroupPage
+func (t ListUserGroups200JSONResponseBody) AsUserGroupPage() (UserGroupPage, error) {
+	var body UserGroupPage
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromUserGroupPage overwrites any union data inside the ListUserGroups200JSONResponseBody as the provided UserGroupPage
+func (t *ListUserGroups200JSONResponseBody) FromUserGroupPage(v UserGroupPage) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeUserGroupPage performs a merge with any union data inside the ListUserGroups200JSONResponseBody, using the provided UserGroupPage
+func (t *ListUserGroups200JSONResponseBody) MergeUserGroupPage(v UserGroupPage) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t ListUserGroups200JSONResponseBody) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *ListUserGroups200JSONResponseBody) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
 // AsListUserOrganizations200JSONResponseBody0 returns the union data inside the ListUserOrganizations200JSONResponseBody as a ListUserOrganizations200JSONResponseBody0
 func (t ListUserOrganizations200JSONResponseBody) AsListUserOrganizations200JSONResponseBody0() (ListUserOrganizations200JSONResponseBody0, error) {
 	var body ListUserOrganizations200JSONResponseBody0
@@ -24355,6 +24889,9 @@ type ServerInterface interface {
 	// CreateConnection Create a connection
 	// (POST /api/v2/connections)
 	CreateConnection(w http.ResponseWriter, r *http.Request)
+	// ListScimConfigurations List the tenant's SCIM configurations
+	// (GET /api/v2/connections-scim-configurations)
+	ListScimConfigurations(w http.ResponseWriter, r *http.Request, params ListScimConfigurationsParams)
 	// DeleteConnection Delete a connection
 	// (DELETE /api/v2/connections/{id})
 	DeleteConnection(w http.ResponseWriter, r *http.Request, id string)
@@ -24379,6 +24916,30 @@ type ServerInterface interface {
 	// PostConnectionKeysRotate postConnectionKeysRotate
 	// (POST /api/v2/connections/{id}/keys/rotate)
 	PostConnectionKeysRotate(w http.ResponseWriter, r *http.Request, id string)
+	// DeleteScimConfiguration Delete a connection's SCIM configuration and its tokens
+	// (DELETE /api/v2/connections/{id}/scim-configuration)
+	DeleteScimConfiguration(w http.ResponseWriter, r *http.Request, id string)
+	// GetScimConfiguration Get a connection's SCIM configuration
+	// (GET /api/v2/connections/{id}/scim-configuration)
+	GetScimConfiguration(w http.ResponseWriter, r *http.Request, id string)
+	// UpdateScimConfiguration Update a connection's SCIM configuration
+	// (PATCH /api/v2/connections/{id}/scim-configuration)
+	UpdateScimConfiguration(w http.ResponseWriter, r *http.Request, id string)
+	// CreateScimConfiguration Create a connection's SCIM configuration
+	// (POST /api/v2/connections/{id}/scim-configuration)
+	CreateScimConfiguration(w http.ResponseWriter, r *http.Request, id string)
+	// GetScimDefaultMapping Get the default SCIM mapping
+	// (GET /api/v2/connections/{id}/scim-configuration/default-mapping)
+	GetScimDefaultMapping(w http.ResponseWriter, r *http.Request, id string)
+	// ListScimTokens List a connection's SCIM tokens
+	// (GET /api/v2/connections/{id}/scim-configuration/tokens)
+	ListScimTokens(w http.ResponseWriter, r *http.Request, id string)
+	// CreateScimToken Create a SCIM token
+	// (POST /api/v2/connections/{id}/scim-configuration/tokens)
+	CreateScimToken(w http.ResponseWriter, r *http.Request, id string)
+	// DeleteScimToken Delete a SCIM token
+	// (DELETE /api/v2/connections/{id}/scim-configuration/tokens/{tokenId})
+	DeleteScimToken(w http.ResponseWriter, r *http.Request, id string, tokenId string)
 	// GetConnectionStatus getConnectionStatus
 	// (GET /api/v2/connections/{id}/status)
 	GetConnectionStatus(w http.ResponseWriter, r *http.Request, id string)
@@ -24478,6 +25039,27 @@ type ServerInterface interface {
 	// DeleteGrant Delete a grant
 	// (DELETE /api/v2/grants/{id})
 	DeleteGrant(w http.ResponseWriter, r *http.Request, id string)
+	// ListGroups List groups
+	// (GET /api/v2/groups)
+	ListGroups(w http.ResponseWriter, r *http.Request, params ListGroupsParams)
+	// DeleteGroup Delete a group with its memberships and role assignments
+	// (DELETE /api/v2/groups/{id})
+	DeleteGroup(w http.ResponseWriter, r *http.Request, id GroupID)
+	// GetGroup Get a group
+	// (GET /api/v2/groups/{id})
+	GetGroup(w http.ResponseWriter, r *http.Request, id GroupID)
+	// ListGroupMembers List a group's members
+	// (GET /api/v2/groups/{id}/members)
+	ListGroupMembers(w http.ResponseWriter, r *http.Request, id GroupID, params ListGroupMembersParams)
+	// RemoveGroupRoles Remove roles from a group
+	// (DELETE /api/v2/groups/{id}/roles)
+	RemoveGroupRoles(w http.ResponseWriter, r *http.Request, id GroupID)
+	// ListGroupRoles List a group's roles
+	// (GET /api/v2/groups/{id}/roles)
+	ListGroupRoles(w http.ResponseWriter, r *http.Request, id GroupID, params ListGroupRolesParams)
+	// AssignGroupRoles Assign roles to a group
+	// (POST /api/v2/groups/{id}/roles)
+	AssignGroupRoles(w http.ResponseWriter, r *http.Request, id GroupID)
 	// CreateGuardianEnrollmentTicket CreateGuardianEnrollmentTicket
 	// (POST /api/v2/guardian/enrollments/ticket)
 	CreateGuardianEnrollmentTicket(w http.ResponseWriter, r *http.Request, params CreateGuardianEnrollmentTicketParams)
@@ -24757,6 +25339,18 @@ type ServerInterface interface {
 	// UpdateOrganizationConnection Change an enabled connection's flags
 	// (PATCH /api/v2/organizations/{id}/enabled_connections/{connection_id})
 	UpdateOrganizationConnection(w http.ResponseWriter, r *http.Request, id string, connectionId string)
+	// ListOrganizationGroups List the groups assigned to an organization
+	// (GET /api/v2/organizations/{id}/groups)
+	ListOrganizationGroups(w http.ResponseWriter, r *http.Request, id OrganizationId, params ListOrganizationGroupsParams)
+	// RemoveOrganizationGroupRoles Remove roles from a group in an organization
+	// (DELETE /api/v2/organizations/{id}/groups/{group_id}/roles)
+	RemoveOrganizationGroupRoles(w http.ResponseWriter, r *http.Request, id OrganizationId, groupId GroupID)
+	// ListOrganizationGroupRoles List a group's roles in an organization
+	// (GET /api/v2/organizations/{id}/groups/{group_id}/roles)
+	ListOrganizationGroupRoles(w http.ResponseWriter, r *http.Request, id OrganizationId, groupId GroupID, params ListOrganizationGroupRolesParams)
+	// AssignOrganizationGroupRoles Assign roles to a group in an organization
+	// (POST /api/v2/organizations/{id}/groups/{group_id}/roles)
+	AssignOrganizationGroupRoles(w http.ResponseWriter, r *http.Request, id OrganizationId, groupId GroupID)
 	// ListOrganizationInvitations GET /organizations/{id}/invitations
 	// (GET /api/v2/organizations/{id}/invitations)
 	ListOrganizationInvitations(w http.ResponseWriter, r *http.Request, id string, params ListOrganizationInvitationsParams)
@@ -24781,6 +25375,9 @@ type ServerInterface interface {
 	// ListOrganizationMemberEffectiveRoles List a member's effective organization roles with their sources (checkpoint pagination); only direct roles until groups exist
 	// (GET /api/v2/organizations/{id}/members/{user_id}/effective-roles)
 	ListOrganizationMemberEffectiveRoles(w http.ResponseWriter, r *http.Request, id OrganizationId, userId MemberUserId, params ListOrganizationMemberEffectiveRolesParams)
+	// ListOrganizationMemberRoleSourceGroups List the groups that grant an organization member a role
+	// (GET /api/v2/organizations/{id}/members/{user_id}/effective-roles/sources/groups)
+	ListOrganizationMemberRoleSourceGroups(w http.ResponseWriter, r *http.Request, id OrganizationId, userId MemberUserId, params ListOrganizationMemberRoleSourceGroupsParams)
 	// RemoveOrganizationMemberRoles Remove roles from a member; roles not assigned are ignored
 	// (DELETE /api/v2/organizations/{id}/members/{user_id}/roles)
 	RemoveOrganizationMemberRoles(w http.ResponseWriter, r *http.Request, id OrganizationId, userId MemberUserId)
@@ -24856,6 +25453,15 @@ type ServerInterface interface {
 	// PatchRolesById PatchRolesById in the current tenant
 	// (PATCH /api/v2/roles/{id})
 	PatchRolesById(w http.ResponseWriter, r *http.Request, id string)
+	// RemoveRoleGroups Remove groups from a role
+	// (DELETE /api/v2/roles/{id}/groups)
+	RemoveRoleGroups(w http.ResponseWriter, r *http.Request, id string)
+	// ListRoleGroups List a role's groups
+	// (GET /api/v2/roles/{id}/groups)
+	ListRoleGroups(w http.ResponseWriter, r *http.Request, id string, params ListRoleGroupsParams)
+	// AssignRoleGroups Assign groups to a role
+	// (POST /api/v2/roles/{id}/groups)
+	AssignRoleGroups(w http.ResponseWriter, r *http.Request, id string)
 	// DeleteRolePermissions DeleteRolePermissions in the current tenant
 	// (DELETE /api/v2/roles/{id}/permissions)
 	DeleteRolePermissions(w http.ResponseWriter, r *http.Request, id string)
@@ -24976,9 +25582,15 @@ type ServerInterface interface {
 	// DeleteUserAuthenticators DeleteUserAuthenticators
 	// (DELETE /api/v2/users/{id}/authenticators)
 	DeleteUserAuthenticators(w http.ResponseWriter, r *http.Request, id string)
+	// ListUserRoleSourceGroups List the groups that grant a user a role
+	// (GET /api/v2/users/{id}/effective-roles/sources/groups)
+	ListUserRoleSourceGroups(w http.ResponseWriter, r *http.Request, id string, params ListUserRoleSourceGroupsParams)
 	// GetUserEnrollments GetUserEnrollments
 	// (GET /api/v2/users/{id}/enrollments)
 	GetUserEnrollments(w http.ResponseWriter, r *http.Request, id string)
+	// ListUserGroups List the groups a user belongs to
+	// (GET /api/v2/users/{id}/groups)
+	ListUserGroups(w http.ResponseWriter, r *http.Request, id string, params ListUserGroupsParams)
 	// LinkUserIdentity Link a user account to this user
 	// (POST /api/v2/users/{id}/identities)
 	LinkUserIdentity(w http.ResponseWriter, r *http.Request, id string)
@@ -25666,6 +26278,12 @@ func (_ Unimplemented) CreateConnection(w http.ResponseWriter, r *http.Request) 
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// ListScimConfigurations List the tenant's SCIM configurations
+// (GET /api/v2/connections-scim-configurations)
+func (_ Unimplemented) ListScimConfigurations(w http.ResponseWriter, r *http.Request, params ListScimConfigurationsParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
 // DeleteConnection Delete a connection
 // (DELETE /api/v2/connections/{id})
 func (_ Unimplemented) DeleteConnection(w http.ResponseWriter, r *http.Request, id string) {
@@ -25711,6 +26329,54 @@ func (_ Unimplemented) PostConnectionKeys(w http.ResponseWriter, r *http.Request
 // PostConnectionKeysRotate postConnectionKeysRotate
 // (POST /api/v2/connections/{id}/keys/rotate)
 func (_ Unimplemented) PostConnectionKeysRotate(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// DeleteScimConfiguration Delete a connection's SCIM configuration and its tokens
+// (DELETE /api/v2/connections/{id}/scim-configuration)
+func (_ Unimplemented) DeleteScimConfiguration(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetScimConfiguration Get a connection's SCIM configuration
+// (GET /api/v2/connections/{id}/scim-configuration)
+func (_ Unimplemented) GetScimConfiguration(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// UpdateScimConfiguration Update a connection's SCIM configuration
+// (PATCH /api/v2/connections/{id}/scim-configuration)
+func (_ Unimplemented) UpdateScimConfiguration(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// CreateScimConfiguration Create a connection's SCIM configuration
+// (POST /api/v2/connections/{id}/scim-configuration)
+func (_ Unimplemented) CreateScimConfiguration(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetScimDefaultMapping Get the default SCIM mapping
+// (GET /api/v2/connections/{id}/scim-configuration/default-mapping)
+func (_ Unimplemented) GetScimDefaultMapping(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// ListScimTokens List a connection's SCIM tokens
+// (GET /api/v2/connections/{id}/scim-configuration/tokens)
+func (_ Unimplemented) ListScimTokens(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// CreateScimToken Create a SCIM token
+// (POST /api/v2/connections/{id}/scim-configuration/tokens)
+func (_ Unimplemented) CreateScimToken(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// DeleteScimToken Delete a SCIM token
+// (DELETE /api/v2/connections/{id}/scim-configuration/tokens/{tokenId})
+func (_ Unimplemented) DeleteScimToken(w http.ResponseWriter, r *http.Request, id string, tokenId string) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -25909,6 +26575,48 @@ func (_ Unimplemented) GetGrants(w http.ResponseWriter, r *http.Request, params 
 // DeleteGrant Delete a grant
 // (DELETE /api/v2/grants/{id})
 func (_ Unimplemented) DeleteGrant(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// ListGroups List groups
+// (GET /api/v2/groups)
+func (_ Unimplemented) ListGroups(w http.ResponseWriter, r *http.Request, params ListGroupsParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// DeleteGroup Delete a group with its memberships and role assignments
+// (DELETE /api/v2/groups/{id})
+func (_ Unimplemented) DeleteGroup(w http.ResponseWriter, r *http.Request, id GroupID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetGroup Get a group
+// (GET /api/v2/groups/{id})
+func (_ Unimplemented) GetGroup(w http.ResponseWriter, r *http.Request, id GroupID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// ListGroupMembers List a group's members
+// (GET /api/v2/groups/{id}/members)
+func (_ Unimplemented) ListGroupMembers(w http.ResponseWriter, r *http.Request, id GroupID, params ListGroupMembersParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// RemoveGroupRoles Remove roles from a group
+// (DELETE /api/v2/groups/{id}/roles)
+func (_ Unimplemented) RemoveGroupRoles(w http.ResponseWriter, r *http.Request, id GroupID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// ListGroupRoles List a group's roles
+// (GET /api/v2/groups/{id}/roles)
+func (_ Unimplemented) ListGroupRoles(w http.ResponseWriter, r *http.Request, id GroupID, params ListGroupRolesParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// AssignGroupRoles Assign roles to a group
+// (POST /api/v2/groups/{id}/roles)
+func (_ Unimplemented) AssignGroupRoles(w http.ResponseWriter, r *http.Request, id GroupID) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -26470,6 +27178,30 @@ func (_ Unimplemented) UpdateOrganizationConnection(w http.ResponseWriter, r *ht
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// ListOrganizationGroups List the groups assigned to an organization
+// (GET /api/v2/organizations/{id}/groups)
+func (_ Unimplemented) ListOrganizationGroups(w http.ResponseWriter, r *http.Request, id OrganizationId, params ListOrganizationGroupsParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// RemoveOrganizationGroupRoles Remove roles from a group in an organization
+// (DELETE /api/v2/organizations/{id}/groups/{group_id}/roles)
+func (_ Unimplemented) RemoveOrganizationGroupRoles(w http.ResponseWriter, r *http.Request, id OrganizationId, groupId GroupID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// ListOrganizationGroupRoles List a group's roles in an organization
+// (GET /api/v2/organizations/{id}/groups/{group_id}/roles)
+func (_ Unimplemented) ListOrganizationGroupRoles(w http.ResponseWriter, r *http.Request, id OrganizationId, groupId GroupID, params ListOrganizationGroupRolesParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// AssignOrganizationGroupRoles Assign roles to a group in an organization
+// (POST /api/v2/organizations/{id}/groups/{group_id}/roles)
+func (_ Unimplemented) AssignOrganizationGroupRoles(w http.ResponseWriter, r *http.Request, id OrganizationId, groupId GroupID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
 // ListOrganizationInvitations GET /organizations/{id}/invitations
 // (GET /api/v2/organizations/{id}/invitations)
 func (_ Unimplemented) ListOrganizationInvitations(w http.ResponseWriter, r *http.Request, id string, params ListOrganizationInvitationsParams) {
@@ -26515,6 +27247,12 @@ func (_ Unimplemented) AddOrganizationMembers(w http.ResponseWriter, r *http.Req
 // ListOrganizationMemberEffectiveRoles List a member's effective organization roles with their sources (checkpoint pagination); only direct roles until groups exist
 // (GET /api/v2/organizations/{id}/members/{user_id}/effective-roles)
 func (_ Unimplemented) ListOrganizationMemberEffectiveRoles(w http.ResponseWriter, r *http.Request, id OrganizationId, userId MemberUserId, params ListOrganizationMemberEffectiveRolesParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// ListOrganizationMemberRoleSourceGroups List the groups that grant an organization member a role
+// (GET /api/v2/organizations/{id}/members/{user_id}/effective-roles/sources/groups)
+func (_ Unimplemented) ListOrganizationMemberRoleSourceGroups(w http.ResponseWriter, r *http.Request, id OrganizationId, userId MemberUserId, params ListOrganizationMemberRoleSourceGroupsParams) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -26665,6 +27403,24 @@ func (_ Unimplemented) GetRolesById(w http.ResponseWriter, r *http.Request, id s
 // PatchRolesById PatchRolesById in the current tenant
 // (PATCH /api/v2/roles/{id})
 func (_ Unimplemented) PatchRolesById(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// RemoveRoleGroups Remove groups from a role
+// (DELETE /api/v2/roles/{id}/groups)
+func (_ Unimplemented) RemoveRoleGroups(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// ListRoleGroups List a role's groups
+// (GET /api/v2/roles/{id}/groups)
+func (_ Unimplemented) ListRoleGroups(w http.ResponseWriter, r *http.Request, id string, params ListRoleGroupsParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// AssignRoleGroups Assign groups to a role
+// (POST /api/v2/roles/{id}/groups)
+func (_ Unimplemented) AssignRoleGroups(w http.ResponseWriter, r *http.Request, id string) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -26908,9 +27664,21 @@ func (_ Unimplemented) DeleteUserAuthenticators(w http.ResponseWriter, r *http.R
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// ListUserRoleSourceGroups List the groups that grant a user a role
+// (GET /api/v2/users/{id}/effective-roles/sources/groups)
+func (_ Unimplemented) ListUserRoleSourceGroups(w http.ResponseWriter, r *http.Request, id string, params ListUserRoleSourceGroupsParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
 // GetUserEnrollments GetUserEnrollments
 // (GET /api/v2/users/{id}/enrollments)
 func (_ Unimplemented) GetUserEnrollments(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// ListUserGroups List the groups a user belongs to
+// (GET /api/v2/users/{id}/groups)
+func (_ Unimplemented) ListUserGroups(w http.ResponseWriter, r *http.Request, id string, params ListUserGroupsParams) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -30261,6 +31029,52 @@ func (siw *ServerInterfaceWrapper) CreateConnection(w http.ResponseWriter, r *ht
 	handler.ServeHTTP(w, r)
 }
 
+// ListScimConfigurations operation middleware
+func (siw *ServerInterfaceWrapper) ListScimConfigurations(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListScimConfigurationsParams
+
+	// ------------- Optional query parameter "from" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "from", r.URL.Query(), &params.From, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "from"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "from", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "take" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "take", r.URL.Query(), &params.Take, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "take"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "take", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListScimConfigurations(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // DeleteConnection operation middleware
 func (siw *ServerInterfaceWrapper) DeleteConnection(w http.ResponseWriter, r *http.Request) {
 
@@ -30518,6 +31332,223 @@ func (siw *ServerInterfaceWrapper) PostConnectionKeysRotate(w http.ResponseWrite
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.PostConnectionKeysRotate(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteScimConfiguration operation middleware
+func (siw *ServerInterfaceWrapper) DeleteScimConfiguration(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteScimConfiguration(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetScimConfiguration operation middleware
+func (siw *ServerInterfaceWrapper) GetScimConfiguration(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetScimConfiguration(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdateScimConfiguration operation middleware
+func (siw *ServerInterfaceWrapper) UpdateScimConfiguration(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateScimConfiguration(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateScimConfiguration operation middleware
+func (siw *ServerInterfaceWrapper) CreateScimConfiguration(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateScimConfiguration(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetScimDefaultMapping operation middleware
+func (siw *ServerInterfaceWrapper) GetScimDefaultMapping(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetScimDefaultMapping(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListScimTokens operation middleware
+func (siw *ServerInterfaceWrapper) ListScimTokens(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListScimTokens(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateScimToken operation middleware
+func (siw *ServerInterfaceWrapper) CreateScimToken(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateScimToken(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteScimToken operation middleware
+func (siw *ServerInterfaceWrapper) DeleteScimToken(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "tokenId" -------------
+	var tokenId string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "tokenId", chi.URLParam(r, "tokenId"), &tokenId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "tokenId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteScimToken(w, r, id, tokenId)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -31614,6 +32645,409 @@ func (siw *ServerInterfaceWrapper) DeleteGrant(w http.ResponseWriter, r *http.Re
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.DeleteGrant(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListGroups operation middleware
+func (siw *ServerInterfaceWrapper) ListGroups(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListGroupsParams
+
+	// ------------- Optional query parameter "connection_id" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "connection_id", r.URL.Query(), &params.ConnectionId, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "connection_id"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "connection_id", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "name" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "name", r.URL.Query(), &params.Name, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "name"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "name", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "external_id" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "external_id", r.URL.Query(), &params.ExternalId, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "external_id"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "external_id", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "search" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "search", r.URL.Query(), &params.Search, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "search"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "search", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "fields" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "fields", r.URL.Query(), &params.Fields, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "fields"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "fields", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "include_fields" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "include_fields", r.URL.Query(), &params.IncludeFields, runtime.BindQueryParameterOptions{Type: "boolean", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "include_fields"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "include_fields", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "page" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "page", r.URL.Query(), &params.Page, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "page"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "page", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "per_page" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "per_page", r.URL.Query(), &params.PerPage, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "per_page"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "per_page", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "include_totals" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "include_totals", r.URL.Query(), &params.IncludeTotals, runtime.BindQueryParameterOptions{Type: "boolean", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "include_totals"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "include_totals", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "from" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "from", r.URL.Query(), &params.From, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "from"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "from", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "take" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "take", r.URL.Query(), &params.Take, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "take"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "take", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListGroups(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteGroup operation middleware
+func (siw *ServerInterfaceWrapper) DeleteGroup(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id GroupID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteGroup(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetGroup operation middleware
+func (siw *ServerInterfaceWrapper) GetGroup(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id GroupID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetGroup(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListGroupMembers operation middleware
+func (siw *ServerInterfaceWrapper) ListGroupMembers(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id GroupID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListGroupMembersParams
+
+	// ------------- Optional query parameter "fields" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "fields", r.URL.Query(), &params.Fields, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "fields"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "fields", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "include_fields" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "include_fields", r.URL.Query(), &params.IncludeFields, runtime.BindQueryParameterOptions{Type: "boolean", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "include_fields"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "include_fields", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "from" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "from", r.URL.Query(), &params.From, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "from"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "from", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "take" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "take", r.URL.Query(), &params.Take, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "take"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "take", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListGroupMembers(w, r, id, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// RemoveGroupRoles operation middleware
+func (siw *ServerInterfaceWrapper) RemoveGroupRoles(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id GroupID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.RemoveGroupRoles(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListGroupRoles operation middleware
+func (siw *ServerInterfaceWrapper) ListGroupRoles(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id GroupID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListGroupRolesParams
+
+	// ------------- Optional query parameter "from" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "from", r.URL.Query(), &params.From, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "from"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "from", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "take" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "take", r.URL.Query(), &params.Take, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "take"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "take", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListGroupRoles(w, r, id, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// AssignGroupRoles operation middleware
+func (siw *ServerInterfaceWrapper) AssignGroupRoles(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id GroupID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.AssignGroupRoles(w, r, id)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -34174,6 +35608,195 @@ func (siw *ServerInterfaceWrapper) UpdateOrganizationConnection(w http.ResponseW
 	handler.ServeHTTP(w, r)
 }
 
+// ListOrganizationGroups operation middleware
+func (siw *ServerInterfaceWrapper) ListOrganizationGroups(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id OrganizationId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListOrganizationGroupsParams
+
+	// ------------- Optional query parameter "from" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "from", r.URL.Query(), &params.From, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "from"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "from", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "take" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "take", r.URL.Query(), &params.Take, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "take"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "take", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListOrganizationGroups(w, r, id, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// RemoveOrganizationGroupRoles operation middleware
+func (siw *ServerInterfaceWrapper) RemoveOrganizationGroupRoles(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id OrganizationId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "group_id" -------------
+	var groupId GroupID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "group_id", chi.URLParam(r, "group_id"), &groupId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "group_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.RemoveOrganizationGroupRoles(w, r, id, groupId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListOrganizationGroupRoles operation middleware
+func (siw *ServerInterfaceWrapper) ListOrganizationGroupRoles(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id OrganizationId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "group_id" -------------
+	var groupId GroupID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "group_id", chi.URLParam(r, "group_id"), &groupId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "group_id", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListOrganizationGroupRolesParams
+
+	// ------------- Optional query parameter "from" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "from", r.URL.Query(), &params.From, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "from"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "from", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "take" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "take", r.URL.Query(), &params.Take, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "take"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "take", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListOrganizationGroupRoles(w, r, id, groupId, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// AssignOrganizationGroupRoles operation middleware
+func (siw *ServerInterfaceWrapper) AssignOrganizationGroupRoles(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id OrganizationId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "group_id" -------------
+	var groupId GroupID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "group_id", chi.URLParam(r, "group_id"), &groupId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "group_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.AssignOrganizationGroupRoles(w, r, id, groupId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // ListOrganizationInvitations operation middleware
 func (siw *ServerInterfaceWrapper) ListOrganizationInvitations(w http.ResponseWriter, r *http.Request) {
 
@@ -34657,6 +36280,83 @@ func (siw *ServerInterfaceWrapper) ListOrganizationMemberEffectiveRoles(w http.R
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.ListOrganizationMemberEffectiveRoles(w, r, id, userId, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListOrganizationMemberRoleSourceGroups operation middleware
+func (siw *ServerInterfaceWrapper) ListOrganizationMemberRoleSourceGroups(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id OrganizationId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "user_id" -------------
+	var userId MemberUserId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "user_id", chi.URLParam(r, "user_id"), &userId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "user_id", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListOrganizationMemberRoleSourceGroupsParams
+
+	// ------------- Required query parameter "role_id" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, true, "role_id", r.URL.Query(), &params.RoleId, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "role_id"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "role_id", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "from" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "from", r.URL.Query(), &params.From, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "from"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "from", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "take" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "take", r.URL.Query(), &params.Take, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "take"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "take", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListOrganizationMemberRoleSourceGroups(w, r, id, userId, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -35669,6 +37369,113 @@ func (siw *ServerInterfaceWrapper) PatchRolesById(w http.ResponseWriter, r *http
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.PatchRolesById(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// RemoveRoleGroups operation middleware
+func (siw *ServerInterfaceWrapper) RemoveRoleGroups(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.RemoveRoleGroups(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListRoleGroups operation middleware
+func (siw *ServerInterfaceWrapper) ListRoleGroups(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListRoleGroupsParams
+
+	// ------------- Optional query parameter "from" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "from", r.URL.Query(), &params.From, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "from"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "from", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "take" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "take", r.URL.Query(), &params.Take, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "take"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "take", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListRoleGroups(w, r, id, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// AssignRoleGroups operation middleware
+func (siw *ServerInterfaceWrapper) AssignRoleGroups(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.AssignRoleGroups(w, r, id)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -37161,6 +38968,74 @@ func (siw *ServerInterfaceWrapper) DeleteUserAuthenticators(w http.ResponseWrite
 	handler.ServeHTTP(w, r)
 }
 
+// ListUserRoleSourceGroups operation middleware
+func (siw *ServerInterfaceWrapper) ListUserRoleSourceGroups(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListUserRoleSourceGroupsParams
+
+	// ------------- Required query parameter "role_id" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, true, "role_id", r.URL.Query(), &params.RoleId, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "role_id"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "role_id", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "from" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "from", r.URL.Query(), &params.From, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "from"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "from", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "take" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "take", r.URL.Query(), &params.Take, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "take"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "take", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListUserRoleSourceGroups(w, r, id, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // GetUserEnrollments operation middleware
 func (siw *ServerInterfaceWrapper) GetUserEnrollments(w http.ResponseWriter, r *http.Request) {
 
@@ -37178,6 +39053,126 @@ func (siw *ServerInterfaceWrapper) GetUserEnrollments(w http.ResponseWriter, r *
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetUserEnrollments(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListUserGroups operation middleware
+func (siw *ServerInterfaceWrapper) ListUserGroups(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListUserGroupsParams
+
+	// ------------- Optional query parameter "fields" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "fields", r.URL.Query(), &params.Fields, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "fields"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "fields", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "include_fields" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "include_fields", r.URL.Query(), &params.IncludeFields, runtime.BindQueryParameterOptions{Type: "boolean", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "include_fields"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "include_fields", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "page" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "page", r.URL.Query(), &params.Page, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "page"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "page", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "per_page" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "per_page", r.URL.Query(), &params.PerPage, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "per_page"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "per_page", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "include_totals" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "include_totals", r.URL.Query(), &params.IncludeTotals, runtime.BindQueryParameterOptions{Type: "boolean", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "include_totals"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "include_totals", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "from" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "from", r.URL.Query(), &params.From, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "from"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "from", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "take" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "take", r.URL.Query(), &params.Take, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "take"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "take", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListUserGroups(w, r, id, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -39023,6 +41018,84 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/api/v2/users/{id}/recovery-code-regeneration", wrapper.CreateUserRecoveryCode)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/v2/connections/{id}/scim-configuration", wrapper.DeleteScimConfiguration)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/connections/{id}/scim-configuration", wrapper.GetScimConfiguration)
+	})
+	r.Group(func(r chi.Router) {
+		r.Patch(options.BaseURL+"/api/v2/connections/{id}/scim-configuration", wrapper.UpdateScimConfiguration)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/v2/connections/{id}/scim-configuration", wrapper.CreateScimConfiguration)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/connections/{id}/scim-configuration/default-mapping", wrapper.GetScimDefaultMapping)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/connections/{id}/scim-configuration/tokens", wrapper.ListScimTokens)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/v2/connections/{id}/scim-configuration/tokens", wrapper.CreateScimToken)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/v2/connections/{id}/scim-configuration/tokens/{tokenId}", wrapper.DeleteScimToken)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/connections-scim-configurations", wrapper.ListScimConfigurations)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/groups", wrapper.ListGroups)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/v2/groups/{id}", wrapper.DeleteGroup)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/groups/{id}", wrapper.GetGroup)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/groups/{id}/members", wrapper.ListGroupMembers)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/v2/groups/{id}/roles", wrapper.RemoveGroupRoles)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/groups/{id}/roles", wrapper.ListGroupRoles)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/v2/groups/{id}/roles", wrapper.AssignGroupRoles)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/v2/roles/{id}/groups", wrapper.RemoveRoleGroups)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/roles/{id}/groups", wrapper.ListRoleGroups)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/v2/roles/{id}/groups", wrapper.AssignRoleGroups)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/users/{id}/groups", wrapper.ListUserGroups)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/users/{id}/effective-roles/sources/groups", wrapper.ListUserRoleSourceGroups)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/organizations/{id}/groups", wrapper.ListOrganizationGroups)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/v2/organizations/{id}/groups/{group_id}/roles", wrapper.RemoveOrganizationGroupRoles)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/organizations/{id}/groups/{group_id}/roles", wrapper.ListOrganizationGroupRoles)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/v2/organizations/{id}/groups/{group_id}/roles", wrapper.AssignOrganizationGroupRoles)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/organizations/{id}/members/{user_id}/effective-roles/sources/groups", wrapper.ListOrganizationMemberRoleSourceGroups)
 	})
 
 	return r

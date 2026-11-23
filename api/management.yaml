@@ -14005,6 +14005,1132 @@ paths:
               schema:
                 $ref: '#/components/schemas/ManagementError'
 
+  /api/v2/connections/{id}/scim-configuration:
+    get:
+      operationId: GetScimConfiguration
+      summary: Get a connection's SCIM configuration
+      tags:
+      - connections
+      x-source:
+      - https://auth0.com/docs/api/management/v2/connections/get-scim-configuration
+      security:
+      - managementToken:
+        - read:scim_config
+      - operatorToken: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Connection ID.
+      responses:
+        '200':
+          description: Operation completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScimConfiguration'
+        '404':
+          description: The connection does not exist or has no SCIM configuration
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+    post:
+      operationId: CreateScimConfiguration
+      summary: Create a connection's SCIM configuration
+      tags:
+      - connections
+      x-source:
+      - https://auth0.com/docs/api/management/v2/connections/post-scim-configuration
+      security:
+      - managementToken:
+        - create:scim_config
+      - operatorToken: []
+      description: Only `samlp`, `oidc`, `okta` and `waad` connections accept SCIM (Plan 37c, D-0150). An empty body takes the default mapping and `user_id_attribute` `externalId`.
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Connection ID.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              oneOf:
+              - $ref: '#/components/schemas/ScimConfigurationCreate'
+              - type: 'null'
+      responses:
+        '201':
+          description: Operation completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScimConfiguration'
+        '404':
+          description: The connection does not exist
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+    patch:
+      operationId: UpdateScimConfiguration
+      summary: Update a connection's SCIM configuration
+      tags:
+      - connections
+      x-source:
+      - https://auth0.com/docs/api/management/v2/connections/patch-scim-configuration
+      security:
+      - managementToken:
+        - update:scim_config
+      - operatorToken: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Connection ID.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ScimConfigurationUpdate'
+      responses:
+        '200':
+          description: Operation completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScimConfiguration'
+        '404':
+          description: The connection does not exist or has no SCIM configuration
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+    delete:
+      operationId: DeleteScimConfiguration
+      summary: Delete a connection's SCIM configuration and its tokens
+      tags:
+      - connections
+      x-source:
+      - https://auth0.com/docs/api/management/v2/connections/delete-scim-configuration
+      security:
+      - managementToken:
+        - delete:scim_config
+      - operatorToken: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Connection ID.
+      responses:
+        '204':
+          description: Operation completed
+        '404':
+          description: The connection does not exist
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /api/v2/connections/{id}/scim-configuration/default-mapping:
+    get:
+      operationId: GetScimDefaultMapping
+      summary: Get the default SCIM mapping
+      tags:
+      - connections
+      x-source:
+      - https://auth0.com/docs/api/management/v2/connections/get-default-mapping
+      security:
+      - managementToken:
+        - read:scim_config
+      - operatorToken: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Connection ID.
+      responses:
+        '200':
+          description: Operation completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScimDefaultMapping'
+        '404':
+          description: Not found
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /api/v2/connections/{id}/scim-configuration/tokens:
+    get:
+      operationId: ListScimTokens
+      summary: List a connection's SCIM tokens
+      tags:
+      - connections
+      x-source:
+      - https://auth0.com/docs/api/management/v2/connections/get-scim-tokens
+      security:
+      - managementToken:
+        - read:scim_token
+      - operatorToken: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Connection ID.
+      responses:
+        '200':
+          description: Operation completed
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ScimToken'
+        '404':
+          description: The connection does not exist
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+    post:
+      operationId: CreateScimToken
+      summary: Create a SCIM token
+      tags:
+      - connections
+      x-source:
+      - https://auth0.com/docs/api/management/v2/connections/post-scim-token
+      security:
+      - managementToken:
+        - create:scim_token
+      - operatorToken: []
+      description: The token is returned once and stored hashed. At most two unexpired tokens per connection.
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Connection ID.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ScimTokenCreate'
+      responses:
+        '201':
+          description: Operation completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScimTokenCreated'
+        '404':
+          description: The connection does not exist or has no SCIM configuration
+        '409':
+          description: Maximum of 2 tokens already issued for this connection
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /api/v2/connections/{id}/scim-configuration/tokens/{tokenId}:
+    delete:
+      operationId: DeleteScimToken
+      summary: Delete a SCIM token
+      tags:
+      - connections
+      x-source:
+      - https://auth0.com/docs/api/management/v2/connections/delete-tokens-by-token-id
+      security:
+      - managementToken:
+        - delete:scim_token
+      - operatorToken: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Connection ID.
+      - name: tokenId
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '204':
+          description: Operation completed
+        '404':
+          description: The connection or token does not exist
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /api/v2/connections-scim-configurations:
+    get:
+      operationId: ListScimConfigurations
+      summary: List the tenant's SCIM configurations
+      tags:
+      - connections
+      x-source:
+      - https://auth0.com/docs/api/management/v2/connections/get-connections-scim-configurations
+      security:
+      - managementToken:
+        - read:scim_config
+      - operatorToken: []
+      parameters:
+      - name: from
+        in: query
+        required: false
+        schema:
+          type: string
+        description: Checkpoint cursor (`next` of the previous page).
+      - name: take
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+        description: Number of results, 1 to 100 (default 50).
+      responses:
+        '200':
+          description: Operation completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScimConfigurationList'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /api/v2/groups:
+    get:
+      operationId: ListGroups
+      summary: List groups
+      tags:
+      - groups
+      x-source:
+      - https://auth0.com/docs/api/management/v2/groups/get-groups
+      security:
+      - managementToken:
+        - read:groups
+      - operatorToken: []
+      parameters:
+      - name: connection_id
+        in: query
+        required: false
+        schema:
+          type: string
+      - name: name
+        in: query
+        required: false
+        schema:
+          type: string
+          minLength: 1
+          maxLength: 128
+      - name: external_id
+        in: query
+        required: false
+        schema:
+          type: string
+          maxLength: 256
+      - name: search
+        in: query
+        required: false
+        schema:
+          type: string
+          minLength: 1
+          maxLength: 256
+        description: Case-insensitive prefix of the group name.
+      - name: fields
+        in: query
+        required: false
+        schema:
+          type: string
+          maxLength: 256
+      - name: include_fields
+        in: query
+        required: false
+        schema:
+          type: boolean
+      - name: page
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 0
+      - name: per_page
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+      - name: include_totals
+        in: query
+        required: false
+        schema:
+          type: boolean
+      - name: from
+        in: query
+        required: false
+        schema:
+          type: string
+        description: Checkpoint cursor (`next` of the previous page).
+      - name: take
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+        description: Number of results, 1 to 100 (default 50).
+      responses:
+        '200':
+          description: Operation completed
+          content:
+            application/json:
+              schema:
+                oneOf:
+                - type: array
+                  items:
+                    $ref: '#/components/schemas/Group'
+                - $ref: '#/components/schemas/GroupPage'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /api/v2/groups/{id}:
+    get:
+      operationId: GetGroup
+      summary: Get a group
+      tags:
+      - groups
+      x-source:
+      - https://auth0.com/docs/api/management/v2/groups/get-group
+      security:
+      - managementToken:
+        - read:groups
+      - operatorToken: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/GroupID'
+      responses:
+        '200':
+          description: Operation completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Group'
+        '404':
+          description: Group not found
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+    delete:
+      operationId: DeleteGroup
+      summary: Delete a group with its memberships and role assignments
+      tags:
+      - groups
+      x-source:
+      - https://auth0.com/docs/api/management/v2/groups/delete-group
+      security:
+      - managementToken:
+        - delete:groups
+      - operatorToken: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/GroupID'
+      responses:
+        '204':
+          description: Operation completed
+        '404':
+          description: Group not found
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /api/v2/groups/{id}/members:
+    get:
+      operationId: ListGroupMembers
+      summary: List a group's members
+      tags:
+      - groups
+      x-source:
+      - https://auth0.com/docs/api/management/v2/groups/get-group-members
+      security:
+      - managementToken:
+        - read:group_members
+      - operatorToken: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/GroupID'
+      - name: fields
+        in: query
+        required: false
+        schema:
+          type: string
+          maxLength: 256
+      - name: include_fields
+        in: query
+        required: false
+        schema:
+          type: boolean
+      - name: from
+        in: query
+        required: false
+        schema:
+          type: string
+        description: Checkpoint cursor (`next` of the previous page).
+      - name: take
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+        description: Number of results, 1 to 100 (default 50).
+      responses:
+        '200':
+          description: Operation completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GroupMemberPage'
+        '404':
+          description: Group not found
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /api/v2/groups/{id}/roles:
+    get:
+      operationId: ListGroupRoles
+      summary: List a group's roles
+      tags:
+      - groups
+      x-source:
+      - https://auth0.com/docs/api/management/v2/groups/get-group-roles
+      security:
+      - managementToken:
+        - read:group_roles
+      - operatorToken: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/GroupID'
+      - name: from
+        in: query
+        required: false
+        schema:
+          type: string
+        description: Checkpoint cursor (`next` of the previous page).
+      - name: take
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+        description: Number of results, 1 to 100 (default 50).
+      responses:
+        '200':
+          description: Operation completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GroupRolePage'
+        '404':
+          description: Group not found
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+    post:
+      operationId: AssignGroupRoles
+      summary: Assign roles to a group
+      tags:
+      - groups
+      x-source:
+      - https://auth0.com/docs/api/management/v2/groups/post-group-roles
+      security:
+      - managementToken:
+        - create:group_roles
+      - operatorToken: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/GroupID'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RoleIDList'
+      responses:
+        '204':
+          description: Operation completed
+        '404':
+          description: Group or role not found
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+    delete:
+      operationId: RemoveGroupRoles
+      summary: Remove roles from a group
+      tags:
+      - groups
+      x-source:
+      - https://auth0.com/docs/api/management/v2/groups/delete-group-roles
+      security:
+      - managementToken:
+        - delete:group_roles
+      - operatorToken: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/GroupID'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RoleIDList'
+      responses:
+        '204':
+          description: Operation completed
+        '404':
+          description: Group not found
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /api/v2/roles/{id}/groups:
+    get:
+      operationId: ListRoleGroups
+      summary: List a role's groups
+      tags:
+      - roles
+      x-source:
+      - https://auth0.com/docs/api/management/v2/roles/get-role-groups
+      security:
+      - managementToken:
+        - read:group_roles
+      - operatorToken: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: from
+        in: query
+        required: false
+        schema:
+          type: string
+        description: Checkpoint cursor (`next` of the previous page).
+      - name: take
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+        description: Number of results, 1 to 100 (default 50).
+      responses:
+        '200':
+          description: Operation completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GroupCheckpoint'
+        '404':
+          description: The role does not exist
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+    post:
+      operationId: AssignRoleGroups
+      summary: Assign groups to a role
+      tags:
+      - roles
+      x-source:
+      - https://auth0.com/docs/api/management/v2/roles/post-role-groups
+      security:
+      - managementToken:
+        - create:group_roles
+      - operatorToken: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GroupIDList'
+      responses:
+        '204':
+          description: Operation completed
+        '404':
+          description: Role or group not found
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+    delete:
+      operationId: RemoveRoleGroups
+      summary: Remove groups from a role
+      tags:
+      - roles
+      x-source:
+      - https://auth0.com/docs/api/management/v2/roles/delete-role-groups
+      security:
+      - managementToken:
+        - delete:group_roles
+      - operatorToken: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GroupIDList'
+      responses:
+        '204':
+          description: Operation completed
+        '404':
+          description: The role does not exist
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /api/v2/users/{id}/groups:
+    get:
+      operationId: ListUserGroups
+      summary: List the groups a user belongs to
+      tags:
+      - users
+      x-source:
+      - https://auth0.com/docs/api/management/v2/users/get-user-groups
+      security:
+      - managementToken:
+        - read:groups
+      - operatorToken: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: fields
+        in: query
+        required: false
+        schema:
+          type: string
+          maxLength: 256
+      - name: include_fields
+        in: query
+        required: false
+        schema:
+          type: boolean
+      - name: page
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 0
+      - name: per_page
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+      - name: include_totals
+        in: query
+        required: false
+        schema:
+          type: boolean
+      - name: from
+        in: query
+        required: false
+        schema:
+          type: string
+        description: Checkpoint cursor (`next` of the previous page).
+      - name: take
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+        description: Number of results, 1 to 100 (default 50).
+      responses:
+        '200':
+          description: Operation completed
+          content:
+            application/json:
+              schema:
+                oneOf:
+                - type: array
+                  items:
+                    $ref: '#/components/schemas/UserGroup'
+                - $ref: '#/components/schemas/UserGroupPage'
+        '404':
+          description: Not found
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /api/v2/users/{id}/effective-roles/sources/groups:
+    get:
+      operationId: ListUserRoleSourceGroups
+      summary: List the groups that grant a user a role
+      tags:
+      - users
+      x-source:
+      - https://auth0.com/docs/api/management/v2/users/get-user-role-source-groups
+      security:
+      - managementToken:
+        - read:user_role_source_groups
+      - operatorToken: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: role_id
+        in: query
+        required: true
+        schema:
+          type: string
+      - name: from
+        in: query
+        required: false
+        schema:
+          type: string
+        description: Checkpoint cursor (`next` of the previous page).
+      - name: take
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+        description: Number of results, 1 to 100 (default 50).
+      responses:
+        '200':
+          description: Operation completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GroupCheckpoint'
+        '404':
+          description: The role does not exist
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /api/v2/organizations/{id}/groups:
+    get:
+      operationId: ListOrganizationGroups
+      summary: List the groups assigned to an organization
+      tags:
+      - organizations
+      x-source:
+      - https://auth0.com/docs/api/management/v2/organizations/get-organization-groups
+      security:
+      - managementToken:
+        - read:organization_groups
+      - operatorToken: []
+      description: The groups of the connections enabled on the organization (D-0150).
+      parameters:
+      - $ref: '#/components/parameters/organizationId'
+      - name: from
+        in: query
+        required: false
+        schema:
+          type: string
+        description: Checkpoint cursor (`next` of the previous page).
+      - name: take
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+        description: Number of results, 1 to 100 (default 50).
+      responses:
+        '200':
+          description: Operation completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GroupCheckpoint'
+        '404':
+          description: Organization not found
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /api/v2/organizations/{id}/groups/{group_id}/roles:
+    get:
+      operationId: ListOrganizationGroupRoles
+      summary: List a group's roles in an organization
+      tags:
+      - organizations
+      x-source:
+      - https://auth0.com/docs/api/management/v2/organizations/get-organization-group-roles
+      security:
+      - managementToken:
+        - read:organization_group_roles
+      - operatorToken: []
+      parameters:
+      - $ref: '#/components/parameters/organizationId'
+      - name: group_id
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/GroupID'
+      - name: from
+        in: query
+        required: false
+        schema:
+          type: string
+        description: Checkpoint cursor (`next` of the previous page).
+      - name: take
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+        description: Number of results, 1 to 100 (default 50).
+      responses:
+        '200':
+          description: Operation completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GroupRolePage'
+        '404':
+          description: Group not found
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+    post:
+      operationId: AssignOrganizationGroupRoles
+      summary: Assign roles to a group in an organization
+      tags:
+      - organizations
+      x-source:
+      - https://auth0.com/docs/api/management/v2/organizations/post-organization-group-roles
+      security:
+      - managementToken:
+        - create:organization_group_roles
+      - operatorToken: []
+      parameters:
+      - $ref: '#/components/parameters/organizationId'
+      - name: group_id
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/GroupID'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RoleIDList'
+      responses:
+        '204':
+          description: Operation completed
+        '404':
+          description: Group not found
+        '409':
+          description: No more roles can be assigned to this organization group
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+    delete:
+      operationId: RemoveOrganizationGroupRoles
+      summary: Remove roles from a group in an organization
+      tags:
+      - organizations
+      x-source:
+      - https://auth0.com/docs/api/management/v2/organizations/delete-organization-group-roles
+      security:
+      - managementToken:
+        - delete:organization_group_roles
+      - operatorToken: []
+      parameters:
+      - $ref: '#/components/parameters/organizationId'
+      - name: group_id
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/GroupID'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RoleIDList'
+      responses:
+        '204':
+          description: Operation completed
+        '404':
+          description: Group not found
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /api/v2/organizations/{id}/members/{user_id}/effective-roles/sources/groups:
+    get:
+      operationId: ListOrganizationMemberRoleSourceGroups
+      summary: List the groups that grant an organization member a role
+      tags:
+      - organizations
+      x-source:
+      - https://auth0.com/docs/api/management/v2/organizations/get-organization-member-role-source-groups
+      security:
+      - managementToken:
+        - read:organization_member_role_source_groups
+      - operatorToken: []
+      parameters:
+      - $ref: '#/components/parameters/organizationId'
+      - $ref: '#/components/parameters/memberUserId'
+      - name: role_id
+        in: query
+        required: true
+        schema:
+          type: string
+      - name: from
+        in: query
+        required: false
+        schema:
+          type: string
+        description: Checkpoint cursor (`next` of the previous page).
+      - name: take
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+        description: Number of results, 1 to 100 (default 50).
+      responses:
+        '200':
+          description: Operation completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GroupCheckpoint'
+        '404':
+          description: Organization not found
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
 components:
   securitySchemes:
     managementToken:
@@ -14061,6 +15187,334 @@ components:
       description: The member's user ID.
       schema: {type: string}
   schemas:
+    GroupID:
+      type: string
+      minLength: 18
+      maxLength: 26
+      pattern: ^grp_[1-9a-km-zA-HJ-NP-Z]{14,22}$
+      description: '`grp_` and 14 to 22 base58 characters.'
+    Group:
+      type: object
+      additionalProperties: false
+      required:
+      - id
+      - name
+      - tenant_name
+      - created_at
+      - updated_at
+      description: A directory group (Plan 37c). Groups belong to one connection and are created by SCIM.
+      properties:
+        id:
+          $ref: '#/components/schemas/GroupID'
+        name:
+          type: string
+          minLength: 1
+          maxLength: 128
+          pattern: ^[\x20-\x7E]+$
+          description: Unique within its connection.
+        external_id:
+          type: string
+          maxLength: 256
+        connection_id:
+          type: string
+        tenant_name:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    GroupPage:
+      type: object
+      additionalProperties: false
+      required:
+      - groups
+      properties:
+        groups:
+          type: array
+          items:
+            $ref: '#/components/schemas/Group'
+        next:
+          type: string
+        start:
+          type: number
+        limit:
+          type: number
+        total:
+          type: number
+    GroupCheckpoint:
+      type: object
+      additionalProperties: false
+      required:
+      - groups
+      properties:
+        groups:
+          type: array
+          items:
+            $ref: '#/components/schemas/Group'
+        next:
+          type: string
+    UserGroup:
+      allOf:
+      - $ref: '#/components/schemas/Group'
+      - type: object
+        properties:
+          membership_created_at:
+            type: string
+            format: date-time
+    UserGroupPage:
+      type: object
+      additionalProperties: false
+      required:
+      - groups
+      properties:
+        groups:
+          type: array
+          items:
+            $ref: '#/components/schemas/UserGroup'
+        next:
+          type: string
+        start:
+          type: number
+        limit:
+          type: number
+        total:
+          type: number
+    GroupMember:
+      type: object
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+        member_type:
+          type: string
+          enum:
+          - user
+          - group
+        type:
+          type: string
+          enum:
+          - connection
+          - organization
+          - tenant
+        connection_id:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+    GroupMemberPage:
+      type: object
+      additionalProperties: false
+      required:
+      - members
+      properties:
+        members:
+          type: array
+          items:
+            $ref: '#/components/schemas/GroupMember'
+        next:
+          type: string
+    GroupRolePage:
+      type: object
+      additionalProperties: false
+      required:
+      - roles
+      properties:
+        roles:
+          type: array
+          items:
+            $ref: '#/components/schemas/Role'
+        next:
+          type: string
+    RoleIDList:
+      type: object
+      additionalProperties: false
+      required:
+      - roles
+      properties:
+        roles:
+          type: array
+          minItems: 1
+          maxItems: 50
+          items:
+            type: string
+    GroupIDList:
+      type: object
+      additionalProperties: false
+      required:
+      - groups
+      properties:
+        groups:
+          type: array
+          minItems: 1
+          maxItems: 50
+          items:
+            $ref: '#/components/schemas/GroupID'
+    ScimMappingItem:
+      type: object
+      additionalProperties: false
+      required:
+      - auth0
+      - scim
+      properties:
+        auth0:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: The Auth0 profile field (`email`, `app_metadata.department`, …).
+        scim:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: The SCIM attribute path (`emails[primary eq true].value`, …).
+    ScimConfiguration:
+      type: object
+      additionalProperties: false
+      required:
+      - tenant_name
+      - connection_id
+      - connection_name
+      - strategy
+      - created_at
+      - updated_on
+      - mapping
+      - user_id_attribute
+      properties:
+        connection_id:
+          type: string
+        connection_name:
+          type: string
+        strategy:
+          type: string
+        tenant_name:
+          type: string
+        user_id_attribute:
+          type: string
+        mapping:
+          type: array
+          items:
+            $ref: '#/components/schemas/ScimMappingItem'
+        created_at:
+          type: string
+          format: date-time
+        updated_on:
+          type: string
+          format: date-time
+    ScimConfigurationCreate:
+      type: object
+      additionalProperties: false
+      properties:
+        user_id_attribute:
+          type: string
+          minLength: 1
+          maxLength: 256
+        mapping:
+          type: array
+          maxItems: 100
+          items:
+            $ref: '#/components/schemas/ScimMappingItem'
+    ScimConfigurationUpdate:
+      type: object
+      additionalProperties: false
+      required:
+      - user_id_attribute
+      - mapping
+      properties:
+        user_id_attribute:
+          type: string
+          minLength: 1
+          maxLength: 256
+        mapping:
+          type: array
+          maxItems: 100
+          items:
+            $ref: '#/components/schemas/ScimMappingItem'
+    ScimConfigurationList:
+      type: object
+      additionalProperties: false
+      required:
+      - scim_configurations
+      properties:
+        scim_configurations:
+          type: array
+          items:
+            $ref: '#/components/schemas/ScimConfiguration'
+        next:
+          type: string
+    ScimDefaultMapping:
+      type: object
+      additionalProperties: false
+      properties:
+        mapping:
+          type: array
+          items:
+            $ref: '#/components/schemas/ScimMappingItem'
+    ScimTokenCreate:
+      type: object
+      additionalProperties: false
+      description: SCIM token request. `token_lifetime` in seconds must be greater than 900; null or absent means no expiry.
+      properties:
+        scopes:
+          type: array
+          minItems: 1
+          uniqueItems: true
+          items:
+            type: string
+            enum:
+            - get:users
+            - post:users
+            - put:users
+            - patch:users
+            - delete:users
+            - get:groups
+            - post:groups
+            - put:groups
+            - patch:groups
+            - delete:groups
+        token_lifetime:
+          type:
+          - integer
+          - 'null'
+          minimum: 901
+    ScimToken:
+      type: object
+      additionalProperties: false
+      properties:
+        token_id:
+          type: string
+        scopes:
+          type: array
+          items:
+            type: string
+        created_at:
+          type: string
+          format: date-time
+        valid_until:
+          type: string
+          format: date-time
+        last_used_at:
+          type: string
+          format: date-time
+    ScimTokenCreated:
+      type: object
+      additionalProperties: false
+      properties:
+        token_id:
+          type: string
+        token:
+          type: string
+          description: Shown once.
+        scopes:
+          type: array
+          items:
+            type: string
+        created_at:
+          type: string
+          format: date-time
+        valid_until:
+          type: string
+          format: date-time
     PhoneProviderProtection:
       type: object
       additionalProperties: false

@@ -3873,3 +3873,48 @@ Implementation rulings (recorded in the
 
 Observation points W1–W5 (spec §4) and later W-n are listed in
 [plan-1-followups.md](../superpowers/plan-1-followups.md#plan-37b-observation-points).
+
+## D-0150: Inbound SCIM, directory groups, self-service SSO and directory provisioning (Plan 37c)
+
+**Phase A contract frozen 2026-11-22.** The
+[spec](../superpowers/specs/2026-11-16-zeroauthy-scim-self-service-design.md) and
+[plan](../superpowers/plans/2026-11-16-zeroauthy-plan-37c-scim-self-service.md)
+reserve D-0150–0159. No live Auth0 tenant was observed by the implementer.
+
+**Maintainer rulings (2026-11-22, spec §10):** phases ship in the order
+A (SCIM and groups) → B (self-service SSO) → C (directory provisioning);
+Phase C ships with fixture coverage of the Google Directory API only, and a
+live check is an observation point.
+
+Sources: [Configure inbound SCIM](https://auth0.com/docs/authenticate/protocols/scim/configure-inbound-scim),
+[Inbound SCIM for SAML and OpenID](https://auth0.com/docs/authenticate/protocols/scim/configure-inbound-scim-for-identity-providers-using-saml-or-openid),
+[Manage inbound SCIM with the Management API](https://auth0.com/docs/authenticate/protocols/scim/manage-an-inbound-scim-deployment-with-the-management-api),
+[Assign roles to groups](https://auth0.com/docs/manage-users/access-control/configure-core-rbac/rbac-users/assign-roles-to-groups),
+[Management OpenAPI](https://auth0.com/docs/oas/management/v2/management-api-oas.json)
+(read 2026-11-22), RFC 7643 and RFC 7644.
+
+What the Auth0 documentation fixes: SCIM for `samlp`, `oidc`, `okta` and
+`waad` connections (Google Workspace uses directory sync); Users POST, GET,
+PUT, PATCH, search (`eq`, `and`, `or`) and DELETE, Groups POST, GET, PUT,
+PATCH, search (`eq`) and DELETE; token scopes
+`get|post|put|patch|delete:users|groups`; at most two active tokens; a
+minimum lifetime of 900 seconds or no expiry; SCIM `id` is the `user_id`,
+`id` and `meta` cannot be mapped and `password` is unusable; only root
+profile attributes are searchable; `active` is the inverse of `blocked`, and
+deactivation ends sessions, revokes refresh tokens and triggers back-channel
+logout; group `displayName` is unique per connection and only `user`
+members are supported; group roles are inherited by members at login, and
+organization members inherit organization roles of their groups. The OpenAPI
+fixes the Management operations, scopes, group IDs (`grp_` + 14–22 base58),
+names (1–128 printable ASCII) and response shapes.
+
+| Local ruling | Contract |
+|---|---|
+| LR37c-1 | `user_attribute_profile_id` is stored only (user attribute profiles are Early Access). |
+| LR37c-2 | The SCIM routes (`api/scim.yaml`) are routed by hand in `internal/scim`, not generated: SCIM uses `application/scim+json`, RFC 7644 errors and filters; a route test keeps them in step with the contract. |
+| LR37c-3 | The SCIM base is `https://{tenant host}/scim/v2/connections/{connection_id}` (Q3; Auth0 shows the URL only in its Dashboard). |
+| LR37c-4 | `POST .../scim-configuration` with an empty body takes the default mapping and `user_id_attribute` `externalId` (the Okta and OpenID instructions rely on `externalId`). |
+| LR37c-5 | `/organizations/{id}/roles/{role_id}/groups` (Early Access) is not implemented; `organization groups` are the groups of the organization's enabled connections. |
+
+Observation points Q1–Q11 (spec §9) are listed in
+[plan-1-followups.md](../superpowers/plan-1-followups.md#plan-37c-observation-points).

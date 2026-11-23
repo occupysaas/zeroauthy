@@ -4544,10 +4544,404 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v2/connections/{id}/scim-configuration": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get a connection's SCIM configuration */
+        get: operations["GetScimConfiguration"];
+        put?: never;
+        /**
+         * Create a connection's SCIM configuration
+         * @description Only `samlp`, `oidc`, `okta` and `waad` connections accept SCIM (Plan 37c, D-0150). An empty body takes the default mapping and `user_id_attribute` `externalId`.
+         */
+        post: operations["CreateScimConfiguration"];
+        /** Delete a connection's SCIM configuration and its tokens */
+        delete: operations["DeleteScimConfiguration"];
+        options?: never;
+        head?: never;
+        /** Update a connection's SCIM configuration */
+        patch: operations["UpdateScimConfiguration"];
+        trace?: never;
+    };
+    "/api/v2/connections/{id}/scim-configuration/default-mapping": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get the default SCIM mapping */
+        get: operations["GetScimDefaultMapping"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/connections/{id}/scim-configuration/tokens": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List a connection's SCIM tokens */
+        get: operations["ListScimTokens"];
+        put?: never;
+        /**
+         * Create a SCIM token
+         * @description The token is returned once and stored hashed. At most two unexpired tokens per connection.
+         */
+        post: operations["CreateScimToken"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/connections/{id}/scim-configuration/tokens/{tokenId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete a SCIM token */
+        delete: operations["DeleteScimToken"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/connections-scim-configurations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List the tenant's SCIM configurations */
+        get: operations["ListScimConfigurations"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/groups": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List groups */
+        get: operations["ListGroups"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/groups/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get a group */
+        get: operations["GetGroup"];
+        put?: never;
+        post?: never;
+        /** Delete a group with its memberships and role assignments */
+        delete: operations["DeleteGroup"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/groups/{id}/members": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List a group's members */
+        get: operations["ListGroupMembers"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/groups/{id}/roles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List a group's roles */
+        get: operations["ListGroupRoles"];
+        put?: never;
+        /** Assign roles to a group */
+        post: operations["AssignGroupRoles"];
+        /** Remove roles from a group */
+        delete: operations["RemoveGroupRoles"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/roles/{id}/groups": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List a role's groups */
+        get: operations["ListRoleGroups"];
+        put?: never;
+        /** Assign groups to a role */
+        post: operations["AssignRoleGroups"];
+        /** Remove groups from a role */
+        delete: operations["RemoveRoleGroups"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/users/{id}/groups": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List the groups a user belongs to */
+        get: operations["ListUserGroups"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/users/{id}/effective-roles/sources/groups": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List the groups that grant a user a role */
+        get: operations["ListUserRoleSourceGroups"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/organizations/{id}/groups": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the groups assigned to an organization
+         * @description The groups of the connections enabled on the organization (D-0150).
+         */
+        get: operations["ListOrganizationGroups"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/organizations/{id}/groups/{group_id}/roles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List a group's roles in an organization */
+        get: operations["ListOrganizationGroupRoles"];
+        put?: never;
+        /** Assign roles to a group in an organization */
+        post: operations["AssignOrganizationGroupRoles"];
+        /** Remove roles from a group in an organization */
+        delete: operations["RemoveOrganizationGroupRoles"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/organizations/{id}/members/{user_id}/effective-roles/sources/groups": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List the groups that grant an organization member a role */
+        get: operations["ListOrganizationMemberRoleSourceGroups"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** @description `grp_` and 14 to 22 base58 characters. */
+        GroupID: string;
+        /** @description A directory group (Plan 37c). Groups belong to one connection and are created by SCIM. */
+        Group: {
+            id: components["schemas"]["GroupID"];
+            /** @description Unique within its connection. */
+            name: string;
+            external_id?: string;
+            connection_id?: string;
+            tenant_name: string;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        GroupPage: {
+            groups: components["schemas"]["Group"][];
+            next?: string;
+            start?: number;
+            limit?: number;
+            total?: number;
+        };
+        GroupCheckpoint: {
+            groups: components["schemas"]["Group"][];
+            next?: string;
+        };
+        UserGroup: components["schemas"]["Group"] & {
+            /** Format: date-time */
+            membership_created_at?: string;
+        };
+        UserGroupPage: {
+            groups: components["schemas"]["UserGroup"][];
+            next?: string;
+            start?: number;
+            limit?: number;
+            total?: number;
+        };
+        GroupMember: {
+            id?: string;
+            /** @enum {string} */
+            member_type?: "user" | "group";
+            /** @enum {string} */
+            type?: "connection" | "organization" | "tenant";
+            connection_id?: string;
+            /** Format: date-time */
+            created_at?: string;
+        };
+        GroupMemberPage: {
+            members: components["schemas"]["GroupMember"][];
+            next?: string;
+        };
+        GroupRolePage: {
+            roles: components["schemas"]["Role"][];
+            next?: string;
+        };
+        RoleIDList: {
+            roles: string[];
+        };
+        GroupIDList: {
+            groups: components["schemas"]["GroupID"][];
+        };
+        ScimMappingItem: {
+            /** @description The Auth0 profile field (`email`, `app_metadata.department`, …). */
+            auth0: string;
+            /** @description The SCIM attribute path (`emails[primary eq true].value`, …). */
+            scim: string;
+        };
+        ScimConfiguration: {
+            connection_id: string;
+            connection_name: string;
+            strategy: string;
+            tenant_name: string;
+            user_id_attribute: string;
+            mapping: components["schemas"]["ScimMappingItem"][];
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_on: string;
+        };
+        ScimConfigurationCreate: {
+            user_id_attribute?: string;
+            mapping?: components["schemas"]["ScimMappingItem"][];
+        };
+        ScimConfigurationUpdate: {
+            user_id_attribute: string;
+            mapping: components["schemas"]["ScimMappingItem"][];
+        };
+        ScimConfigurationList: {
+            scim_configurations: components["schemas"]["ScimConfiguration"][];
+            next?: string;
+        };
+        ScimDefaultMapping: {
+            mapping?: components["schemas"]["ScimMappingItem"][];
+        };
+        /** @description SCIM token request. `token_lifetime` in seconds must be greater than 900; null or absent means no expiry. */
+        ScimTokenCreate: {
+            scopes?: ("get:users" | "post:users" | "put:users" | "patch:users" | "delete:users" | "get:groups" | "post:groups" | "put:groups" | "patch:groups" | "delete:groups")[];
+            token_lifetime?: number | null;
+        };
+        ScimToken: {
+            token_id?: string;
+            scopes?: string[];
+            /** Format: date-time */
+            created_at?: string;
+            /** Format: date-time */
+            valid_until?: string;
+            /** Format: date-time */
+            last_used_at?: string;
+        };
+        ScimTokenCreated: {
+            token_id?: string;
+            /** @description Shown once. */
+            token?: string;
+            scopes?: string[];
+            /** Format: date-time */
+            created_at?: string;
+            /** Format: date-time */
+            valid_until?: string;
+        };
         PhoneProviderProtection: {
             /** @enum {string} */
             type: "exponential" | "default";
@@ -24952,6 +25346,941 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ManagementError"];
                 };
+            };
+        };
+    };
+    GetScimConfiguration: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Connection ID. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Operation completed */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScimConfiguration"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            /** @description The connection does not exist or has no SCIM configuration */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    CreateScimConfiguration: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Connection ID. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ScimConfigurationCreate"] | null;
+            };
+        };
+        responses: {
+            /** @description Operation completed */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScimConfiguration"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            /** @description The connection does not exist */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            409: components["responses"]["Conflict"];
+        };
+    };
+    DeleteScimConfiguration: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Connection ID. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Operation completed */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            /** @description The connection does not exist */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    UpdateScimConfiguration: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Connection ID. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ScimConfigurationUpdate"];
+            };
+        };
+        responses: {
+            /** @description Operation completed */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScimConfiguration"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            /** @description The connection does not exist or has no SCIM configuration */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    GetScimDefaultMapping: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Connection ID. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Operation completed */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScimDefaultMapping"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ListScimTokens: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Connection ID. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Operation completed */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScimToken"][];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            /** @description The connection does not exist */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    CreateScimToken: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Connection ID. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ScimTokenCreate"];
+            };
+        };
+        responses: {
+            /** @description Operation completed */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScimTokenCreated"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            /** @description The connection does not exist or has no SCIM configuration */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Maximum of 2 tokens already issued for this connection */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    DeleteScimToken: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Connection ID. */
+                id: string;
+                tokenId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Operation completed */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            /** @description The connection or token does not exist */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ListScimConfigurations: {
+        parameters: {
+            query?: {
+                /** @description Checkpoint cursor (`next` of the previous page). */
+                from?: string;
+                /** @description Number of results, 1 to 100 (default 50). */
+                take?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Operation completed */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScimConfigurationList"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    ListGroups: {
+        parameters: {
+            query?: {
+                connection_id?: string;
+                name?: string;
+                external_id?: string;
+                /** @description Case-insensitive prefix of the group name. */
+                search?: string;
+                fields?: string;
+                include_fields?: boolean;
+                page?: number;
+                per_page?: number;
+                include_totals?: boolean;
+                /** @description Checkpoint cursor (`next` of the previous page). */
+                from?: string;
+                /** @description Number of results, 1 to 100 (default 50). */
+                take?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Operation completed */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Group"][] | components["schemas"]["GroupPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    GetGroup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["schemas"]["GroupID"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Operation completed */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Group"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            /** @description Group not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    DeleteGroup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["schemas"]["GroupID"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Operation completed */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            /** @description Group not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ListGroupMembers: {
+        parameters: {
+            query?: {
+                fields?: string;
+                include_fields?: boolean;
+                /** @description Checkpoint cursor (`next` of the previous page). */
+                from?: string;
+                /** @description Number of results, 1 to 100 (default 50). */
+                take?: number;
+            };
+            header?: never;
+            path: {
+                id: components["schemas"]["GroupID"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Operation completed */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GroupMemberPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            /** @description Group not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ListGroupRoles: {
+        parameters: {
+            query?: {
+                /** @description Checkpoint cursor (`next` of the previous page). */
+                from?: string;
+                /** @description Number of results, 1 to 100 (default 50). */
+                take?: number;
+            };
+            header?: never;
+            path: {
+                id: components["schemas"]["GroupID"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Operation completed */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GroupRolePage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            /** @description Group not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AssignGroupRoles: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["schemas"]["GroupID"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RoleIDList"];
+            };
+        };
+        responses: {
+            /** @description Operation completed */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            /** @description Group or role not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    RemoveGroupRoles: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["schemas"]["GroupID"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RoleIDList"];
+            };
+        };
+        responses: {
+            /** @description Operation completed */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            /** @description Group not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ListRoleGroups: {
+        parameters: {
+            query?: {
+                /** @description Checkpoint cursor (`next` of the previous page). */
+                from?: string;
+                /** @description Number of results, 1 to 100 (default 50). */
+                take?: number;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Operation completed */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GroupCheckpoint"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            /** @description The role does not exist */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AssignRoleGroups: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GroupIDList"];
+            };
+        };
+        responses: {
+            /** @description Operation completed */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            /** @description Role or group not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    RemoveRoleGroups: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GroupIDList"];
+            };
+        };
+        responses: {
+            /** @description Operation completed */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            /** @description The role does not exist */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ListUserGroups: {
+        parameters: {
+            query?: {
+                fields?: string;
+                include_fields?: boolean;
+                page?: number;
+                per_page?: number;
+                include_totals?: boolean;
+                /** @description Checkpoint cursor (`next` of the previous page). */
+                from?: string;
+                /** @description Number of results, 1 to 100 (default 50). */
+                take?: number;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Operation completed */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserGroup"][] | components["schemas"]["UserGroupPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ListUserRoleSourceGroups: {
+        parameters: {
+            query: {
+                role_id: string;
+                /** @description Checkpoint cursor (`next` of the previous page). */
+                from?: string;
+                /** @description Number of results, 1 to 100 (default 50). */
+                take?: number;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Operation completed */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GroupCheckpoint"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            /** @description The role does not exist */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ListOrganizationGroups: {
+        parameters: {
+            query?: {
+                /** @description Checkpoint cursor (`next` of the previous page). */
+                from?: string;
+                /** @description Number of results, 1 to 100 (default 50). */
+                take?: number;
+            };
+            header?: never;
+            path: {
+                /** @description Organization ID, `org_` and 16 letters or digits; another shape is 400 `invalid_uri`. */
+                id: components["parameters"]["organizationId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Operation completed */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GroupCheckpoint"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            /** @description Organization not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ListOrganizationGroupRoles: {
+        parameters: {
+            query?: {
+                /** @description Checkpoint cursor (`next` of the previous page). */
+                from?: string;
+                /** @description Number of results, 1 to 100 (default 50). */
+                take?: number;
+            };
+            header?: never;
+            path: {
+                /** @description Organization ID, `org_` and 16 letters or digits; another shape is 400 `invalid_uri`. */
+                id: components["parameters"]["organizationId"];
+                group_id: components["schemas"]["GroupID"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Operation completed */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GroupRolePage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            /** @description Group not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AssignOrganizationGroupRoles: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Organization ID, `org_` and 16 letters or digits; another shape is 400 `invalid_uri`. */
+                id: components["parameters"]["organizationId"];
+                group_id: components["schemas"]["GroupID"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RoleIDList"];
+            };
+        };
+        responses: {
+            /** @description Operation completed */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            /** @description Group not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description No more roles can be assigned to this organization group */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    RemoveOrganizationGroupRoles: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Organization ID, `org_` and 16 letters or digits; another shape is 400 `invalid_uri`. */
+                id: components["parameters"]["organizationId"];
+                group_id: components["schemas"]["GroupID"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RoleIDList"];
+            };
+        };
+        responses: {
+            /** @description Operation completed */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            /** @description Group not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ListOrganizationMemberRoleSourceGroups: {
+        parameters: {
+            query: {
+                role_id: string;
+                /** @description Checkpoint cursor (`next` of the previous page). */
+                from?: string;
+                /** @description Number of results, 1 to 100 (default 50). */
+                take?: number;
+            };
+            header?: never;
+            path: {
+                /** @description Organization ID, `org_` and 16 letters or digits; another shape is 400 `invalid_uri`. */
+                id: components["parameters"]["organizationId"];
+                /** @description The member's user ID. */
+                user_id: components["parameters"]["memberUserId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Operation completed */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GroupCheckpoint"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            /** @description Organization not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

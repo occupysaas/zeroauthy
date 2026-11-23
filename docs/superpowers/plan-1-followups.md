@@ -863,3 +863,22 @@ Recorded under [D-0140](../compat/decisions.md); observe on a live tenant when o
   claim types (Auth0 uses the claim type's last segment); a scheduled
   refresh of `adfs_server` (and samlp `metadataUrl`) metadata; IdP-initiated
   WS-Fed login; encrypted WS-Fed tokens if Auth0 documents them.
+
+## Plan 37c observation points
+
+Recorded under [D-0150](../compat/decisions.md); observe on a live tenant when one is available.
+
+- **Q1** `google-apps` availability for directory provisioning (Phase C).
+- **Q2** The SSO ticket URL form and the assistant steps (Phase B).
+- **Q3** The SCIM base path (zeroauthy: `/scim/v2/connections/{id}`).
+- **Q4** The user ID of SCIM-provisioned users.
+- **Q5** SCIM bulk (not supported).
+- **Q6** Group events in event streams.
+- **Q7** Strategies accepted in `allowed_strategies`.
+- **Q8** The default SSO ticket TTL.
+- **Q9** Domain verification in the self-service assistant.
+- **Q10** Built-in connection profile templates.
+- **Q11** The automatic directory sync interval; a live Google Workspace
+  check (ruled 2026-11-22: fixture coverage ships first).
+- **Q12** The default SCIM token lifetime (not documented; zeroauthy: no
+  expiry unless `token_lifetime` is given).
