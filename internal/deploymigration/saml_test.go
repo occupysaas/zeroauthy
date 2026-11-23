@@ -49,3 +49,14 @@ func TestBootstrapSAMLAddon(t *testing.T) {
 		t.Fatalf("bootstrap dropped the add-on: %+v %v", c, err)
 	}
 }
+
+// adfs connections carry no provider secret either (Plan 37b).
+func TestFederationImportADFS(t *testing.T) {
+	export := Export{Resources: map[string]json.RawMessage{"connections": json.RawMessage(`[{"name":"corp-adfs","strategy":"adfs","options":{"adfs_server":"adfs.example"}}]`)}}
+	if _, err := FederationImport(export, nil); err != nil {
+		t.Fatalf("adfs import: %v", err)
+	}
+	if _, err := FederationImport(export, map[string]string{"corp-adfs": "unexpected"}); err == nil {
+		t.Fatal("a provider secret was accepted for adfs")
+	}
+}

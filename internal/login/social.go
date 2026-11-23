@@ -188,7 +188,7 @@ func (h *Handlers) startSocialHint(w http.ResponseWriter, r *http.Request, f *fl
 		return
 	}
 	sameSite := http.SameSiteLaxMode
-	if conn.Strategy == federation.StrategyApple || conn.Strategy == federation.StrategyOIDC && conn.Extra["type"] != "back_channel" || conn.Strategy == federation.StrategySAMLP {
+	if conn.Strategy == federation.StrategyApple || conn.Strategy == federation.StrategyOIDC && conn.Extra["type"] != "back_channel" || conn.Strategy == federation.StrategySAMLP || conn.Strategy == federation.StrategyADFS {
 		// Form-posted responses arrive cross-site.
 		sameSite = http.SameSiteNoneMode
 	}
@@ -286,6 +286,11 @@ func (h *Handlers) SocialCallback(w http.ResponseWriter, r *http.Request) {
 		if r.PostForm.Has("SAMLResponse") && parseErr == nil && err == nil && mediaErr == nil && mediaType == "application/x-www-form-urlencoded" && len(body) <= federation.MaxSAMLCallbackSize {
 			// The SAML ACS is /login/callback?connection={name} (Plan 37a).
 			h.samlCallback(w, r)
+			return
+		}
+		if r.PostForm.Has("wresult") && parseErr == nil && err == nil && mediaErr == nil && mediaType == "application/x-www-form-urlencoded" && len(body) <= federation.MaxSAMLCallbackSize {
+			// An adfs connection posts its WS-Fed token here (Plan 37b).
+			h.wsfedCallback(w, r)
 			return
 		}
 		// POST callbacks use body fields only; never merge query parameters.

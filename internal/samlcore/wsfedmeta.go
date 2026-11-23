@@ -3,6 +3,7 @@ package samlcore
 import (
 	"crypto/x509"
 	"encoding/base64"
+	"strings"
 
 	"github.com/zeroauthy/zeroauthy/internal/third_party/etree"
 )
@@ -60,4 +61,79 @@ func BuildWSFedMetadata(entityID, endpoint string, certs []*x509.Certificate) *e
 	ref.CreateAttr("xmlns", NSAddressing)
 	ref.CreateElement("Address").SetText(endpoint)
 	return ed
+}
+
+// WSFedMetadata is a WS-Fed identity provider's federation metadata.
+type WSFedMetadata struct {
+	EntityID        string
+	PassiveEndpoint string
+	SigningCerts    []*x509.Certificate
+}
+
+// isSTSRole reports whether a RoleDescriptor is a WS-Fed
+// SecurityTokenServiceType: its xsi:type QName resolves to the federation
+// namespace.
+func isSTSRole(el *etree.Element) bool {
+	t := el.SelectAttrValue("xsi:type", "")
+	prefix, local, ok := strings.Cut(t, ":")
+	if !ok {
+		prefix, local = "", t
+	}
+	if local != "SecurityTokenServiceType" {
+		return false
+	}
+	ns := ""
+	for e := el; e != nil && ns == ""; e = e.Parent() {
+		for _, a := range e.Attr {
+			if prefix != "" && a.Space == "xmlns" && a.Key == prefix || prefix == "" && a.Space == "" && a.Key == "xmlns" {
+				ns = a.Value
+				break
+			}
+		}
+	}
+	return ns == NSWSFed
+}
+
+// ParseWSFedMetadata reads federation metadata (an EntityDescriptor, or an
+// EntitiesDescriptor holding one) for its SecurityTokenServiceType role:
+// signing certificates and the passive requestor endpoint. The metadata's
+// own signature is not checked: it is configured by the tenant or fetched
+// over HTTPS from the configured server.
+func ParseWSFedMetadata(raw []byte) (*WSFedMetadata, error) {
+	doc, err := Parse(raw)
+	if err != nil {
+		return nil, err
+	}
+	root := doc.Root()
+	if inNS(root, NSMetadata, "EntitiesDescriptor") {
+		entities := directChildren(root, NSMetadata, "EntityDescriptor")
+		if len(entities) != 1 {
+			return nil, errorf("metadata must describe exactly one entity")
+		}
+		root = entities[0]
+	}
+	if !inNS(root, NSMetadata, "EntityDescriptor") || root.SelectAttrValue("entityID", "") == "" {
+		return nil, ErrStructure
+	}
+	out := &WSFedMetadata{EntityID: root.SelectAttrValue("entityID", "")}
+	for _, role := range directChildren(root, NSMetadata, "RoleDescriptor") {
+		if !isSTSRole(role) {
+			continue
+		}
+		signing, _ := readKeys(role)
+		out.SigningCerts = append(out.SigningCerts, signing...)
+		for _, ep := range directChildren(role, NSWSFed, "PassiveRequestorEndpoint") {
+			for _, ref := range directChildren(ep, NSAddressing, "EndpointReference") {
+				for _, addr := range directChildren(ref, NSAddressing, "Address") {
+					if out.PassiveEndpoint == "" {
+						out.PassiveEndpoint = strings.TrimSpace(addr.Text())
+					}
+				}
+			}
+		}
+	}
+	if out.PassiveEndpoint == "" || len(out.SigningCerts) == 0 {
+		return nil, errorf("metadata has no WS-Federation security token service with a signing certificate")
+	}
+	return out, nil
 }

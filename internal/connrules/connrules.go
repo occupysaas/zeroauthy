@@ -422,7 +422,7 @@ func normalizeFederated(s *Spec) []error {
 		if s.Strategy == rules.WindowsLive && k == "strategy_version" {
 			continue
 		}
-		if (s.Strategy == rules.Apple || s.Strategy == rules.OIDC || s.Strategy == rules.Okta) && k == "non_persistent_attrs" {
+		if (s.Strategy == rules.Apple || s.Strategy == rules.OIDC || s.Strategy == rules.Okta || s.Strategy == rules.ADFS) && k == "non_persistent_attrs" {
 			continue
 		}
 		if _, ok := o.Extra[k]; ok {
@@ -436,6 +436,15 @@ func normalizeFederated(s *Spec) []error {
 		// Thumbprints are computed from the certificates (read-only on the API).
 		s.Options.Extra["thumbprints"] = stringsToAny(settings.SAML.Thumbprints)
 		s.Options.Extra["thumbprints_sha384"] = stringsToAny(settings.SAML.Thumbprints384)
+	}
+	if len(ruleErrs) == 0 && settings.ADFS != nil {
+		// The endpoint and thumbprints come from the metadata (read-only).
+		s.Options.Extra["signInEndpoint"] = settings.ADFS.SignInEndpoint
+		s.Options.Extra["thumbprints"] = stringsToAny(settings.ADFS.Thumbprints)
+		s.Options.Extra["thumbprints_sha384"] = stringsToAny(settings.ADFS.Thumbprints384)
+		if settings.ADFS.PrevThumbprints != nil {
+			s.Options.Extra["prev_thumbprints"] = stringsToAny(settings.ADFS.PrevThumbprints)
+		}
 	}
 	if len(ruleErrs) == 0 {
 		if settings.DomainAliases != nil {

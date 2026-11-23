@@ -1056,6 +1056,133 @@
     }
    }
   },
+  "adfs": {
+   "is_social": false,
+   "id_format": "adfs|<connection-name>|<user_id_attribute claim, NameIdentifier, or nameidentifier/upn/email claim>",
+   "default_scopes": [],
+   "options": {
+    "adfs_server": {
+     "type": "string",
+     "default": null,
+     "validation": "host or https metadata URL; xor fedMetadataXml; fetched through the federation outbound policy on write (at most 128 KB)",
+     "secret": "public",
+     "runtime": "active",
+     "source": "https://auth0.com/docs/authenticate/identity-providers/enterprise-identity-providers/adfs"
+    },
+    "fedMetadataXml": {
+     "type": "string",
+     "default": null,
+     "validation": "WS-Federation metadata with a SecurityTokenServiceType role, at most 102400 bytes; xor adfs_server",
+     "secret": "public",
+     "runtime": "active",
+     "source": "https://auth0.com/docs/authenticate/identity-providers/enterprise-identity-providers/adfs"
+    },
+    "signInEndpoint": {
+     "type": "string",
+     "default": null,
+     "validation": "passive requestor endpoint from the metadata; read-only",
+     "secret": "public",
+     "runtime": "active",
+     "source": "https://auth0.com/docs/authenticate/identity-providers/enterprise-identity-providers/adfs"
+    },
+    "thumbprints": {
+     "type": "array",
+     "default": [],
+     "validation": "SHA-1 thumbprints of the metadata signing certificates; read-only",
+     "secret": "public",
+     "runtime": "active",
+     "source": "https://auth0.com/docs/authenticate/identity-providers/enterprise-identity-providers/adfs"
+    },
+    "thumbprints_sha384": {
+     "type": "array",
+     "default": [],
+     "validation": "SHA-384 thumbprints of the metadata signing certificates; read-only",
+     "secret": "public",
+     "runtime": "active",
+     "source": "https://auth0.com/docs/authenticate/identity-providers/enterprise-identity-providers/adfs"
+    },
+    "prev_thumbprints": {
+     "type": "array",
+     "default": [],
+     "validation": "thumbprints before the last metadata change, still trusted; read-only",
+     "secret": "public",
+     "runtime": "active",
+     "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
+    },
+    "entityId": {
+     "type": "string",
+     "default": "urn:auth0:{tenant}:{connection}",
+     "validation": "1 to 128 bytes; sent as wtrealm and required as the token audience",
+     "secret": "public",
+     "runtime": "active",
+     "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
+    },
+    "user_id_attribute": {
+     "type": "string",
+     "default": null,
+     "validation": "1 to 128 bytes; claim tried first for the user ID",
+     "secret": "public",
+     "runtime": "active",
+     "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
+    },
+    "should_trust_email_verified_connection": {
+     "type": "string",
+     "default": "never_set_emails_as_verified",
+     "validation": "never_set_emails_as_verified or always_set_emails_as_verified",
+     "secret": "public",
+     "runtime": "active",
+     "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
+    },
+    "domain_aliases": {
+     "type": "array",
+     "default": [],
+     "validation": "email domains for home realm discovery",
+     "secret": "public",
+     "runtime": "active",
+     "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
+    },
+    "set_user_root_attributes": {
+     "type": "string",
+     "default": "on_each_login",
+     "validation": "on_each_login, on_first_login or never_on_login",
+     "secret": "public",
+     "runtime": "active",
+     "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
+    },
+    "icon_url": {
+     "type": "string",
+     "default": null,
+     "validation": "bounded string; display only",
+     "secret": "public",
+     "runtime": "stored-only",
+     "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
+    },
+    "non_persistent_attrs": {
+     "type": "array",
+     "default": [],
+     "validation": "bounded list",
+     "secret": "public",
+     "runtime": "stored-only",
+     "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
+    },
+    "upstream_params": {
+     "type": "object",
+     "default": null,
+     "validation": "object; stored only (LR37b-6)",
+     "secret": "public",
+     "runtime": "stored-only",
+     "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
+    },
+    "tenant_domain": {
+     "type": "string",
+     "default": null,
+     "validation": "1 to 255 bytes; display only",
+     "secret": "public",
+     "runtime": "stored-only",
+     "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
+    }
+   }
+  },
   "samlp": {
    "is_social": false,
    "id_format": "samlp|<connection-name>|<user_id_attribute or NameID>",

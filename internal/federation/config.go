@@ -20,6 +20,7 @@ var ErrImmutable = errors.New("federation: immutable connection setting changed"
 type Config struct {
 	// SAML is set for samlp connections (Plan 37a).
 	SAML                       *rules.SAMLSettings
+	ADFS                       *rules.ADFSSettings // Plan 37b
 	Channel                    string
 	Explicit                   *rules.ExplicitEndpoints
 	PKCE                       string
@@ -60,6 +61,13 @@ type Config struct {
 	IsSocial             bool
 }
 
+// Secretless reports whether the connection logs in without a client
+// secret: samlp and adfs (certificates), front-channel OIDC and
+// private_key_jwt.
+func (c Config) Secretless() bool {
+	return c.SAML != nil || c.ADFS != nil || c.Channel == "front_channel" || c.TokenAuth == "private_key_jwt"
+}
+
 // ParseConfig validates spec, a federated connection in connrules form, and
 // returns its runtime configuration.
 func ParseConfig(spec connrules.Spec) (Config, error) {
@@ -86,6 +94,7 @@ func ParseConfig(spec connrules.Spec) (Config, error) {
 	}
 	c := Config{
 		SAML:          settings.SAML,
+		ADFS:          settings.ADFS,
 		Channel:       settings.Channel,
 		Explicit:      settings.Explicit,
 		PKCE:          settings.PKCE,

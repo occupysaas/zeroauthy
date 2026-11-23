@@ -427,6 +427,15 @@ func (h *Handlers) CreateConnection(w http.ResponseWriter, r *http.Request) {
 		Fail(w, err)
 		return
 	}
+	if spec.Strategy == rules.ADFS {
+		server, _ := spec.Options.Extra["adfs_server"].(string)
+		derived, err := h.fetchADFSMetadata(r.Context(), server)
+		if err != nil {
+			Fail(w, err)
+			return
+		}
+		prepareADFS(spec, derived)
+	}
 	if err := normalizeConnection(spec); err != nil {
 		Fail(w, err)
 		return
@@ -506,7 +515,16 @@ func (h *Handlers) UpdateConnection(w http.ResponseWriter, r *http.Request, id s
 	// metadataUrl is fetched before the transaction (an outbound request
 	// must not hold the write lock), and only when options are written.
 	var samlDerived map[string]string
+	var adfsDerived map[string]any
 	if set["options"] && patch.Options.Extra != nil {
+		if server, _ := patch.Options.Extra["adfs_server"].(string); server != "" {
+			if c, err := h.Store.Connections().Get(r.Context(), tn.ID, id); err == nil && c.Strategy == rules.ADFS {
+				if adfsDerived, err = h.fetchADFSMetadata(r.Context(), server); err != nil {
+					Fail(w, err)
+					return
+				}
+			}
+		}
 		if u, _ := patch.Options.Extra["metadataUrl"].(string); u != "" {
 			if c, err := h.Store.Connections().Get(r.Context(), tn.ID, id); err == nil && c.Strategy == rules.SAMLP {
 				if samlDerived, err = h.fetchSAMLMetadata(r.Context(), u); err != nil {
@@ -577,8 +595,17 @@ func (h *Handlers) UpdateConnection(w http.ResponseWriter, r *http.Request, id s
 			}
 			applySAMLMetadata(spec, samlDerived)
 		}
+		if set["options"] && spec.Strategy == rules.ADFS {
+			if server, _ := spec.Options.Extra["adfs_server"].(string); server != "" && adfsDerived == nil {
+				return badBody("options.adfs_server metadata could not be fetched")
+			}
+			prepareADFS(spec, adfsDerived)
+		}
 		if err := normalizeConnection(spec); err != nil {
 			return err
+		}
+		if set["options"] {
+			rotateADFS(spec, c.Extra)
 		}
 		if spec.Passwordless() && set["options"] {
 			plain = connrules.MergePasswordlessSecrets(spec, passwordlessCurrent)

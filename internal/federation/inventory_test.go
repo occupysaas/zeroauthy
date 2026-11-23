@@ -80,8 +80,8 @@ func TestFederationInventory(t *testing.T) {
 			t.Error("aliases to rejected assurance parameters must also be rejected")
 		}
 	})
-	if len(inv.Strategies) != 7 {
-		t.Fatalf("need exactly seven strategies, got %d", len(inv.Strategies))
+	if len(inv.Strategies) != 8 {
+		t.Fatalf("need exactly eight strategies, got %d", len(inv.Strategies))
 	}
 	for strategy, want := range map[string]string{
 		"google-oauth2": "google-oauth2|<sub>", "oauth2": "oauth2|<connection-name>|<subject>", "oidc": "oidc|<connection-name>|<sub>",
@@ -317,6 +317,37 @@ func TestFederationInventorySAML(t *testing.T) {
 	for _, k := range []string{"signing_key", "decryptionKey"} {
 		if row.Options[k].Runtime != "rejected" || row.Options[k].Secret != "write-only" {
 			t.Errorf("%s must be rejected and write-only", k)
+		}
+	}
+}
+
+// TestFederationInventoryADFS: the adfs block classifies every
+// ConnectionOptionsADFS option (Plan 37b).
+func TestFederationInventoryADFS(t *testing.T) {
+	b, err := os.ReadFile("inventory.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var inv struct {
+		Strategies map[string]struct {
+			IsSocial bool   `json:"is_social"`
+			IDFormat string `json:"id_format"`
+			Options  map[string]struct{ Type, Validation, Secret, Runtime, Source string }
+		}
+	}
+	if err := json.Unmarshal(b, &inv); err != nil {
+		t.Fatal(err)
+	}
+	row, ok := inv.Strategies["adfs"]
+	if !ok || row.IsSocial || row.IDFormat == "" {
+		t.Fatal("adfs strategy missing or social")
+	}
+	for _, field := range []string{"adfs_server", "fedMetadataXml", "signInEndpoint", "thumbprints", "prev_thumbprints", "thumbprints_sha384", "entityId",
+		"user_id_attribute", "should_trust_email_verified_connection", "domain_aliases", "set_user_root_attributes", "icon_url", "non_persistent_attrs",
+		"upstream_params", "tenant_domain"} {
+		r, ok := row.Options[field]
+		if !ok || r.Type == "" || r.Validation == "" || r.Runtime == "" || r.Source == "" || r.Secret != "public" {
+			t.Errorf("adfs option %s incomplete", field)
 		}
 	}
 }
