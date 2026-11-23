@@ -4544,6 +4544,215 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v2/connection-profiles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Connection Profiles
+         * @description Retrieve a list of Connection Profiles. This endpoint supports Checkpoint pagination.
+         */
+        get: operations["ListConnectionProfiles"];
+        put?: never;
+        /**
+         * Create a connection profile
+         * @description Create a Connection Profile.
+         */
+        post: operations["CreateConnectionProfile"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/connection-profiles/templates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Connection Profile Templates
+         * @description Retrieve a list of Connection Profile Templates.
+         */
+        get: operations["ListConnectionProfileTemplates"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/connection-profiles/templates/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Connection Profile Template
+         * @description Retrieve a Connection Profile Template.
+         */
+        get: operations["GetConnectionProfileTemplate"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/connection-profiles/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Connection Profile
+         * @description Retrieve details about a single Connection Profile specified by ID.
+         */
+        get: operations["GetConnectionProfile"];
+        put?: never;
+        post?: never;
+        /**
+         * Delete Connection Profile
+         * @description Delete a single Connection Profile specified by ID.
+         */
+        delete: operations["DeleteConnectionProfile"];
+        options?: never;
+        head?: never;
+        /**
+         * Modify a Connection Profile
+         * @description Update the details of a specific Connection Profile.
+         */
+        patch: operations["UpdateConnectionProfile"];
+        trace?: never;
+    };
+    "/api/v2/self-service-profiles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get self-service profiles
+         * @description Retrieves self-service profiles.
+         */
+        get: operations["ListSelfServiceProfiles"];
+        put?: never;
+        /**
+         * Create a self-service profile
+         * @description Creates a self-service profile.
+         */
+        post: operations["CreateSelfServiceProfile"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/self-service-profiles/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get a self-service profile by Id
+         * @description Retrieves a self-service profile by Id.
+         */
+        get: operations["GetSelfServiceProfile"];
+        put?: never;
+        post?: never;
+        /**
+         * Delete a self-service profile by Id
+         * @description Deletes a self-service profile by Id.
+         */
+        delete: operations["DeleteSelfServiceProfile"];
+        options?: never;
+        head?: never;
+        /**
+         * Update a self-service profile
+         * @description Updates a self-service profile.
+         */
+        patch: operations["UpdateSelfServiceProfile"];
+        trace?: never;
+    };
+    "/api/v2/self-service-profiles/{id}/custom-text/{language}/{page}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get custom text for a self-service profile
+         * @description Retrieves text customizations for a given self-service profile, language and Self-Service Enterprise Configuration flow page.
+         */
+        get: operations["GetSelfServiceProfileCustomText"];
+        /**
+         * Set custom text for a self-service profile
+         * @description Updates text customizations for a given self-service profile, language and Self-Service Enterprise Configuration flow page.
+         */
+        put: operations["SetSelfServiceProfileCustomText"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/self-service-profiles/{id}/sso-ticket": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create an access ticket to initiate the Self-Service Enterprise Configuration flow
+         * @description Creates an access ticket to initiate the Self-Service Enterprise Configuration flow using a self-service profile.
+         */
+        post: operations["CreateSsoTicket"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/self-service-profiles/{profileId}/sso-ticket/{id}/revoke": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Revoke a Self-Service Enterprise Configuration access ticket
+         * @description Revokes a Self-Service Enterprise Configuration access ticket and invalidates associated sessions. The ticket will no longer be accepted to initiate a Self-Service Enterprise Configuration session. If any users have already started a session through this ticket, their session will be terminated. Clients should expect a `202 Accepted` response upon successful processing, indicating that the request has been acknowledged and that the revocation is underway but may not be fully completed at the time of response. If the specified ticket does not exist, a `202 Accepted` response is also returned, signaling that no further action is required.
+         *     Clients should treat these `202` responses as an acknowledgment that the request has been accepted and is in progress, even if the ticket was not found.
+         */
+        post: operations["RevokeSsoTicket"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v2/connections/{id}/scim-configuration": {
         parameters: {
             query?: never;
@@ -4893,6 +5102,564 @@ export interface components {
         };
         GroupIDList: {
             groups: components["schemas"]["GroupID"][];
+        };
+        SelfServiceProfileBrandingProperties: {
+            /** Format: uri */
+            logo_url?: string;
+            colors?: components["schemas"]["SelfServiceProfileBrandingColors"];
+        } & {
+            [key: string]: unknown;
+        };
+        ConnectionProfileTemplateItem: {
+            /** @description The id of the template. */
+            id?: string;
+            /** @description The user-friendly name of the template displayed in the UI. */
+            display_name?: string;
+            template?: components["schemas"]["ConnectionProfileTemplate"];
+        };
+        SelfServiceProfileUserAttribute: {
+            /** @description Identifier of this attribute. */
+            name: string;
+            /** @description Description of this attribute. */
+            description: string;
+            /** @description Determines if this attribute is required */
+            is_optional: boolean;
+        };
+        CreateConnectionProfileResponseContent: {
+            id?: components["schemas"]["ConnectionProfileId"];
+            name?: components["schemas"]["ConnectionProfileName"];
+            organization?: components["schemas"]["ConnectionProfileOrganization"];
+            connection_name_prefix_template?: components["schemas"]["ConnectionNamePrefixTemplate"];
+            enabled_features?: components["schemas"]["ConnectionProfileEnabledFeatures"];
+            connection_config?: components["schemas"]["ConnectionProfileConfig"];
+            strategy_overrides?: components["schemas"]["ConnectionProfileStrategyOverrides"];
+            provisioning?: components["schemas"]["ConnectionProfileProvisioning"];
+            cross_app_access_resource_app?: components["schemas"]["ConnectionProfileCrossAppAccessResourceApp"];
+        };
+        /**
+         * @description The page where the custom text is shown.
+         * @enum {string}
+         */
+        SelfServiceProfileCustomTextPageEnum: "get-started";
+        /** @enum {string} */
+        SelfServiceProfileSsoTicketProvisioningScopeEnum: "get:users" | "post:users" | "put:users" | "patch:users" | "delete:users" | "get:groups" | "post:groups" | "put:groups" | "patch:groups" | "delete:groups";
+        CreateSelfServiceProfileSsoTicketRequestContent: {
+            /**
+             * Format: connection-id
+             * @description If provided, this will allow editing of the provided connection during the Self-Service Enterprise Configuration flow
+             */
+            connection_id?: string;
+            connection_config?: components["schemas"]["SelfServiceProfileSsoTicketConnectionConfig"];
+            /** @description List of client_ids that the connection will be enabled for. */
+            enabled_clients?: string[];
+            /** @description List of organizations that the connection will be enabled for. */
+            enabled_organizations?: components["schemas"]["SelfServiceProfileSsoTicketEnabledOrganization"][];
+            /** @description Number of seconds for which the ticket is valid before expiration. If unspecified or set to 0, this value defaults to 432000 seconds (5 days). */
+            ttl_sec?: number;
+            domain_aliases_config?: components["schemas"]["SelfServiceProfileSsoTicketDomainAliasesConfig"];
+            provisioning_config?: components["schemas"]["SelfServiceProfileSsoTicketProvisioningConfig"];
+            /** @description Indicates whether a verified domain should be used for organization discovery during authentication. */
+            use_for_organization_discovery?: boolean;
+            third_party_client_access_config?: components["schemas"]["ThirdPartyClientAccessConfig"];
+            universal_logout_config?: components["schemas"]["SelfServiceProfileSsoTicketUniversalLogoutConfig"];
+            enabled_features?: components["schemas"]["SelfServiceProfileSsoTicketEnabledFeatures"];
+        };
+        CreateSelfServiceProfileSsoTicketResponseContent: {
+            /** @description The URL for the created ticket. */
+            ticket?: string;
+        };
+        /** @description The resulting list of custom text keys and values. */
+        SetSelfServiceProfileCustomTextResponseContent: {
+            [key: string]: string;
+        };
+        /** @description Configuration for Third Party Client Access during the Self-Service Enterprise Configuration flow. */
+        ThirdPartyClientAccessConfig: {
+            /** @description Whether third-party applications can configure the connection as a domain-level connection during the Self-Service Enterprise Configuration flow. */
+            allow_configuration: boolean;
+        };
+        /** @description List of attributes to be mapped that will be shown to the user during the Self-Service Enterprise Configuration flow. */
+        SelfServiceProfileUserAttributes: components["schemas"]["SelfServiceProfileUserAttribute"][] | null;
+        /**
+         * @description Whether the end user should complete the domain verification step. Possible values are 'none' (the step is not shown to the user), 'optional' (the user may add a domain alias in the domain verification step) or 'required' (the user must add a domain alias in order to enable the connection). Defaults to 'none'.
+         * @enum {string}
+         */
+        SelfServiceProfileSsoTicketDomainVerificationEnum: "none" | "optional" | "required";
+        /** @description The Cross App Access resource app status configuration. */
+        ConnectionProfileCrossAppAccessResourceAppStatus: {
+            default_value: components["schemas"]["ConnectionProfileCrossAppAccessResourceAppStatusDefaultValueEnum"];
+            allowed_values?: components["schemas"]["ConnectionProfileCrossAppAccessResourceAppStatusAllowedValuesEnum"];
+        };
+        /**
+         * @description Enum for enabled features.
+         * @enum {string}
+         */
+        EnabledFeaturesEnum: "scim" | "universal_logout" | "directory_sync";
+        /** @description Configuration for the setup of Universal Logout in the Self-Service Enterprise Configuration flow. */
+        SelfServiceProfileSsoTicketUniversalLogoutConfig: {
+            /** @description Whether the end user can set up Universal Logout during the Self-Service Enterprise Configuration flow. */
+            allow_configuration: boolean;
+        };
+        /** @description SCIM provisioning settings. */
+        ConnectionProfileProvisioningScim: {
+            tokens: components["schemas"]["ConnectionProfileProvisioningScimTokens"];
+        };
+        /** @description Metadata associated with the connection in the form of an object with string values (max 255 chars).  Maximum of 10 metadata properties allowed. */
+        ConnectionsMetadata: {
+            [key: string]: string | null;
+        };
+        /** @description The name of the connection profile. */
+        ConnectionProfileName: string;
+        ConnectionProfile: {
+            id?: components["schemas"]["ConnectionProfileId"];
+            name?: components["schemas"]["ConnectionProfileName"];
+            organization?: components["schemas"]["ConnectionProfileOrganization"];
+            connection_name_prefix_template?: components["schemas"]["ConnectionNamePrefixTemplate"];
+            enabled_features?: components["schemas"]["ConnectionProfileEnabledFeatures"];
+            connection_config?: components["schemas"]["ConnectionProfileConfig"];
+            strategy_overrides?: components["schemas"]["ConnectionProfileStrategyOverrides"];
+            provisioning?: components["schemas"]["ConnectionProfileProvisioning"];
+            cross_app_access_resource_app?: components["schemas"]["ConnectionProfileCrossAppAccessResourceApp"];
+        };
+        GetConnectionProfileTemplateResponseContent: {
+            /** @description The id of the template. */
+            id?: string;
+            /** @description The user-friendly name of the template displayed in the UI. */
+            display_name?: string;
+            template?: components["schemas"]["ConnectionProfileTemplate"];
+        };
+        /** @description If provided, this will create a new connection for the Self-Service Enterprise Configuration flow with the given configuration */
+        SelfServiceProfileSsoTicketConnectionConfig: {
+            /**
+             * @description The name of the connection that will be created as a part of the Self-Service Enterprise Configuration flow.
+             * @default sso-generated-SAML-customer-12
+             */
+            name: string;
+            /** @description Connection name used in the new universal login experience */
+            display_name?: string;
+            /** @description <code>true</code> promotes to a domain-level connection so that third-party applications can use it. <code>false</code> does not promote the connection, so only first-party applications with the connection enabled can use it. (Defaults to <code>false</code>.) */
+            is_domain_connection?: boolean;
+            /** @description Enables showing a button for the connection in the login page (new experience only). If false, it will be usable only by HRD. (Defaults to <code>false</code>.) */
+            show_as_button?: boolean;
+            metadata?: components["schemas"]["ConnectionsMetadata"];
+            options?: components["schemas"]["SelfServiceProfileSsoTicketConnectionOptions"];
+        };
+        /** @description The maximum SCIM token expiry, in seconds. `null` means there is no maximum. */
+        ConnectionProfileProvisioningScimTokenMaxAllowedExpiry: number | null;
+        /**
+         * @description Indicates if the organization should be shown as a button.
+         * @enum {string}
+         */
+        ConnectionProfileOrganizationShowAsButtonEnum: "none" | "optional" | "required";
+        /** @description Connection name prefix template. (Auth0 states the rule with lookaheads: no leading hyphen and no double hyphen; this is the equivalent RE2 pattern.) */
+        ConnectionNamePrefixTemplate: string;
+        /** @description The allowed Cross App Access resource app status values. */
+        ConnectionProfileCrossAppAccessResourceAppStatusAllowedValuesEnum: components["schemas"]["ConnectionProfileCrossAppAccessResourceAppStatusValueEnum"][];
+        /** @description The scopes granted to SCIM tokens. */
+        ConnectionProfileProvisioningScimTokenScopes: components["schemas"]["ConnectionProfileProvisioningScimTokenScopeEnum"][];
+        /** @description Enabled features for a connections profile strategy override. */
+        ConnectionProfileStrategyOverridesEnabledFeatures: components["schemas"]["EnabledFeaturesEnum"][];
+        UpdateSelfServiceProfileResponseContent: {
+            /**
+             * @description The unique ID of the self-service Profile.
+             * @default ssp_n7SNCL8seoyV1TuSTCnAeo
+             */
+            id?: string;
+            /** @description The name of the self-service Profile. */
+            name?: string;
+            /** @description The description of the self-service Profile. */
+            description?: string;
+            /** @description List of attributes to be mapped that will be shown to the user during the Self-Service Enterprise Configuration flow. */
+            user_attributes?: components["schemas"]["SelfServiceProfileUserAttribute"][];
+            /**
+             * Format: date-time
+             * @description The time when this self-service Profile was created.
+             * @default 2021-01-01T00:00:00.000Z
+             */
+            created_at?: string;
+            /**
+             * Format: date-time
+             * @description The time when this self-service Profile was updated.
+             * @default 2021-01-01T00:00:00.000Z
+             */
+            updated_at?: string;
+            branding?: components["schemas"]["SelfServiceProfileBrandingProperties"];
+            /** @description List of IdP strategies that will be shown to users during the Self-Service Enterprise Configuration flow. Possible values: [`oidc`, `samlp`, `waad`, `google-apps`, `adfs`, `okta`, `auth0-samlp`, `okta-samlp`, `keycloak-samlp`, `pingfederate`] */
+            allowed_strategies?: components["schemas"]["SelfServiceProfileAllowedStrategyEnum"][];
+            /**
+             * Format: user-attribute-profile-id
+             * @description ID of the user-attribute-profile to associate with this self-service profile.
+             */
+            user_attribute_profile_id?: string;
+        };
+        /** @description Whether the connection is authorized to run Google Workspace user provisioning. */
+        ConnectionProfileProvisioningGoogleWorkspaceSyncUsers: boolean;
+        CreateSelfServiceProfileRequestContent: {
+            /** @description The name of the self-service Profile. */
+            name: string;
+            /** @description The description of the self-service Profile. */
+            description?: string;
+            branding?: components["schemas"]["SelfServiceProfileBrandingProperties"];
+            /** @description List of IdP strategies that will be shown to users during the Self-Service Enterprise Configuration flow. Possible values: [`oidc`, `samlp`, `waad`, `google-apps`, `adfs`, `okta`, `auth0-samlp`, `okta-samlp`, `keycloak-samlp`, `pingfederate`] */
+            allowed_strategies?: components["schemas"]["SelfServiceProfileAllowedStrategyEnum"][];
+            /** @description List of attributes to be mapped that will be shown to the user during the Self-Service Enterprise Configuration flow. */
+            user_attributes?: components["schemas"]["SelfServiceProfileUserAttribute"][];
+            /**
+             * Format: user-attribute-profile-id
+             * @description ID of the user-attribute-profile to associate with this self-service profile.
+             */
+            user_attribute_profile_id?: string;
+        };
+        CreateConnectionProfileRequestContent: {
+            name: components["schemas"]["ConnectionProfileName"];
+            organization?: components["schemas"]["ConnectionProfileOrganization"];
+            connection_name_prefix_template?: components["schemas"]["ConnectionNamePrefixTemplate"];
+            enabled_features?: components["schemas"]["ConnectionProfileEnabledFeatures"];
+            connection_config?: components["schemas"]["ConnectionProfileConfig"];
+            strategy_overrides?: components["schemas"]["ConnectionProfileStrategyOverrides"];
+            provisioning?: components["schemas"]["ConnectionProfileProvisioning"];
+            cross_app_access_resource_app?: components["schemas"]["ConnectionProfileCrossAppAccessResourceApp"];
+        };
+        /**
+         * Format: connection-profile-id
+         * @description Connection Profile identifier.
+         */
+        ConnectionProfileId: string;
+        /** @description The list of text keys and values to customize the Self-Service Enterprise Configuration flow page. Values can be plain text or rich HTML content limited to basic styling tags and hyperlinks. */
+        SetSelfServiceProfileCustomTextRequestContent: {
+            [key: string]: string;
+        };
+        /**
+         * @description The protocol used to connect to the the default application
+         * @enum {string}
+         */
+        SelfServiceProfileSsoTicketIdpInitiatedClientProtocolEnum: "samlp" | "wsfed" | "oauth2";
+        /** @description Configuration for the setup of the connection’s domain_aliases in the Self-Service Enterprise Configuration flow. */
+        SelfServiceProfileSsoTicketDomainAliasesConfig: {
+            domain_verification: components["schemas"]["SelfServiceProfileSsoTicketDomainVerificationEnum"];
+            /** @description List of domains that will be submitted for verification during the Self-Service Enterprise Configuration flow. */
+            pending_domains?: string[];
+        };
+        SelfServiceProfileBranding: components["schemas"]["SelfServiceProfileBrandingProperties"] | null;
+        /** @description Provisioning settings for a connection profile strategy override. */
+        ConnectionProfileStrategyOverridesProvisioning: {
+            scim?: components["schemas"]["ConnectionProfileProvisioningScim"];
+            google_workspace?: components["schemas"]["ConnectionProfileProvisioningGoogleWorkspace"];
+        };
+        SelfServiceProfileBrandingColors: {
+            primary: string;
+        } & {
+            [key: string]: unknown;
+        };
+        GetConnectionProfileResponseContent: {
+            id?: components["schemas"]["ConnectionProfileId"];
+            name?: components["schemas"]["ConnectionProfileName"];
+            organization?: components["schemas"]["ConnectionProfileOrganization"];
+            connection_name_prefix_template?: components["schemas"]["ConnectionNamePrefixTemplate"];
+            enabled_features?: components["schemas"]["ConnectionProfileEnabledFeatures"];
+            connection_config?: components["schemas"]["ConnectionProfileConfig"];
+            strategy_overrides?: components["schemas"]["ConnectionProfileStrategyOverrides"];
+            provisioning?: components["schemas"]["ConnectionProfileProvisioning"];
+            cross_app_access_resource_app?: components["schemas"]["ConnectionProfileCrossAppAccessResourceApp"];
+        };
+        UpdateConnectionProfileResponseContent: {
+            id?: components["schemas"]["ConnectionProfileId"];
+            name?: components["schemas"]["ConnectionProfileName"];
+            organization?: components["schemas"]["ConnectionProfileOrganization"];
+            connection_name_prefix_template?: components["schemas"]["ConnectionNamePrefixTemplate"];
+            enabled_features?: components["schemas"]["ConnectionProfileEnabledFeatures"];
+            connection_config?: components["schemas"]["ConnectionProfileConfig"];
+            strategy_overrides?: components["schemas"]["ConnectionProfileStrategyOverrides"];
+            provisioning?: components["schemas"]["ConnectionProfileProvisioning"];
+            cross_app_access_resource_app?: components["schemas"]["ConnectionProfileCrossAppAccessResourceApp"];
+        };
+        /** @description Connection profile strategy overrides connection configuration. */
+        ConnectionProfileStrategyOverridesConnectionConfig: Record<string, never>;
+        /** @description SCIM token settings for connections created from this profile. */
+        ConnectionProfileProvisioningScimTokens: {
+            scopes: components["schemas"]["ConnectionProfileProvisioningScimTokenScopes"];
+            default_expiry?: components["schemas"]["ConnectionProfileProvisioningScimTokenDefaultExpiry"];
+            max_allowed_expiry?: components["schemas"]["ConnectionProfileProvisioningScimTokenMaxAllowedExpiry"];
+        };
+        /** @description The description of the self-service Profile. */
+        SelfServiceProfileDescription: string | null;
+        /** @description Enabled features for the connection profile. */
+        ConnectionProfileEnabledFeatures: components["schemas"]["EnabledFeaturesEnum"][];
+        /**
+         * @description The default Cross App Access resource app status.
+         * @enum {string}
+         */
+        ConnectionProfileCrossAppAccessResourceAppStatusDefaultValueEnum: "enabled" | "disabled";
+        ListSelfServiceProfilesResponseContent: components["schemas"]["SelfServiceProfile"][] | components["schemas"]["ListSelfServiceProfilesPaginatedResponseContent"];
+        /** @description Allows IdP-initiated login */
+        SelfServiceProfileSsoTicketIdpInitiatedOptions: {
+            /** @description Enables IdP-initiated login for this connection */
+            enabled?: boolean;
+            /**
+             * Format: client-id
+             * @description Default application <code>client_id</code> user is redirected to after validated SAML response
+             */
+            client_id?: string;
+            client_protocol?: components["schemas"]["SelfServiceProfileSsoTicketIdpInitiatedClientProtocolEnum"];
+            /** @description Query string options to customize the behaviour for OpenID Connect when <code>idpinitiated.client_protocol</code> is <code>oauth2</code>. Allowed parameters: <code>redirect_uri</code>, <code>scope</code>, <code>response_type</code>. For example, <code>redirect_uri=https://jwt.io&scope=openid email&response_type=token</code> */
+            client_authorizequery?: string;
+        } | null;
+        ListSelfServiceProfilesPaginatedResponseContent: {
+            start?: number;
+            limit?: number;
+            total?: number;
+            self_service_profiles?: components["schemas"]["SelfServiceProfile"][];
+        };
+        /** @description Configuration for the setup of Provisioning in the self-service flow. */
+        SelfServiceProfileSsoTicketProvisioningConfig: {
+            /** @description The scopes of the SCIM tokens generated during the self-service flow. */
+            scopes?: components["schemas"]["SelfServiceProfileSsoTicketProvisioningScopeEnum"][];
+            google_workspace?: components["schemas"]["SelfServiceProfileSsoTicketGoogleWorkspaceConfig"];
+            /** @description Lifetime of the tokens in seconds. Must be greater than 900. If not provided, the tokens don't expire. */
+            token_lifetime?: number | null;
+        };
+        UpdateSelfServiceProfileRequestContent: {
+            /** @description The name of the self-service Profile. */
+            name?: string;
+            description?: components["schemas"]["SelfServiceProfileDescription"];
+            branding?: components["schemas"]["SelfServiceProfileBranding"];
+            /** @description List of IdP strategies that will be shown to users during the Self-Service Enterprise Configuration flow. Possible values: [`oidc`, `samlp`, `waad`, `google-apps`, `adfs`, `okta`, `auth0-samlp`, `okta-samlp`, `keycloak-samlp`, `pingfederate`] */
+            allowed_strategies?: components["schemas"]["SelfServiceProfileAllowedStrategyEnum"][];
+            user_attributes?: components["schemas"]["SelfServiceProfileUserAttributes"];
+            /**
+             * Format: user-attribute-profile-id
+             * @description ID of the user-attribute-profile to associate with this self-service profile.
+             */
+            user_attribute_profile_id?: string | null;
+        };
+        /** @description Specifies which features are enabled for an "edit connection" ticket. Only applicable when connection ID is provided. */
+        SelfServiceProfileSsoTicketEnabledFeatures: {
+            /** @description Whether SSO configuration is enabled in this ticket. */
+            sso?: boolean;
+            /** @description Whether domain verification is enabled in this ticket. */
+            domain_verification?: boolean;
+            /** @description Whether provisioning configuration is enabled in this ticket. */
+            provisioning?: boolean;
+        };
+        /** @description The organization of the connection profile. */
+        ConnectionProfileOrganization: {
+            show_as_button?: components["schemas"]["ConnectionProfileOrganizationShowAsButtonEnum"];
+            assign_membership_on_login?: components["schemas"]["ConnectionProfileOrganizationAssignMembershipOnLoginEnum"];
+        };
+        /**
+         * @description The language of the custom text.
+         * @enum {string}
+         */
+        SelfServiceProfileCustomTextLanguageEnum: "en";
+        /** @description Connection profile configuration. */
+        ConnectionProfileConfig: Record<string, never>;
+        /** @description Google Workspace provisioning settings. */
+        ConnectionProfileProvisioningGoogleWorkspace: {
+            sync_users: components["schemas"]["ConnectionProfileProvisioningGoogleWorkspaceSyncUsers"];
+        };
+        /** @description Controls whether organization admins may enable Cross App Access (XAA) on their Identity Providers. */
+        ConnectionProfileCrossAppAccessResourceApp: {
+            status: components["schemas"]["ConnectionProfileCrossAppAccessResourceAppStatus"];
+        };
+        /**
+         * @description A SCIM token scope.
+         * @enum {string}
+         */
+        ConnectionProfileProvisioningScimTokenScopeEnum: "get:users" | "post:users" | "patch:users" | "delete:users" | "put:users";
+        SelfServiceProfileSsoTicketEnabledOrganization: {
+            /**
+             * Format: organization-id
+             * @description Organization identifier.
+             */
+            organization_id: string;
+            /** @description When true, all users that log in with this connection will be automatically granted membership in the organization. When false, users must be granted membership in the organization before logging in with this connection. */
+            assign_membership_on_login?: boolean;
+            /** @description Determines whether a connection should be displayed on this organization’s login prompt. Only applicable for enterprise connections. Default: true. */
+            show_as_button?: boolean;
+        };
+        /** @description The connection's options (depend on the connection strategy) */
+        SelfServiceProfileSsoTicketConnectionOptions: {
+            /**
+             * Format: strict-https-uri-or-null
+             * @description URL for the icon. Must use HTTPS.
+             */
+            icon_url?: string | null;
+            /** @description List of domain_aliases that can be authenticated in the Identity Provider */
+            domain_aliases?: string[] | null;
+            idpinitiated?: components["schemas"]["SelfServiceProfileSsoTicketIdpInitiatedOptions"];
+        } | null;
+        /** @description Configuration for Google Workspace Directory Sync during the self-service flow. */
+        SelfServiceProfileSsoTicketGoogleWorkspaceConfig: {
+            /** @description Whether to enable Google Workspace Directory Sync for users during the self-service flow. */
+            sync_users: boolean;
+            /** @description Whether to enable Google Workspace Directory Sync for groups during the self-service flow. */
+            sync_groups?: boolean;
+        };
+        ListConnectionProfilesPaginatedResponseContent: {
+            /** @description A cursor to be used as the "from" query parameter for the next page of results. */
+            next?: string;
+            connection_profiles?: components["schemas"]["ConnectionProfile"][];
+        };
+        /**
+         * @description A Cross App Access resource app status value.
+         * @enum {string}
+         */
+        ConnectionProfileCrossAppAccessResourceAppStatusValueEnum: "enabled" | "disabled";
+        /**
+         * @description Indicates if membership should be assigned on login.
+         * @enum {string}
+         */
+        ConnectionProfileOrganizationAssignMembershipOnLoginEnum: "none" | "optional" | "required";
+        SelfServiceProfile: {
+            /**
+             * @description The unique ID of the self-service Profile.
+             * @default ssp_n7SNCL8seoyV1TuSTCnAeo
+             */
+            id?: string;
+            /** @description The name of the self-service Profile. */
+            name?: string;
+            /** @description The description of the self-service Profile. */
+            description?: string;
+            /** @description List of attributes to be mapped that will be shown to the user during the Self-Service Enterprise Configuration flow. */
+            user_attributes?: components["schemas"]["SelfServiceProfileUserAttribute"][];
+            /**
+             * Format: date-time
+             * @description The time when this self-service Profile was created.
+             * @default 2021-01-01T00:00:00.000Z
+             */
+            created_at?: string;
+            /**
+             * Format: date-time
+             * @description The time when this self-service Profile was updated.
+             * @default 2021-01-01T00:00:00.000Z
+             */
+            updated_at?: string;
+            branding?: components["schemas"]["SelfServiceProfileBrandingProperties"];
+            /** @description List of IdP strategies that will be shown to users during the Self-Service Enterprise Configuration flow. Possible values: [`oidc`, `samlp`, `waad`, `google-apps`, `adfs`, `okta`, `auth0-samlp`, `okta-samlp`, `keycloak-samlp`, `pingfederate`] */
+            allowed_strategies?: components["schemas"]["SelfServiceProfileAllowedStrategyEnum"][];
+            /**
+             * Format: user-attribute-profile-id
+             * @description ID of the user-attribute-profile to associate with this self-service profile.
+             */
+            user_attribute_profile_id?: string;
+        };
+        ListConnectionProfileTemplateResponseContent: {
+            connection_profile_templates?: components["schemas"]["ConnectionProfileTemplateItem"][];
+        };
+        CreateSelfServiceProfileResponseContent: {
+            /**
+             * @description The unique ID of the self-service Profile.
+             * @default ssp_n7SNCL8seoyV1TuSTCnAeo
+             */
+            id?: string;
+            /** @description The name of the self-service Profile. */
+            name?: string;
+            /** @description The description of the self-service Profile. */
+            description?: string;
+            /** @description List of attributes to be mapped that will be shown to the user during the Self-Service Enterprise Configuration flow. */
+            user_attributes?: components["schemas"]["SelfServiceProfileUserAttribute"][];
+            /**
+             * Format: date-time
+             * @description The time when this self-service Profile was created.
+             * @default 2021-01-01T00:00:00.000Z
+             */
+            created_at?: string;
+            /**
+             * Format: date-time
+             * @description The time when this self-service Profile was updated.
+             * @default 2021-01-01T00:00:00.000Z
+             */
+            updated_at?: string;
+            branding?: components["schemas"]["SelfServiceProfileBrandingProperties"];
+            /** @description List of IdP strategies that will be shown to users during the Self-Service Enterprise Configuration flow. Possible values: [`oidc`, `samlp`, `waad`, `google-apps`, `adfs`, `okta`, `auth0-samlp`, `okta-samlp`, `keycloak-samlp`, `pingfederate`] */
+            allowed_strategies?: components["schemas"]["SelfServiceProfileAllowedStrategyEnum"][];
+            /**
+             * Format: user-attribute-profile-id
+             * @description ID of the user-attribute-profile to associate with this self-service profile.
+             */
+            user_attribute_profile_id?: string;
+        };
+        GetSelfServiceProfileResponseContent: {
+            /**
+             * @description The unique ID of the self-service Profile.
+             * @default ssp_n7SNCL8seoyV1TuSTCnAeo
+             */
+            id?: string;
+            /** @description The name of the self-service Profile. */
+            name?: string;
+            /** @description The description of the self-service Profile. */
+            description?: string;
+            /** @description List of attributes to be mapped that will be shown to the user during the Self-Service Enterprise Configuration flow. */
+            user_attributes?: components["schemas"]["SelfServiceProfileUserAttribute"][];
+            /**
+             * Format: date-time
+             * @description The time when this self-service Profile was created.
+             * @default 2021-01-01T00:00:00.000Z
+             */
+            created_at?: string;
+            /**
+             * Format: date-time
+             * @description The time when this self-service Profile was updated.
+             * @default 2021-01-01T00:00:00.000Z
+             */
+            updated_at?: string;
+            branding?: components["schemas"]["SelfServiceProfileBrandingProperties"];
+            /** @description List of IdP strategies that will be shown to users during the Self-Service Enterprise Configuration flow. Possible values: [`oidc`, `samlp`, `waad`, `google-apps`, `adfs`, `okta`, `auth0-samlp`, `okta-samlp`, `keycloak-samlp`, `pingfederate`] */
+            allowed_strategies?: components["schemas"]["SelfServiceProfileAllowedStrategyEnum"][];
+            /**
+             * Format: user-attribute-profile-id
+             * @description ID of the user-attribute-profile to associate with this self-service profile.
+             */
+            user_attribute_profile_id?: string;
+        };
+        /** @description Provisioning settings for connections created from this profile. */
+        ConnectionProfileProvisioning: {
+            scim?: components["schemas"]["ConnectionProfileProvisioningScim"];
+            google_workspace?: components["schemas"]["ConnectionProfileProvisioningGoogleWorkspace"];
+        };
+        /** @description The list of custom text keys and values. */
+        ListSelfServiceProfileCustomTextResponseContent: {
+            [key: string]: string;
+        };
+        /** @description Strategy-specific overrides for this attribute */
+        ConnectionProfileStrategyOverrides: {
+            pingfederate?: components["schemas"]["ConnectionProfileStrategyOverride"];
+            ad?: components["schemas"]["ConnectionProfileStrategyOverride"];
+            adfs?: components["schemas"]["ConnectionProfileStrategyOverride"];
+            waad?: components["schemas"]["ConnectionProfileStrategyOverride"];
+            "google-apps"?: components["schemas"]["ConnectionProfileStrategyOverride"];
+            okta?: components["schemas"]["ConnectionProfileStrategyOverride"];
+            oidc?: components["schemas"]["ConnectionProfileStrategyOverride"];
+            samlp?: components["schemas"]["ConnectionProfileStrategyOverride"];
+        };
+        /** @description The structure of the template, which can be used as the payload for creating or updating a Connection Profile. */
+        ConnectionProfileTemplate: {
+            name?: components["schemas"]["ConnectionProfileName"];
+            organization?: components["schemas"]["ConnectionProfileOrganization"];
+            connection_name_prefix_template?: components["schemas"]["ConnectionNamePrefixTemplate"];
+            enabled_features?: components["schemas"]["ConnectionProfileEnabledFeatures"];
+            connection_config?: components["schemas"]["ConnectionProfileConfig"];
+            strategy_overrides?: components["schemas"]["ConnectionProfileStrategyOverrides"];
+            provisioning?: components["schemas"]["ConnectionProfileProvisioning"];
+        };
+        /** @enum {string} */
+        SelfServiceProfileAllowedStrategyEnum: "oidc" | "samlp" | "waad" | "google-apps" | "adfs" | "okta" | "auth0-samlp" | "okta-samlp" | "keycloak-samlp" | "pingfederate";
+        /** @description The default SCIM token expiry, in seconds. `null` means the token never expires by default. */
+        ConnectionProfileProvisioningScimTokenDefaultExpiry: number | null;
+        /** @description Connection Profile Strategy Override */
+        ConnectionProfileStrategyOverride: {
+            enabled_features?: components["schemas"]["ConnectionProfileStrategyOverridesEnabledFeatures"];
+            connection_config?: components["schemas"]["ConnectionProfileStrategyOverridesConnectionConfig"];
+            provisioning?: components["schemas"]["ConnectionProfileStrategyOverridesProvisioning"];
+        };
+        UpdateConnectionProfileRequestContent: {
+            name?: components["schemas"]["ConnectionProfileName"];
+            organization?: components["schemas"]["ConnectionProfileOrganization"];
+            connection_name_prefix_template?: components["schemas"]["ConnectionNamePrefixTemplate"];
+            enabled_features?: components["schemas"]["ConnectionProfileEnabledFeatures"];
+            connection_config?: components["schemas"]["ConnectionProfileConfig"];
+            strategy_overrides?: components["schemas"]["ConnectionProfileStrategyOverrides"];
+            provisioning?: components["schemas"]["ConnectionProfileProvisioning"];
+            cross_app_access_resource_app?: components["schemas"]["ConnectionProfileCrossAppAccessResourceApp"];
         };
         ScimMappingItem: {
             /** @description The Auth0 profile field (`email`, `app_metadata.department`, …). */
@@ -25357,6 +26124,500 @@ export interface operations {
                     "application/json": components["schemas"]["ManagementError"];
                 };
             };
+        };
+    };
+    ListConnectionProfiles: {
+        parameters: {
+            query?: {
+                /** @description Optional Id from which to start selection. */
+                from?: string;
+                /** @description Number of results per page. Defaults to 5. */
+                take?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Connection Profiles successfully retrieved. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListConnectionProfilesPaginatedResponseContent"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    CreateConnectionProfile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["CreateConnectionProfileRequestContent"];
+                "application/x-www-form-urlencoded": components["schemas"]["CreateConnectionProfileRequestContent"];
+            };
+        };
+        responses: {
+            /** @description Connection profile successfully created. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CreateConnectionProfileResponseContent"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    ListConnectionProfileTemplates: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Connection Profile Templates successfully retrieved. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListConnectionProfileTemplateResponseContent"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    GetConnectionProfileTemplate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description ID of the connection-profile-template to retrieve. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Connection Profile Template successfully retrieved. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GetConnectionProfileTemplateResponseContent"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            /** @description Connection profile template not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    GetConnectionProfile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description ID of the connection-profile to retrieve. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Record for existing connection profile. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GetConnectionProfileResponseContent"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            /** @description Connection profile not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    DeleteConnectionProfile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description ID of the connection-profile to delete. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Connection profile successfully deleted. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    UpdateConnectionProfile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description ID of the connection profile to update. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["UpdateConnectionProfileRequestContent"];
+                "application/x-www-form-urlencoded": components["schemas"]["UpdateConnectionProfileRequestContent"];
+            };
+        };
+        responses: {
+            /** @description Connection profile successfully updated. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UpdateConnectionProfileResponseContent"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            /** @description Connection profile not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ListSelfServiceProfiles: {
+        parameters: {
+            query?: {
+                /** @description Page index of the results to return. First page is 0. */
+                page?: number;
+                /** @description Number of results per page. Defaults to 50. */
+                per_page?: number;
+                /** @description Return results inside an object that contains the total result count (true) or as a direct array of results (false, default). */
+                include_totals?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description List of existing profiles. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListSelfServiceProfilesResponseContent"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    CreateSelfServiceProfile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["CreateSelfServiceProfileRequestContent"];
+                "application/x-www-form-urlencoded": components["schemas"]["CreateSelfServiceProfileRequestContent"];
+            };
+        };
+        responses: {
+            /** @description Self-service profile successfully created. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CreateSelfServiceProfileResponseContent"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    GetSelfServiceProfile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The id of the self-service profile to retrieve */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Record for existing self-service profile. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GetSelfServiceProfileResponseContent"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            /** @description Self-service profile not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    DeleteSelfServiceProfile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The id of the self-service profile to delete */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Self-service profile successfully deleted. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    UpdateSelfServiceProfile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The id of the self-service profile to update */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["UpdateSelfServiceProfileRequestContent"];
+                "application/x-www-form-urlencoded": components["schemas"]["UpdateSelfServiceProfileRequestContent"];
+            };
+        };
+        responses: {
+            /** @description Self-service profile successfully updated. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UpdateSelfServiceProfileResponseContent"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            /** @description Self-service profile not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    GetSelfServiceProfileCustomText: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The id of the self-service profile. */
+                id: string;
+                /** @description The language of the custom text. */
+                language: components["schemas"]["SelfServiceProfileCustomTextLanguageEnum"];
+                /** @description The page where the custom text is shown. */
+                page: components["schemas"]["SelfServiceProfileCustomTextPageEnum"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Retrieved custom text. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListSelfServiceProfileCustomTextResponseContent"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            /** @description Self-service profile not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    SetSelfServiceProfileCustomText: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The id of the self-service profile. */
+                id: string;
+                /** @description The language of the custom text. */
+                language: components["schemas"]["SelfServiceProfileCustomTextLanguageEnum"];
+                /** @description The page where the custom text is shown. */
+                page: components["schemas"]["SelfServiceProfileCustomTextPageEnum"];
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["SetSelfServiceProfileCustomTextRequestContent"];
+                "application/x-www-form-urlencoded": components["schemas"]["SetSelfServiceProfileCustomTextRequestContent"];
+            };
+        };
+        responses: {
+            /** @description Updated custom text. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SetSelfServiceProfileCustomTextResponseContent"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            /** @description Self-service profile not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    CreateSsoTicket: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Custom domain to be used for this request */
+                "auth0-custom-domain"?: string;
+            };
+            path: {
+                /** @description The id of the self-service profile to retrieve */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["CreateSelfServiceProfileSsoTicketRequestContent"];
+                "application/x-www-form-urlencoded": components["schemas"]["CreateSelfServiceProfileSsoTicketRequestContent"];
+            };
+        };
+        responses: {
+            /** @description Self-Service Enterprise Configuration Access Ticket successfully created. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CreateSelfServiceProfileSsoTicketResponseContent"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    RevokeSsoTicket: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The id of the self-service profile */
+                profileId: string;
+                /** @description The id of the ticket to revoke */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Self-Service Enterprise Configuration Access Ticket revocation request accepted. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
         };
     };
     GetScimConfiguration: {

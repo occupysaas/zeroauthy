@@ -3876,7 +3876,10 @@ Observation points W1–W5 (spec §4) and later W-n are listed in
 
 ## D-0150: Inbound SCIM, directory groups, self-service SSO and directory provisioning (Plan 37c)
 
-**Phase A contract frozen 2026-11-22.** The
+**Phase A contract frozen 2026-11-22; Phase B contract frozen 2026-11-23**
+(self-service profiles, custom text, SSO tickets and connection profiles,
+imported from the Management OpenAPI with Auth0's schemas; the one
+lookahead pattern, `ConnectionNamePrefixTemplate`, is restated for RE2). The
 [spec](../superpowers/specs/2026-11-16-zeroauthy-scim-self-service-design.md) and
 [plan](../superpowers/plans/2026-11-16-zeroauthy-plan-37c-scim-self-service.md)
 reserve D-0150–0159. No live Auth0 tenant was observed by the implementer.

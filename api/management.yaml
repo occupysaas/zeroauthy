@@ -14005,6 +14005,636 @@ paths:
               schema:
                 $ref: '#/components/schemas/ManagementError'
 
+  /api/v2/connection-profiles:
+    get:
+      operationId: ListConnectionProfiles
+      summary: Get Connection Profiles
+      tags:
+      - connection-profiles
+      x-source:
+      - https://auth0.com/docs/api/management/v2/connection-profiles/get-connection-profiles
+      security:
+      - managementToken:
+        - read:connection_profiles
+      - operatorToken: []
+      description: 'Retrieve a list of Connection Profiles. This endpoint supports Checkpoint pagination.
+  
+        '
+      parameters:
+      - name: from
+        in: query
+        description: Optional Id from which to start selection.
+        schema:
+          type: string
+      - name: take
+        in: query
+        description: Number of results per page. Defaults to 5.
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 10
+      responses:
+        '200':
+          description: Connection Profiles successfully retrieved.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListConnectionProfilesPaginatedResponseContent'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+    post:
+      operationId: CreateConnectionProfile
+      summary: Create a connection profile
+      tags:
+      - connection-profiles
+      x-source:
+      - https://auth0.com/docs/api/management/v2/connection-profiles/post-connection-profiles
+      security:
+      - managementToken:
+        - create:connection_profiles
+      - operatorToken: []
+      description: 'Create a Connection Profile.
+  
+        '
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateConnectionProfileRequestContent'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CreateConnectionProfileRequestContent'
+      responses:
+        '201':
+          description: Connection profile successfully created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateConnectionProfileResponseContent'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /api/v2/connection-profiles/templates:
+    get:
+      operationId: ListConnectionProfileTemplates
+      summary: Get Connection Profile Templates
+      tags:
+      - connection-profiles
+      x-source:
+      - https://auth0.com/docs/api/management/v2/connection-profiles/get-connection-profile-templates
+      security:
+      - managementToken:
+        - read:connection_profiles
+      - operatorToken: []
+      description: 'Retrieve a list of Connection Profile Templates.
+  
+        '
+      responses:
+        '200':
+          description: Connection Profile Templates successfully retrieved.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListConnectionProfileTemplateResponseContent'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /api/v2/connection-profiles/templates/{id}:
+    get:
+      operationId: GetConnectionProfileTemplate
+      summary: Get Connection Profile Template
+      tags:
+      - connection-profiles
+      x-source:
+      - https://auth0.com/docs/api/management/v2/connection-profiles/get-connection-profile-template
+      security:
+      - managementToken:
+        - read:connection_profiles
+      - operatorToken: []
+      description: 'Retrieve a Connection Profile Template.
+  
+        '
+      parameters:
+      - name: id
+        in: path
+        description: ID of the connection-profile-template to retrieve.
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Connection Profile Template successfully retrieved.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetConnectionProfileTemplateResponseContent'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: Connection profile template not found.
+  /api/v2/connection-profiles/{id}:
+    get:
+      operationId: GetConnectionProfile
+      summary: Get Connection Profile
+      tags:
+      - connection-profiles
+      x-source:
+      - https://auth0.com/docs/api/management/v2/connection-profiles/get-connection-profiles-by-id
+      security:
+      - managementToken:
+        - read:connection_profiles
+      - operatorToken: []
+      description: 'Retrieve details about a single Connection Profile specified by ID.
+  
+        '
+      parameters:
+      - name: id
+        in: path
+        description: ID of the connection-profile to retrieve.
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Record for existing connection profile.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetConnectionProfileResponseContent'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: Connection profile not found.
+    delete:
+      operationId: DeleteConnectionProfile
+      summary: Delete Connection Profile
+      tags:
+      - connection-profiles
+      x-source:
+      - https://auth0.com/docs/api/management/v2/connection-profiles/delete-connection-profiles-by-id
+      security:
+      - managementToken:
+        - delete:connection_profiles
+      - operatorToken: []
+      description: 'Delete a single Connection Profile specified by ID.
+  
+        '
+      parameters:
+      - name: id
+        in: path
+        description: ID of the connection-profile to delete.
+        required: true
+        schema:
+          type: string
+      responses:
+        '204':
+          description: Connection profile successfully deleted.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+    patch:
+      operationId: UpdateConnectionProfile
+      summary: Modify a Connection Profile
+      tags:
+      - connection-profiles
+      x-source:
+      - https://auth0.com/docs/api/management/v2/connection-profiles/patch-connection-profiles-by-id
+      security:
+      - managementToken:
+        - update:connection_profiles
+      - operatorToken: []
+      description: 'Update the details of a specific Connection Profile.
+  
+        '
+      parameters:
+      - name: id
+        in: path
+        description: ID of the connection profile to update.
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateConnectionProfileRequestContent'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/UpdateConnectionProfileRequestContent'
+      responses:
+        '200':
+          description: Connection profile successfully updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UpdateConnectionProfileResponseContent'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: Connection profile not found.
+  /api/v2/self-service-profiles:
+    get:
+      operationId: ListSelfServiceProfiles
+      summary: Get self-service profiles
+      tags:
+      - self-service-profiles
+      x-source:
+      - https://auth0.com/docs/api/management/v2/self-service-profiles/get-self-service-profiles
+      security:
+      - managementToken:
+        - read:self_service_profiles
+      - operatorToken: []
+      description: 'Retrieves self-service profiles.
+  
+        '
+      parameters:
+      - name: page
+        in: query
+        description: Page index of the results to return. First page is 0.
+        schema:
+          type: integer
+          minimum: 0
+      - name: per_page
+        in: query
+        description: Number of results per page. Defaults to 50.
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+      - name: include_totals
+        in: query
+        description: Return results inside an object that contains the total result count (true) or as a direct array of results (false, default).
+        schema:
+          type: boolean
+      responses:
+        '200':
+          description: List of existing profiles.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListSelfServiceProfilesResponseContent'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+    post:
+      operationId: CreateSelfServiceProfile
+      summary: Create a self-service profile
+      tags:
+      - self-service-profiles
+      x-source:
+      - https://auth0.com/docs/api/management/v2/self-service-profiles/post-self-service-profiles
+      security:
+      - managementToken:
+        - create:self_service_profiles
+      - operatorToken: []
+      description: 'Creates a self-service profile.
+  
+        '
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateSelfServiceProfileRequestContent'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CreateSelfServiceProfileRequestContent'
+      responses:
+        '201':
+          description: Self-service profile successfully created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateSelfServiceProfileResponseContent'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /api/v2/self-service-profiles/{id}:
+    get:
+      operationId: GetSelfServiceProfile
+      summary: Get a self-service profile by Id
+      tags:
+      - self-service-profiles
+      x-source:
+      - https://auth0.com/docs/api/management/v2/self-service-profiles/get-self-service-profiles-by-id
+      security:
+      - managementToken:
+        - read:self_service_profiles
+      - operatorToken: []
+      description: 'Retrieves a self-service profile by Id.
+  
+        '
+      parameters:
+      - name: id
+        in: path
+        description: The id of the self-service profile to retrieve
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Record for existing self-service profile.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetSelfServiceProfileResponseContent'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: Self-service profile not found
+    delete:
+      operationId: DeleteSelfServiceProfile
+      summary: Delete a self-service profile by Id
+      tags:
+      - self-service-profiles
+      x-source:
+      - https://auth0.com/docs/api/management/v2/self-service-profiles/delete-self-service-profiles-by-id
+      security:
+      - managementToken:
+        - delete:self_service_profiles
+      - operatorToken: []
+      description: 'Deletes a self-service profile by Id.
+  
+        '
+      parameters:
+      - name: id
+        in: path
+        description: The id of the self-service profile to delete
+        required: true
+        schema:
+          type: string
+      responses:
+        '204':
+          description: Self-service profile successfully deleted.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+    patch:
+      operationId: UpdateSelfServiceProfile
+      summary: Update a self-service profile
+      tags:
+      - self-service-profiles
+      x-source:
+      - https://auth0.com/docs/api/management/v2/self-service-profiles/patch-self-service-profiles-by-id
+      security:
+      - managementToken:
+        - update:self_service_profiles
+      - operatorToken: []
+      description: 'Updates a self-service profile.
+  
+        '
+      parameters:
+      - name: id
+        in: path
+        description: The id of the self-service profile to update
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateSelfServiceProfileRequestContent'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/UpdateSelfServiceProfileRequestContent'
+      responses:
+        '200':
+          description: Self-service profile successfully updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UpdateSelfServiceProfileResponseContent'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: Self-service profile not found
+  /api/v2/self-service-profiles/{id}/custom-text/{language}/{page}:
+    get:
+      operationId: GetSelfServiceProfileCustomText
+      summary: Get custom text for a self-service profile
+      tags:
+      - self-service-profiles
+      x-source:
+      - https://auth0.com/docs/api/management/v2/self-service-profiles/get-self-service-profile-custom-text
+      security:
+      - managementToken:
+        - read:self_service_profile_custom_texts
+      - operatorToken: []
+      description: 'Retrieves text customizations for a given self-service profile, language and Self-Service Enterprise Configuration flow page.
+  
+        '
+      parameters:
+      - name: id
+        in: path
+        description: The id of the self-service profile.
+        required: true
+        schema:
+          type: string
+      - name: language
+        in: path
+        description: The language of the custom text.
+        required: true
+        schema:
+          $ref: '#/components/schemas/SelfServiceProfileCustomTextLanguageEnum'
+      - name: page
+        in: path
+        description: The page where the custom text is shown.
+        required: true
+        schema:
+          $ref: '#/components/schemas/SelfServiceProfileCustomTextPageEnum'
+      responses:
+        '200':
+          description: Retrieved custom text.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListSelfServiceProfileCustomTextResponseContent'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: Self-service profile not found.
+    put:
+      operationId: SetSelfServiceProfileCustomText
+      summary: Set custom text for a self-service profile
+      tags:
+      - self-service-profiles
+      x-source:
+      - https://auth0.com/docs/api/management/v2/self-service-profiles/put-self-service-profile-custom-text
+      security:
+      - managementToken:
+        - update:self_service_profile_custom_texts
+      - operatorToken: []
+      description: 'Updates text customizations for a given self-service profile, language and Self-Service Enterprise Configuration flow page.
+  
+        '
+      parameters:
+      - name: id
+        in: path
+        description: The id of the self-service profile.
+        required: true
+        schema:
+          type: string
+      - name: language
+        in: path
+        description: The language of the custom text.
+        required: true
+        schema:
+          $ref: '#/components/schemas/SelfServiceProfileCustomTextLanguageEnum'
+      - name: page
+        in: path
+        description: The page where the custom text is shown.
+        required: true
+        schema:
+          $ref: '#/components/schemas/SelfServiceProfileCustomTextPageEnum'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SetSelfServiceProfileCustomTextRequestContent'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/SetSelfServiceProfileCustomTextRequestContent'
+      responses:
+        '200':
+          description: Updated custom text.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SetSelfServiceProfileCustomTextResponseContent'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: Self-service profile not found.
+  /api/v2/self-service-profiles/{id}/sso-ticket:
+    post:
+      operationId: CreateSsoTicket
+      summary: Create an access ticket to initiate the Self-Service Enterprise Configuration flow
+      tags:
+      - self-service-profiles
+      x-source:
+      - https://auth0.com/docs/api/management/v2/self-service-profiles/post-sso-ticket
+      security:
+      - managementToken:
+        - create:sso_access_tickets
+      - operatorToken: []
+      description: 'Creates an access ticket to initiate the Self-Service Enterprise Configuration flow using a self-service profile.
+  
+        '
+      parameters:
+      - name: id
+        in: path
+        description: The id of the self-service profile to retrieve
+        required: true
+        schema:
+          type: string
+      - name: auth0-custom-domain
+        in: header
+        description: Custom domain to be used for this request
+        schema:
+          type: string
+          minLength: 3
+          maxLength: 255
+        x-sdk-ignore: true
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateSelfServiceProfileSsoTicketRequestContent'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CreateSelfServiceProfileSsoTicketRequestContent'
+      responses:
+        '201':
+          description: Self-Service Enterprise Configuration Access Ticket successfully created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateSelfServiceProfileSsoTicketResponseContent'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /api/v2/self-service-profiles/{profileId}/sso-ticket/{id}/revoke:
+    post:
+      operationId: RevokeSsoTicket
+      summary: Revoke a Self-Service Enterprise Configuration access ticket
+      tags:
+      - self-service-profiles
+      x-source:
+      - https://auth0.com/docs/api/management/v2/self-service-profiles/post-revoke
+      security:
+      - managementToken:
+        - delete:sso_access_tickets
+      - operatorToken: []
+      description: 'Revokes a Self-Service Enterprise Configuration access ticket and invalidates associated sessions. The ticket will no longer be accepted to initiate a Self-Service Enterprise Configuration session. If any users have already started a session through this ticket, their session will be terminated. Clients should expect a `202 Accepted` response upon successful processing, indicating that the request has been acknowledged and that the revocation is underway but may not be fully completed at the time of response. If the specified ticket does not exist, a `202 Accepted` response is also returned, signaling that no further action is required.
+  
+        Clients should treat these `202` responses as an acknowledgment that the request has been accepted and is in progress, even if the ticket was not found.
+  
+        '
+      parameters:
+      - name: profileId
+        in: path
+        description: The id of the self-service profile
+        required: true
+        schema:
+          type: string
+      - name: id
+        in: path
+        description: The id of the ticket to revoke
+        required: true
+        schema:
+          type: string
+      responses:
+        '202':
+          description: Self-Service Enterprise Configuration Access Ticket revocation request accepted.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
   /api/v2/connections/{id}/scim-configuration:
     get:
       operationId: GetScimConfiguration
@@ -15363,6 +15993,1032 @@ components:
           maxItems: 50
           items:
             $ref: '#/components/schemas/GroupID'
+    SelfServiceProfileBrandingProperties:
+      type: object
+      additionalProperties: true
+      properties:
+        logo_url:
+          type: string
+          maxLength: 1024
+          format: uri
+          pattern: ^https://
+        colors:
+          $ref: '#/components/schemas/SelfServiceProfileBrandingColors'
+    ConnectionProfileTemplateItem:
+      type: object
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+          description: The id of the template.
+        display_name:
+          type: string
+          description: The user-friendly name of the template displayed in the UI.
+        template:
+          $ref: '#/components/schemas/ConnectionProfileTemplate'
+    SelfServiceProfileUserAttribute:
+      type: object
+      additionalProperties: false
+      required:
+      - name
+      - description
+      - is_optional
+      properties:
+        name:
+          type: string
+          description: Identifier of this attribute.
+          maxLength: 250
+        description:
+          type: string
+          description: Description of this attribute.
+        is_optional:
+          type: boolean
+          description: Determines if this attribute is required
+    CreateConnectionProfileResponseContent:
+      type: object
+      additionalProperties: false
+      properties:
+        id:
+          $ref: '#/components/schemas/ConnectionProfileId'
+        name:
+          $ref: '#/components/schemas/ConnectionProfileName'
+        organization:
+          $ref: '#/components/schemas/ConnectionProfileOrganization'
+        connection_name_prefix_template:
+          $ref: '#/components/schemas/ConnectionNamePrefixTemplate'
+        enabled_features:
+          $ref: '#/components/schemas/ConnectionProfileEnabledFeatures'
+        connection_config:
+          $ref: '#/components/schemas/ConnectionProfileConfig'
+        strategy_overrides:
+          $ref: '#/components/schemas/ConnectionProfileStrategyOverrides'
+        provisioning:
+          $ref: '#/components/schemas/ConnectionProfileProvisioning'
+        cross_app_access_resource_app:
+          $ref: '#/components/schemas/ConnectionProfileCrossAppAccessResourceApp'
+          x-release-lifecycle: EA
+    SelfServiceProfileCustomTextPageEnum:
+      type: string
+      enum:
+      - get-started
+      description: The page where the custom text is shown.
+    SelfServiceProfileSsoTicketProvisioningScopeEnum:
+      type: string
+      enum:
+      - get:users
+      - post:users
+      - put:users
+      - patch:users
+      - delete:users
+      - get:groups
+      - post:groups
+      - put:groups
+      - patch:groups
+      - delete:groups
+    CreateSelfServiceProfileSsoTicketRequestContent:
+      type: object
+      additionalProperties: false
+      properties:
+        connection_id:
+          type: string
+          description: If provided, this will allow editing of the provided connection during the Self-Service Enterprise Configuration flow
+          format: connection-id
+        connection_config:
+          $ref: '#/components/schemas/SelfServiceProfileSsoTicketConnectionConfig'
+        enabled_clients:
+          type: array
+          description: List of client_ids that the connection will be enabled for.
+          minItems: 0
+          items:
+            type: string
+        enabled_organizations:
+          type: array
+          description: List of organizations that the connection will be enabled for.
+          minItems: 0
+          items:
+            $ref: '#/components/schemas/SelfServiceProfileSsoTicketEnabledOrganization'
+        ttl_sec:
+          type: integer
+          description: Number of seconds for which the ticket is valid before expiration. If unspecified or set to 0, this value defaults to 432000 seconds (5 days).
+          minimum: 0
+          maximum: 432000
+        domain_aliases_config:
+          $ref: '#/components/schemas/SelfServiceProfileSsoTicketDomainAliasesConfig'
+        provisioning_config:
+          $ref: '#/components/schemas/SelfServiceProfileSsoTicketProvisioningConfig'
+          x-release-lifecycle: GA
+        use_for_organization_discovery:
+          type: boolean
+          description: Indicates whether a verified domain should be used for organization discovery during authentication.
+          x-release-lifecycle: GA
+        third_party_client_access_config:
+          $ref: '#/components/schemas/ThirdPartyClientAccessConfig'
+          x-release-lifecycle: GA
+        universal_logout_config:
+          $ref: '#/components/schemas/SelfServiceProfileSsoTicketUniversalLogoutConfig'
+          x-release-lifecycle: GA
+        enabled_features:
+          $ref: '#/components/schemas/SelfServiceProfileSsoTicketEnabledFeatures'
+          x-release-lifecycle: GA
+    CreateSelfServiceProfileSsoTicketResponseContent:
+      type: object
+      additionalProperties: false
+      properties:
+        ticket:
+          type: string
+          description: The URL for the created ticket.
+    SetSelfServiceProfileCustomTextResponseContent:
+      type: object
+      description: The resulting list of custom text keys and values.
+      additionalProperties:
+        type: string
+    ThirdPartyClientAccessConfig:
+      type: object
+      description: Configuration for Third Party Client Access during the Self-Service Enterprise Configuration flow.
+      additionalProperties: false
+      required:
+      - allow_configuration
+      x-release-lifecycle: GA
+      properties:
+        allow_configuration:
+          type: boolean
+          description: Whether third-party applications can configure the connection as a domain-level connection during the Self-Service Enterprise Configuration flow.
+    SelfServiceProfileUserAttributes:
+      type:
+      - array
+      - 'null'
+      description: List of attributes to be mapped that will be shown to the user during the Self-Service Enterprise Configuration flow.
+      items:
+        $ref: '#/components/schemas/SelfServiceProfileUserAttribute'
+    SelfServiceProfileSsoTicketDomainVerificationEnum:
+      type: string
+      description: Whether the end user should complete the domain verification step. Possible values are 'none' (the step is not shown to the user), 'optional' (the user may add a domain alias in the domain verification step) or 'required' (the user must add a domain alias in order to enable the connection). Defaults to 'none'.
+      enum:
+      - none
+      - optional
+      - required
+    ConnectionProfileCrossAppAccessResourceAppStatus:
+      type: object
+      description: The Cross App Access resource app status configuration.
+      additionalProperties: false
+      required:
+      - default_value
+      properties:
+        default_value:
+          $ref: '#/components/schemas/ConnectionProfileCrossAppAccessResourceAppStatusDefaultValueEnum'
+        allowed_values:
+          $ref: '#/components/schemas/ConnectionProfileCrossAppAccessResourceAppStatusAllowedValuesEnum'
+    EnabledFeaturesEnum:
+      type: string
+      description: Enum for enabled features.
+      enum:
+      - scim
+      - universal_logout
+      - directory_sync
+    SelfServiceProfileSsoTicketUniversalLogoutConfig:
+      type: object
+      description: Configuration for the setup of Universal Logout in the Self-Service Enterprise Configuration flow.
+      additionalProperties: false
+      required:
+      - allow_configuration
+      x-release-lifecycle: GA
+      properties:
+        allow_configuration:
+          type: boolean
+          description: Whether the end user can set up Universal Logout during the Self-Service Enterprise Configuration flow.
+    ConnectionProfileProvisioningScim:
+      type: object
+      description: SCIM provisioning settings.
+      additionalProperties: false
+      required:
+      - tokens
+      properties:
+        tokens:
+          $ref: '#/components/schemas/ConnectionProfileProvisioningScimTokens'
+    ConnectionsMetadata:
+      type: object
+      description: Metadata associated with the connection in the form of an object with string values (max 255 chars).  Maximum of 10 metadata properties allowed.
+      additionalProperties:
+        type:
+        - string
+        - 'null'
+        maxLength: 255
+      maxProperties: 10
+    ConnectionProfileName:
+      type: string
+      description: The name of the connection profile.
+      minLength: 1
+      maxLength: 50
+    ConnectionProfile:
+      type: object
+      additionalProperties: false
+      properties:
+        id:
+          $ref: '#/components/schemas/ConnectionProfileId'
+        name:
+          $ref: '#/components/schemas/ConnectionProfileName'
+        organization:
+          $ref: '#/components/schemas/ConnectionProfileOrganization'
+        connection_name_prefix_template:
+          $ref: '#/components/schemas/ConnectionNamePrefixTemplate'
+        enabled_features:
+          $ref: '#/components/schemas/ConnectionProfileEnabledFeatures'
+        connection_config:
+          $ref: '#/components/schemas/ConnectionProfileConfig'
+        strategy_overrides:
+          $ref: '#/components/schemas/ConnectionProfileStrategyOverrides'
+        provisioning:
+          $ref: '#/components/schemas/ConnectionProfileProvisioning'
+        cross_app_access_resource_app:
+          $ref: '#/components/schemas/ConnectionProfileCrossAppAccessResourceApp'
+          x-release-lifecycle: EA
+    GetConnectionProfileTemplateResponseContent:
+      type: object
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+          description: The id of the template.
+        display_name:
+          type: string
+          description: The user-friendly name of the template displayed in the UI.
+        template:
+          $ref: '#/components/schemas/ConnectionProfileTemplate'
+    SelfServiceProfileSsoTicketConnectionConfig:
+      type: object
+      description: If provided, this will create a new connection for the Self-Service Enterprise Configuration flow with the given configuration
+      additionalProperties: false
+      required:
+      - name
+      properties:
+        name:
+          type: string
+          description: The name of the connection that will be created as a part of the Self-Service Enterprise Configuration flow.
+          default: sso-generated-SAML-customer-12
+          minLength: 1
+          maxLength: 128
+          pattern: ^[a-zA-Z0-9](-[a-zA-Z0-9]|[a-zA-Z0-9])*$
+        display_name:
+          type: string
+          description: Connection name used in the new universal login experience
+          maxLength: 128
+        is_domain_connection:
+          type: boolean
+          description: <code>true</code> promotes to a domain-level connection so that third-party applications can use it. <code>false</code> does not promote the connection, so only first-party applications with the connection enabled can use it. (Defaults to <code>false</code>.)
+        show_as_button:
+          type: boolean
+          description: Enables showing a button for the connection in the login page (new experience only). If false, it will be usable only by HRD. (Defaults to <code>false</code>.)
+        metadata:
+          $ref: '#/components/schemas/ConnectionsMetadata'
+        options:
+          $ref: '#/components/schemas/SelfServiceProfileSsoTicketConnectionOptions'
+    ConnectionProfileProvisioningScimTokenMaxAllowedExpiry:
+      type:
+      - integer
+      - 'null'
+      description: The maximum SCIM token expiry, in seconds. `null` means there is no maximum.
+      minimum: 900
+    ConnectionProfileOrganizationShowAsButtonEnum:
+      type: string
+      description: Indicates if the organization should be shown as a button.
+      enum:
+      - none
+      - optional
+      - required
+    ConnectionNamePrefixTemplate:
+      type: string
+      description: 'Connection name prefix template. (Auth0 states the rule with lookaheads: no leading hyphen and no double hyphen; this is the equivalent RE2 pattern.)'
+      minLength: 0
+      maxLength: 15
+      pattern: ^(?:(?:[a-zA-Z0-9]|\{org_id\}|\{org_name\})(?:-?(?:[a-zA-Z0-9]|\{org_id\}|\{org_name\}))*-?)?$
+    ConnectionProfileCrossAppAccessResourceAppStatusAllowedValuesEnum:
+      type: array
+      description: The allowed Cross App Access resource app status values.
+      minItems: 2
+      items:
+        $ref: '#/components/schemas/ConnectionProfileCrossAppAccessResourceAppStatusValueEnum'
+    ConnectionProfileProvisioningScimTokenScopes:
+      type: array
+      description: The scopes granted to SCIM tokens.
+      minItems: 1
+      items:
+        $ref: '#/components/schemas/ConnectionProfileProvisioningScimTokenScopeEnum'
+    ConnectionProfileStrategyOverridesEnabledFeatures:
+      type: array
+      description: Enabled features for a connections profile strategy override.
+      items:
+        $ref: '#/components/schemas/EnabledFeaturesEnum'
+    UpdateSelfServiceProfileResponseContent:
+      type: object
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+          description: The unique ID of the self-service Profile.
+          default: ssp_n7SNCL8seoyV1TuSTCnAeo
+        name:
+          type: string
+          description: The name of the self-service Profile.
+        description:
+          type: string
+          description: The description of the self-service Profile.
+        user_attributes:
+          type: array
+          description: List of attributes to be mapped that will be shown to the user during the Self-Service Enterprise Configuration flow.
+          items:
+            $ref: '#/components/schemas/SelfServiceProfileUserAttribute'
+        created_at:
+          type: string
+          description: The time when this self-service Profile was created.
+          default: '2021-01-01T00:00:00.000Z'
+          format: date-time
+        updated_at:
+          type: string
+          description: The time when this self-service Profile was updated.
+          default: '2021-01-01T00:00:00.000Z'
+          format: date-time
+        branding:
+          $ref: '#/components/schemas/SelfServiceProfileBrandingProperties'
+        allowed_strategies:
+          type: array
+          description: 'List of IdP strategies that will be shown to users during the Self-Service Enterprise Configuration flow. Possible values: [`oidc`, `samlp`, `waad`, `google-apps`, `adfs`, `okta`, `auth0-samlp`, `okta-samlp`, `keycloak-samlp`, `pingfederate`]'
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/SelfServiceProfileAllowedStrategyEnum'
+        user_attribute_profile_id:
+          type: string
+          description: ID of the user-attribute-profile to associate with this self-service profile.
+          format: user-attribute-profile-id
+          x-release-lifecycle: EA
+    ConnectionProfileProvisioningGoogleWorkspaceSyncUsers:
+      type: boolean
+      description: Whether the connection is authorized to run Google Workspace user provisioning.
+    CreateSelfServiceProfileRequestContent:
+      type: object
+      additionalProperties: false
+      required:
+      - name
+      properties:
+        name:
+          type: string
+          description: The name of the self-service Profile.
+          minLength: 1
+          maxLength: 100
+        description:
+          type: string
+          description: The description of the self-service Profile.
+          minLength: 1
+          maxLength: 140
+        branding:
+          $ref: '#/components/schemas/SelfServiceProfileBrandingProperties'
+        allowed_strategies:
+          type: array
+          description: 'List of IdP strategies that will be shown to users during the Self-Service Enterprise Configuration flow. Possible values: [`oidc`, `samlp`, `waad`, `google-apps`, `adfs`, `okta`, `auth0-samlp`, `okta-samlp`, `keycloak-samlp`, `pingfederate`]'
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/SelfServiceProfileAllowedStrategyEnum'
+        user_attributes:
+          type: array
+          description: List of attributes to be mapped that will be shown to the user during the Self-Service Enterprise Configuration flow.
+          items:
+            $ref: '#/components/schemas/SelfServiceProfileUserAttribute'
+        user_attribute_profile_id:
+          type: string
+          description: ID of the user-attribute-profile to associate with this self-service profile.
+          format: user-attribute-profile-id
+          x-release-lifecycle: EA
+    CreateConnectionProfileRequestContent:
+      type: object
+      additionalProperties: false
+      required:
+      - name
+      properties:
+        name:
+          $ref: '#/components/schemas/ConnectionProfileName'
+        organization:
+          $ref: '#/components/schemas/ConnectionProfileOrganization'
+        connection_name_prefix_template:
+          $ref: '#/components/schemas/ConnectionNamePrefixTemplate'
+        enabled_features:
+          $ref: '#/components/schemas/ConnectionProfileEnabledFeatures'
+        connection_config:
+          $ref: '#/components/schemas/ConnectionProfileConfig'
+        strategy_overrides:
+          $ref: '#/components/schemas/ConnectionProfileStrategyOverrides'
+        provisioning:
+          $ref: '#/components/schemas/ConnectionProfileProvisioning'
+        cross_app_access_resource_app:
+          $ref: '#/components/schemas/ConnectionProfileCrossAppAccessResourceApp'
+          x-release-lifecycle: EA
+    ConnectionProfileId:
+      type: string
+      description: Connection Profile identifier.
+      format: connection-profile-id
+    SetSelfServiceProfileCustomTextRequestContent:
+      type: object
+      description: The list of text keys and values to customize the Self-Service Enterprise Configuration flow page. Values can be plain text or rich HTML content limited to basic styling tags and hyperlinks.
+      additionalProperties:
+        type: string
+        maxLength: 2000
+    SelfServiceProfileSsoTicketIdpInitiatedClientProtocolEnum:
+      type: string
+      description: The protocol used to connect to the the default application
+      enum:
+      - samlp
+      - wsfed
+      - oauth2
+    SelfServiceProfileSsoTicketDomainAliasesConfig:
+      type: object
+      description: Configuration for the setup of the connection’s domain_aliases in the Self-Service Enterprise Configuration flow.
+      additionalProperties: false
+      required:
+      - domain_verification
+      properties:
+        domain_verification:
+          $ref: '#/components/schemas/SelfServiceProfileSsoTicketDomainVerificationEnum'
+        pending_domains:
+          type: array
+          description: List of domains that will be submitted for verification during the Self-Service Enterprise Configuration flow.
+          x-release-lifecycle: GA
+          items:
+            type: string
+            minLength: 1
+            maxLength: 255
+    SelfServiceProfileBranding:
+      oneOf:
+      - $ref: '#/components/schemas/SelfServiceProfileBrandingProperties'
+      - type: 'null'
+    ConnectionProfileStrategyOverridesProvisioning:
+      type: object
+      description: Provisioning settings for a connection profile strategy override.
+      additionalProperties: false
+      properties:
+        scim:
+          $ref: '#/components/schemas/ConnectionProfileProvisioningScim'
+        google_workspace:
+          $ref: '#/components/schemas/ConnectionProfileProvisioningGoogleWorkspace'
+    SelfServiceProfileBrandingColors:
+      type: object
+      additionalProperties: true
+      required:
+      - primary
+      properties:
+        primary:
+          type: string
+          pattern: ^#([\dA-Fa-f]{6}|[\dA-Fa-f]{3})$
+    GetConnectionProfileResponseContent:
+      type: object
+      additionalProperties: false
+      properties:
+        id:
+          $ref: '#/components/schemas/ConnectionProfileId'
+        name:
+          $ref: '#/components/schemas/ConnectionProfileName'
+        organization:
+          $ref: '#/components/schemas/ConnectionProfileOrganization'
+        connection_name_prefix_template:
+          $ref: '#/components/schemas/ConnectionNamePrefixTemplate'
+        enabled_features:
+          $ref: '#/components/schemas/ConnectionProfileEnabledFeatures'
+        connection_config:
+          $ref: '#/components/schemas/ConnectionProfileConfig'
+        strategy_overrides:
+          $ref: '#/components/schemas/ConnectionProfileStrategyOverrides'
+        provisioning:
+          $ref: '#/components/schemas/ConnectionProfileProvisioning'
+        cross_app_access_resource_app:
+          $ref: '#/components/schemas/ConnectionProfileCrossAppAccessResourceApp'
+          x-release-lifecycle: EA
+    UpdateConnectionProfileResponseContent:
+      type: object
+      additionalProperties: false
+      properties:
+        id:
+          $ref: '#/components/schemas/ConnectionProfileId'
+        name:
+          $ref: '#/components/schemas/ConnectionProfileName'
+        organization:
+          $ref: '#/components/schemas/ConnectionProfileOrganization'
+        connection_name_prefix_template:
+          $ref: '#/components/schemas/ConnectionNamePrefixTemplate'
+        enabled_features:
+          $ref: '#/components/schemas/ConnectionProfileEnabledFeatures'
+        connection_config:
+          $ref: '#/components/schemas/ConnectionProfileConfig'
+        strategy_overrides:
+          $ref: '#/components/schemas/ConnectionProfileStrategyOverrides'
+        provisioning:
+          $ref: '#/components/schemas/ConnectionProfileProvisioning'
+        cross_app_access_resource_app:
+          $ref: '#/components/schemas/ConnectionProfileCrossAppAccessResourceApp'
+          x-release-lifecycle: EA
+    ConnectionProfileStrategyOverridesConnectionConfig:
+      type: object
+      description: Connection profile strategy overrides connection configuration.
+      additionalProperties: false
+      properties: {}
+    ConnectionProfileProvisioningScimTokens:
+      type: object
+      description: SCIM token settings for connections created from this profile.
+      additionalProperties: false
+      required:
+      - scopes
+      properties:
+        scopes:
+          $ref: '#/components/schemas/ConnectionProfileProvisioningScimTokenScopes'
+        default_expiry:
+          $ref: '#/components/schemas/ConnectionProfileProvisioningScimTokenDefaultExpiry'
+        max_allowed_expiry:
+          $ref: '#/components/schemas/ConnectionProfileProvisioningScimTokenMaxAllowedExpiry'
+    SelfServiceProfileDescription:
+      type:
+      - string
+      - 'null'
+      description: The description of the self-service Profile.
+      minLength: 1
+      maxLength: 140
+    ConnectionProfileEnabledFeatures:
+      type: array
+      description: Enabled features for the connection profile.
+      items:
+        $ref: '#/components/schemas/EnabledFeaturesEnum'
+    ConnectionProfileCrossAppAccessResourceAppStatusDefaultValueEnum:
+      type: string
+      description: The default Cross App Access resource app status.
+      enum:
+      - enabled
+      - disabled
+    ListSelfServiceProfilesResponseContent:
+      oneOf:
+      - type: array
+        items:
+          $ref: '#/components/schemas/SelfServiceProfile'
+      - $ref: '#/components/schemas/ListSelfServiceProfilesPaginatedResponseContent'
+    SelfServiceProfileSsoTicketIdpInitiatedOptions:
+      type:
+      - object
+      - 'null'
+      description: Allows IdP-initiated login
+      additionalProperties: false
+      properties:
+        enabled:
+          type: boolean
+          description: Enables IdP-initiated login for this connection
+        client_id:
+          type: string
+          description: Default application <code>client_id</code> user is redirected to after validated SAML response
+          format: client-id
+        client_protocol:
+          $ref: '#/components/schemas/SelfServiceProfileSsoTicketIdpInitiatedClientProtocolEnum'
+        client_authorizequery:
+          type: string
+          description: 'Query string options to customize the behaviour for OpenID Connect when <code>idpinitiated.client_protocol</code> is <code>oauth2</code>. Allowed parameters: <code>redirect_uri</code>, <code>scope</code>, <code>response_type</code>. For example, <code>redirect_uri=https://jwt.io&scope=openid email&response_type=token</code>'
+          maxLength: 256
+    ListSelfServiceProfilesPaginatedResponseContent:
+      type: object
+      additionalProperties: false
+      properties:
+        start:
+          type: number
+        limit:
+          type: number
+        total:
+          type: number
+        self_service_profiles:
+          type: array
+          items:
+            $ref: '#/components/schemas/SelfServiceProfile'
+    SelfServiceProfileSsoTicketProvisioningConfig:
+      type: object
+      description: Configuration for the setup of Provisioning in the self-service flow.
+      additionalProperties: false
+      x-release-lifecycle: GA
+      properties:
+        scopes:
+          type: array
+          description: The scopes of the SCIM tokens generated during the self-service flow.
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/SelfServiceProfileSsoTicketProvisioningScopeEnum'
+        google_workspace:
+          $ref: '#/components/schemas/SelfServiceProfileSsoTicketGoogleWorkspaceConfig'
+          x-release-lifecycle: GA
+        token_lifetime:
+          description: Lifetime of the tokens in seconds. Must be greater than 900. If not provided, the tokens don't expire.
+          type:
+          - integer
+          - 'null'
+          minimum: 900
+    UpdateSelfServiceProfileRequestContent:
+      type: object
+      additionalProperties: false
+      minProperties: 0
+      properties:
+        name:
+          type: string
+          description: The name of the self-service Profile.
+          minLength: 1
+          maxLength: 100
+        description:
+          $ref: '#/components/schemas/SelfServiceProfileDescription'
+        branding:
+          $ref: '#/components/schemas/SelfServiceProfileBranding'
+        allowed_strategies:
+          type: array
+          description: 'List of IdP strategies that will be shown to users during the Self-Service Enterprise Configuration flow. Possible values: [`oidc`, `samlp`, `waad`, `google-apps`, `adfs`, `okta`, `auth0-samlp`, `okta-samlp`, `keycloak-samlp`, `pingfederate`]'
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/SelfServiceProfileAllowedStrategyEnum'
+        user_attributes:
+          $ref: '#/components/schemas/SelfServiceProfileUserAttributes'
+        user_attribute_profile_id:
+          type:
+          - string
+          - 'null'
+          description: ID of the user-attribute-profile to associate with this self-service profile.
+          format: user-attribute-profile-id
+          x-release-lifecycle: EA
+    SelfServiceProfileSsoTicketEnabledFeatures:
+      type: object
+      description: Specifies which features are enabled for an "edit connection" ticket. Only applicable when connection ID is provided.
+      additionalProperties: false
+      x-release-lifecycle: GA
+      properties:
+        sso:
+          type: boolean
+          description: Whether SSO configuration is enabled in this ticket.
+        domain_verification:
+          type: boolean
+          description: Whether domain verification is enabled in this ticket.
+        provisioning:
+          type: boolean
+          description: Whether provisioning configuration is enabled in this ticket.
+    ConnectionProfileOrganization:
+      type: object
+      description: The organization of the connection profile.
+      additionalProperties: false
+      properties:
+        show_as_button:
+          $ref: '#/components/schemas/ConnectionProfileOrganizationShowAsButtonEnum'
+        assign_membership_on_login:
+          $ref: '#/components/schemas/ConnectionProfileOrganizationAssignMembershipOnLoginEnum'
+    SelfServiceProfileCustomTextLanguageEnum:
+      type: string
+      enum:
+      - en
+      description: The language of the custom text.
+    ConnectionProfileConfig:
+      type: object
+      description: Connection profile configuration.
+      additionalProperties: false
+      properties: {}
+    ConnectionProfileProvisioningGoogleWorkspace:
+      type: object
+      description: Google Workspace provisioning settings.
+      additionalProperties: false
+      required:
+      - sync_users
+      properties:
+        sync_users:
+          $ref: '#/components/schemas/ConnectionProfileProvisioningGoogleWorkspaceSyncUsers'
+    ConnectionProfileCrossAppAccessResourceApp:
+      type: object
+      description: Controls whether organization admins may enable Cross App Access (XAA) on their Identity Providers.
+      additionalProperties: false
+      required:
+      - status
+      x-release-lifecycle: EA
+      properties:
+        status:
+          $ref: '#/components/schemas/ConnectionProfileCrossAppAccessResourceAppStatus'
+    ConnectionProfileProvisioningScimTokenScopeEnum:
+      type: string
+      description: A SCIM token scope.
+      enum:
+      - get:users
+      - post:users
+      - patch:users
+      - delete:users
+      - put:users
+    SelfServiceProfileSsoTicketEnabledOrganization:
+      type: object
+      additionalProperties: false
+      required:
+      - organization_id
+      properties:
+        organization_id:
+          type: string
+          description: Organization identifier.
+          maxLength: 50
+          format: organization-id
+        assign_membership_on_login:
+          type: boolean
+          description: When true, all users that log in with this connection will be automatically granted membership in the organization. When false, users must be granted membership in the organization before logging in with this connection.
+        show_as_button:
+          type: boolean
+          description: 'Determines whether a connection should be displayed on this organization’s login prompt. Only applicable for enterprise connections. Default: true.'
+    SelfServiceProfileSsoTicketConnectionOptions:
+      type:
+      - object
+      - 'null'
+      description: The connection's options (depend on the connection strategy)
+      additionalProperties: false
+      properties:
+        icon_url:
+          type:
+          - string
+          - 'null'
+          description: URL for the icon. Must use HTTPS.
+          format: strict-https-uri-or-null
+        domain_aliases:
+          type:
+          - array
+          - 'null'
+          description: List of domain_aliases that can be authenticated in the Identity Provider
+          items:
+            type: string
+            minLength: 1
+            maxLength: 255
+        idpinitiated:
+          $ref: '#/components/schemas/SelfServiceProfileSsoTicketIdpInitiatedOptions'
+    SelfServiceProfileSsoTicketGoogleWorkspaceConfig:
+      type: object
+      description: Configuration for Google Workspace Directory Sync during the self-service flow.
+      additionalProperties: false
+      required:
+      - sync_users
+      x-release-lifecycle: GA
+      properties:
+        sync_users:
+          type: boolean
+          description: Whether to enable Google Workspace Directory Sync for users during the self-service flow.
+        sync_groups:
+          type: boolean
+          description: Whether to enable Google Workspace Directory Sync for groups during the self-service flow.
+          x-release-lifecycle: GA
+    ListConnectionProfilesPaginatedResponseContent:
+      type: object
+      additionalProperties: false
+      properties:
+        next:
+          type: string
+          description: A cursor to be used as the "from" query parameter for the next page of results.
+        connection_profiles:
+          type: array
+          items:
+            $ref: '#/components/schemas/ConnectionProfile'
+    ConnectionProfileCrossAppAccessResourceAppStatusValueEnum:
+      type: string
+      description: A Cross App Access resource app status value.
+      enum:
+      - enabled
+      - disabled
+    ConnectionProfileOrganizationAssignMembershipOnLoginEnum:
+      type: string
+      description: Indicates if membership should be assigned on login.
+      enum:
+      - none
+      - optional
+      - required
+    SelfServiceProfile:
+      type: object
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+          description: The unique ID of the self-service Profile.
+          default: ssp_n7SNCL8seoyV1TuSTCnAeo
+        name:
+          type: string
+          description: The name of the self-service Profile.
+        description:
+          type: string
+          description: The description of the self-service Profile.
+        user_attributes:
+          type: array
+          description: List of attributes to be mapped that will be shown to the user during the Self-Service Enterprise Configuration flow.
+          items:
+            $ref: '#/components/schemas/SelfServiceProfileUserAttribute'
+        created_at:
+          type: string
+          description: The time when this self-service Profile was created.
+          default: '2021-01-01T00:00:00.000Z'
+          format: date-time
+        updated_at:
+          type: string
+          description: The time when this self-service Profile was updated.
+          default: '2021-01-01T00:00:00.000Z'
+          format: date-time
+        branding:
+          $ref: '#/components/schemas/SelfServiceProfileBrandingProperties'
+        allowed_strategies:
+          type: array
+          description: 'List of IdP strategies that will be shown to users during the Self-Service Enterprise Configuration flow. Possible values: [`oidc`, `samlp`, `waad`, `google-apps`, `adfs`, `okta`, `auth0-samlp`, `okta-samlp`, `keycloak-samlp`, `pingfederate`]'
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/SelfServiceProfileAllowedStrategyEnum'
+        user_attribute_profile_id:
+          type: string
+          description: ID of the user-attribute-profile to associate with this self-service profile.
+          format: user-attribute-profile-id
+          x-release-lifecycle: EA
+    ListConnectionProfileTemplateResponseContent:
+      type: object
+      additionalProperties: false
+      properties:
+        connection_profile_templates:
+          type: array
+          items:
+            $ref: '#/components/schemas/ConnectionProfileTemplateItem'
+    CreateSelfServiceProfileResponseContent:
+      type: object
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+          description: The unique ID of the self-service Profile.
+          default: ssp_n7SNCL8seoyV1TuSTCnAeo
+        name:
+          type: string
+          description: The name of the self-service Profile.
+        description:
+          type: string
+          description: The description of the self-service Profile.
+        user_attributes:
+          type: array
+          description: List of attributes to be mapped that will be shown to the user during the Self-Service Enterprise Configuration flow.
+          items:
+            $ref: '#/components/schemas/SelfServiceProfileUserAttribute'
+        created_at:
+          type: string
+          description: The time when this self-service Profile was created.
+          default: '2021-01-01T00:00:00.000Z'
+          format: date-time
+        updated_at:
+          type: string
+          description: The time when this self-service Profile was updated.
+          default: '2021-01-01T00:00:00.000Z'
+          format: date-time
+        branding:
+          $ref: '#/components/schemas/SelfServiceProfileBrandingProperties'
+        allowed_strategies:
+          type: array
+          description: 'List of IdP strategies that will be shown to users during the Self-Service Enterprise Configuration flow. Possible values: [`oidc`, `samlp`, `waad`, `google-apps`, `adfs`, `okta`, `auth0-samlp`, `okta-samlp`, `keycloak-samlp`, `pingfederate`]'
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/SelfServiceProfileAllowedStrategyEnum'
+        user_attribute_profile_id:
+          type: string
+          description: ID of the user-attribute-profile to associate with this self-service profile.
+          format: user-attribute-profile-id
+          x-release-lifecycle: EA
+    GetSelfServiceProfileResponseContent:
+      type: object
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+          description: The unique ID of the self-service Profile.
+          default: ssp_n7SNCL8seoyV1TuSTCnAeo
+        name:
+          type: string
+          description: The name of the self-service Profile.
+        description:
+          type: string
+          description: The description of the self-service Profile.
+        user_attributes:
+          type: array
+          description: List of attributes to be mapped that will be shown to the user during the Self-Service Enterprise Configuration flow.
+          items:
+            $ref: '#/components/schemas/SelfServiceProfileUserAttribute'
+        created_at:
+          type: string
+          description: The time when this self-service Profile was created.
+          default: '2021-01-01T00:00:00.000Z'
+          format: date-time
+        updated_at:
+          type: string
+          description: The time when this self-service Profile was updated.
+          default: '2021-01-01T00:00:00.000Z'
+          format: date-time
+        branding:
+          $ref: '#/components/schemas/SelfServiceProfileBrandingProperties'
+        allowed_strategies:
+          type: array
+          description: 'List of IdP strategies that will be shown to users during the Self-Service Enterprise Configuration flow. Possible values: [`oidc`, `samlp`, `waad`, `google-apps`, `adfs`, `okta`, `auth0-samlp`, `okta-samlp`, `keycloak-samlp`, `pingfederate`]'
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/SelfServiceProfileAllowedStrategyEnum'
+        user_attribute_profile_id:
+          type: string
+          description: ID of the user-attribute-profile to associate with this self-service profile.
+          format: user-attribute-profile-id
+          x-release-lifecycle: EA
+    ConnectionProfileProvisioning:
+      type: object
+      description: Provisioning settings for connections created from this profile.
+      additionalProperties: false
+      properties:
+        scim:
+          $ref: '#/components/schemas/ConnectionProfileProvisioningScim'
+        google_workspace:
+          $ref: '#/components/schemas/ConnectionProfileProvisioningGoogleWorkspace'
+    ListSelfServiceProfileCustomTextResponseContent:
+      type: object
+      description: The list of custom text keys and values.
+      additionalProperties:
+        type: string
+    ConnectionProfileStrategyOverrides:
+      type: object
+      description: Strategy-specific overrides for this attribute
+      additionalProperties: false
+      properties:
+        pingfederate:
+          $ref: '#/components/schemas/ConnectionProfileStrategyOverride'
+        ad:
+          $ref: '#/components/schemas/ConnectionProfileStrategyOverride'
+        adfs:
+          $ref: '#/components/schemas/ConnectionProfileStrategyOverride'
+        waad:
+          $ref: '#/components/schemas/ConnectionProfileStrategyOverride'
+        google-apps:
+          $ref: '#/components/schemas/ConnectionProfileStrategyOverride'
+        okta:
+          $ref: '#/components/schemas/ConnectionProfileStrategyOverride'
+        oidc:
+          $ref: '#/components/schemas/ConnectionProfileStrategyOverride'
+        samlp:
+          $ref: '#/components/schemas/ConnectionProfileStrategyOverride'
+    ConnectionProfileTemplate:
+      type: object
+      description: The structure of the template, which can be used as the payload for creating or updating a Connection Profile.
+      additionalProperties: false
+      properties:
+        name:
+          $ref: '#/components/schemas/ConnectionProfileName'
+        organization:
+          $ref: '#/components/schemas/ConnectionProfileOrganization'
+        connection_name_prefix_template:
+          $ref: '#/components/schemas/ConnectionNamePrefixTemplate'
+        enabled_features:
+          $ref: '#/components/schemas/ConnectionProfileEnabledFeatures'
+        connection_config:
+          $ref: '#/components/schemas/ConnectionProfileConfig'
+        strategy_overrides:
+          $ref: '#/components/schemas/ConnectionProfileStrategyOverrides'
+        provisioning:
+          $ref: '#/components/schemas/ConnectionProfileProvisioning'
+    SelfServiceProfileAllowedStrategyEnum:
+      type: string
+      enum:
+      - oidc
+      - samlp
+      - waad
+      - google-apps
+      - adfs
+      - okta
+      - auth0-samlp
+      - okta-samlp
+      - keycloak-samlp
+      - pingfederate
+    ConnectionProfileProvisioningScimTokenDefaultExpiry:
+      type:
+      - integer
+      - 'null'
+      description: The default SCIM token expiry, in seconds. `null` means the token never expires by default.
+      minimum: 900
+    ConnectionProfileStrategyOverride:
+      type: object
+      description: Connection Profile Strategy Override
+      additionalProperties: false
+      properties:
+        enabled_features:
+          $ref: '#/components/schemas/ConnectionProfileStrategyOverridesEnabledFeatures'
+        connection_config:
+          $ref: '#/components/schemas/ConnectionProfileStrategyOverridesConnectionConfig'
+        provisioning:
+          $ref: '#/components/schemas/ConnectionProfileStrategyOverridesProvisioning'
+    UpdateConnectionProfileRequestContent:
+      type: object
+      additionalProperties: false
+      properties:
+        name:
+          $ref: '#/components/schemas/ConnectionProfileName'
+        organization:
+          $ref: '#/components/schemas/ConnectionProfileOrganization'
+        connection_name_prefix_template:
+          $ref: '#/components/schemas/ConnectionNamePrefixTemplate'
+        enabled_features:
+          $ref: '#/components/schemas/ConnectionProfileEnabledFeatures'
+        connection_config:
+          $ref: '#/components/schemas/ConnectionProfileConfig'
+        strategy_overrides:
+          $ref: '#/components/schemas/ConnectionProfileStrategyOverrides'
+        provisioning:
+          $ref: '#/components/schemas/ConnectionProfileProvisioning'
+        cross_app_access_resource_app:
+          $ref: '#/components/schemas/ConnectionProfileCrossAppAccessResourceApp'
+          x-release-lifecycle: EA
     ScimMappingItem:
       type: object
       additionalProperties: false

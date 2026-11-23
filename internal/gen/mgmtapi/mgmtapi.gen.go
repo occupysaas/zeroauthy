@@ -2220,6 +2220,111 @@ func (e ConnectionOptionsSMSSyntax) Valid() bool {
 	}
 }
 
+// Defines values for ConnectionProfileCrossAppAccessResourceAppStatusDefaultValueEnum.
+const (
+	ConnectionProfileCrossAppAccessResourceAppStatusDefaultValueEnumDisabled ConnectionProfileCrossAppAccessResourceAppStatusDefaultValueEnum = "disabled"
+	ConnectionProfileCrossAppAccessResourceAppStatusDefaultValueEnumEnabled  ConnectionProfileCrossAppAccessResourceAppStatusDefaultValueEnum = "enabled"
+)
+
+// Valid indicates whether the value is a known member of the ConnectionProfileCrossAppAccessResourceAppStatusDefaultValueEnum enum.
+func (e ConnectionProfileCrossAppAccessResourceAppStatusDefaultValueEnum) Valid() bool {
+	switch e {
+	case ConnectionProfileCrossAppAccessResourceAppStatusDefaultValueEnumDisabled:
+		return true
+	case ConnectionProfileCrossAppAccessResourceAppStatusDefaultValueEnumEnabled:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ConnectionProfileCrossAppAccessResourceAppStatusValueEnum.
+const (
+	ConnectionProfileCrossAppAccessResourceAppStatusValueEnumDisabled ConnectionProfileCrossAppAccessResourceAppStatusValueEnum = "disabled"
+	ConnectionProfileCrossAppAccessResourceAppStatusValueEnumEnabled  ConnectionProfileCrossAppAccessResourceAppStatusValueEnum = "enabled"
+)
+
+// Valid indicates whether the value is a known member of the ConnectionProfileCrossAppAccessResourceAppStatusValueEnum enum.
+func (e ConnectionProfileCrossAppAccessResourceAppStatusValueEnum) Valid() bool {
+	switch e {
+	case ConnectionProfileCrossAppAccessResourceAppStatusValueEnumDisabled:
+		return true
+	case ConnectionProfileCrossAppAccessResourceAppStatusValueEnumEnabled:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ConnectionProfileOrganizationAssignMembershipOnLoginEnum.
+const (
+	ConnectionProfileOrganizationAssignMembershipOnLoginEnumNone     ConnectionProfileOrganizationAssignMembershipOnLoginEnum = "none"
+	ConnectionProfileOrganizationAssignMembershipOnLoginEnumOptional ConnectionProfileOrganizationAssignMembershipOnLoginEnum = "optional"
+	ConnectionProfileOrganizationAssignMembershipOnLoginEnumRequired ConnectionProfileOrganizationAssignMembershipOnLoginEnum = "required"
+)
+
+// Valid indicates whether the value is a known member of the ConnectionProfileOrganizationAssignMembershipOnLoginEnum enum.
+func (e ConnectionProfileOrganizationAssignMembershipOnLoginEnum) Valid() bool {
+	switch e {
+	case ConnectionProfileOrganizationAssignMembershipOnLoginEnumNone:
+		return true
+	case ConnectionProfileOrganizationAssignMembershipOnLoginEnumOptional:
+		return true
+	case ConnectionProfileOrganizationAssignMembershipOnLoginEnumRequired:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ConnectionProfileOrganizationShowAsButtonEnum.
+const (
+	ConnectionProfileOrganizationShowAsButtonEnumNone     ConnectionProfileOrganizationShowAsButtonEnum = "none"
+	ConnectionProfileOrganizationShowAsButtonEnumOptional ConnectionProfileOrganizationShowAsButtonEnum = "optional"
+	ConnectionProfileOrganizationShowAsButtonEnumRequired ConnectionProfileOrganizationShowAsButtonEnum = "required"
+)
+
+// Valid indicates whether the value is a known member of the ConnectionProfileOrganizationShowAsButtonEnum enum.
+func (e ConnectionProfileOrganizationShowAsButtonEnum) Valid() bool {
+	switch e {
+	case ConnectionProfileOrganizationShowAsButtonEnumNone:
+		return true
+	case ConnectionProfileOrganizationShowAsButtonEnumOptional:
+		return true
+	case ConnectionProfileOrganizationShowAsButtonEnumRequired:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ConnectionProfileProvisioningScimTokenScopeEnum.
+const (
+	ConnectionProfileProvisioningScimTokenScopeEnumDeleteUsers ConnectionProfileProvisioningScimTokenScopeEnum = "delete:users"
+	ConnectionProfileProvisioningScimTokenScopeEnumGetUsers    ConnectionProfileProvisioningScimTokenScopeEnum = "get:users"
+	ConnectionProfileProvisioningScimTokenScopeEnumPatchUsers  ConnectionProfileProvisioningScimTokenScopeEnum = "patch:users"
+	ConnectionProfileProvisioningScimTokenScopeEnumPostUsers   ConnectionProfileProvisioningScimTokenScopeEnum = "post:users"
+	ConnectionProfileProvisioningScimTokenScopeEnumPutUsers    ConnectionProfileProvisioningScimTokenScopeEnum = "put:users"
+)
+
+// Valid indicates whether the value is a known member of the ConnectionProfileProvisioningScimTokenScopeEnum enum.
+func (e ConnectionProfileProvisioningScimTokenScopeEnum) Valid() bool {
+	switch e {
+	case ConnectionProfileProvisioningScimTokenScopeEnumDeleteUsers:
+		return true
+	case ConnectionProfileProvisioningScimTokenScopeEnumGetUsers:
+		return true
+	case ConnectionProfileProvisioningScimTokenScopeEnumPatchUsers:
+		return true
+	case ConnectionProfileProvisioningScimTokenScopeEnumPostUsers:
+		return true
+	case ConnectionProfileProvisioningScimTokenScopeEnumPutUsers:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for ConsoleAuthenticationMethodCredentialDeviceType.
 const (
 	ConsoleAuthenticationMethodCredentialDeviceTypeMultiDevice  ConsoleAuthenticationMethodCredentialDeviceType = "multi_device"
@@ -2628,6 +2733,27 @@ const (
 func (e EmailTemplatePatchSyntax) Valid() bool {
 	switch e {
 	case EmailTemplatePatchSyntaxLiquid:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for EnabledFeaturesEnum.
+const (
+	EnabledFeaturesEnumDirectorySync   EnabledFeaturesEnum = "directory_sync"
+	EnabledFeaturesEnumScim            EnabledFeaturesEnum = "scim"
+	EnabledFeaturesEnumUniversalLogout EnabledFeaturesEnum = "universal_logout"
+)
+
+// Valid indicates whether the value is a known member of the EnabledFeaturesEnum enum.
+func (e EnabledFeaturesEnum) Valid() bool {
+	switch e {
+	case EnabledFeaturesEnumDirectorySync:
+		return true
+	case EnabledFeaturesEnumScim:
+		return true
+	case EnabledFeaturesEnumUniversalLogout:
 		return true
 	default:
 		return false
@@ -3542,16 +3668,16 @@ func (e IIOrganizationUsageEnum) Valid() bool {
 
 // Defines values for IISearchParserEnum.
 const (
-	Lucene IISearchParserEnum = "lucene"
-	Scim   IISearchParserEnum = "scim"
+	IISearchParserEnumLucene IISearchParserEnum = "lucene"
+	IISearchParserEnumScim   IISearchParserEnum = "scim"
 )
 
 // Valid indicates whether the value is a known member of the IISearchParserEnum enum.
 func (e IISearchParserEnum) Valid() bool {
 	switch e {
-	case Lucene:
+	case IISearchParserEnumLucene:
 		return true
-	case Scim:
+	case IISearchParserEnumScim:
 		return true
 	default:
 		return false
@@ -6746,19 +6872,19 @@ func (e ResourceServerSettingsTokenDialect) Valid() bool {
 
 // Defines values for RoamingUVSettingsUserVerification.
 const (
-	Discouraged RoamingUVSettingsUserVerification = "discouraged"
-	Preferred   RoamingUVSettingsUserVerification = "preferred"
-	Required    RoamingUVSettingsUserVerification = "required"
+	RoamingUVSettingsUserVerificationDiscouraged RoamingUVSettingsUserVerification = "discouraged"
+	RoamingUVSettingsUserVerificationPreferred   RoamingUVSettingsUserVerification = "preferred"
+	RoamingUVSettingsUserVerificationRequired    RoamingUVSettingsUserVerification = "required"
 )
 
 // Valid indicates whether the value is a known member of the RoamingUVSettingsUserVerification enum.
 func (e RoamingUVSettingsUserVerification) Valid() bool {
 	switch e {
-	case Discouraged:
+	case RoamingUVSettingsUserVerificationDiscouraged:
 		return true
-	case Preferred:
+	case RoamingUVSettingsUserVerificationPreferred:
 		return true
-	case Required:
+	case RoamingUVSettingsUserVerificationRequired:
 		return true
 	default:
 		return false
@@ -6782,40 +6908,196 @@ func (e RoleCreateType) Valid() bool {
 
 // Defines values for ScimTokenCreateScopes.
 const (
-	DeleteGroups ScimTokenCreateScopes = "delete:groups"
-	DeleteUsers  ScimTokenCreateScopes = "delete:users"
-	GetGroups    ScimTokenCreateScopes = "get:groups"
-	GetUsers     ScimTokenCreateScopes = "get:users"
-	PatchGroups  ScimTokenCreateScopes = "patch:groups"
-	PatchUsers   ScimTokenCreateScopes = "patch:users"
-	PostGroups   ScimTokenCreateScopes = "post:groups"
-	PostUsers    ScimTokenCreateScopes = "post:users"
-	PutGroups    ScimTokenCreateScopes = "put:groups"
-	PutUsers     ScimTokenCreateScopes = "put:users"
+	ScimTokenCreateScopesDeleteGroups ScimTokenCreateScopes = "delete:groups"
+	ScimTokenCreateScopesDeleteUsers  ScimTokenCreateScopes = "delete:users"
+	ScimTokenCreateScopesGetGroups    ScimTokenCreateScopes = "get:groups"
+	ScimTokenCreateScopesGetUsers     ScimTokenCreateScopes = "get:users"
+	ScimTokenCreateScopesPatchGroups  ScimTokenCreateScopes = "patch:groups"
+	ScimTokenCreateScopesPatchUsers   ScimTokenCreateScopes = "patch:users"
+	ScimTokenCreateScopesPostGroups   ScimTokenCreateScopes = "post:groups"
+	ScimTokenCreateScopesPostUsers    ScimTokenCreateScopes = "post:users"
+	ScimTokenCreateScopesPutGroups    ScimTokenCreateScopes = "put:groups"
+	ScimTokenCreateScopesPutUsers     ScimTokenCreateScopes = "put:users"
 )
 
 // Valid indicates whether the value is a known member of the ScimTokenCreateScopes enum.
 func (e ScimTokenCreateScopes) Valid() bool {
 	switch e {
-	case DeleteGroups:
+	case ScimTokenCreateScopesDeleteGroups:
 		return true
-	case DeleteUsers:
+	case ScimTokenCreateScopesDeleteUsers:
 		return true
-	case GetGroups:
+	case ScimTokenCreateScopesGetGroups:
 		return true
-	case GetUsers:
+	case ScimTokenCreateScopesGetUsers:
 		return true
-	case PatchGroups:
+	case ScimTokenCreateScopesPatchGroups:
 		return true
-	case PatchUsers:
+	case ScimTokenCreateScopesPatchUsers:
 		return true
-	case PostGroups:
+	case ScimTokenCreateScopesPostGroups:
 		return true
-	case PostUsers:
+	case ScimTokenCreateScopesPostUsers:
 		return true
-	case PutGroups:
+	case ScimTokenCreateScopesPutGroups:
 		return true
-	case PutUsers:
+	case ScimTokenCreateScopesPutUsers:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for SelfServiceProfileAllowedStrategyEnum.
+const (
+	SelfServiceProfileAllowedStrategyEnumAdfs          SelfServiceProfileAllowedStrategyEnum = "adfs"
+	SelfServiceProfileAllowedStrategyEnumAuth0Samlp    SelfServiceProfileAllowedStrategyEnum = "auth0-samlp"
+	SelfServiceProfileAllowedStrategyEnumGoogleApps    SelfServiceProfileAllowedStrategyEnum = "google-apps"
+	SelfServiceProfileAllowedStrategyEnumKeycloakSamlp SelfServiceProfileAllowedStrategyEnum = "keycloak-samlp"
+	SelfServiceProfileAllowedStrategyEnumOidc          SelfServiceProfileAllowedStrategyEnum = "oidc"
+	SelfServiceProfileAllowedStrategyEnumOkta          SelfServiceProfileAllowedStrategyEnum = "okta"
+	SelfServiceProfileAllowedStrategyEnumOktaSamlp     SelfServiceProfileAllowedStrategyEnum = "okta-samlp"
+	SelfServiceProfileAllowedStrategyEnumPingfederate  SelfServiceProfileAllowedStrategyEnum = "pingfederate"
+	SelfServiceProfileAllowedStrategyEnumSamlp         SelfServiceProfileAllowedStrategyEnum = "samlp"
+	SelfServiceProfileAllowedStrategyEnumWaad          SelfServiceProfileAllowedStrategyEnum = "waad"
+)
+
+// Valid indicates whether the value is a known member of the SelfServiceProfileAllowedStrategyEnum enum.
+func (e SelfServiceProfileAllowedStrategyEnum) Valid() bool {
+	switch e {
+	case SelfServiceProfileAllowedStrategyEnumAdfs:
+		return true
+	case SelfServiceProfileAllowedStrategyEnumAuth0Samlp:
+		return true
+	case SelfServiceProfileAllowedStrategyEnumGoogleApps:
+		return true
+	case SelfServiceProfileAllowedStrategyEnumKeycloakSamlp:
+		return true
+	case SelfServiceProfileAllowedStrategyEnumOidc:
+		return true
+	case SelfServiceProfileAllowedStrategyEnumOkta:
+		return true
+	case SelfServiceProfileAllowedStrategyEnumOktaSamlp:
+		return true
+	case SelfServiceProfileAllowedStrategyEnumPingfederate:
+		return true
+	case SelfServiceProfileAllowedStrategyEnumSamlp:
+		return true
+	case SelfServiceProfileAllowedStrategyEnumWaad:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for SelfServiceProfileCustomTextLanguageEnum.
+const (
+	SelfServiceProfileCustomTextLanguageEnumEn SelfServiceProfileCustomTextLanguageEnum = "en"
+)
+
+// Valid indicates whether the value is a known member of the SelfServiceProfileCustomTextLanguageEnum enum.
+func (e SelfServiceProfileCustomTextLanguageEnum) Valid() bool {
+	switch e {
+	case SelfServiceProfileCustomTextLanguageEnumEn:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for SelfServiceProfileCustomTextPageEnum.
+const (
+	GetStarted SelfServiceProfileCustomTextPageEnum = "get-started"
+)
+
+// Valid indicates whether the value is a known member of the SelfServiceProfileCustomTextPageEnum enum.
+func (e SelfServiceProfileCustomTextPageEnum) Valid() bool {
+	switch e {
+	case GetStarted:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for SelfServiceProfileSsoTicketDomainVerificationEnum.
+const (
+	SelfServiceProfileSsoTicketDomainVerificationEnumNone     SelfServiceProfileSsoTicketDomainVerificationEnum = "none"
+	SelfServiceProfileSsoTicketDomainVerificationEnumOptional SelfServiceProfileSsoTicketDomainVerificationEnum = "optional"
+	SelfServiceProfileSsoTicketDomainVerificationEnumRequired SelfServiceProfileSsoTicketDomainVerificationEnum = "required"
+)
+
+// Valid indicates whether the value is a known member of the SelfServiceProfileSsoTicketDomainVerificationEnum enum.
+func (e SelfServiceProfileSsoTicketDomainVerificationEnum) Valid() bool {
+	switch e {
+	case SelfServiceProfileSsoTicketDomainVerificationEnumNone:
+		return true
+	case SelfServiceProfileSsoTicketDomainVerificationEnumOptional:
+		return true
+	case SelfServiceProfileSsoTicketDomainVerificationEnumRequired:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for SelfServiceProfileSsoTicketIdpInitiatedClientProtocolEnum.
+const (
+	SelfServiceProfileSsoTicketIdpInitiatedClientProtocolEnumOauth2 SelfServiceProfileSsoTicketIdpInitiatedClientProtocolEnum = "oauth2"
+	SelfServiceProfileSsoTicketIdpInitiatedClientProtocolEnumSamlp  SelfServiceProfileSsoTicketIdpInitiatedClientProtocolEnum = "samlp"
+	SelfServiceProfileSsoTicketIdpInitiatedClientProtocolEnumWsfed  SelfServiceProfileSsoTicketIdpInitiatedClientProtocolEnum = "wsfed"
+)
+
+// Valid indicates whether the value is a known member of the SelfServiceProfileSsoTicketIdpInitiatedClientProtocolEnum enum.
+func (e SelfServiceProfileSsoTicketIdpInitiatedClientProtocolEnum) Valid() bool {
+	switch e {
+	case SelfServiceProfileSsoTicketIdpInitiatedClientProtocolEnumOauth2:
+		return true
+	case SelfServiceProfileSsoTicketIdpInitiatedClientProtocolEnumSamlp:
+		return true
+	case SelfServiceProfileSsoTicketIdpInitiatedClientProtocolEnumWsfed:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for SelfServiceProfileSsoTicketProvisioningScopeEnum.
+const (
+	SelfServiceProfileSsoTicketProvisioningScopeEnumDeleteGroups SelfServiceProfileSsoTicketProvisioningScopeEnum = "delete:groups"
+	SelfServiceProfileSsoTicketProvisioningScopeEnumDeleteUsers  SelfServiceProfileSsoTicketProvisioningScopeEnum = "delete:users"
+	SelfServiceProfileSsoTicketProvisioningScopeEnumGetGroups    SelfServiceProfileSsoTicketProvisioningScopeEnum = "get:groups"
+	SelfServiceProfileSsoTicketProvisioningScopeEnumGetUsers     SelfServiceProfileSsoTicketProvisioningScopeEnum = "get:users"
+	SelfServiceProfileSsoTicketProvisioningScopeEnumPatchGroups  SelfServiceProfileSsoTicketProvisioningScopeEnum = "patch:groups"
+	SelfServiceProfileSsoTicketProvisioningScopeEnumPatchUsers   SelfServiceProfileSsoTicketProvisioningScopeEnum = "patch:users"
+	SelfServiceProfileSsoTicketProvisioningScopeEnumPostGroups   SelfServiceProfileSsoTicketProvisioningScopeEnum = "post:groups"
+	SelfServiceProfileSsoTicketProvisioningScopeEnumPostUsers    SelfServiceProfileSsoTicketProvisioningScopeEnum = "post:users"
+	SelfServiceProfileSsoTicketProvisioningScopeEnumPutGroups    SelfServiceProfileSsoTicketProvisioningScopeEnum = "put:groups"
+	SelfServiceProfileSsoTicketProvisioningScopeEnumPutUsers     SelfServiceProfileSsoTicketProvisioningScopeEnum = "put:users"
+)
+
+// Valid indicates whether the value is a known member of the SelfServiceProfileSsoTicketProvisioningScopeEnum enum.
+func (e SelfServiceProfileSsoTicketProvisioningScopeEnum) Valid() bool {
+	switch e {
+	case SelfServiceProfileSsoTicketProvisioningScopeEnumDeleteGroups:
+		return true
+	case SelfServiceProfileSsoTicketProvisioningScopeEnumDeleteUsers:
+		return true
+	case SelfServiceProfileSsoTicketProvisioningScopeEnumGetGroups:
+		return true
+	case SelfServiceProfileSsoTicketProvisioningScopeEnumGetUsers:
+		return true
+	case SelfServiceProfileSsoTicketProvisioningScopeEnumPatchGroups:
+		return true
+	case SelfServiceProfileSsoTicketProvisioningScopeEnumPatchUsers:
+		return true
+	case SelfServiceProfileSsoTicketProvisioningScopeEnumPostGroups:
+		return true
+	case SelfServiceProfileSsoTicketProvisioningScopeEnumPostUsers:
+		return true
+	case SelfServiceProfileSsoTicketProvisioningScopeEnumPutGroups:
+		return true
+	case SelfServiceProfileSsoTicketProvisioningScopeEnumPutUsers:
 		return true
 	default:
 		return false
@@ -9595,6 +9877,9 @@ type ConnectionKey struct {
 // ConnectionKeyKeyUse defines model for ConnectionKey.KeyUse.
 type ConnectionKeyKeyUse string
 
+// ConnectionNamePrefixTemplate Connection name prefix template. (Auth0 states the rule with lookaheads: no leading hyphen and no double hyphen; this is the equivalent RE2 pattern.)
+type ConnectionNamePrefixTemplate = string
+
 // ConnectionOptionsADFS ADFS connection (`adfs`, Plan 37b, D-0140): zeroauthy is a
 // WS-Federation relying party of an ADFS server or any WS-Fed identity
 // provider. Exactly one of `adfs_server` (federation metadata host or
@@ -10133,6 +10418,225 @@ type ConnectionPage struct {
 	Total int `json:"total"`
 }
 
+// ConnectionProfile defines model for ConnectionProfile.
+type ConnectionProfile struct {
+	// ConnectionConfig Connection profile configuration.
+	ConnectionConfig *ConnectionProfileConfig `json:"connection_config,omitempty"`
+
+	// ConnectionNamePrefixTemplate Connection name prefix template. (Auth0 states the rule with lookaheads: no leading hyphen and no double hyphen; this is the equivalent RE2 pattern.)
+	ConnectionNamePrefixTemplate *ConnectionNamePrefixTemplate `json:"connection_name_prefix_template,omitempty"`
+
+	// CrossAppAccessResourceApp Controls whether organization admins may enable Cross App Access (XAA) on their Identity Providers.
+	CrossAppAccessResourceApp *ConnectionProfileCrossAppAccessResourceApp `json:"cross_app_access_resource_app,omitempty"`
+
+	// EnabledFeatures Enabled features for the connection profile.
+	EnabledFeatures *ConnectionProfileEnabledFeatures `json:"enabled_features,omitempty"`
+
+	// Id Connection Profile identifier.
+	Id *ConnectionProfileId `json:"id,omitempty"`
+
+	// Name The name of the connection profile.
+	Name *ConnectionProfileName `json:"name,omitempty"`
+
+	// Organization The organization of the connection profile.
+	Organization *ConnectionProfileOrganization `json:"organization,omitempty"`
+
+	// Provisioning Provisioning settings for connections created from this profile.
+	Provisioning *ConnectionProfileProvisioning `json:"provisioning,omitempty"`
+
+	// StrategyOverrides Strategy-specific overrides for this attribute
+	StrategyOverrides *ConnectionProfileStrategyOverrides `json:"strategy_overrides,omitempty"`
+}
+
+// ConnectionProfileConfig Connection profile configuration.
+type ConnectionProfileConfig = map[string]interface{}
+
+// ConnectionProfileCrossAppAccessResourceApp Controls whether organization admins may enable Cross App Access (XAA) on their Identity Providers.
+type ConnectionProfileCrossAppAccessResourceApp struct {
+	// Status The Cross App Access resource app status configuration.
+	Status ConnectionProfileCrossAppAccessResourceAppStatus `json:"status"`
+}
+
+// ConnectionProfileCrossAppAccessResourceAppStatus The Cross App Access resource app status configuration.
+type ConnectionProfileCrossAppAccessResourceAppStatus struct {
+	// AllowedValues The allowed Cross App Access resource app status values.
+	AllowedValues *ConnectionProfileCrossAppAccessResourceAppStatusAllowedValuesEnum `json:"allowed_values,omitempty"`
+
+	// DefaultValue The default Cross App Access resource app status.
+	DefaultValue ConnectionProfileCrossAppAccessResourceAppStatusDefaultValueEnum `json:"default_value"`
+}
+
+// ConnectionProfileCrossAppAccessResourceAppStatusAllowedValuesEnum The allowed Cross App Access resource app status values.
+type ConnectionProfileCrossAppAccessResourceAppStatusAllowedValuesEnum = []ConnectionProfileCrossAppAccessResourceAppStatusValueEnum
+
+// ConnectionProfileCrossAppAccessResourceAppStatusDefaultValueEnum The default Cross App Access resource app status.
+type ConnectionProfileCrossAppAccessResourceAppStatusDefaultValueEnum string
+
+// ConnectionProfileCrossAppAccessResourceAppStatusValueEnum A Cross App Access resource app status value.
+type ConnectionProfileCrossAppAccessResourceAppStatusValueEnum string
+
+// ConnectionProfileEnabledFeatures Enabled features for the connection profile.
+type ConnectionProfileEnabledFeatures = []EnabledFeaturesEnum
+
+// ConnectionProfileId Connection Profile identifier.
+type ConnectionProfileId = string
+
+// ConnectionProfileName The name of the connection profile.
+type ConnectionProfileName = string
+
+// ConnectionProfileOrganization The organization of the connection profile.
+type ConnectionProfileOrganization struct {
+	// AssignMembershipOnLogin Indicates if membership should be assigned on login.
+	AssignMembershipOnLogin *ConnectionProfileOrganizationAssignMembershipOnLoginEnum `json:"assign_membership_on_login,omitempty"`
+
+	// ShowAsButton Indicates if the organization should be shown as a button.
+	ShowAsButton *ConnectionProfileOrganizationShowAsButtonEnum `json:"show_as_button,omitempty"`
+}
+
+// ConnectionProfileOrganizationAssignMembershipOnLoginEnum Indicates if membership should be assigned on login.
+type ConnectionProfileOrganizationAssignMembershipOnLoginEnum string
+
+// ConnectionProfileOrganizationShowAsButtonEnum Indicates if the organization should be shown as a button.
+type ConnectionProfileOrganizationShowAsButtonEnum string
+
+// ConnectionProfileProvisioning Provisioning settings for connections created from this profile.
+type ConnectionProfileProvisioning struct {
+	// GoogleWorkspace Google Workspace provisioning settings.
+	GoogleWorkspace *ConnectionProfileProvisioningGoogleWorkspace `json:"google_workspace,omitempty"`
+
+	// Scim SCIM provisioning settings.
+	Scim *ConnectionProfileProvisioningScim `json:"scim,omitempty"`
+}
+
+// ConnectionProfileProvisioningGoogleWorkspace Google Workspace provisioning settings.
+type ConnectionProfileProvisioningGoogleWorkspace struct {
+	// SyncUsers Whether the connection is authorized to run Google Workspace user provisioning.
+	SyncUsers ConnectionProfileProvisioningGoogleWorkspaceSyncUsers `json:"sync_users"`
+}
+
+// ConnectionProfileProvisioningGoogleWorkspaceSyncUsers Whether the connection is authorized to run Google Workspace user provisioning.
+type ConnectionProfileProvisioningGoogleWorkspaceSyncUsers = bool
+
+// ConnectionProfileProvisioningScim SCIM provisioning settings.
+type ConnectionProfileProvisioningScim struct {
+	// Tokens SCIM token settings for connections created from this profile.
+	Tokens ConnectionProfileProvisioningScimTokens `json:"tokens"`
+}
+
+// ConnectionProfileProvisioningScimTokenDefaultExpiry The default SCIM token expiry, in seconds. `null` means the token never expires by default.
+type ConnectionProfileProvisioningScimTokenDefaultExpiry = int
+
+// ConnectionProfileProvisioningScimTokenMaxAllowedExpiry The maximum SCIM token expiry, in seconds. `null` means there is no maximum.
+type ConnectionProfileProvisioningScimTokenMaxAllowedExpiry = int
+
+// ConnectionProfileProvisioningScimTokenScopeEnum A SCIM token scope.
+type ConnectionProfileProvisioningScimTokenScopeEnum string
+
+// ConnectionProfileProvisioningScimTokenScopes The scopes granted to SCIM tokens.
+type ConnectionProfileProvisioningScimTokenScopes = []ConnectionProfileProvisioningScimTokenScopeEnum
+
+// ConnectionProfileProvisioningScimTokens SCIM token settings for connections created from this profile.
+type ConnectionProfileProvisioningScimTokens struct {
+	// DefaultExpiry The default SCIM token expiry, in seconds. `null` means the token never expires by default.
+	DefaultExpiry *ConnectionProfileProvisioningScimTokenDefaultExpiry `json:"default_expiry,omitempty"`
+
+	// MaxAllowedExpiry The maximum SCIM token expiry, in seconds. `null` means there is no maximum.
+	MaxAllowedExpiry *ConnectionProfileProvisioningScimTokenMaxAllowedExpiry `json:"max_allowed_expiry,omitempty"`
+
+	// Scopes The scopes granted to SCIM tokens.
+	Scopes ConnectionProfileProvisioningScimTokenScopes `json:"scopes"`
+}
+
+// ConnectionProfileStrategyOverride Connection Profile Strategy Override
+type ConnectionProfileStrategyOverride struct {
+	// ConnectionConfig Connection profile strategy overrides connection configuration.
+	ConnectionConfig *ConnectionProfileStrategyOverridesConnectionConfig `json:"connection_config,omitempty"`
+
+	// EnabledFeatures Enabled features for a connections profile strategy override.
+	EnabledFeatures *ConnectionProfileStrategyOverridesEnabledFeatures `json:"enabled_features,omitempty"`
+
+	// Provisioning Provisioning settings for a connection profile strategy override.
+	Provisioning *ConnectionProfileStrategyOverridesProvisioning `json:"provisioning,omitempty"`
+}
+
+// ConnectionProfileStrategyOverrides Strategy-specific overrides for this attribute
+type ConnectionProfileStrategyOverrides struct {
+	// Ad Connection Profile Strategy Override
+	Ad *ConnectionProfileStrategyOverride `json:"ad,omitempty"`
+
+	// Adfs Connection Profile Strategy Override
+	Adfs *ConnectionProfileStrategyOverride `json:"adfs,omitempty"`
+
+	// GoogleApps Connection Profile Strategy Override
+	GoogleApps *ConnectionProfileStrategyOverride `json:"google-apps,omitempty"`
+
+	// Oidc Connection Profile Strategy Override
+	Oidc *ConnectionProfileStrategyOverride `json:"oidc,omitempty"`
+
+	// Okta Connection Profile Strategy Override
+	Okta *ConnectionProfileStrategyOverride `json:"okta,omitempty"`
+
+	// Pingfederate Connection Profile Strategy Override
+	Pingfederate *ConnectionProfileStrategyOverride `json:"pingfederate,omitempty"`
+
+	// Samlp Connection Profile Strategy Override
+	Samlp *ConnectionProfileStrategyOverride `json:"samlp,omitempty"`
+
+	// Waad Connection Profile Strategy Override
+	Waad *ConnectionProfileStrategyOverride `json:"waad,omitempty"`
+}
+
+// ConnectionProfileStrategyOverridesConnectionConfig Connection profile strategy overrides connection configuration.
+type ConnectionProfileStrategyOverridesConnectionConfig = map[string]interface{}
+
+// ConnectionProfileStrategyOverridesEnabledFeatures Enabled features for a connections profile strategy override.
+type ConnectionProfileStrategyOverridesEnabledFeatures = []EnabledFeaturesEnum
+
+// ConnectionProfileStrategyOverridesProvisioning Provisioning settings for a connection profile strategy override.
+type ConnectionProfileStrategyOverridesProvisioning struct {
+	// GoogleWorkspace Google Workspace provisioning settings.
+	GoogleWorkspace *ConnectionProfileProvisioningGoogleWorkspace `json:"google_workspace,omitempty"`
+
+	// Scim SCIM provisioning settings.
+	Scim *ConnectionProfileProvisioningScim `json:"scim,omitempty"`
+}
+
+// ConnectionProfileTemplate The structure of the template, which can be used as the payload for creating or updating a Connection Profile.
+type ConnectionProfileTemplate struct {
+	// ConnectionConfig Connection profile configuration.
+	ConnectionConfig *ConnectionProfileConfig `json:"connection_config,omitempty"`
+
+	// ConnectionNamePrefixTemplate Connection name prefix template. (Auth0 states the rule with lookaheads: no leading hyphen and no double hyphen; this is the equivalent RE2 pattern.)
+	ConnectionNamePrefixTemplate *ConnectionNamePrefixTemplate `json:"connection_name_prefix_template,omitempty"`
+
+	// EnabledFeatures Enabled features for the connection profile.
+	EnabledFeatures *ConnectionProfileEnabledFeatures `json:"enabled_features,omitempty"`
+
+	// Name The name of the connection profile.
+	Name *ConnectionProfileName `json:"name,omitempty"`
+
+	// Organization The organization of the connection profile.
+	Organization *ConnectionProfileOrganization `json:"organization,omitempty"`
+
+	// Provisioning Provisioning settings for connections created from this profile.
+	Provisioning *ConnectionProfileProvisioning `json:"provisioning,omitempty"`
+
+	// StrategyOverrides Strategy-specific overrides for this attribute
+	StrategyOverrides *ConnectionProfileStrategyOverrides `json:"strategy_overrides,omitempty"`
+}
+
+// ConnectionProfileTemplateItem defines model for ConnectionProfileTemplateItem.
+type ConnectionProfileTemplateItem struct {
+	// DisplayName The user-friendly name of the template displayed in the UI.
+	DisplayName *string `json:"display_name,omitempty"`
+
+	// Id The id of the template.
+	Id *string `json:"id,omitempty"`
+
+	// Template The structure of the template, which can be used as the payload for creating or updating a Connection Profile.
+	Template *ConnectionProfileTemplate `json:"template,omitempty"`
+}
+
 // ConnectionSettings The properties of a connection that can be created and updated.
 // Unknown properties are refused (`invalid_body`).
 type ConnectionSettings struct {
@@ -10164,6 +10668,9 @@ type ConnectionTotp struct {
 // `enabled_clients` are unknown properties.
 type ConnectionUpdate = ConnectionSettings
 
+// ConnectionsMetadata Metadata associated with the connection in the form of an object with string values (max 255 chars).  Maximum of 10 metadata properties allowed.
+type ConnectionsMetadata map[string]*string
+
 // ConsoleAuthenticationMethod defines model for ConsoleAuthenticationMethod.
 type ConsoleAuthenticationMethod struct {
 	Aaguid                 *string                                          `json:"aaguid,omitempty"`
@@ -10193,6 +10700,152 @@ type ConsoleRelyingPartyId struct {
 
 // ConsoleRelyingPartyIdKind defines model for ConsoleRelyingPartyId.Kind.
 type ConsoleRelyingPartyIdKind string
+
+// CreateConnectionProfileRequestContent defines model for CreateConnectionProfileRequestContent.
+type CreateConnectionProfileRequestContent struct {
+	// ConnectionConfig Connection profile configuration.
+	ConnectionConfig *ConnectionProfileConfig `json:"connection_config,omitempty"`
+
+	// ConnectionNamePrefixTemplate Connection name prefix template. (Auth0 states the rule with lookaheads: no leading hyphen and no double hyphen; this is the equivalent RE2 pattern.)
+	ConnectionNamePrefixTemplate *ConnectionNamePrefixTemplate `json:"connection_name_prefix_template,omitempty"`
+
+	// CrossAppAccessResourceApp Controls whether organization admins may enable Cross App Access (XAA) on their Identity Providers.
+	CrossAppAccessResourceApp *ConnectionProfileCrossAppAccessResourceApp `json:"cross_app_access_resource_app,omitempty"`
+
+	// EnabledFeatures Enabled features for the connection profile.
+	EnabledFeatures *ConnectionProfileEnabledFeatures `json:"enabled_features,omitempty"`
+
+	// Name The name of the connection profile.
+	Name ConnectionProfileName `json:"name"`
+
+	// Organization The organization of the connection profile.
+	Organization *ConnectionProfileOrganization `json:"organization,omitempty"`
+
+	// Provisioning Provisioning settings for connections created from this profile.
+	Provisioning *ConnectionProfileProvisioning `json:"provisioning,omitempty"`
+
+	// StrategyOverrides Strategy-specific overrides for this attribute
+	StrategyOverrides *ConnectionProfileStrategyOverrides `json:"strategy_overrides,omitempty"`
+}
+
+// CreateConnectionProfileResponseContent defines model for CreateConnectionProfileResponseContent.
+type CreateConnectionProfileResponseContent struct {
+	// ConnectionConfig Connection profile configuration.
+	ConnectionConfig *ConnectionProfileConfig `json:"connection_config,omitempty"`
+
+	// ConnectionNamePrefixTemplate Connection name prefix template. (Auth0 states the rule with lookaheads: no leading hyphen and no double hyphen; this is the equivalent RE2 pattern.)
+	ConnectionNamePrefixTemplate *ConnectionNamePrefixTemplate `json:"connection_name_prefix_template,omitempty"`
+
+	// CrossAppAccessResourceApp Controls whether organization admins may enable Cross App Access (XAA) on their Identity Providers.
+	CrossAppAccessResourceApp *ConnectionProfileCrossAppAccessResourceApp `json:"cross_app_access_resource_app,omitempty"`
+
+	// EnabledFeatures Enabled features for the connection profile.
+	EnabledFeatures *ConnectionProfileEnabledFeatures `json:"enabled_features,omitempty"`
+
+	// Id Connection Profile identifier.
+	Id *ConnectionProfileId `json:"id,omitempty"`
+
+	// Name The name of the connection profile.
+	Name *ConnectionProfileName `json:"name,omitempty"`
+
+	// Organization The organization of the connection profile.
+	Organization *ConnectionProfileOrganization `json:"organization,omitempty"`
+
+	// Provisioning Provisioning settings for connections created from this profile.
+	Provisioning *ConnectionProfileProvisioning `json:"provisioning,omitempty"`
+
+	// StrategyOverrides Strategy-specific overrides for this attribute
+	StrategyOverrides *ConnectionProfileStrategyOverrides `json:"strategy_overrides,omitempty"`
+}
+
+// CreateSelfServiceProfileRequestContent defines model for CreateSelfServiceProfileRequestContent.
+type CreateSelfServiceProfileRequestContent struct {
+	// AllowedStrategies List of IdP strategies that will be shown to users during the Self-Service Enterprise Configuration flow. Possible values: [`oidc`, `samlp`, `waad`, `google-apps`, `adfs`, `okta`, `auth0-samlp`, `okta-samlp`, `keycloak-samlp`, `pingfederate`]
+	AllowedStrategies *[]SelfServiceProfileAllowedStrategyEnum `json:"allowed_strategies,omitempty"`
+	Branding          *SelfServiceProfileBrandingProperties    `json:"branding,omitempty"`
+
+	// Description The description of the self-service Profile.
+	Description *string `json:"description,omitempty"`
+
+	// Name The name of the self-service Profile.
+	Name string `json:"name"`
+
+	// UserAttributeProfileId ID of the user-attribute-profile to associate with this self-service profile.
+	UserAttributeProfileId *string `json:"user_attribute_profile_id,omitempty"`
+
+	// UserAttributes List of attributes to be mapped that will be shown to the user during the Self-Service Enterprise Configuration flow.
+	UserAttributes *[]SelfServiceProfileUserAttribute `json:"user_attributes,omitempty"`
+}
+
+// CreateSelfServiceProfileResponseContent defines model for CreateSelfServiceProfileResponseContent.
+type CreateSelfServiceProfileResponseContent struct {
+	// AllowedStrategies List of IdP strategies that will be shown to users during the Self-Service Enterprise Configuration flow. Possible values: [`oidc`, `samlp`, `waad`, `google-apps`, `adfs`, `okta`, `auth0-samlp`, `okta-samlp`, `keycloak-samlp`, `pingfederate`]
+	AllowedStrategies *[]SelfServiceProfileAllowedStrategyEnum `json:"allowed_strategies,omitempty"`
+	Branding          *SelfServiceProfileBrandingProperties    `json:"branding,omitempty"`
+
+	// CreatedAt The time when this self-service Profile was created.
+	CreatedAt *time.Time `json:"created_at,omitempty"`
+
+	// Description The description of the self-service Profile.
+	Description *string `json:"description,omitempty"`
+
+	// Id The unique ID of the self-service Profile.
+	Id *string `json:"id,omitempty"`
+
+	// Name The name of the self-service Profile.
+	Name *string `json:"name,omitempty"`
+
+	// UpdatedAt The time when this self-service Profile was updated.
+	UpdatedAt *time.Time `json:"updated_at,omitempty"`
+
+	// UserAttributeProfileId ID of the user-attribute-profile to associate with this self-service profile.
+	UserAttributeProfileId *string `json:"user_attribute_profile_id,omitempty"`
+
+	// UserAttributes List of attributes to be mapped that will be shown to the user during the Self-Service Enterprise Configuration flow.
+	UserAttributes *[]SelfServiceProfileUserAttribute `json:"user_attributes,omitempty"`
+}
+
+// CreateSelfServiceProfileSsoTicketRequestContent defines model for CreateSelfServiceProfileSsoTicketRequestContent.
+type CreateSelfServiceProfileSsoTicketRequestContent struct {
+	// ConnectionConfig If provided, this will create a new connection for the Self-Service Enterprise Configuration flow with the given configuration
+	ConnectionConfig *SelfServiceProfileSsoTicketConnectionConfig `json:"connection_config,omitempty"`
+
+	// ConnectionId If provided, this will allow editing of the provided connection during the Self-Service Enterprise Configuration flow
+	ConnectionId *string `json:"connection_id,omitempty"`
+
+	// DomainAliasesConfig Configuration for the setup of the connection’s domain_aliases in the Self-Service Enterprise Configuration flow.
+	DomainAliasesConfig *SelfServiceProfileSsoTicketDomainAliasesConfig `json:"domain_aliases_config,omitempty"`
+
+	// EnabledClients List of client_ids that the connection will be enabled for.
+	EnabledClients *[]string `json:"enabled_clients,omitempty"`
+
+	// EnabledFeatures Specifies which features are enabled for an "edit connection" ticket. Only applicable when connection ID is provided.
+	EnabledFeatures *SelfServiceProfileSsoTicketEnabledFeatures `json:"enabled_features,omitempty"`
+
+	// EnabledOrganizations List of organizations that the connection will be enabled for.
+	EnabledOrganizations *[]SelfServiceProfileSsoTicketEnabledOrganization `json:"enabled_organizations,omitempty"`
+
+	// ProvisioningConfig Configuration for the setup of Provisioning in the self-service flow.
+	ProvisioningConfig *SelfServiceProfileSsoTicketProvisioningConfig `json:"provisioning_config,omitempty"`
+
+	// ThirdPartyClientAccessConfig Configuration for Third Party Client Access during the Self-Service Enterprise Configuration flow.
+	ThirdPartyClientAccessConfig *ThirdPartyClientAccessConfig `json:"third_party_client_access_config,omitempty"`
+
+	// TtlSec Number of seconds for which the ticket is valid before expiration. If unspecified or set to 0, this value defaults to 432000 seconds (5 days).
+	TtlSec *int `json:"ttl_sec,omitempty"`
+
+	// UniversalLogoutConfig Configuration for the setup of Universal Logout in the Self-Service Enterprise Configuration flow.
+	UniversalLogoutConfig *SelfServiceProfileSsoTicketUniversalLogoutConfig `json:"universal_logout_config,omitempty"`
+
+	// UseForOrganizationDiscovery Indicates whether a verified domain should be used for organization discovery during authentication.
+	UseForOrganizationDiscovery *bool `json:"use_for_organization_discovery,omitempty"`
+}
+
+// CreateSelfServiceProfileSsoTicketResponseContent defines model for CreateSelfServiceProfileSsoTicketResponseContent.
+type CreateSelfServiceProfileSsoTicketResponseContent struct {
+	// Ticket The URL for the created ticket.
+	Ticket *string `json:"ticket,omitempty"`
+}
 
 // CustomDomain defines model for CustomDomain.
 type CustomDomain struct {
@@ -10466,6 +11119,9 @@ type EmailVerificationTicketCreate struct {
 	TtlSec *int   `json:"ttl_sec,omitempty"`
 	UserId string `json:"user_id"`
 }
+
+// EnabledFeaturesEnum Enum for enabled features.
+type EnabledFeaturesEnum string
 
 // EventsCreateEventStreamActionRequestContent defines model for EventsCreateEventStreamActionRequestContent.
 type EventsCreateEventStreamActionRequestContent struct {
@@ -10834,6 +11490,76 @@ type EventsUpdateEventStreamRequestContent struct {
 // EventsUpdateEventStreamResponseContent defines model for EventsUpdateEventStreamResponseContent.
 type EventsUpdateEventStreamResponseContent struct {
 	union json.RawMessage
+}
+
+// GetConnectionProfileResponseContent defines model for GetConnectionProfileResponseContent.
+type GetConnectionProfileResponseContent struct {
+	// ConnectionConfig Connection profile configuration.
+	ConnectionConfig *ConnectionProfileConfig `json:"connection_config,omitempty"`
+
+	// ConnectionNamePrefixTemplate Connection name prefix template. (Auth0 states the rule with lookaheads: no leading hyphen and no double hyphen; this is the equivalent RE2 pattern.)
+	ConnectionNamePrefixTemplate *ConnectionNamePrefixTemplate `json:"connection_name_prefix_template,omitempty"`
+
+	// CrossAppAccessResourceApp Controls whether organization admins may enable Cross App Access (XAA) on their Identity Providers.
+	CrossAppAccessResourceApp *ConnectionProfileCrossAppAccessResourceApp `json:"cross_app_access_resource_app,omitempty"`
+
+	// EnabledFeatures Enabled features for the connection profile.
+	EnabledFeatures *ConnectionProfileEnabledFeatures `json:"enabled_features,omitempty"`
+
+	// Id Connection Profile identifier.
+	Id *ConnectionProfileId `json:"id,omitempty"`
+
+	// Name The name of the connection profile.
+	Name *ConnectionProfileName `json:"name,omitempty"`
+
+	// Organization The organization of the connection profile.
+	Organization *ConnectionProfileOrganization `json:"organization,omitempty"`
+
+	// Provisioning Provisioning settings for connections created from this profile.
+	Provisioning *ConnectionProfileProvisioning `json:"provisioning,omitempty"`
+
+	// StrategyOverrides Strategy-specific overrides for this attribute
+	StrategyOverrides *ConnectionProfileStrategyOverrides `json:"strategy_overrides,omitempty"`
+}
+
+// GetConnectionProfileTemplateResponseContent defines model for GetConnectionProfileTemplateResponseContent.
+type GetConnectionProfileTemplateResponseContent struct {
+	// DisplayName The user-friendly name of the template displayed in the UI.
+	DisplayName *string `json:"display_name,omitempty"`
+
+	// Id The id of the template.
+	Id *string `json:"id,omitempty"`
+
+	// Template The structure of the template, which can be used as the payload for creating or updating a Connection Profile.
+	Template *ConnectionProfileTemplate `json:"template,omitempty"`
+}
+
+// GetSelfServiceProfileResponseContent defines model for GetSelfServiceProfileResponseContent.
+type GetSelfServiceProfileResponseContent struct {
+	// AllowedStrategies List of IdP strategies that will be shown to users during the Self-Service Enterprise Configuration flow. Possible values: [`oidc`, `samlp`, `waad`, `google-apps`, `adfs`, `okta`, `auth0-samlp`, `okta-samlp`, `keycloak-samlp`, `pingfederate`]
+	AllowedStrategies *[]SelfServiceProfileAllowedStrategyEnum `json:"allowed_strategies,omitempty"`
+	Branding          *SelfServiceProfileBrandingProperties    `json:"branding,omitempty"`
+
+	// CreatedAt The time when this self-service Profile was created.
+	CreatedAt *time.Time `json:"created_at,omitempty"`
+
+	// Description The description of the self-service Profile.
+	Description *string `json:"description,omitempty"`
+
+	// Id The unique ID of the self-service Profile.
+	Id *string `json:"id,omitempty"`
+
+	// Name The name of the self-service Profile.
+	Name *string `json:"name,omitempty"`
+
+	// UpdatedAt The time when this self-service Profile was updated.
+	UpdatedAt *time.Time `json:"updated_at,omitempty"`
+
+	// UserAttributeProfileId ID of the user-attribute-profile to associate with this self-service profile.
+	UserAttributeProfileId *string `json:"user_attribute_profile_id,omitempty"`
+
+	// UserAttributes List of attributes to be mapped that will be shown to the user during the Self-Service Enterprise Configuration flow.
+	UserAttributes *[]SelfServiceProfileUserAttribute `json:"user_attributes,omitempty"`
 }
 
 // Group A directory group (Plan 37c). Groups belong to one connection and are created by SCIM. No property is required because `fields` can project any away.
@@ -11411,6 +12137,38 @@ type JwtConfiguration struct {
 
 // JwtConfigurationAlg ID token algorithm. HS256 requires a confidential client with a usable client secret (D-0080).
 type JwtConfigurationAlg string
+
+// ListConnectionProfileTemplateResponseContent defines model for ListConnectionProfileTemplateResponseContent.
+type ListConnectionProfileTemplateResponseContent struct {
+	ConnectionProfileTemplates *[]ConnectionProfileTemplateItem `json:"connection_profile_templates,omitempty"`
+}
+
+// ListConnectionProfilesPaginatedResponseContent defines model for ListConnectionProfilesPaginatedResponseContent.
+type ListConnectionProfilesPaginatedResponseContent struct {
+	ConnectionProfiles *[]ConnectionProfile `json:"connection_profiles,omitempty"`
+
+	// Next A cursor to be used as the "from" query parameter for the next page of results.
+	Next *string `json:"next,omitempty"`
+}
+
+// ListSelfServiceProfileCustomTextResponseContent The list of custom text keys and values.
+type ListSelfServiceProfileCustomTextResponseContent map[string]string
+
+// ListSelfServiceProfilesPaginatedResponseContent defines model for ListSelfServiceProfilesPaginatedResponseContent.
+type ListSelfServiceProfilesPaginatedResponseContent struct {
+	Limit               *float32              `json:"limit,omitempty"`
+	SelfServiceProfiles *[]SelfServiceProfile `json:"self_service_profiles,omitempty"`
+	Start               *float32              `json:"start,omitempty"`
+	Total               *float32              `json:"total,omitempty"`
+}
+
+// ListSelfServiceProfilesResponseContent defines model for ListSelfServiceProfilesResponseContent.
+type ListSelfServiceProfilesResponseContent struct {
+	union json.RawMessage
+}
+
+// ListSelfServiceProfilesResponseContent0 defines model for ListSelfServiceProfilesResponseContent.0.
+type ListSelfServiceProfilesResponseContent0 = []SelfServiceProfile
 
 // ListTotals The paging members of a list returned with `include_totals=true`; the
 // list itself is under the resource's plural name.
@@ -14072,6 +14830,194 @@ type ScriptTryResult struct {
 	Result interface{} `json:"result"`
 }
 
+// SelfServiceProfile defines model for SelfServiceProfile.
+type SelfServiceProfile struct {
+	// AllowedStrategies List of IdP strategies that will be shown to users during the Self-Service Enterprise Configuration flow. Possible values: [`oidc`, `samlp`, `waad`, `google-apps`, `adfs`, `okta`, `auth0-samlp`, `okta-samlp`, `keycloak-samlp`, `pingfederate`]
+	AllowedStrategies *[]SelfServiceProfileAllowedStrategyEnum `json:"allowed_strategies,omitempty"`
+	Branding          *SelfServiceProfileBrandingProperties    `json:"branding,omitempty"`
+
+	// CreatedAt The time when this self-service Profile was created.
+	CreatedAt *time.Time `json:"created_at,omitempty"`
+
+	// Description The description of the self-service Profile.
+	Description *string `json:"description,omitempty"`
+
+	// Id The unique ID of the self-service Profile.
+	Id *string `json:"id,omitempty"`
+
+	// Name The name of the self-service Profile.
+	Name *string `json:"name,omitempty"`
+
+	// UpdatedAt The time when this self-service Profile was updated.
+	UpdatedAt *time.Time `json:"updated_at,omitempty"`
+
+	// UserAttributeProfileId ID of the user-attribute-profile to associate with this self-service profile.
+	UserAttributeProfileId *string `json:"user_attribute_profile_id,omitempty"`
+
+	// UserAttributes List of attributes to be mapped that will be shown to the user during the Self-Service Enterprise Configuration flow.
+	UserAttributes *[]SelfServiceProfileUserAttribute `json:"user_attributes,omitempty"`
+}
+
+// SelfServiceProfileAllowedStrategyEnum defines model for SelfServiceProfileAllowedStrategyEnum.
+type SelfServiceProfileAllowedStrategyEnum string
+
+// SelfServiceProfileBranding defines model for SelfServiceProfileBranding.
+type SelfServiceProfileBranding = SelfServiceProfileBrandingProperties
+
+// SelfServiceProfileBrandingColors defines model for SelfServiceProfileBrandingColors.
+type SelfServiceProfileBrandingColors struct {
+	Primary              string                 `json:"primary"`
+	AdditionalProperties map[string]interface{} `json:"-"`
+}
+
+// SelfServiceProfileBrandingProperties defines model for SelfServiceProfileBrandingProperties.
+type SelfServiceProfileBrandingProperties struct {
+	Colors               *SelfServiceProfileBrandingColors `json:"colors,omitempty"`
+	LogoUrl              *string                           `json:"logo_url,omitempty"`
+	AdditionalProperties map[string]interface{}            `json:"-"`
+}
+
+// SelfServiceProfileCustomTextLanguageEnum The language of the custom text.
+type SelfServiceProfileCustomTextLanguageEnum string
+
+// SelfServiceProfileCustomTextPageEnum The page where the custom text is shown.
+type SelfServiceProfileCustomTextPageEnum string
+
+// SelfServiceProfileDescription The description of the self-service Profile.
+type SelfServiceProfileDescription = string
+
+// SelfServiceProfileSsoTicketConnectionConfig If provided, this will create a new connection for the Self-Service Enterprise Configuration flow with the given configuration
+type SelfServiceProfileSsoTicketConnectionConfig struct {
+	// DisplayName Connection name used in the new universal login experience
+	DisplayName *string `json:"display_name,omitempty"`
+
+	// IsDomainConnection <code>true</code> promotes to a domain-level connection so that third-party applications can use it. <code>false</code> does not promote the connection, so only first-party applications with the connection enabled can use it. (Defaults to <code>false</code>.)
+	IsDomainConnection *bool `json:"is_domain_connection,omitempty"`
+
+	// Metadata Metadata associated with the connection in the form of an object with string values (max 255 chars).  Maximum of 10 metadata properties allowed.
+	Metadata *ConnectionsMetadata `json:"metadata,omitempty"`
+
+	// Name The name of the connection that will be created as a part of the Self-Service Enterprise Configuration flow.
+	Name string `json:"name"`
+
+	// Options The connection's options (depend on the connection strategy)
+	Options *SelfServiceProfileSsoTicketConnectionOptions `json:"options,omitempty"`
+
+	// ShowAsButton Enables showing a button for the connection in the login page (new experience only). If false, it will be usable only by HRD. (Defaults to <code>false</code>.)
+	ShowAsButton *bool `json:"show_as_button,omitempty"`
+}
+
+// SelfServiceProfileSsoTicketConnectionOptions The connection's options (depend on the connection strategy)
+type SelfServiceProfileSsoTicketConnectionOptions struct {
+	// DomainAliases List of domain_aliases that can be authenticated in the Identity Provider
+	DomainAliases *[]string `json:"domain_aliases,omitempty"`
+
+	// IconUrl URL for the icon. Must use HTTPS.
+	IconUrl *string `json:"icon_url,omitempty"`
+
+	// Idpinitiated Allows IdP-initiated login
+	Idpinitiated *SelfServiceProfileSsoTicketIdpInitiatedOptions `json:"idpinitiated,omitempty"`
+}
+
+// SelfServiceProfileSsoTicketDomainAliasesConfig Configuration for the setup of the connection’s domain_aliases in the Self-Service Enterprise Configuration flow.
+type SelfServiceProfileSsoTicketDomainAliasesConfig struct {
+	// DomainVerification Whether the end user should complete the domain verification step. Possible values are 'none' (the step is not shown to the user), 'optional' (the user may add a domain alias in the domain verification step) or 'required' (the user must add a domain alias in order to enable the connection). Defaults to 'none'.
+	DomainVerification SelfServiceProfileSsoTicketDomainVerificationEnum `json:"domain_verification"`
+
+	// PendingDomains List of domains that will be submitted for verification during the Self-Service Enterprise Configuration flow.
+	PendingDomains *[]string `json:"pending_domains,omitempty"`
+}
+
+// SelfServiceProfileSsoTicketDomainVerificationEnum Whether the end user should complete the domain verification step. Possible values are 'none' (the step is not shown to the user), 'optional' (the user may add a domain alias in the domain verification step) or 'required' (the user must add a domain alias in order to enable the connection). Defaults to 'none'.
+type SelfServiceProfileSsoTicketDomainVerificationEnum string
+
+// SelfServiceProfileSsoTicketEnabledFeatures Specifies which features are enabled for an "edit connection" ticket. Only applicable when connection ID is provided.
+type SelfServiceProfileSsoTicketEnabledFeatures struct {
+	// DomainVerification Whether domain verification is enabled in this ticket.
+	DomainVerification *bool `json:"domain_verification,omitempty"`
+
+	// Provisioning Whether provisioning configuration is enabled in this ticket.
+	Provisioning *bool `json:"provisioning,omitempty"`
+
+	// Sso Whether SSO configuration is enabled in this ticket.
+	Sso *bool `json:"sso,omitempty"`
+}
+
+// SelfServiceProfileSsoTicketEnabledOrganization defines model for SelfServiceProfileSsoTicketEnabledOrganization.
+type SelfServiceProfileSsoTicketEnabledOrganization struct {
+	// AssignMembershipOnLogin When true, all users that log in with this connection will be automatically granted membership in the organization. When false, users must be granted membership in the organization before logging in with this connection.
+	AssignMembershipOnLogin *bool `json:"assign_membership_on_login,omitempty"`
+
+	// OrganizationId Organization identifier.
+	OrganizationId string `json:"organization_id"`
+
+	// ShowAsButton Determines whether a connection should be displayed on this organization’s login prompt. Only applicable for enterprise connections. Default: true.
+	ShowAsButton *bool `json:"show_as_button,omitempty"`
+}
+
+// SelfServiceProfileSsoTicketGoogleWorkspaceConfig Configuration for Google Workspace Directory Sync during the self-service flow.
+type SelfServiceProfileSsoTicketGoogleWorkspaceConfig struct {
+	// SyncGroups Whether to enable Google Workspace Directory Sync for groups during the self-service flow.
+	SyncGroups *bool `json:"sync_groups,omitempty"`
+
+	// SyncUsers Whether to enable Google Workspace Directory Sync for users during the self-service flow.
+	SyncUsers bool `json:"sync_users"`
+}
+
+// SelfServiceProfileSsoTicketIdpInitiatedClientProtocolEnum The protocol used to connect to the the default application
+type SelfServiceProfileSsoTicketIdpInitiatedClientProtocolEnum string
+
+// SelfServiceProfileSsoTicketIdpInitiatedOptions Allows IdP-initiated login
+type SelfServiceProfileSsoTicketIdpInitiatedOptions struct {
+	// ClientAuthorizequery Query string options to customize the behaviour for OpenID Connect when <code>idpinitiated.client_protocol</code> is <code>oauth2</code>. Allowed parameters: <code>redirect_uri</code>, <code>scope</code>, <code>response_type</code>. For example, <code>redirect_uri=https://jwt.io&scope=openid email&response_type=token</code>
+	ClientAuthorizequery *string `json:"client_authorizequery,omitempty"`
+
+	// ClientId Default application <code>client_id</code> user is redirected to after validated SAML response
+	ClientId *string `json:"client_id,omitempty"`
+
+	// ClientProtocol The protocol used to connect to the the default application
+	ClientProtocol *SelfServiceProfileSsoTicketIdpInitiatedClientProtocolEnum `json:"client_protocol,omitempty"`
+
+	// Enabled Enables IdP-initiated login for this connection
+	Enabled *bool `json:"enabled,omitempty"`
+}
+
+// SelfServiceProfileSsoTicketProvisioningConfig Configuration for the setup of Provisioning in the self-service flow.
+type SelfServiceProfileSsoTicketProvisioningConfig struct {
+	// GoogleWorkspace Configuration for Google Workspace Directory Sync during the self-service flow.
+	GoogleWorkspace *SelfServiceProfileSsoTicketGoogleWorkspaceConfig `json:"google_workspace,omitempty"`
+
+	// Scopes The scopes of the SCIM tokens generated during the self-service flow.
+	Scopes *[]SelfServiceProfileSsoTicketProvisioningScopeEnum `json:"scopes,omitempty"`
+
+	// TokenLifetime Lifetime of the tokens in seconds. Must be greater than 900. If not provided, the tokens don't expire.
+	TokenLifetime *int `json:"token_lifetime,omitempty"`
+}
+
+// SelfServiceProfileSsoTicketProvisioningScopeEnum defines model for SelfServiceProfileSsoTicketProvisioningScopeEnum.
+type SelfServiceProfileSsoTicketProvisioningScopeEnum string
+
+// SelfServiceProfileSsoTicketUniversalLogoutConfig Configuration for the setup of Universal Logout in the Self-Service Enterprise Configuration flow.
+type SelfServiceProfileSsoTicketUniversalLogoutConfig struct {
+	// AllowConfiguration Whether the end user can set up Universal Logout during the Self-Service Enterprise Configuration flow.
+	AllowConfiguration bool `json:"allow_configuration"`
+}
+
+// SelfServiceProfileUserAttribute defines model for SelfServiceProfileUserAttribute.
+type SelfServiceProfileUserAttribute struct {
+	// Description Description of this attribute.
+	Description string `json:"description"`
+
+	// IsOptional Determines if this attribute is required
+	IsOptional bool `json:"is_optional"`
+
+	// Name Identifier of this attribute.
+	Name string `json:"name"`
+}
+
+// SelfServiceProfileUserAttributes List of attributes to be mapped that will be shown to the user during the Self-Service Enterprise Configuration flow.
+type SelfServiceProfileUserAttributes = []SelfServiceProfileUserAttribute
+
 // SessionDevice The IP addresses and user agents of the session; there are no ASN keys.
 type SessionDevice struct {
 	InitialIp        *string `json:"initial_ip,omitempty"`
@@ -14087,6 +15033,12 @@ type SessionMetadata map[string]string
 type SessionMetadataUpdate struct {
 	SessionMetadata *SessionMetadata `json:"session_metadata"`
 }
+
+// SetSelfServiceProfileCustomTextRequestContent The list of text keys and values to customize the Self-Service Enterprise Configuration flow page. Values can be plain text or rich HTML content limited to basic styling tags and hyperlinks.
+type SetSelfServiceProfileCustomTextRequestContent map[string]string
+
+// SetSelfServiceProfileCustomTextResponseContent The resulting list of custom text keys and values.
+type SetSelfServiceProfileCustomTextResponseContent map[string]string
 
 // SignedRequestObject JAR settings. Prefer a different key from `private_key_jwt` (advice, not enforced).
 type SignedRequestObject struct {
@@ -14709,6 +15661,12 @@ type TenantUpdate struct {
 	FriendlyName *string   `json:"friendly_name,omitempty"`
 }
 
+// ThirdPartyClientAccessConfig Configuration for Third Party Client Access during the Self-Service Enterprise Configuration flow.
+type ThirdPartyClientAccessConfig struct {
+	// AllowConfiguration Whether third-party applications can configure the connection as a domain-level connection during the Self-Service Enterprise Configuration flow.
+	AllowConfiguration bool `json:"allow_configuration"`
+}
+
 // Ticket defines model for Ticket.
 type Ticket struct {
 	// Ticket The ticket's URL. Its token is shown only here.
@@ -14767,6 +15725,110 @@ type TokenExchangeProfilePage struct {
 type TokenExchangeProfileUpdate struct {
 	Name             *string `json:"name,omitempty"`
 	SubjectTokenType *string `json:"subject_token_type,omitempty"`
+}
+
+// UpdateConnectionProfileRequestContent defines model for UpdateConnectionProfileRequestContent.
+type UpdateConnectionProfileRequestContent struct {
+	// ConnectionConfig Connection profile configuration.
+	ConnectionConfig *ConnectionProfileConfig `json:"connection_config,omitempty"`
+
+	// ConnectionNamePrefixTemplate Connection name prefix template. (Auth0 states the rule with lookaheads: no leading hyphen and no double hyphen; this is the equivalent RE2 pattern.)
+	ConnectionNamePrefixTemplate *ConnectionNamePrefixTemplate `json:"connection_name_prefix_template,omitempty"`
+
+	// CrossAppAccessResourceApp Controls whether organization admins may enable Cross App Access (XAA) on their Identity Providers.
+	CrossAppAccessResourceApp *ConnectionProfileCrossAppAccessResourceApp `json:"cross_app_access_resource_app,omitempty"`
+
+	// EnabledFeatures Enabled features for the connection profile.
+	EnabledFeatures *ConnectionProfileEnabledFeatures `json:"enabled_features,omitempty"`
+
+	// Name The name of the connection profile.
+	Name *ConnectionProfileName `json:"name,omitempty"`
+
+	// Organization The organization of the connection profile.
+	Organization *ConnectionProfileOrganization `json:"organization,omitempty"`
+
+	// Provisioning Provisioning settings for connections created from this profile.
+	Provisioning *ConnectionProfileProvisioning `json:"provisioning,omitempty"`
+
+	// StrategyOverrides Strategy-specific overrides for this attribute
+	StrategyOverrides *ConnectionProfileStrategyOverrides `json:"strategy_overrides,omitempty"`
+}
+
+// UpdateConnectionProfileResponseContent defines model for UpdateConnectionProfileResponseContent.
+type UpdateConnectionProfileResponseContent struct {
+	// ConnectionConfig Connection profile configuration.
+	ConnectionConfig *ConnectionProfileConfig `json:"connection_config,omitempty"`
+
+	// ConnectionNamePrefixTemplate Connection name prefix template. (Auth0 states the rule with lookaheads: no leading hyphen and no double hyphen; this is the equivalent RE2 pattern.)
+	ConnectionNamePrefixTemplate *ConnectionNamePrefixTemplate `json:"connection_name_prefix_template,omitempty"`
+
+	// CrossAppAccessResourceApp Controls whether organization admins may enable Cross App Access (XAA) on their Identity Providers.
+	CrossAppAccessResourceApp *ConnectionProfileCrossAppAccessResourceApp `json:"cross_app_access_resource_app,omitempty"`
+
+	// EnabledFeatures Enabled features for the connection profile.
+	EnabledFeatures *ConnectionProfileEnabledFeatures `json:"enabled_features,omitempty"`
+
+	// Id Connection Profile identifier.
+	Id *ConnectionProfileId `json:"id,omitempty"`
+
+	// Name The name of the connection profile.
+	Name *ConnectionProfileName `json:"name,omitempty"`
+
+	// Organization The organization of the connection profile.
+	Organization *ConnectionProfileOrganization `json:"organization,omitempty"`
+
+	// Provisioning Provisioning settings for connections created from this profile.
+	Provisioning *ConnectionProfileProvisioning `json:"provisioning,omitempty"`
+
+	// StrategyOverrides Strategy-specific overrides for this attribute
+	StrategyOverrides *ConnectionProfileStrategyOverrides `json:"strategy_overrides,omitempty"`
+}
+
+// UpdateSelfServiceProfileRequestContent defines model for UpdateSelfServiceProfileRequestContent.
+type UpdateSelfServiceProfileRequestContent struct {
+	// AllowedStrategies List of IdP strategies that will be shown to users during the Self-Service Enterprise Configuration flow. Possible values: [`oidc`, `samlp`, `waad`, `google-apps`, `adfs`, `okta`, `auth0-samlp`, `okta-samlp`, `keycloak-samlp`, `pingfederate`]
+	AllowedStrategies *[]SelfServiceProfileAllowedStrategyEnum `json:"allowed_strategies,omitempty"`
+	Branding          *SelfServiceProfileBranding              `json:"branding,omitempty"`
+
+	// Description The description of the self-service Profile.
+	Description *SelfServiceProfileDescription `json:"description,omitempty"`
+
+	// Name The name of the self-service Profile.
+	Name *string `json:"name,omitempty"`
+
+	// UserAttributeProfileId ID of the user-attribute-profile to associate with this self-service profile.
+	UserAttributeProfileId *string `json:"user_attribute_profile_id,omitempty"`
+
+	// UserAttributes List of attributes to be mapped that will be shown to the user during the Self-Service Enterprise Configuration flow.
+	UserAttributes *SelfServiceProfileUserAttributes `json:"user_attributes,omitempty"`
+}
+
+// UpdateSelfServiceProfileResponseContent defines model for UpdateSelfServiceProfileResponseContent.
+type UpdateSelfServiceProfileResponseContent struct {
+	// AllowedStrategies List of IdP strategies that will be shown to users during the Self-Service Enterprise Configuration flow. Possible values: [`oidc`, `samlp`, `waad`, `google-apps`, `adfs`, `okta`, `auth0-samlp`, `okta-samlp`, `keycloak-samlp`, `pingfederate`]
+	AllowedStrategies *[]SelfServiceProfileAllowedStrategyEnum `json:"allowed_strategies,omitempty"`
+	Branding          *SelfServiceProfileBrandingProperties    `json:"branding,omitempty"`
+
+	// CreatedAt The time when this self-service Profile was created.
+	CreatedAt *time.Time `json:"created_at,omitempty"`
+
+	// Description The description of the self-service Profile.
+	Description *string `json:"description,omitempty"`
+
+	// Id The unique ID of the self-service Profile.
+	Id *string `json:"id,omitempty"`
+
+	// Name The name of the self-service Profile.
+	Name *string `json:"name,omitempty"`
+
+	// UpdatedAt The time when this self-service Profile was updated.
+	UpdatedAt *time.Time `json:"updated_at,omitempty"`
+
+	// UserAttributeProfileId ID of the user-attribute-profile to associate with this self-service profile.
+	UserAttributeProfileId *string `json:"user_attribute_profile_id,omitempty"`
+
+	// UserAttributes List of attributes to be mapped that will be shown to the user during the Self-Service Enterprise Configuration flow.
+	UserAttributes *[]SelfServiceProfileUserAttribute `json:"user_attributes,omitempty"`
 }
 
 // User A user in Auth0's shape. Fields without a value are left out:
@@ -15408,6 +16470,15 @@ type GetClientParams struct {
 
 	// IncludeFields Whether `fields` lists the fields to include (true) or to leave out (false).
 	IncludeFields *IncludeFields `form:"include_fields,omitempty" json:"include_fields,omitempty"`
+}
+
+// ListConnectionProfilesParams defines parameters for ListConnectionProfiles.
+type ListConnectionProfilesParams struct {
+	// From Optional Id from which to start selection.
+	From *string `form:"from,omitempty" json:"from,omitempty"`
+
+	// Take Number of results per page. Defaults to 5.
+	Take *int `form:"take,omitempty" json:"take,omitempty"`
 }
 
 // GetConnectionsParams defines parameters for GetConnections.
@@ -16071,6 +17142,24 @@ type GetRulesParams struct {
 	IncludeFields *IncludeFields `form:"include_fields,omitempty" json:"include_fields,omitempty"`
 }
 
+// ListSelfServiceProfilesParams defines parameters for ListSelfServiceProfiles.
+type ListSelfServiceProfilesParams struct {
+	// Page Page index of the results to return. First page is 0.
+	Page *int `form:"page,omitempty" json:"page,omitempty"`
+
+	// PerPage Number of results per page. Defaults to 50.
+	PerPage *int `form:"per_page,omitempty" json:"per_page,omitempty"`
+
+	// IncludeTotals Return results inside an object that contains the total result count (true) or as a direct array of results (false, default).
+	IncludeTotals *bool `form:"include_totals,omitempty" json:"include_totals,omitempty"`
+}
+
+// CreateSsoTicketParams defines parameters for CreateSsoTicket.
+type CreateSsoTicketParams struct {
+	// Auth0CustomDomain Custom domain to be used for this request
+	Auth0CustomDomain *string `json:"auth0-custom-domain,omitempty"`
+}
+
 // GetDailyStatsParams defines parameters for GetDailyStats.
 type GetDailyStatsParams struct {
 	// From YYYYMMDD inclusive UTC day; default today minus 6 days; max inclusive range 366 days (local)
@@ -16436,6 +17525,18 @@ type PostClientCredentialsJSONRequestBody = ClientCredentialCreate
 // PatchClientCredentialJSONRequestBody defines body for PatchClientCredential for application/json ContentType.
 type PatchClientCredentialJSONRequestBody = ClientCredentialUpdate
 
+// CreateConnectionProfileJSONRequestBody defines body for CreateConnectionProfile for application/json ContentType.
+type CreateConnectionProfileJSONRequestBody = CreateConnectionProfileRequestContent
+
+// CreateConnectionProfileFormdataRequestBody defines body for CreateConnectionProfile for application/x-www-form-urlencoded ContentType.
+type CreateConnectionProfileFormdataRequestBody = CreateConnectionProfileRequestContent
+
+// UpdateConnectionProfileJSONRequestBody defines body for UpdateConnectionProfile for application/json ContentType.
+type UpdateConnectionProfileJSONRequestBody = UpdateConnectionProfileRequestContent
+
+// UpdateConnectionProfileFormdataRequestBody defines body for UpdateConnectionProfile for application/x-www-form-urlencoded ContentType.
+type UpdateConnectionProfileFormdataRequestBody = UpdateConnectionProfileRequestContent
+
 // CreateConnectionJSONRequestBody defines body for CreateConnection for application/json ContentType.
 type CreateConnectionJSONRequestBody = ConnectionCreate
 
@@ -16690,6 +17791,30 @@ type PostRolePermissionsJSONRequestBody = RBACPermissionBatch
 
 // PostRoleUsersJSONRequestBody defines body for PostRoleUsers for application/json ContentType.
 type PostRoleUsersJSONRequestBody = RoleUserBatch
+
+// CreateSelfServiceProfileJSONRequestBody defines body for CreateSelfServiceProfile for application/json ContentType.
+type CreateSelfServiceProfileJSONRequestBody = CreateSelfServiceProfileRequestContent
+
+// CreateSelfServiceProfileFormdataRequestBody defines body for CreateSelfServiceProfile for application/x-www-form-urlencoded ContentType.
+type CreateSelfServiceProfileFormdataRequestBody = CreateSelfServiceProfileRequestContent
+
+// UpdateSelfServiceProfileJSONRequestBody defines body for UpdateSelfServiceProfile for application/json ContentType.
+type UpdateSelfServiceProfileJSONRequestBody = UpdateSelfServiceProfileRequestContent
+
+// UpdateSelfServiceProfileFormdataRequestBody defines body for UpdateSelfServiceProfile for application/x-www-form-urlencoded ContentType.
+type UpdateSelfServiceProfileFormdataRequestBody = UpdateSelfServiceProfileRequestContent
+
+// SetSelfServiceProfileCustomTextJSONRequestBody defines body for SetSelfServiceProfileCustomText for application/json ContentType.
+type SetSelfServiceProfileCustomTextJSONRequestBody = SetSelfServiceProfileCustomTextRequestContent
+
+// SetSelfServiceProfileCustomTextFormdataRequestBody defines body for SetSelfServiceProfileCustomText for application/x-www-form-urlencoded ContentType.
+type SetSelfServiceProfileCustomTextFormdataRequestBody = SetSelfServiceProfileCustomTextRequestContent
+
+// CreateSsoTicketJSONRequestBody defines body for CreateSsoTicket for application/json ContentType.
+type CreateSsoTicketJSONRequestBody = CreateSelfServiceProfileSsoTicketRequestContent
+
+// CreateSsoTicketFormdataRequestBody defines body for CreateSsoTicket for application/x-www-form-urlencoded ContentType.
+type CreateSsoTicketFormdataRequestBody = CreateSelfServiceProfileSsoTicketRequestContent
 
 // UpdateSessionJSONRequestBody defines body for UpdateSession for application/json ContentType.
 type UpdateSessionJSONRequestBody = SessionMetadataUpdate
@@ -20771,6 +21896,155 @@ func (a MFASetAuthenticationMethodsResponse_AuthenticationMethods_Item) MarshalJ
 	return json.Marshal(object)
 }
 
+// Getter for additional properties for SelfServiceProfileBrandingColors. Returns the specified
+// element and whether it was found
+func (a SelfServiceProfileBrandingColors) Get(fieldName string) (value interface{}, found bool) {
+	if a.AdditionalProperties != nil {
+		value, found = a.AdditionalProperties[fieldName]
+	}
+	return
+}
+
+// Setter for additional properties for SelfServiceProfileBrandingColors
+func (a *SelfServiceProfileBrandingColors) Set(fieldName string, value interface{}) {
+	if a.AdditionalProperties == nil {
+		a.AdditionalProperties = make(map[string]interface{})
+	}
+	a.AdditionalProperties[fieldName] = value
+}
+
+// Override default JSON handling for SelfServiceProfileBrandingColors to handle AdditionalProperties
+func (a *SelfServiceProfileBrandingColors) UnmarshalJSON(b []byte) error {
+	object := make(map[string]json.RawMessage)
+	err := json.Unmarshal(b, &object)
+	if err != nil {
+		return err
+	}
+
+	if raw, found := object["primary"]; found {
+		err = json.Unmarshal(raw, &a.Primary)
+		if err != nil {
+			return fmt.Errorf("error reading 'primary': %w", err)
+		}
+		delete(object, "primary")
+	}
+
+	if len(object) != 0 {
+		a.AdditionalProperties = make(map[string]interface{})
+		for fieldName, fieldBuf := range object {
+			var fieldVal interface{}
+			err := json.Unmarshal(fieldBuf, &fieldVal)
+			if err != nil {
+				return fmt.Errorf("error unmarshaling field %s: %w", fieldName, err)
+			}
+			a.AdditionalProperties[fieldName] = fieldVal
+		}
+	}
+	return nil
+}
+
+// Override default JSON handling for SelfServiceProfileBrandingColors to handle AdditionalProperties
+func (a SelfServiceProfileBrandingColors) MarshalJSON() ([]byte, error) {
+	var err error
+	object := make(map[string]json.RawMessage)
+
+	object["primary"], err = json.Marshal(a.Primary)
+	if err != nil {
+		return nil, fmt.Errorf("error marshaling 'primary': %w", err)
+	}
+
+	for fieldName, field := range a.AdditionalProperties {
+		object[fieldName], err = json.Marshal(field)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling '%s': %w", fieldName, err)
+		}
+	}
+	return json.Marshal(object)
+}
+
+// Getter for additional properties for SelfServiceProfileBrandingProperties. Returns the specified
+// element and whether it was found
+func (a SelfServiceProfileBrandingProperties) Get(fieldName string) (value interface{}, found bool) {
+	if a.AdditionalProperties != nil {
+		value, found = a.AdditionalProperties[fieldName]
+	}
+	return
+}
+
+// Setter for additional properties for SelfServiceProfileBrandingProperties
+func (a *SelfServiceProfileBrandingProperties) Set(fieldName string, value interface{}) {
+	if a.AdditionalProperties == nil {
+		a.AdditionalProperties = make(map[string]interface{})
+	}
+	a.AdditionalProperties[fieldName] = value
+}
+
+// Override default JSON handling for SelfServiceProfileBrandingProperties to handle AdditionalProperties
+func (a *SelfServiceProfileBrandingProperties) UnmarshalJSON(b []byte) error {
+	object := make(map[string]json.RawMessage)
+	err := json.Unmarshal(b, &object)
+	if err != nil {
+		return err
+	}
+
+	if raw, found := object["colors"]; found {
+		err = json.Unmarshal(raw, &a.Colors)
+		if err != nil {
+			return fmt.Errorf("error reading 'colors': %w", err)
+		}
+		delete(object, "colors")
+	}
+
+	if raw, found := object["logo_url"]; found {
+		err = json.Unmarshal(raw, &a.LogoUrl)
+		if err != nil {
+			return fmt.Errorf("error reading 'logo_url': %w", err)
+		}
+		delete(object, "logo_url")
+	}
+
+	if len(object) != 0 {
+		a.AdditionalProperties = make(map[string]interface{})
+		for fieldName, fieldBuf := range object {
+			var fieldVal interface{}
+			err := json.Unmarshal(fieldBuf, &fieldVal)
+			if err != nil {
+				return fmt.Errorf("error unmarshaling field %s: %w", fieldName, err)
+			}
+			a.AdditionalProperties[fieldName] = fieldVal
+		}
+	}
+	return nil
+}
+
+// Override default JSON handling for SelfServiceProfileBrandingProperties to handle AdditionalProperties
+func (a SelfServiceProfileBrandingProperties) MarshalJSON() ([]byte, error) {
+	var err error
+	object := make(map[string]json.RawMessage)
+
+	if a.Colors != nil {
+		object["colors"], err = json.Marshal(a.Colors)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'colors': %w", err)
+		}
+	}
+
+	if a.LogoUrl != nil {
+		object["logo_url"], err = json.Marshal(a.LogoUrl)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'logo_url': %w", err)
+		}
+	}
+
+	for fieldName, field := range a.AdditionalProperties {
+		object[fieldName], err = json.Marshal(field)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling '%s': %w", fieldName, err)
+		}
+	}
+	return json.Marshal(object)
+}
+
 // Getter for additional properties for User. Returns the specified
 // element and whether it was found
 func (a User) Get(fieldName string) (value interface{}, found bool) {
@@ -22211,6 +23485,68 @@ func (t IIListOrganizationInvitationsResponseContent) MarshalJSON() ([]byte, err
 }
 
 func (t *IIListOrganizationInvitationsResponseContent) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
+// AsListSelfServiceProfilesResponseContent0 returns the union data inside the ListSelfServiceProfilesResponseContent as a ListSelfServiceProfilesResponseContent0
+func (t ListSelfServiceProfilesResponseContent) AsListSelfServiceProfilesResponseContent0() (ListSelfServiceProfilesResponseContent0, error) {
+	var body ListSelfServiceProfilesResponseContent0
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromListSelfServiceProfilesResponseContent0 overwrites any union data inside the ListSelfServiceProfilesResponseContent as the provided ListSelfServiceProfilesResponseContent0
+func (t *ListSelfServiceProfilesResponseContent) FromListSelfServiceProfilesResponseContent0(v ListSelfServiceProfilesResponseContent0) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeListSelfServiceProfilesResponseContent0 performs a merge with any union data inside the ListSelfServiceProfilesResponseContent, using the provided ListSelfServiceProfilesResponseContent0
+func (t *ListSelfServiceProfilesResponseContent) MergeListSelfServiceProfilesResponseContent0(v ListSelfServiceProfilesResponseContent0) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsListSelfServiceProfilesPaginatedResponseContent returns the union data inside the ListSelfServiceProfilesResponseContent as a ListSelfServiceProfilesPaginatedResponseContent
+func (t ListSelfServiceProfilesResponseContent) AsListSelfServiceProfilesPaginatedResponseContent() (ListSelfServiceProfilesPaginatedResponseContent, error) {
+	var body ListSelfServiceProfilesPaginatedResponseContent
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromListSelfServiceProfilesPaginatedResponseContent overwrites any union data inside the ListSelfServiceProfilesResponseContent as the provided ListSelfServiceProfilesPaginatedResponseContent
+func (t *ListSelfServiceProfilesResponseContent) FromListSelfServiceProfilesPaginatedResponseContent(v ListSelfServiceProfilesPaginatedResponseContent) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeListSelfServiceProfilesPaginatedResponseContent performs a merge with any union data inside the ListSelfServiceProfilesResponseContent, using the provided ListSelfServiceProfilesPaginatedResponseContent
+func (t *ListSelfServiceProfilesResponseContent) MergeListSelfServiceProfilesPaginatedResponseContent(v ListSelfServiceProfilesPaginatedResponseContent) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t ListSelfServiceProfilesResponseContent) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *ListSelfServiceProfilesResponseContent) UnmarshalJSON(b []byte) error {
 	err := t.union.UnmarshalJSON(b)
 	return err
 }
@@ -24884,6 +26220,27 @@ type ServerInterface interface {
 	// RotateClientSecret Rotate an application's secret
 	// (POST /api/v2/clients/{id}/rotate-secret)
 	RotateClientSecret(w http.ResponseWriter, r *http.Request, id string)
+	// ListConnectionProfiles Get Connection Profiles
+	// (GET /api/v2/connection-profiles)
+	ListConnectionProfiles(w http.ResponseWriter, r *http.Request, params ListConnectionProfilesParams)
+	// CreateConnectionProfile Create a connection profile
+	// (POST /api/v2/connection-profiles)
+	CreateConnectionProfile(w http.ResponseWriter, r *http.Request)
+	// ListConnectionProfileTemplates Get Connection Profile Templates
+	// (GET /api/v2/connection-profiles/templates)
+	ListConnectionProfileTemplates(w http.ResponseWriter, r *http.Request)
+	// GetConnectionProfileTemplate Get Connection Profile Template
+	// (GET /api/v2/connection-profiles/templates/{id})
+	GetConnectionProfileTemplate(w http.ResponseWriter, r *http.Request, id string)
+	// DeleteConnectionProfile Delete Connection Profile
+	// (DELETE /api/v2/connection-profiles/{id})
+	DeleteConnectionProfile(w http.ResponseWriter, r *http.Request, id string)
+	// GetConnectionProfile Get Connection Profile
+	// (GET /api/v2/connection-profiles/{id})
+	GetConnectionProfile(w http.ResponseWriter, r *http.Request, id string)
+	// UpdateConnectionProfile Modify a Connection Profile
+	// (PATCH /api/v2/connection-profiles/{id})
+	UpdateConnectionProfile(w http.ResponseWriter, r *http.Request, id string)
 	// GetConnections List connections
 	// (GET /api/v2/connections)
 	GetConnections(w http.ResponseWriter, r *http.Request, params GetConnectionsParams)
@@ -25484,6 +26841,33 @@ type ServerInterface interface {
 	// GetRulesConfigs Return no retired Rules configuration keys.
 	// (GET /api/v2/rules-configs)
 	GetRulesConfigs(w http.ResponseWriter, r *http.Request)
+	// ListSelfServiceProfiles Get self-service profiles
+	// (GET /api/v2/self-service-profiles)
+	ListSelfServiceProfiles(w http.ResponseWriter, r *http.Request, params ListSelfServiceProfilesParams)
+	// CreateSelfServiceProfile Create a self-service profile
+	// (POST /api/v2/self-service-profiles)
+	CreateSelfServiceProfile(w http.ResponseWriter, r *http.Request)
+	// DeleteSelfServiceProfile Delete a self-service profile by Id
+	// (DELETE /api/v2/self-service-profiles/{id})
+	DeleteSelfServiceProfile(w http.ResponseWriter, r *http.Request, id string)
+	// GetSelfServiceProfile Get a self-service profile by Id
+	// (GET /api/v2/self-service-profiles/{id})
+	GetSelfServiceProfile(w http.ResponseWriter, r *http.Request, id string)
+	// UpdateSelfServiceProfile Update a self-service profile
+	// (PATCH /api/v2/self-service-profiles/{id})
+	UpdateSelfServiceProfile(w http.ResponseWriter, r *http.Request, id string)
+	// GetSelfServiceProfileCustomText Get custom text for a self-service profile
+	// (GET /api/v2/self-service-profiles/{id}/custom-text/{language}/{page})
+	GetSelfServiceProfileCustomText(w http.ResponseWriter, r *http.Request, id string, language SelfServiceProfileCustomTextLanguageEnum, page SelfServiceProfileCustomTextPageEnum)
+	// SetSelfServiceProfileCustomText Set custom text for a self-service profile
+	// (PUT /api/v2/self-service-profiles/{id}/custom-text/{language}/{page})
+	SetSelfServiceProfileCustomText(w http.ResponseWriter, r *http.Request, id string, language SelfServiceProfileCustomTextLanguageEnum, page SelfServiceProfileCustomTextPageEnum)
+	// CreateSsoTicket Create an access ticket to initiate the Self-Service Enterprise Configuration flow
+	// (POST /api/v2/self-service-profiles/{id}/sso-ticket)
+	CreateSsoTicket(w http.ResponseWriter, r *http.Request, id string, params CreateSsoTicketParams)
+	// RevokeSsoTicket Revoke a Self-Service Enterprise Configuration access ticket
+	// (POST /api/v2/self-service-profiles/{profileId}/sso-ticket/{id}/revoke)
+	RevokeSsoTicket(w http.ResponseWriter, r *http.Request, profileId string, id string)
 	// DeleteSession Delete a session
 	// (DELETE /api/v2/sessions/{id})
 	DeleteSession(w http.ResponseWriter, r *http.Request, id string)
@@ -26264,6 +27648,48 @@ func (_ Unimplemented) PatchClientCredential(w http.ResponseWriter, r *http.Requ
 // RotateClientSecret Rotate an application's secret
 // (POST /api/v2/clients/{id}/rotate-secret)
 func (_ Unimplemented) RotateClientSecret(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// ListConnectionProfiles Get Connection Profiles
+// (GET /api/v2/connection-profiles)
+func (_ Unimplemented) ListConnectionProfiles(w http.ResponseWriter, r *http.Request, params ListConnectionProfilesParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// CreateConnectionProfile Create a connection profile
+// (POST /api/v2/connection-profiles)
+func (_ Unimplemented) CreateConnectionProfile(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// ListConnectionProfileTemplates Get Connection Profile Templates
+// (GET /api/v2/connection-profiles/templates)
+func (_ Unimplemented) ListConnectionProfileTemplates(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetConnectionProfileTemplate Get Connection Profile Template
+// (GET /api/v2/connection-profiles/templates/{id})
+func (_ Unimplemented) GetConnectionProfileTemplate(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// DeleteConnectionProfile Delete Connection Profile
+// (DELETE /api/v2/connection-profiles/{id})
+func (_ Unimplemented) DeleteConnectionProfile(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetConnectionProfile Get Connection Profile
+// (GET /api/v2/connection-profiles/{id})
+func (_ Unimplemented) GetConnectionProfile(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// UpdateConnectionProfile Modify a Connection Profile
+// (PATCH /api/v2/connection-profiles/{id})
+func (_ Unimplemented) UpdateConnectionProfile(w http.ResponseWriter, r *http.Request, id string) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -27464,6 +28890,60 @@ func (_ Unimplemented) GetRules(w http.ResponseWriter, r *http.Request, params G
 // GetRulesConfigs Return no retired Rules configuration keys.
 // (GET /api/v2/rules-configs)
 func (_ Unimplemented) GetRulesConfigs(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// ListSelfServiceProfiles Get self-service profiles
+// (GET /api/v2/self-service-profiles)
+func (_ Unimplemented) ListSelfServiceProfiles(w http.ResponseWriter, r *http.Request, params ListSelfServiceProfilesParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// CreateSelfServiceProfile Create a self-service profile
+// (POST /api/v2/self-service-profiles)
+func (_ Unimplemented) CreateSelfServiceProfile(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// DeleteSelfServiceProfile Delete a self-service profile by Id
+// (DELETE /api/v2/self-service-profiles/{id})
+func (_ Unimplemented) DeleteSelfServiceProfile(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetSelfServiceProfile Get a self-service profile by Id
+// (GET /api/v2/self-service-profiles/{id})
+func (_ Unimplemented) GetSelfServiceProfile(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// UpdateSelfServiceProfile Update a self-service profile
+// (PATCH /api/v2/self-service-profiles/{id})
+func (_ Unimplemented) UpdateSelfServiceProfile(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetSelfServiceProfileCustomText Get custom text for a self-service profile
+// (GET /api/v2/self-service-profiles/{id}/custom-text/{language}/{page})
+func (_ Unimplemented) GetSelfServiceProfileCustomText(w http.ResponseWriter, r *http.Request, id string, language SelfServiceProfileCustomTextLanguageEnum, page SelfServiceProfileCustomTextPageEnum) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// SetSelfServiceProfileCustomText Set custom text for a self-service profile
+// (PUT /api/v2/self-service-profiles/{id}/custom-text/{language}/{page})
+func (_ Unimplemented) SetSelfServiceProfileCustomText(w http.ResponseWriter, r *http.Request, id string, language SelfServiceProfileCustomTextLanguageEnum, page SelfServiceProfileCustomTextPageEnum) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// CreateSsoTicket Create an access ticket to initiate the Self-Service Enterprise Configuration flow
+// (POST /api/v2/self-service-profiles/{id}/sso-ticket)
+func (_ Unimplemented) CreateSsoTicket(w http.ResponseWriter, r *http.Request, id string, params CreateSsoTicketParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// RevokeSsoTicket Revoke a Self-Service Enterprise Configuration access ticket
+// (POST /api/v2/self-service-profiles/{profileId}/sso-ticket/{id}/revoke)
+func (_ Unimplemented) RevokeSsoTicket(w http.ResponseWriter, r *http.Request, profileId string, id string) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -30870,6 +32350,184 @@ func (siw *ServerInterfaceWrapper) RotateClientSecret(w http.ResponseWriter, r *
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.RotateClientSecret(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListConnectionProfiles operation middleware
+func (siw *ServerInterfaceWrapper) ListConnectionProfiles(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListConnectionProfilesParams
+
+	// ------------- Optional query parameter "from" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "from", r.URL.Query(), &params.From, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "from"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "from", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "take" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "take", r.URL.Query(), &params.Take, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "take"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "take", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListConnectionProfiles(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateConnectionProfile operation middleware
+func (siw *ServerInterfaceWrapper) CreateConnectionProfile(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateConnectionProfile(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListConnectionProfileTemplates operation middleware
+func (siw *ServerInterfaceWrapper) ListConnectionProfileTemplates(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListConnectionProfileTemplates(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetConnectionProfileTemplate operation middleware
+func (siw *ServerInterfaceWrapper) GetConnectionProfileTemplate(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetConnectionProfileTemplate(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteConnectionProfile operation middleware
+func (siw *ServerInterfaceWrapper) DeleteConnectionProfile(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteConnectionProfile(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetConnectionProfile operation middleware
+func (siw *ServerInterfaceWrapper) GetConnectionProfile(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetConnectionProfile(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdateConnectionProfile operation middleware
+func (siw *ServerInterfaceWrapper) UpdateConnectionProfile(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateConnectionProfile(w, r, id)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -37838,6 +39496,330 @@ func (siw *ServerInterfaceWrapper) GetRulesConfigs(w http.ResponseWriter, r *htt
 	handler.ServeHTTP(w, r)
 }
 
+// ListSelfServiceProfiles operation middleware
+func (siw *ServerInterfaceWrapper) ListSelfServiceProfiles(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListSelfServiceProfilesParams
+
+	// ------------- Optional query parameter "page" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "page", r.URL.Query(), &params.Page, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "page"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "page", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "per_page" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "per_page", r.URL.Query(), &params.PerPage, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "per_page"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "per_page", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "include_totals" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "include_totals", r.URL.Query(), &params.IncludeTotals, runtime.BindQueryParameterOptions{Type: "boolean", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "include_totals"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "include_totals", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListSelfServiceProfiles(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateSelfServiceProfile operation middleware
+func (siw *ServerInterfaceWrapper) CreateSelfServiceProfile(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateSelfServiceProfile(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteSelfServiceProfile operation middleware
+func (siw *ServerInterfaceWrapper) DeleteSelfServiceProfile(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteSelfServiceProfile(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetSelfServiceProfile operation middleware
+func (siw *ServerInterfaceWrapper) GetSelfServiceProfile(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetSelfServiceProfile(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdateSelfServiceProfile operation middleware
+func (siw *ServerInterfaceWrapper) UpdateSelfServiceProfile(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateSelfServiceProfile(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetSelfServiceProfileCustomText operation middleware
+func (siw *ServerInterfaceWrapper) GetSelfServiceProfileCustomText(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "language" -------------
+	var language SelfServiceProfileCustomTextLanguageEnum
+
+	err = runtime.BindStyledParameterWithOptions("simple", "language", chi.URLParam(r, "language"), &language, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "language", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "page" -------------
+	var page SelfServiceProfileCustomTextPageEnum
+
+	err = runtime.BindStyledParameterWithOptions("simple", "page", chi.URLParam(r, "page"), &page, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "page", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetSelfServiceProfileCustomText(w, r, id, language, page)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SetSelfServiceProfileCustomText operation middleware
+func (siw *ServerInterfaceWrapper) SetSelfServiceProfileCustomText(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "language" -------------
+	var language SelfServiceProfileCustomTextLanguageEnum
+
+	err = runtime.BindStyledParameterWithOptions("simple", "language", chi.URLParam(r, "language"), &language, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "language", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "page" -------------
+	var page SelfServiceProfileCustomTextPageEnum
+
+	err = runtime.BindStyledParameterWithOptions("simple", "page", chi.URLParam(r, "page"), &page, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "page", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SetSelfServiceProfileCustomText(w, r, id, language, page)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateSsoTicket operation middleware
+func (siw *ServerInterfaceWrapper) CreateSsoTicket(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params CreateSsoTicketParams
+
+	headers := r.Header
+
+	// ------------- Optional header parameter "auth0-custom-domain" -------------
+	if valueList, found := headers[http.CanonicalHeaderKey("auth0-custom-domain")]; found {
+		var Auth0CustomDomain string
+		n := len(valueList)
+		if n != 1 {
+			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "auth0-custom-domain", Count: n})
+			return
+		}
+
+		err = runtime.BindStyledParameterWithOptions("simple", "auth0-custom-domain", valueList[0], &Auth0CustomDomain, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "string", Format: ""})
+		if err != nil {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "auth0-custom-domain", Err: err})
+			return
+		}
+
+		params.Auth0CustomDomain = &Auth0CustomDomain
+
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateSsoTicket(w, r, id, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// RevokeSsoTicket operation middleware
+func (siw *ServerInterfaceWrapper) RevokeSsoTicket(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "profileId" -------------
+	var profileId string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "profileId", chi.URLParam(r, "profileId"), &profileId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "profileId", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.RevokeSsoTicket(w, r, profileId, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // DeleteSession operation middleware
 func (siw *ServerInterfaceWrapper) DeleteSession(w http.ResponseWriter, r *http.Request) {
 
@@ -41019,6 +43001,54 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/api/v2/users/{id}/recovery-code-regeneration", wrapper.CreateUserRecoveryCode)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/connection-profiles", wrapper.ListConnectionProfiles)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/v2/connection-profiles", wrapper.CreateConnectionProfile)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/connection-profiles/templates", wrapper.ListConnectionProfileTemplates)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/connection-profiles/templates/{id}", wrapper.GetConnectionProfileTemplate)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/v2/connection-profiles/{id}", wrapper.DeleteConnectionProfile)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/connection-profiles/{id}", wrapper.GetConnectionProfile)
+	})
+	r.Group(func(r chi.Router) {
+		r.Patch(options.BaseURL+"/api/v2/connection-profiles/{id}", wrapper.UpdateConnectionProfile)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/self-service-profiles", wrapper.ListSelfServiceProfiles)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/v2/self-service-profiles", wrapper.CreateSelfServiceProfile)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/v2/self-service-profiles/{id}", wrapper.DeleteSelfServiceProfile)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/self-service-profiles/{id}", wrapper.GetSelfServiceProfile)
+	})
+	r.Group(func(r chi.Router) {
+		r.Patch(options.BaseURL+"/api/v2/self-service-profiles/{id}", wrapper.UpdateSelfServiceProfile)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/self-service-profiles/{id}/custom-text/{language}/{page}", wrapper.GetSelfServiceProfileCustomText)
+	})
+	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/api/v2/self-service-profiles/{id}/custom-text/{language}/{page}", wrapper.SetSelfServiceProfileCustomText)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/v2/self-service-profiles/{id}/sso-ticket", wrapper.CreateSsoTicket)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/v2/self-service-profiles/{profileId}/sso-ticket/{id}/revoke", wrapper.RevokeSsoTicket)
 	})
 	r.Group(func(r chi.Router) {
 		r.Delete(options.BaseURL+"/api/v2/connections/{id}/scim-configuration", wrapper.DeleteScimConfiguration)
