@@ -168,7 +168,7 @@ func (h *Handler) authorize(r *http.Request, scope string) (*call, error) {
 	if !tok.Active(h.now()) || tok.ConnectionID != connID {
 		return nil, errUnauthorized
 	}
-	if !slices.Contains(tok.Scopes, scope) {
+	if scope != "" && !slices.Contains(tok.Scopes, scope) {
 		return nil, errorf(http.StatusForbidden, "", "The SCIM token lacks the scope "+scope+".")
 	}
 	conn, err := h.Store.Connections().Get(ctx, res.Tenant.ID, connID)

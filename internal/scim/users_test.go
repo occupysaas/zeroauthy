@@ -299,4 +299,3 @@ func TestSCIMDeactivate(t *testing.T) {
 		t.Fatalf("reactivate %d %v", code, out)
 	}
 }
-
