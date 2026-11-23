@@ -8,6 +8,7 @@ import (
 
 	"github.com/zeroauthy/zeroauthy/internal/actionresult"
 	"github.com/zeroauthy/zeroauthy/internal/actions"
+	"github.com/zeroauthy/zeroauthy/internal/authz"
 	"github.com/zeroauthy/zeroauthy/internal/i18n"
 	"github.com/zeroauthy/zeroauthy/internal/samlcore"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
@@ -50,6 +51,10 @@ func post(w http.ResponseWriter, r *http.Request, res tenant.Resolved, acs strin
 // Respond completes a samlp transaction with a signed assertion for the
 // session's user (authz.SAMLResponder).
 func (h *Handler) Respond(w http.ResponseWriter, r *http.Request, res tenant.Resolved, client *store.Client, binding, orgID string, sess *store.LoginSession, eff *actions.Effects) {
+	if authz.IsWSFedBinding(binding) {
+		h.respondWSFed(w, r, res, client, binding, orgID, sess, eff)
+		return
+	}
 	b, err := decodeBinding(binding)
 	if err != nil || client.Addons == nil || client.Addons.SAMLP == nil {
 		h.page(w, r, res, http.StatusBadRequest, "The SAML request is no longer valid.")
@@ -156,6 +161,10 @@ func (h *Handler) Respond(w http.ResponseWriter, r *http.Request, res tenant.Res
 // Fail answers a samlp transaction that cannot complete with a SAML error
 // response to the (already validated) ACS (authz.SAMLResponder).
 func (h *Handler) Fail(w http.ResponseWriter, r *http.Request, res tenant.Resolved, client *store.Client, binding, code, description string) {
+	if authz.IsWSFedBinding(binding) {
+		h.failWSFed(w, r, res, description)
+		return
+	}
 	b, err := decodeBinding(binding)
 	if err != nil || client == nil || client.Addons == nil || client.Addons.SAMLP == nil {
 		h.page(w, r, res, http.StatusBadRequest, description)

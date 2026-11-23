@@ -237,6 +237,8 @@ func hasMetadataDeletion(eff *actions.Effects) bool {
 // actionProtocol is event.transaction.protocol for a flow.
 func actionProtocol(fr flowReq) string {
 	switch {
+	case IsWSFedBinding(fr.SAML):
+		return actions.ProtocolWSFed
 	case fr.SAML != "":
 		return actions.ProtocolSAMLP
 	case fr.device():
