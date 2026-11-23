@@ -167,3 +167,18 @@ func (s *FlowService) DirectLogin(ctx context.Context, in DirectLoginInput) (*st
 	}
 	return out, err
 }
+
+// KerberosRedirect reports whether a login for conn from clientIP on host
+// goes to the connector's Windows integrated sign-in (Plan 38a §5): kerberos
+// on, the client in ips, a registered connector endpoint and certificates,
+// and the host the connector posts tokens to (LR38a-10).
+func KerberosRedirect(tenant *store.Tenant, conn *store.Connection, host, clientIP string) bool {
+	if conn == nil || conn.Strategy != StrategyAD || tenant == nil || host != tenant.CanonicalHost {
+		return false
+	}
+	cfg, err := parseConnConfig(conn)
+	if err != nil || cfg.AD == nil || cfg.ADFS == nil || !cfg.AuthenticationActive {
+		return false
+	}
+	return rules.ADClientInRanges(clientIP, cfg.AD.IPs)
+}

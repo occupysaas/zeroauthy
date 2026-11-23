@@ -177,6 +177,12 @@ func (s *FlowService) Begin(ctx context.Context, in BeginInput) (*Begun, error) 
 			return nil, ErrConnectionUnusable
 		}
 		endpoints = Endpoints{AuthorizationURL: cfg.ADFS.SignInEndpoint}
+	case StrategyAD:
+		// Only the Kerberos redirect begins at the provider (Plan 38a).
+		if cfg.ADFS == nil {
+			return nil, ErrConnectionUnusable
+		}
+		endpoints = Endpoints{AuthorizationURL: cfg.ADFS.SignInEndpoint}
 	case StrategyWindowsLive, StrategyWAAD, StrategyOIDC, StrategyOkta:
 		var meta Metadata
 		var err error

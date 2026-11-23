@@ -130,6 +130,12 @@ func ParseConfig(spec connrules.Spec) (Config, error) {
 		AuthenticationActive: settings.AuthenticationActive,
 		IsSocial:             rules.IsSocial(settings.Strategy),
 	}
+	if a := settings.AD; a != nil && a.Kerberos && a.SignInEndpoint != "" && len(a.Thumbprints) > 0 {
+		// Kerberos (Plan 38a §5): the connector's WS-Fed endpoint signs
+		// tokens with its provisioned certificates; the WS-Fed relying party
+		// of Plan 37b validates them, for the realm urn:auth0:{tenant}:{connection}.
+		c.ADFS = &rules.ADFSSettings{SignInEndpoint: a.SignInEndpoint, Thumbprints: a.Thumbprints, Thumbprints384: a.Thumbprints384}
+	}
 	switch c.Strategy {
 	case StrategyApple:
 		c.Issuer = rules.AppleIssuer

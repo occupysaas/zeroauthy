@@ -344,6 +344,12 @@ func (h *Handlers) LoginPage(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	f.conn, err = h.connection(r.Context(), f.res.Tenant.ID, f.txn)
+	if err == nil && f.txn.HostedState.Step == "" && h.Federation != nil &&
+		federation.KerberosRedirect(f.res.Tenant, f.conn, f.res.Host, httpx.ClientIP(r, h.TrustProxyHeaders)) {
+		// Windows integrated authentication at the AD/LDAP Connector.
+		h.startSocial(w, r, f, f.conn)
+		return
+	}
 	if errors.Is(err, errNoConnection) {
 		if h.homeRealmAvailable(r, f) {
 			h.renderIdentifier(w, r, http.StatusOK, f, h.stageData(f, f.txn.Params["login_hint"]))
