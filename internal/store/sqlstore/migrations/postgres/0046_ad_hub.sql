@@ -1,0 +1,3 @@
+CREATE TABLE ad_provisionings (tenant_id VARCHAR(255) NOT NULL, connection_id VARCHAR(255) NOT NULL, ticket_hash VARCHAR(64) NOT NULL, ticket_sealed BYTEA NOT NULL, signing_key_sealed BYTEA NOT NULL, created_at BIGINT NOT NULL, PRIMARY KEY (tenant_id,connection_id), UNIQUE (tenant_id,ticket_hash));
+CREATE TABLE ad_hub_sessions (tenant_id VARCHAR(255) NOT NULL, connection_id VARCHAR(255) NOT NULL, session_id VARCHAR(64) NOT NULL, replica_id VARCHAR(255) NOT NULL, replica_url TEXT NOT NULL, cert_thumbprint VARCHAR(64) NOT NULL, agent_ip VARCHAR(64) NOT NULL, connected_at BIGINT NOT NULL, last_seen_at BIGINT NOT NULL, PRIMARY KEY (tenant_id,connection_id,session_id));
+CREATE INDEX ad_hub_sessions_seen ON ad_hub_sessions (last_seen_at);

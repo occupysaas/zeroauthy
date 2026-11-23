@@ -26,7 +26,7 @@ type AttrMap struct {
 }
 
 func IsEnterprise(strategy string) bool {
-	return strategy == OIDC || strategy == Okta || strategy == WAAD || strategy == SAMLP || strategy == ADFS
+	return strategy == OIDC || strategy == Okta || strategy == WAAD || strategy == SAMLP || strategy == ADFS || strategy == AD
 }
 func enterpriseOption(k string) bool {
 	return slices.Contains([]string{"issuer", "authorization_endpoint", "token_endpoint", "jwks_uri", "userinfo_endpoint", "oidc_metadata", "token_endpoint_auth_method", "token_endpoint_auth_signing_alg", "domain_aliases", "attribute_map", "tenant_domain", "domain"}, k)

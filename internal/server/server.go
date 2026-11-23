@@ -3,6 +3,7 @@ package server
 
 import (
 	"context"
+	"github.com/zeroauthy/zeroauthy/internal/adhub"
 	"github.com/zeroauthy/zeroauthy/internal/samlidp"
 	"io/fs"
 	"log/slog"
@@ -110,6 +111,8 @@ type Deps struct {
 
 	// Federation runs social and OIDC login (Plan 24); nil offers none.
 	Federation *federation.FlowService
+	// AD serves ad connections (Plan 38a); nil leaves them unavailable.
+	AD *adhub.Service
 
 	// Actions runs post-login and credentials-exchange flows (Plan 27);
 	// nil runs none. Its effects are sealed with Wrapper.
@@ -160,6 +163,7 @@ type authAPI struct {
 	login  *login.Handlers
 
 	passwordless *passwordless.Handlers
+	ad           *adhub.Service
 }
 
 func (a authAPI) Discovery(w http.ResponseWriter, r *http.Request) { a.oidc.Discovery(w, r) }
@@ -335,6 +339,7 @@ func New(d Deps) http.Handler {
 		})
 		proofService := &dpop.Service{Store: d.Store, Wrapper: d.Wrapper}
 		authapi.HandlerWithOptions(authAPI{
+			ad:   d.AD,
 			oidc: &oidc.Handlers{UpstreamLogout: lg.UpstreamLogout, Wrapper: d.Wrapper, Compat: d.Compat, DPoP: proofService, Keys: d.Keys, Store: d.Store, Sessions: d.Sessions, Log: d.Log},
 			oauth: &oauth.Handlers{Compat: d.Compat, Logout: d.Logout,
 				DPoP:       proofService,
@@ -440,6 +445,7 @@ func New(d Deps) http.Handler {
 	}
 	mh := &mgmt.Handlers{
 		Logout:         d.Logout,
+		AD:             adConnections(d.AD),
 		SAMLMetadata:   samlMetadata,
 		LogsConfig:     d.LogsConfig,
 		EventsConfig:   d.EventsConfig,
@@ -608,8 +614,26 @@ func (a authAPI) WsfedClientMetadata(w http.ResponseWriter, r *http.Request, cli
 func adNotImplemented(w http.ResponseWriter) {
 	httpx.WriteError(w, http.StatusNotImplemented, "not_implemented", "AD/LDAP connections are not implemented yet")
 }
-func (authAPI) AdHub(w http.ResponseWriter, _ *http.Request)                  { adNotImplemented(w) }
-func (authAPI) AdTicketInfo(w http.ResponseWriter, _ *http.Request, _ string) { adNotImplemented(w) }
-func (authAPI) AdTicketConfigure(w http.ResponseWriter, _ *http.Request, _ string) {
-	adNotImplemented(w)
+func (authAPI) AdHub(w http.ResponseWriter, _ *http.Request) { adNotImplemented(w) }
+func (a authAPI) AdTicketInfo(w http.ResponseWriter, r *http.Request, ticket string) {
+	if a.ad == nil {
+		adNotImplemented(w)
+		return
+	}
+	a.ad.TicketInfo(w, r, ticket)
+}
+func (a authAPI) AdTicketConfigure(w http.ResponseWriter, r *http.Request, ticket string) {
+	if a.ad == nil {
+		adNotImplemented(w)
+		return
+	}
+	a.ad.TicketConfigure(w, r, ticket)
+}
+
+// adConnections keeps a nil service a nil interface.
+func adConnections(s *adhub.Service) mgmt.ADConnections {
+	if s == nil {
+		return nil
+	}
+	return s
 }

@@ -5,10 +5,12 @@ import (
 	"log/slog"
 	"net/http"
 	"runtime/debug"
+	"strings"
 	"time"
 
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/zeroauthy/zeroauthy/internal/httpx"
+	"github.com/zeroauthy/zeroauthy/internal/logscrub"
 )
 
 func requestLog(log *slog.Logger) func(http.Handler) http.Handler {
@@ -23,13 +25,25 @@ func requestLog(log *slog.Logger) func(http.Handler) http.Handler {
 			log.InfoContext(r.Context(), "request",
 				"method", r.Method,
 				"host", r.Host,
-				"path", r.URL.Path,
+				"path", logPath(r.URL.Path),
 				"status", ww.Status(),
 				"duration_ms", time.Since(start).Milliseconds(),
 				"request_id", middleware.GetReqID(r.Context()),
 			)
 		})
 	}
+}
+
+// logPath hides path segments that are secrets: the AD/LDAP Connector
+// provisioning ticket (Plan 38a).
+func logPath(path string) string {
+	if rest, ok := strings.CutPrefix(path, "/p/ad/"); ok {
+		if strings.HasSuffix(rest, "/info") {
+			return "/p/ad/" + logscrub.Marker + "/info"
+		}
+		return "/p/ad/" + logscrub.Marker
+	}
+	return path
 }
 
 // recoverer turns a handler panic into a logged JSON 500.

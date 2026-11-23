@@ -537,3 +537,20 @@ func TestOldPluginWSFedUnavailable(t *testing.T) {
 		}
 	}
 }
+
+// A plugin without ad_hub.v1 (Plan 38a) has no AD/LDAP store: store.ADHub
+// fails closed and the methods never reach it.
+func TestOldPluginADHubUnavailable(t *testing.T) {
+	c := serveOldPlugin(t)
+	defer c.Close()
+	ctx := context.Background()
+	if err := c.CheckADHubSupport(ctx); !errors.Is(err, store.ErrADHubUnavailable) {
+		t.Fatalf("capability: %v", err)
+	}
+	if _, err := store.ADHub(ctx, c); !errors.Is(err, store.ErrADHubUnavailable) {
+		t.Fatalf("ADHub: %v", err)
+	}
+	if _, err := c.GetADProvisioning(ctx, "t", "c"); !errors.Is(err, store.ErrADHubUnavailable) {
+		t.Fatalf("GetADProvisioning: %v", err)
+	}
+}

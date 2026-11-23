@@ -129,6 +129,11 @@ service StoreService {
   rpc SAMLCapabilities(PingRequest) returns (EventsCapabilitiesResult);
   // wsfed.v1 (Plan 37b) gates client_aliases (unique per tenant) and form_template.
   rpc WSFedCapabilities(PingRequest) returns (EventsCapabilitiesResult);
+  // ad_hub.v1 (Plan 38a): AD/LDAP provisioning and connector sessions.
+  // ADHubCall invokes one store.ADHubStore method: method is its Go name and
+  // args/result are JSON (see internal/store/grpcstore/adhub.go).
+  rpc ADHubCapabilities(PingRequest) returns (EventsCapabilitiesResult);
+  rpc ADHubCall(ADHubCallRequest) returns (ADHubCallResult);
   rpc SAMLSessionParticipant(SAMLParticipantWrite) returns (Result);
   rpc SAMLReplayUse(GlobalRevocationJTIRequest) returns (Result); // connection_id + jti = assertion ID
   rpc SAMLReplayPurge(ClientCredentialsPurgeRequest) returns (CountResult);
@@ -1904,3 +1909,16 @@ message CodeBindingRequest {
 message SessionTokenOwnersResult { Error error = 1; repeated string user_ids = 2; }
 
 message GlobalRevocationJTIRequest {string tx_id=1;string tenant_id=2;string connection_id=3;string jti=4;google.protobuf.Timestamp expires_at=5;google.protobuf.Timestamp now=6;}
+
+// ADHubCallRequest invokes a store.ADHubStore method (ad_hub.v1, Plan 38a).
+message ADHubCallRequest {
+  string tx_id = 1;
+  string method = 2;
+  bytes args = 3; // JSON object of the method's parameters
+}
+
+// ADHubCallResult is a store.ADHubStore method's outcome.
+message ADHubCallResult {
+  Error error = 1;
+  bytes result = 2; // JSON of the method's results
+}

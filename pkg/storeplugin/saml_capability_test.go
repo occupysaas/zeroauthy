@@ -29,3 +29,19 @@ func TestOpenedForwardsWSFedCapability(t *testing.T) {
 		t.Fatalf("wrapper without wsfed.v1: %v", err)
 	}
 }
+
+// The process wrapper forwards ad_hub.v1 (Plan 38a) to the wrapped store.
+func TestOpenedForwardsADHub(t *testing.T) {
+	var _ store.ADHubSupporter = (*opened)(nil)
+	var _ store.ADHubStore = (*opened)(nil)
+	o := &opened{Store: memory.New()}
+	defer o.Store.Close()
+	ctx := context.Background()
+	repo, err := store.ADHub(ctx, o)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := repo.GetADProvisioning(ctx, "t", "c"); !errors.Is(err, store.ErrNotFound) {
+		t.Fatalf("GetADProvisioning through the wrapper: %v", err)
+	}
+}

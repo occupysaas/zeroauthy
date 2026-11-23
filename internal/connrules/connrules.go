@@ -287,6 +287,10 @@ func CreateDefaults(s *Spec) {
 		if s.ConnectedAccounts == nil {
 			s.ConnectedAccounts = map[string]any{"active": false}
 		}
+		if s.Strategy == rules.AD && s.Options.BruteForceProtection == nil {
+			t := true
+			s.Options.BruteForceProtection = &t
+		}
 		return
 	}
 	e := s.Options.Extra
@@ -412,7 +416,7 @@ func normalizeFederated(s *Spec) []error {
 	o := &s.Options
 	if o.PasswordOptions != nil || o.PasswordPolicy != "" || o.PasswordComplexity != nil ||
 		o.PasswordHistory != nil || o.PasswordDictionary != nil || o.PasswordNoPersonalInfo != nil ||
-		o.BruteForceProtection != nil || o.Validation != nil || o.RequiresUsername ||
+		(o.BruteForceProtection != nil && s.Strategy != rules.AD) || o.Validation != nil || o.RequiresUsername ||
 		o.EnabledDatabaseCustomization || o.ImportMode || len(o.CustomScripts) > 0 || len(o.Configuration) > 0 {
 		fail("database options are not supported on strategy %q", s.Strategy)
 	}
@@ -422,7 +426,10 @@ func normalizeFederated(s *Spec) []error {
 		if s.Strategy == rules.WindowsLive && k == "strategy_version" {
 			continue
 		}
-		if (s.Strategy == rules.Apple || s.Strategy == rules.OIDC || s.Strategy == rules.Okta || s.Strategy == rules.ADFS) && k == "non_persistent_attrs" {
+		if (s.Strategy == rules.Apple || s.Strategy == rules.OIDC || s.Strategy == rules.Okta || s.Strategy == rules.ADFS || s.Strategy == rules.AD) && k == "non_persistent_attrs" {
+			continue
+		}
+		if s.Strategy == rules.AD && k == "disable_self_service_change_password" {
 			continue
 		}
 		if _, ok := o.Extra[k]; ok {
@@ -436,6 +443,11 @@ func normalizeFederated(s *Spec) []error {
 		// Thumbprints are computed from the certificates (read-only on the API).
 		s.Options.Extra["thumbprints"] = stringsToAny(settings.SAML.Thumbprints)
 		s.Options.Extra["thumbprints_sha384"] = stringsToAny(settings.SAML.Thumbprints384)
+	}
+	if len(ruleErrs) == 0 && settings.AD != nil && len(settings.AD.Certs) > 0 {
+		// Thumbprints follow the connector certificates (read-only).
+		s.Options.Extra["thumbprints"] = stringsToAny(settings.AD.Thumbprints)
+		s.Options.Extra["thumbprints_sha384"] = stringsToAny(settings.AD.Thumbprints384)
 	}
 	if len(ruleErrs) == 0 && settings.ADFS != nil {
 		// The endpoint and thumbprints come from the metadata (read-only).
@@ -702,8 +714,12 @@ func FromConnection(c *store.Connection) *Spec {
 		s.FederationIssuer, _ = top["federation_issuer"].(string)
 	}
 	if s.Federated() {
-		// Database options have no meaning on federated connections.
-		s.Options.PasswordOptions, s.Options.BruteForceProtection, s.Options.Validation = nil, nil, nil
+		// Database options have no meaning on federated connections;
+		// ad connections keep brute_force_protection (Plan 38a).
+		s.Options.PasswordOptions, s.Options.Validation = nil, nil
+		if s.Strategy != rules.AD {
+			s.Options.BruteForceProtection = nil
+		}
 		// Stored provider credentials are never part of an update/read/export spec.
 		delete(s.Options.Extra, "client_secret")
 		delete(s.Options.Extra, "app_secret")

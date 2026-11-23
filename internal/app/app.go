@@ -8,6 +8,7 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
+	"github.com/zeroauthy/zeroauthy/internal/adhub"
 	"log/slog"
 	"net"
 	"net/http"
@@ -408,6 +409,7 @@ func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.S
 	tenantEmail.Actions = engine
 	engine.InvitationEmail = tenantEmail
 	flows := &federation.FlowService{Service: federation.Service{Wrapper: wrapper}, Store: st, Providers: providers, Log: log}
+	adService := &adhub.Service{Store: st, Wrapper: wrapper, Log: log, TrustProxyHeaders: cfg.Server.TrustProxyHeaders}
 	sec := cfg.Security
 	buildsOwned = true
 	eventDeliveryWorker := eventstream.NewWorker(st, wrapper, events.Config{AllowPrivateNetworks: cfg.Events.AllowPrivateNetworks, AllowInsecureHTTP: cfg.Events.AllowInsecureHTTP}, nil, eventstream.NewActionRunner(engine), log)
@@ -455,6 +457,7 @@ func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.S
 			Wrapper:        wrapper,
 			Scripts:        &customdb.Client{Exec: runner, Wrapper: wrapper},
 			Federation:     flows,
+			AD:             adService,
 			Actions:        engine,
 			Phone:          phoneDispatcher,
 
