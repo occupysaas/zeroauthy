@@ -60,3 +60,28 @@ func TestFederationImportADFS(t *testing.T) {
 		t.Fatal("a provider secret was accepted for adfs")
 	}
 }
+
+// Preserved-ID bootstrap carries the wsfed add-on, client_aliases and
+// form_template (Plan 37b).
+func TestBootstrapWSFedClient(t *testing.T) {
+	f, err := seed.Parse([]byte(`tenants: [{name: destination, domains: [dest.example.test]}]`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	source := Export{Resources: map[string]json.RawMessage{"clients": json.RawMessage(`[{"client_id":"rp","name":"RP","app_type":"spa","token_endpoint_auth_method":"none","callbacks":["https://rp.example/"],"addons":{"wsfed":{}},"client_aliases":["urn:rp"],"form_template":"<form></form>"}]`)}}
+	prepared, err := PrepareBootstrap(source, f, nil, BootstrapOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	st := memory.New()
+	defer st.Close()
+	w, _ := keys.NewLocalWrapper([]byte(strings.Repeat("t", 32)))
+	result, err := ApplyBootstrap(t.Context(), st, prepared, w, time.Now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	c, err := st.Clients().Get(t.Context(), result.TenantID, "rp")
+	if err != nil || c.Addons == nil || c.Addons.WSFed == nil || len(c.ClientAliases) != 1 || c.ClientAliases[0] != "urn:rp" || c.FormTemplate != "<form></form>" {
+		t.Fatalf("bootstrap dropped WS-Fed fields: %+v %v", c, err)
+	}
+}
