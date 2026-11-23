@@ -1439,6 +1439,165 @@
      "source": "https://auth0.com/docs/authenticate/identity-providers/enterprise-identity-providers/saml"
     }
    }
+  },
+  "ad": {
+   "is_social": false,
+   "id_format": "ad|<connection-name>|<connector profile id (objectGUID, uid or cn)>",
+   "default_scopes": [],
+   "options": {
+    "tenant_domain": {
+     "type": "string",
+     "default": null,
+     "validation": "1 to 512 bytes, hostname; home realm discovery and the connector's connectionDomain",
+     "secret": "public",
+     "runtime": "active",
+     "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
+    },
+    "domain_aliases": {
+     "type": "array",
+     "default": [],
+     "validation": "at most 1000 domains of 1 to 255 bytes; home realm discovery",
+     "secret": "public",
+     "runtime": "active",
+     "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
+    },
+    "ips": {
+     "type": "array",
+     "default": [],
+     "validation": "at most 256 IP addresses or CIDR ranges; Kerberos source ranges",
+     "secret": "public",
+     "runtime": "active",
+     "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
+    },
+    "kerberos": {
+     "type": "boolean",
+     "default": false,
+     "validation": "boolean; redirect requests from ips to signInEndpoint",
+     "secret": "public",
+     "runtime": "active",
+     "source": "https://auth0.com/docs/authenticate/identity-providers/enterprise-identity-providers/active-directory-ldap"
+    },
+    "certAuth": {
+     "type": "boolean",
+     "default": false,
+     "validation": "boolean; passed to the connector in the ticket information",
+     "secret": "public",
+     "runtime": "active",
+     "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
+    },
+    "disable_cache": {
+     "type": "boolean",
+     "default": false,
+     "validation": "boolean; zeroauthy keeps no credential cache (LR38a-1)",
+     "secret": "public",
+     "runtime": "stored-only",
+     "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
+    },
+    "disable_self_service_change_password": {
+     "type": "boolean",
+     "default": false,
+     "validation": "boolean; hides the forgot-password link",
+     "secret": "public",
+     "runtime": "active",
+     "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
+    },
+    "brute_force_protection": {
+     "type": "boolean",
+     "default": true,
+     "validation": "boolean; failed logins counted per connection and username",
+     "secret": "public",
+     "runtime": "active",
+     "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
+    },
+    "set_user_root_attributes": {
+     "type": "string",
+     "default": "on_each_login",
+     "validation": "on_each_login, on_first_login or never_on_login",
+     "secret": "public",
+     "runtime": "active",
+     "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
+    },
+    "icon_url": {
+     "type": "string",
+     "default": null,
+     "validation": "bounded string; display only",
+     "secret": "public",
+     "runtime": "stored-only",
+     "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
+    },
+    "non_persistent_attrs": {
+     "type": "array",
+     "default": [],
+     "validation": "bounded list",
+     "secret": "public",
+     "runtime": "stored-only",
+     "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
+    },
+    "upstream_params": {
+     "type": "object",
+     "default": null,
+     "validation": "object; stored only",
+     "secret": "public",
+     "runtime": "stored-only",
+     "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
+    },
+    "agentIP": {
+     "type": "string",
+     "default": null,
+     "validation": "connector-managed: address of the last connector socket; Management writes ignored",
+     "secret": "public",
+     "runtime": "active",
+     "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
+    },
+    "agentMode": {
+     "type": "boolean",
+     "default": null,
+     "validation": "connector-managed: posted by the connector; Management writes ignored",
+     "secret": "public",
+     "runtime": "stored-only",
+     "source": "https://github.com/auth0/ad-ldap-connector (v8.0.5, 474ff00e)"
+    },
+    "agentVersion": {
+     "type": "string",
+     "default": null,
+     "validation": "connector-managed: posted by the connector; Management writes ignored",
+     "secret": "public",
+     "runtime": "stored-only",
+     "source": "https://github.com/auth0/ad-ldap-connector (v8.0.5, 474ff00e)"
+    },
+    "signInEndpoint": {
+     "type": "string",
+     "default": null,
+     "validation": "connector-managed: {SERVER_URL}/wsfed posted by the connector; Kerberos redirect target",
+     "secret": "public",
+     "runtime": "active",
+     "source": "https://github.com/auth0/ad-ldap-connector (v8.0.5, 474ff00e)"
+    },
+    "certs": {
+     "type": "array",
+     "default": [],
+     "validation": "connector-managed: base64 DER certificates of the two most recent connectors; hub tokens and WS-Fed tokens verified with them",
+     "secret": "public",
+     "runtime": "active",
+     "source": "https://github.com/auth0/ad-ldap-connector (v8.0.5, 474ff00e)"
+    },
+    "thumbprints": {
+     "type": "array",
+     "default": [],
+     "validation": "connector-managed: SHA-1 thumbprints of certs",
+     "secret": "public",
+     "runtime": "active",
+     "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
+    },
+    "thumbprints_sha384": {
+     "type": "array",
+     "default": [],
+     "validation": "connector-managed: SHA-384 thumbprints of certs",
+     "secret": "public",
+     "runtime": "active",
+     "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
+    }
+   }
   }
  },
  "operations": [

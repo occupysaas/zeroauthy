@@ -3873,3 +3873,55 @@ Implementation rulings (recorded in the
 
 Observation points W1–W5 (spec §4) and later W-n are listed in
 [plan-1-followups.md](../superpowers/plan-1-followups.md#plan-37b-observation-points).
+
+## D-0160: AD/LDAP connections through the AD/LDAP Connector (Plan 38a)
+
+**Contract frozen 2026-11-23.** The
+[spec](../superpowers/specs/2026-11-16-zeroauthy-ad-ldap-design.md) and
+[plan](../superpowers/plans/2026-11-16-zeroauthy-plan-38a-ad-ldap.md)
+reserve D-0160–0169. Maintainer rulings (2026-11-22): zeroauthy speaks the
+connector protocol (no native LDAP bind); the E2E suite runs the pinned
+connector release against its own mock LDAP server; replicas forward hub
+requests over internal HTTPS. No live Auth0 tenant was observed by the
+implementer.
+
+Sources: [AD/LDAP connections](https://auth0.com/docs/authenticate/identity-providers/enterprise-identity-providers/active-directory-ldap),
+[Management OpenAPI](https://auth0.com/docs/oas/management/v2/management-api-oas.json)
+(`ConnectionOptionsAD`, `ConnectionProvisioningTicketUrl`, `get_status`
+with the 404 message `not connected to any node`, read 2026-11-22), and
+`auth0/ad-ldap-connector` (MIT) v8.0.5 at
+`474ff00e0cb687fdc9d70acd84588c07d4e90519` (2026-11-11), read 2026-11-23,
+studied, not copied.
+
+**Wire protocol** (every message confirmed by the E2E suite running the
+real connector):
+
+| Step | Message | Source |
+|---|---|---|
+| Ticket information | `GET {ticket}/info` → JSON with `adHub` (required, else "Wrong ticket url"), `connectionName`, `connectionDomain`, `certAuth`, `kerberos`, `realm.name`, `realm.postTokenUrl`; 404 means "Does this connection still exist?" | `lib/provisioningTicket.js`, `server.js` 100–113 |
+| Registration | `POST {ticket}` JSON `{certs: [base64 DER], signInEndpoint: "{SERVER_URL}/wsfed", agentMode, agentVersion}`; the response's `signingKey` becomes `TENANT_SIGNING_KEY` | `lib/configureConnection.js`, `server.js` 124–131 |
+| Both run at every connector start | the ticket is therefore reusable, not single-use (LR38a-4) | `server.js` `startup` |
+| Hub | WebSocket to `adHub` (`http` → `ws`), frames are JSON `{n, p}`; unparseable frames are ignored | `ws_validator.js` 17, 45–99 |
+| Connector authentication | `{n:"authenticate", p:{jwt}}`, RS256 with the connector's private key, claims `iss` = connection name, `aud` = realm name, `exp` = 1 minute, no other claims | `ws_validator.js` 347–358 |
+| Answer | `authenticated` (the connector starts pinging every 5 s, 4 s pong timeout, reconnects after 5 misses) or `authentication_failure` (the connector exits) | `ws_validator.js` 56–81, 104–133 |
+| Requests | `authenticate_user`, `search_users`, `list_groups`, `change_password` (only with the connector's `ENABLE_WRITE_BACK`), each `{jwt}` HS256 with the signing key, claims `pid`, `username`, `password`, `escaped`, `search`, `limit`; a token that fails verification is dropped without reply | `ws_validator.js` 142–345 |
+| Replies | `{pid}_result`, `{pid}_search_users_result`, `{pid}_list_groups_result`, `{pid}_change_password_result` with `{profile}` or `{err, profile?}`; `err` is the serialized error (`name`, `message`) | same |
+| Error classes | `WrongUsername`, `WrongPassword`, `AccountDisabled`, `AccountExpired`, `AccountLocked`, `PasswordExpired`, `PasswordChangeRequired` (the last two succeed when the connector allows them), `InsufficientAccessRightsError`, `PasswordComplexityError`; anything else is unexpected and the connector exits after replying | `lib/errors/*`, `lib/users.js` `getDetailedError` |
+| Profile | default mapping: `id` (objectGUID, uid or cn), `displayName`, `name.familyName`, `name.givenName`, `nickname`, `groups`, `emails[{value}]`, plus `dn`, `sAMAccountName`, `userPrincipalName`, `department`, `organizationUnits` and other directory attributes; customers may replace the mapper | `lib/defaultProfileMapping.js`, `lib/users.js` `enrichProfile` |
+| Kerberos | the connector's `GET /wsfed` signs a WS-Fed token (issuer `connectionDomain`, audience the realm) and posts it to `realm.postTokenUrl`, accepting a `wreply` only when it equals that URL | `endpoints.js`, `lib/wsfederation-responses.js` |
+
+**Local rulings:**
+
+| ID | Ruling |
+|---|---|
+| LR38a-1 | No zeroauthy-side credential cache; `disable_cache` is stored and returned. |
+| LR38a-2 | The hub requires TLS on public listeners (plain HTTP is refused unless the server runs in development mode). |
+| LR38a-3 | Replica-to-replica forwarding over internal HTTPS with a secret derived from the master key. |
+| LR38a-4 | One provisioning ticket per connection, created with it, sealed in the store and returned as `provisioning_ticket_url`. It stays valid for the connection's life because the connector reads and posts it at every start (the spec's single-use ticket would break connector restarts). |
+| LR38a-5 | A registration adds the connector's certificate to `certs`, keeping the two most recent (the OpenAPI maximum); sockets authenticated with an evicted certificate are closed. The signing key is generated once per connection and returned to every registration, so several connectors can serve one connection. |
+| LR38a-6 | Connector-managed options (`agentIP`, `agentMode`, `agentVersion`, `signInEndpoint`, `certs`, `thumbprints`, `thumbprints_sha384`) sent through the Management API are ignored and the stored values kept, so Deploy CLI exports round-trip. |
+| LR38a-7 | Hub tokens must verify against a stored certificate, carry the connection's name as `iss`, the realm `urn:auth0:{tenant}:{connection}` as `aud`, and an `exp` at most 5 minutes ahead; a token is accepted once. |
+| LR38a-8 | User ID `ad\|{connection}\|{profile.id}`. `displayName` → `name`, `name.givenName` → `given_name`, `name.familyName` → `family_name`, `nickname`, the first `emails` value → `email` (verified only when the profile says `email_verified: true`); `groups` and the other directory attributes are kept as identity profile data. |
+| LR38a-9 | Error mapping: `WrongUsername`, `WrongPassword` → wrong credentials; `AccountDisabled`, `AccountExpired`, `AccountLocked` → user blocked; `PasswordExpired`, `PasswordChangeRequired` → password change required; anything else, a timeout or no connector online → the connection is not available. Nothing falls back. |
+| LR38a-10 | Kerberos redirects only on the host the ticket names (the connector accepts one `postTokenUrl`); elsewhere the username/password form is shown. |
+| LR38a-11 | Requests time out after 10 s; at most 64 are in flight per connection. |

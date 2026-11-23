@@ -30,6 +30,8 @@ tags:
     description: SAML 2.0 identity provider (application add-on) and service provider (samlp connections), Plan 37a.
   - name: WS-Federation
     description: WS-Federation passive requestor identity provider (the `wsfed` application add-on), Plan 37b.
+  - name: AD/LDAP Connector
+    description: Provisioning and WebSocket hub for Auth0's AD/LDAP Connector (`ad` connections), Plan 38a.
   - name: Tokens
     description: Obtain tokens.
   - name: Login
@@ -996,6 +998,117 @@ paths:
           content:
             text/html:
               schema: {type: string}
+  /p/ad/{ticket}/info:
+    get:
+      operationId: adTicketInfo
+      tags: [AD/LDAP Connector]
+      summary: AD/LDAP Connector provisioning ticket information
+      description: |
+        Read by the AD/LDAP Connector at every start (`lib/provisioningTicket.js`).
+        The ticket is the last path segment of the connection's
+        `provisioning_ticket_url`; an unknown ticket answers 404.
+      x-source:
+        - https://github.com/auth0/ad-ldap-connector
+      parameters:
+        - {name: ticket, in: path, required: true, schema: {type: string, maxLength: 128}}
+      responses:
+        "200":
+          description: Settings the connector stores.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [adHub, connectionName, connectionDomain, realm]
+                properties:
+                  adHub: {type: string, description: "WebSocket URL of the hub, `wss://{host}/ad-hub`."}
+                  connectionName: {type: string, description: Connection name; the `iss` of the connector's hub token.}
+                  connectionDomain: {type: string, description: "`options.tenant_domain`, else the tenant host; the connector's WS-Fed issuer and certificate domain."}
+                  certAuth: {type: boolean}
+                  kerberos: {type: boolean}
+                  realm:
+                    type: object
+                    required: [name, postTokenUrl]
+                    properties:
+                      name: {type: string, description: "`urn:auth0:{tenant}:{connection}`: the `aud` of the hub token and the WS-Fed realm."}
+                      postTokenUrl: {type: string, description: "`https://{host}/login/callback`, where the connector posts WS-Fed tokens."}
+        "404":
+          description: Unknown ticket.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/OAuthError"}
+  /p/ad/{ticket}:
+    post:
+      operationId: adTicketConfigure
+      tags: [AD/LDAP Connector]
+      summary: Register an AD/LDAP Connector
+      description: |
+        Posted by the connector at every start (`lib/configureConnection.js`)
+        with its certificate. The certificate joins the connection's `certs`
+        (the two most recent are kept; sockets of an evicted certificate are
+        closed), and the connector-managed options are updated. The response
+        carries the connection's signing key, with which zeroauthy signs the
+        requests it sends over the hub.
+      x-source:
+        - https://github.com/auth0/ad-ldap-connector
+      parameters:
+        - {name: ticket, in: path, required: true, schema: {type: string, maxLength: 128}}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [certs]
+              properties:
+                certs: {type: array, minItems: 1, maxItems: 1, items: {type: string, maxLength: 8192}, description: The connector certificate (base64 DER).}
+                signInEndpoint: {type: string, maxLength: 2048}
+                agentMode: {type: boolean}
+                agentVersion: {type: string, maxLength: 32}
+      responses:
+        "200":
+          description: Registered.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [signingKey]
+                properties:
+                  signingKey: {type: string, description: HS256 key of the requests zeroauthy sends to the connector.}
+        "400":
+          description: Invalid body or certificate.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/OAuthError"}
+        "404":
+          description: Unknown ticket.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/OAuthError"}
+  /ad-hub:
+    get:
+      operationId: adHub
+      tags: [AD/LDAP Connector]
+      summary: AD/LDAP Connector WebSocket hub
+      description: |
+        WebSocket (RFC 6455) the connector keeps open. Messages are JSON
+        `{n, p}`. The connector first sends `authenticate` with `{jwt}`, an
+        RS256 token signed with its provisioned key (`iss` the connection
+        name, `aud` the realm name, lifetime 1 minute); zeroauthy answers
+        `authenticated` or `authentication_failure` and closes. zeroauthy then
+        sends `authenticate_user`, `search_users`, `list_groups` and
+        `change_password` with `{jwt}` (HS256, the signing key) and the
+        connector replies with `{pid}_result`, `{pid}_search_users_result`,
+        `{pid}_list_groups_result` and `{pid}_change_password_result`.
+        Requires TLS unless the server runs in development mode.
+      x-source:
+        - https://github.com/auth0/ad-ldap-connector
+      responses:
+        "101":
+          description: Switching protocols.
+        "400":
+          description: Not a WebSocket upgrade.
+        "403":
+          description: Plain HTTP on a public listener.
   /wsfed:
     get:
       operationId: wsfedSignIn

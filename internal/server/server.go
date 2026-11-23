@@ -602,3 +602,14 @@ func (a authAPI) WsfedMetadata(w http.ResponseWriter, r *http.Request) {
 func (a authAPI) WsfedClientMetadata(w http.ResponseWriter, r *http.Request, clientID string) {
 	a.saml.WSFedMetadata(w, r, clientID)
 }
+
+// AD/LDAP Connector routes (Plan 38a). Until the handlers land these answer
+// 501 so the generated router compiles and the contract is routable.
+func adNotImplemented(w http.ResponseWriter) {
+	httpx.WriteError(w, http.StatusNotImplemented, "not_implemented", "AD/LDAP connections are not implemented yet")
+}
+func (authAPI) AdHub(w http.ResponseWriter, _ *http.Request)                  { adNotImplemented(w) }
+func (authAPI) AdTicketInfo(w http.ResponseWriter, _ *http.Request, _ string) { adNotImplemented(w) }
+func (authAPI) AdTicketConfigure(w http.ResponseWriter, _ *http.Request, _ string) {
+	adNotImplemented(w)
+}

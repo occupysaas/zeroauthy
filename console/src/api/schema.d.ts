@@ -1459,7 +1459,10 @@ export interface paths {
         };
         /**
          * getConnectionStatus
-         * @description Check AD connector availability. Other strategies return 404. Requires read:connections.
+         * @description Status of an `ad` connection (Plan 38a): `200` when at least one AD/LDAP
+         *     Connector is connected and authenticated for it (on any replica), `404`
+         *     with the message `not connected to any node` otherwise, and for other
+         *     strategies. Requires read:connections.
          */
         get: operations["getConnectionStatus"];
         put?: never;
@@ -4978,6 +4981,72 @@ export interface components {
             };
             /** @description Stored only. */
             non_persistent_attrs?: string[];
+        } & {
+            [key: string]: unknown;
+        };
+        /**
+         * @description AD/LDAP connection (`ad`, Plan 38a, D-0160): users authenticate
+         *     against Active Directory or another LDAP directory through Auth0's
+         *     open-source AD/LDAP Connector, which runs inside the customer network,
+         *     is installed with the connection's `provisioning_ticket_url` and dials
+         *     out to zeroauthy over a WebSocket. `agentIP`, `agentMode`,
+         *     `agentVersion`, `signInEndpoint`, `certs`, `thumbprints` and
+         *     `thumbprints_sha384` are managed by the connector: they are set when
+         *     the connector provisions itself, returned on reads, and values sent
+         *     through the Management API are ignored (so exports round-trip).
+         *     `kerberos` with `ips` sends browsers from those ranges to the
+         *     connector's Windows integrated sign-in (`signInEndpoint`).
+         *     `upstream_params` is stored only. zeroauthy never caches credentials
+         *     (LR38a-1); `disable_cache` is stored and returned.
+         */
+        ConnectionOptionsAD: {
+            /** @description Primary AD domain; home realm discovery and the connector's domain. */
+            tenant_domain?: string;
+            /** @description Email domains for home realm discovery. */
+            domain_aliases?: string[];
+            /** @description IP addresses or CIDR ranges of the corporate network (Kerberos). */
+            ips?: string[];
+            /**
+             * @description Windows integrated authentication for requests from `ips`.
+             * @default false
+             */
+            kerberos?: boolean;
+            /** @description Client certificate authentication at the connector (stored and passed to the connector). */
+            certAuth?: boolean;
+            /** @description Stored and returned; zeroauthy keeps no credential cache. */
+            disable_cache?: boolean;
+            /** @description Hides the forgot-password link for this connection. */
+            disable_self_service_change_password?: boolean;
+            /**
+             * @description Count failed logins per connection and username.
+             * @default true
+             */
+            brute_force_protection?: boolean;
+            /**
+             * @default on_each_login
+             * @enum {string}
+             */
+            set_user_root_attributes?: "on_each_login" | "on_first_login" | "never_on_login";
+            icon_url?: string;
+            non_persistent_attrs?: string[];
+            /** @description Stored only. */
+            upstream_params?: {
+                [key: string]: unknown;
+            };
+            /** @description Address the connector last connected from. */
+            readonly agentIP?: string;
+            /** @description Sent by the connector when it provisions itself. */
+            readonly agentMode?: boolean;
+            /** @description Version of the connector. */
+            readonly agentVersion?: string;
+            /** @description The connector's WS-Federation sign-in endpoint (`{SERVER_URL}/wsfed`). */
+            readonly signInEndpoint?: string;
+            /** @description Certificates (base64 DER) of the two most recently provisioned connectors. */
+            readonly certs?: string[];
+            /** @description SHA-1 thumbprints of `certs`. */
+            readonly thumbprints?: string[];
+            /** @description SHA-384 thumbprints of `certs`. */
+            readonly thumbprints_sha384?: string[];
         } & {
             [key: string]: unknown;
         };
@@ -9270,10 +9339,10 @@ export interface components {
             /** @description Letters and digits with single hyphens between them. */
             name: string;
             /**
-             * @description `samlp` follows ConnectionOptionsSAML (Plan 37a). `adfs` follows ConnectionOptionsADFS (Plan 37b). `email` and `sms` are passwordless connections whose name must equal the strategy; options follow ConnectionOptionsEmail and ConnectionOptionsSMS (Plan 34). `apple` follows ConnectionOptionsApple; web/native login is active (D-0170). `github` follows ConnectionOptionsGitHub (Plan 39c).
+             * @description `samlp` follows ConnectionOptionsSAML (Plan 37a). `adfs` follows ConnectionOptionsADFS (Plan 37b). `ad` follows ConnectionOptionsAD (Plan 38a): users sign in through Auth0's AD/LDAP Connector, provisioned with the connection's `provisioning_ticket_url`. `email` and `sms` are passwordless connections whose name must equal the strategy; options follow ConnectionOptionsEmail and ConnectionOptionsSMS (Plan 34). `apple` follows ConnectionOptionsApple; web/native login is active (D-0170). `github` follows ConnectionOptionsGitHub (Plan 39c).
              * @enum {string}
              */
-            strategy: "auth0" | "google-oauth2" | "oauth2" | "oidc" | "windowslive" | "waad" | "email" | "sms" | "apple" | "github" | "okta" | "samlp" | "adfs";
+            strategy: "auth0" | "google-oauth2" | "oauth2" | "oidc" | "windowslive" | "waad" | "email" | "sms" | "apple" | "github" | "okta" | "samlp" | "adfs" | "ad";
             /** @description Applications to enable on the connection; accepted on create only. */
             enabled_clients?: string[];
         };
@@ -9323,6 +9392,8 @@ export interface components {
             authentication?: {
                 [key: string]: unknown;
             };
+            /** @description `ad` connections only (Plan 38a): `https://{tenant host}/p/ad/{ticket}`, the URL the AD/LDAP Connector is installed with. Treat it as a secret: whoever holds it can register a connector. */
+            readonly provisioning_ticket_url?: string;
         };
         /** @description A page of connections with `include_totals=true`. */
         ConnectionPage: components["schemas"]["ListTotals"] & {
