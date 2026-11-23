@@ -14641,6 +14641,457 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
+  /api/v2/connections-directory-provisionings:
+    get:
+      operationId: ListDirectoryProvisionings
+      summary: Get a list of directory provisioning configurations
+      tags:
+      - connections
+      x-source:
+      - https://auth0.com/docs/api/management/v2/connections/get-connections-directory-provisionings
+      security:
+      - managementToken:
+        - read:directory_provisionings
+      - operatorToken: []
+      description: 'Retrieve a list of directory provisioning configurations of a tenant.
+  
+        '
+      parameters:
+      - name: from
+        in: query
+        description: Optional Id from which to start selection.
+        schema:
+          type: string
+      - name: take
+        in: query
+        description: Number of results per page. Defaults to 50.
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+      responses:
+        '200':
+          description: The tenant's directory provisioning configuration. See <strong>Response Schemas</strong> for schema.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListDirectoryProvisioningsResponseContent'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /api/v2/connections/{id}/directory-provisioning:
+    get:
+      operationId: GetDirectoryProvisioning
+      summary: Get a directory provisioning configuration
+      tags:
+      - connections
+      x-source:
+      - https://auth0.com/docs/api/management/v2/connections/get-directory-provisioning
+      security:
+      - managementToken:
+        - read:directory_provisionings
+      - operatorToken: []
+      description: 'Retrieve the directory provisioning configuration of a connection.
+  
+        '
+      parameters:
+      - name: id
+        in: path
+        description: The id of the connection to retrieve its directory provisioning configuration
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: The connection's directory provisioning configuration. See <strong>Response Schemas</strong> for schema.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetDirectoryProvisioningResponseContent'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: The connection does not exist
+    delete:
+      operationId: DeleteDirectoryProvisioning
+      summary: Delete a directory provisioning configuration
+      tags:
+      - connections
+      x-source:
+      - https://auth0.com/docs/api/management/v2/connections/delete-directory-provisioning
+      security:
+      - managementToken:
+        - delete:directory_provisionings
+      - operatorToken: []
+      description: 'Delete the directory provisioning configuration of a connection.
+  
+        '
+      parameters:
+      - name: id
+        in: path
+        description: The id of the connection to delete its directory provisioning configuration
+        required: true
+        schema:
+          type: string
+      responses:
+        '204':
+          description: The connection's directory provisioning configuration has been deleted.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: The connection does not exist
+    patch:
+      operationId: UpdateDirectoryProvisioning
+      summary: Patch a directory provisioning configuration
+      tags:
+      - connections
+      x-source:
+      - https://auth0.com/docs/api/management/v2/connections/patch-directory-provisioning
+      security:
+      - managementToken:
+        - update:directory_provisionings
+      - operatorToken: []
+      description: 'Update the directory provisioning configuration of a connection.
+  
+        '
+      parameters:
+      - name: id
+        in: path
+        description: The id of the connection to create its directory provisioning configuration
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateDirectoryProvisioningRequestContent'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/UpdateDirectoryProvisioningRequestContent'
+      responses:
+        '200':
+          description: The connection's directory provisioning configuration was updated. See <strong>Response Schemas</strong> for schema.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UpdateDirectoryProvisioningResponseContent'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: The connection does not exist
+    post:
+      operationId: CreateDirectoryProvisioning
+      summary: Create a directory provisioning configuration
+      tags:
+      - connections
+      x-source:
+      - https://auth0.com/docs/api/management/v2/connections/post-directory-provisioning
+      security:
+      - managementToken:
+        - create:directory_provisionings
+      - operatorToken: []
+      description: 'Create a directory provisioning configuration for a connection.
+  
+        '
+      parameters:
+      - name: id
+        in: path
+        description: The id of the connection to create its directory provisioning configuration
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateDirectoryProvisioningRequestContent'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CreateDirectoryProvisioningRequestContent'
+      responses:
+        '201':
+          description: The connection's directory provisioning configuration was created. See <strong>Response Schemas</strong> for schema.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateDirectoryProvisioningResponseContent'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: The connection does not exist
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /api/v2/connections/{id}/directory-provisioning/default-mapping:
+    get:
+      operationId: GetDirectoryProvisioningDefaultMapping
+      summary: Get a connection's default directory provisioning attribute mapping
+      tags:
+      - connections
+      x-source:
+      - https://auth0.com/docs/api/management/v2/connections/get-directory-provisioning-default-mapping
+      security:
+      - managementToken:
+        - read:directory_provisionings
+      - operatorToken: []
+      description: 'Retrieve the directory provisioning default attribute mapping of a connection.
+  
+        '
+      parameters:
+      - name: id
+        in: path
+        description: The id of the connection to retrieve its directory provisioning configuration
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: The connection's directory provisioning default mapping. See <strong>Response Schemas</strong> for schema.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetDirectoryProvisioningDefaultMappingResponseContent'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: The connection does not exist
+  /api/v2/connections/{id}/directory-provisioning/synchronizations:
+    post:
+      operationId: CreateDirectorySynchronization
+      summary: Request an on-demand synchronization of the directory
+      tags:
+      - connections
+      x-source:
+      - https://auth0.com/docs/api/management/v2/connections/post-synchronizations
+      security:
+      - managementToken:
+        - create:directory_provisionings
+      - operatorToken: []
+      description: 'Request an on-demand synchronization of the directory.
+  
+        '
+      parameters:
+      - name: id
+        in: path
+        description: The id of the connection to trigger synchronization for
+        required: true
+        schema:
+          type: string
+      responses:
+        '201':
+          description: The directory synchronization was triggered. See <strong>Response Schemas</strong> for schema.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateDirectorySynchronizationResponseContent'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: The connection does not exist
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /api/v2/connections/{id}/directory-provisioning/synchronized-groups:
+    get:
+      operationId: ListSynchronizedGroups
+      summary: Get synchronized groups for a directory provisioning configuration
+      tags:
+      - connections
+      x-source:
+      - https://auth0.com/docs/api/management/v2/connections/get-synchronized-groups
+      security:
+      - managementToken:
+        - read:directory_provisionings
+      - operatorToken: []
+      description: 'Retrieve the configured synchronized groups for a connection directory provisioning configuration.
+  
+        '
+      parameters:
+      - name: id
+        in: path
+        description: The id of the connection to list synchronized groups for.
+        required: true
+        schema:
+          type: string
+      - name: from
+        in: query
+        description: Optional Id from which to start selection.
+        schema:
+          type: string
+      - name: take
+        in: query
+        description: Number of results per page. Defaults to 50.
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+      - name: q
+        in: query
+        description: 'Query in <a target=''_new'' href =''https://lucene.apache.org/core/2_9_4/queryparsersyntax.html''>Lucene query string syntax</a>. Only prefix search on "name" or "email" fields are allowed, with a single wildcard suffix. Operators, modifiers, and groupings are not allowed. Terms are treated as case-insensitive. Example query: "name:engineering*".'
+        schema:
+          type: string
+          maxLength: 515
+      responses:
+        '200':
+          description: The connection's synchronized groups. See <strong>Response Schemas</strong> for schema.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListSynchronizedGroupsResponseContent'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: The connection does not exist
+    delete:
+      operationId: DeleteSynchronizedGroups
+      summary: Delete synchronized group selections for a directory provisioning configuration
+      tags:
+      - connections
+      x-source:
+      - https://auth0.com/docs/api/management/v2/connections/delete-synchronized-groups
+      security:
+      - managementToken:
+        - update:directory_provisionings
+      - operatorToken: []
+      description: 'Delete synchronized group selections for a directory provisioning configuration
+  
+        '
+      parameters:
+      - name: id
+        in: path
+        description: The id of the connection to delete synchronized group selections for
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeleteSynchronizedGroupsRequestContent'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/DeleteSynchronizedGroupsRequestContent'
+      responses:
+        '204':
+          description: No Content
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: The connection does not exist
+    post:
+      operationId: AddSynchronizedGroups
+      summary: Add synchronized group selections to a directory provisioning configuration
+      tags:
+      - connections
+      x-source:
+      - https://auth0.com/docs/api/management/v2/connections/post-synchronized-groups
+      security:
+      - managementToken:
+        - update:directory_provisionings
+      - operatorToken: []
+      description: Add synchronized group selections to a directory provisioning configuration.
+      parameters:
+      - name: id
+        in: path
+        description: The id of the connection to add synchronized groups to
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddSynchronizedGroupsRequestContent'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/AddSynchronizedGroupsRequestContent'
+      responses:
+        '204':
+          description: No Content
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: The connection does not exist
+    put:
+      operationId: ReplaceSynchronizedGroups
+      summary: Create or replace synchronized group selections for a directory provisioning configuration
+      tags:
+      - connections
+      x-source:
+      - https://auth0.com/docs/api/management/v2/connections/put-synchronized-groups
+      security:
+      - managementToken:
+        - update:directory_provisionings
+      - operatorToken: []
+      description: 'Create or replace the selected groups for a connection directory provisioning configuration.
+  
+        '
+      parameters:
+      - name: id
+        in: path
+        description: The id of the connection to create or replace synchronized groups for
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReplaceSynchronizedGroupsRequestContent'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ReplaceSynchronizedGroupsRequestContent'
+      responses:
+        '204':
+          description: No Content
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: The connection does not exist
+        '409':
+          $ref: '#/components/responses/Conflict'
   /api/v2/connections/{id}/scim-configuration:
     get:
       operationId: GetScimConfiguration
@@ -17025,6 +17476,387 @@ components:
         cross_app_access_resource_app:
           $ref: '#/components/schemas/ConnectionProfileCrossAppAccessResourceApp'
           x-release-lifecycle: EA
+    GetDirectoryProvisioningDefaultMappingResponseContent:
+      type: object
+      additionalProperties: false
+      properties:
+        mapping:
+          type: array
+          description: The mapping between Auth0 and IDP user attributes
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/DirectoryProvisioningMappingItem'
+    CreateDirectoryProvisioningRequestContent:
+      type:
+      - object
+      - 'null'
+      additionalProperties: false
+      properties:
+        mapping:
+          type: array
+          description: The mapping between Auth0 and IDP user attributes
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/DirectoryProvisioningMappingItem'
+        synchronize_automatically:
+          type: boolean
+          description: Whether periodic automatic synchronization is enabled
+        synchronize_groups:
+          $ref: '#/components/schemas/SynchronizeGroupsEnum'
+    UpdateDirectoryProvisioningRequestContent:
+      type:
+      - object
+      - 'null'
+      additionalProperties: false
+      properties:
+        mapping:
+          type: array
+          description: The mapping between Auth0 and IDP user attributes
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/DirectoryProvisioningMappingItem'
+        synchronize_automatically:
+          type: boolean
+          description: Whether periodic automatic synchronization is enabled
+        synchronize_groups:
+          $ref: '#/components/schemas/SynchronizeGroupsEnum'
+    DirectoryProvisioning:
+      type: object
+      additionalProperties: false
+      required:
+      - connection_id
+      - connection_name
+      - strategy
+      - mapping
+      - synchronize_automatically
+      - created_at
+      - updated_at
+      properties:
+        connection_id:
+          type: string
+          description: The connection's identifier
+        connection_name:
+          type: string
+          description: The connection's name
+        strategy:
+          type: string
+          description: The connection's strategy
+        mapping:
+          type: array
+          description: The mapping between Auth0 and IDP user attributes
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/DirectoryProvisioningMappingItem'
+        synchronize_automatically:
+          type: boolean
+          description: Whether periodic automatic synchronization is enabled
+        synchronize_groups:
+          $ref: '#/components/schemas/SynchronizeGroupsEnum'
+        created_at:
+          type: string
+          description: The timestamp at which the directory provisioning configuration was created
+          format: date-time
+        updated_at:
+          type: string
+          description: The timestamp at which the directory provisioning configuration was last updated
+          format: date-time
+        last_synchronization_at:
+          type: string
+          description: The timestamp at which the connection was last synchronized
+          format: date-time
+        last_synchronization_status:
+          type: string
+          description: The status of the last synchronization
+        last_synchronization_error:
+          type: string
+          description: The error message of the last synchronization, if any
+    CreateDirectorySynchronizationResponseContent:
+      type: object
+      additionalProperties: false
+      required:
+      - connection_id
+      - synchronization_id
+      - status
+      properties:
+        connection_id:
+          type: string
+          description: The connection's identifier
+        synchronization_id:
+          type: string
+          description: The synchronization's identifier
+        status:
+          type: string
+          description: The synchronization status
+    SynchronizedGroupPayload:
+      type: object
+      additionalProperties: false
+      required:
+      - id
+      properties:
+        id:
+          type: string
+          description: Google Workspace Directory group ID.
+          minLength: 1
+          maxLength: 32
+          pattern: ^[A-Za-z0-9]+$
+        name:
+          type: string
+          description: Google Workspace Directory group name.
+          maxLength: 150
+        email:
+          type: string
+          description: Google Workspace Directory group email.
+          maxLength: 254
+          format: email
+        direct_members_count:
+          type: integer
+          description: Number of direct members in the Google Workspace Directory group.
+          minimum: 0
+          maximum: 2147483647
+    UpdateDirectoryProvisioningResponseContent:
+      type: object
+      additionalProperties: false
+      required:
+      - connection_id
+      - connection_name
+      - strategy
+      - mapping
+      - synchronize_automatically
+      - created_at
+      - updated_at
+      properties:
+        connection_id:
+          type: string
+          description: The connection's identifier
+        connection_name:
+          type: string
+          description: The connection's name
+        strategy:
+          type: string
+          description: The connection's strategy
+        mapping:
+          type: array
+          description: The mapping between Auth0 and IDP user attributes
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/DirectoryProvisioningMappingItem'
+        synchronize_automatically:
+          type: boolean
+          description: Whether periodic automatic synchronization is enabled
+        synchronize_groups:
+          $ref: '#/components/schemas/SynchronizeGroupsEnum'
+        created_at:
+          type: string
+          description: The timestamp at which the directory provisioning configuration was created
+          format: date-time
+        updated_at:
+          type: string
+          description: The timestamp at which the directory provisioning configuration was last updated
+          format: date-time
+        last_synchronization_at:
+          type: string
+          description: The timestamp at which the connection was last synchronized
+          format: date-time
+        last_synchronization_status:
+          type: string
+          description: The status of the last synchronization
+        last_synchronization_error:
+          type: string
+          description: The error message of the last synchronization, if any
+    CreateDirectoryProvisioningResponseContent:
+      type: object
+      additionalProperties: false
+      required:
+      - connection_id
+      - connection_name
+      - strategy
+      - mapping
+      - synchronize_automatically
+      - created_at
+      - updated_at
+      properties:
+        connection_id:
+          type: string
+          description: The connection's identifier
+        connection_name:
+          type: string
+          description: The connection's name
+        strategy:
+          type: string
+          description: The connection's strategy
+        mapping:
+          type: array
+          description: The mapping between Auth0 and IDP user attributes
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/DirectoryProvisioningMappingItem'
+        synchronize_automatically:
+          type: boolean
+          description: Whether periodic automatic synchronization is enabled
+        synchronize_groups:
+          $ref: '#/components/schemas/SynchronizeGroupsEnum'
+        created_at:
+          type: string
+          description: The timestamp at which the directory provisioning configuration was created
+          format: date-time
+        updated_at:
+          type: string
+          description: The timestamp at which the directory provisioning configuration was last updated
+          format: date-time
+        last_synchronization_at:
+          type: string
+          description: The timestamp at which the connection was last synchronized
+          format: date-time
+        last_synchronization_status:
+          type: string
+          description: The status of the last synchronization
+        last_synchronization_error:
+          type: string
+          description: The error message of the last synchronization, if any
+    DeleteSynchronizedGroupsRequestContent:
+      type: object
+      additionalProperties: false
+      required:
+      - groups
+      properties:
+        groups:
+          type: array
+          description: Array of groups to remove from the selection set.
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/SynchronizedGroupSelectionId'
+    SynchronizeGroupsEnum:
+      type: string
+      description: Group synchronization configuration
+      enum:
+      - all
+      - 'off'
+      - selected
+    GetDirectoryProvisioningResponseContent:
+      type: object
+      additionalProperties: false
+      required:
+      - connection_id
+      - connection_name
+      - strategy
+      - mapping
+      - synchronize_automatically
+      - created_at
+      - updated_at
+      properties:
+        connection_id:
+          type: string
+          description: The connection's identifier
+        connection_name:
+          type: string
+          description: The connection's name
+        strategy:
+          type: string
+          description: The connection's strategy
+        mapping:
+          type: array
+          description: The mapping between Auth0 and IDP user attributes
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/DirectoryProvisioningMappingItem'
+        synchronize_automatically:
+          type: boolean
+          description: Whether periodic automatic synchronization is enabled
+        synchronize_groups:
+          $ref: '#/components/schemas/SynchronizeGroupsEnum'
+        created_at:
+          type: string
+          description: The timestamp at which the directory provisioning configuration was created
+          format: date-time
+        updated_at:
+          type: string
+          description: The timestamp at which the directory provisioning configuration was last updated
+          format: date-time
+        last_synchronization_at:
+          type: string
+          description: The timestamp at which the connection was last synchronized
+          format: date-time
+        last_synchronization_status:
+          type: string
+          description: The status of the last synchronization
+        last_synchronization_error:
+          type: string
+          description: The error message of the last synchronization, if any
+    ReplaceSynchronizedGroupsRequestContent:
+      type: object
+      additionalProperties: false
+      required:
+      - groups
+      properties:
+        groups:
+          type: array
+          description: Array of Google Workspace Directory group objects to synchronize.
+          items:
+            $ref: '#/components/schemas/SynchronizedGroupPayload'
+    DirectoryProvisioningMappingItem:
+      type: object
+      additionalProperties: false
+      required:
+      - auth0
+      - idp
+      properties:
+        auth0:
+          type: string
+          description: The field location in the Auth0 schema
+        idp:
+          type: string
+          description: The field location in the IDP schema
+    SynchronizedGroupSelectionId:
+      type: object
+      additionalProperties: false
+      required:
+      - id
+      properties:
+        id:
+          type: string
+          description: Google Workspace Directory group ID.
+          minLength: 1
+          maxLength: 32
+          pattern: ^[A-Za-z0-9]+$
+    ListDirectoryProvisioningsResponseContent:
+      type: object
+      additionalProperties: false
+      required:
+      - directory_provisionings
+      properties:
+        directory_provisionings:
+          type: array
+          description: List of directory provisioning configurations
+          items:
+            $ref: '#/components/schemas/DirectoryProvisioning'
+        next:
+          type: string
+          description: The cursor to be used as the "from" query parameter for the next page of results.
+    AddSynchronizedGroupsRequestContent:
+      type: object
+      additionalProperties: false
+      required:
+      - groups
+      properties:
+        groups:
+          type: array
+          description: Array of Google Workspace Directory group objects to synchronize.
+          items:
+            $ref: '#/components/schemas/SynchronizedGroupPayload'
+    ListSynchronizedGroupsResponseContent:
+      type: object
+      additionalProperties: false
+      required:
+      - groups
+      properties:
+        groups:
+          type: array
+          description: Array of Google Workspace group ids configured for synchronization.
+          items:
+            $ref: '#/components/schemas/SynchronizedGroupPayload'
+        next:
+          type: string
+          description: The cursor to be used as the "from" query parameter for the next page of results.
     ScimMappingItem:
       type: object
       additionalProperties: false

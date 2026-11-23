@@ -4753,6 +4753,130 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v2/connections-directory-provisionings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get a list of directory provisioning configurations
+         * @description Retrieve a list of directory provisioning configurations of a tenant.
+         */
+        get: operations["ListDirectoryProvisionings"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/connections/{id}/directory-provisioning": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get a directory provisioning configuration
+         * @description Retrieve the directory provisioning configuration of a connection.
+         */
+        get: operations["GetDirectoryProvisioning"];
+        put?: never;
+        /**
+         * Create a directory provisioning configuration
+         * @description Create a directory provisioning configuration for a connection.
+         */
+        post: operations["CreateDirectoryProvisioning"];
+        /**
+         * Delete a directory provisioning configuration
+         * @description Delete the directory provisioning configuration of a connection.
+         */
+        delete: operations["DeleteDirectoryProvisioning"];
+        options?: never;
+        head?: never;
+        /**
+         * Patch a directory provisioning configuration
+         * @description Update the directory provisioning configuration of a connection.
+         */
+        patch: operations["UpdateDirectoryProvisioning"];
+        trace?: never;
+    };
+    "/api/v2/connections/{id}/directory-provisioning/default-mapping": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get a connection's default directory provisioning attribute mapping
+         * @description Retrieve the directory provisioning default attribute mapping of a connection.
+         */
+        get: operations["GetDirectoryProvisioningDefaultMapping"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/connections/{id}/directory-provisioning/synchronizations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Request an on-demand synchronization of the directory
+         * @description Request an on-demand synchronization of the directory.
+         */
+        post: operations["CreateDirectorySynchronization"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/connections/{id}/directory-provisioning/synchronized-groups": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get synchronized groups for a directory provisioning configuration
+         * @description Retrieve the configured synchronized groups for a connection directory provisioning configuration.
+         */
+        get: operations["ListSynchronizedGroups"];
+        /**
+         * Create or replace synchronized group selections for a directory provisioning configuration
+         * @description Create or replace the selected groups for a connection directory provisioning configuration.
+         */
+        put: operations["ReplaceSynchronizedGroups"];
+        /**
+         * Add synchronized group selections to a directory provisioning configuration
+         * @description Add synchronized group selections to a directory provisioning configuration.
+         */
+        post: operations["AddSynchronizedGroups"];
+        /**
+         * Delete synchronized group selections for a directory provisioning configuration
+         * @description Delete synchronized group selections for a directory provisioning configuration
+         */
+        delete: operations["DeleteSynchronizedGroups"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v2/connections/{id}/scim-configuration": {
         parameters: {
             query?: never;
@@ -5660,6 +5784,212 @@ export interface components {
             strategy_overrides?: components["schemas"]["ConnectionProfileStrategyOverrides"];
             provisioning?: components["schemas"]["ConnectionProfileProvisioning"];
             cross_app_access_resource_app?: components["schemas"]["ConnectionProfileCrossAppAccessResourceApp"];
+        };
+        GetDirectoryProvisioningDefaultMappingResponseContent: {
+            /** @description The mapping between Auth0 and IDP user attributes */
+            mapping?: components["schemas"]["DirectoryProvisioningMappingItem"][];
+        };
+        CreateDirectoryProvisioningRequestContent: {
+            /** @description The mapping between Auth0 and IDP user attributes */
+            mapping?: components["schemas"]["DirectoryProvisioningMappingItem"][];
+            /** @description Whether periodic automatic synchronization is enabled */
+            synchronize_automatically?: boolean;
+            synchronize_groups?: components["schemas"]["SynchronizeGroupsEnum"];
+        } | null;
+        UpdateDirectoryProvisioningRequestContent: {
+            /** @description The mapping between Auth0 and IDP user attributes */
+            mapping?: components["schemas"]["DirectoryProvisioningMappingItem"][];
+            /** @description Whether periodic automatic synchronization is enabled */
+            synchronize_automatically?: boolean;
+            synchronize_groups?: components["schemas"]["SynchronizeGroupsEnum"];
+        } | null;
+        DirectoryProvisioning: {
+            /** @description The connection's identifier */
+            connection_id: string;
+            /** @description The connection's name */
+            connection_name: string;
+            /** @description The connection's strategy */
+            strategy: string;
+            /** @description The mapping between Auth0 and IDP user attributes */
+            mapping: components["schemas"]["DirectoryProvisioningMappingItem"][];
+            /** @description Whether periodic automatic synchronization is enabled */
+            synchronize_automatically: boolean;
+            synchronize_groups?: components["schemas"]["SynchronizeGroupsEnum"];
+            /**
+             * Format: date-time
+             * @description The timestamp at which the directory provisioning configuration was created
+             */
+            created_at: string;
+            /**
+             * Format: date-time
+             * @description The timestamp at which the directory provisioning configuration was last updated
+             */
+            updated_at: string;
+            /**
+             * Format: date-time
+             * @description The timestamp at which the connection was last synchronized
+             */
+            last_synchronization_at?: string;
+            /** @description The status of the last synchronization */
+            last_synchronization_status?: string;
+            /** @description The error message of the last synchronization, if any */
+            last_synchronization_error?: string;
+        };
+        CreateDirectorySynchronizationResponseContent: {
+            /** @description The connection's identifier */
+            connection_id: string;
+            /** @description The synchronization's identifier */
+            synchronization_id: string;
+            /** @description The synchronization status */
+            status: string;
+        };
+        SynchronizedGroupPayload: {
+            /** @description Google Workspace Directory group ID. */
+            id: string;
+            /** @description Google Workspace Directory group name. */
+            name?: string;
+            /**
+             * Format: email
+             * @description Google Workspace Directory group email.
+             */
+            email?: string;
+            /** @description Number of direct members in the Google Workspace Directory group. */
+            direct_members_count?: number;
+        };
+        UpdateDirectoryProvisioningResponseContent: {
+            /** @description The connection's identifier */
+            connection_id: string;
+            /** @description The connection's name */
+            connection_name: string;
+            /** @description The connection's strategy */
+            strategy: string;
+            /** @description The mapping between Auth0 and IDP user attributes */
+            mapping: components["schemas"]["DirectoryProvisioningMappingItem"][];
+            /** @description Whether periodic automatic synchronization is enabled */
+            synchronize_automatically: boolean;
+            synchronize_groups?: components["schemas"]["SynchronizeGroupsEnum"];
+            /**
+             * Format: date-time
+             * @description The timestamp at which the directory provisioning configuration was created
+             */
+            created_at: string;
+            /**
+             * Format: date-time
+             * @description The timestamp at which the directory provisioning configuration was last updated
+             */
+            updated_at: string;
+            /**
+             * Format: date-time
+             * @description The timestamp at which the connection was last synchronized
+             */
+            last_synchronization_at?: string;
+            /** @description The status of the last synchronization */
+            last_synchronization_status?: string;
+            /** @description The error message of the last synchronization, if any */
+            last_synchronization_error?: string;
+        };
+        CreateDirectoryProvisioningResponseContent: {
+            /** @description The connection's identifier */
+            connection_id: string;
+            /** @description The connection's name */
+            connection_name: string;
+            /** @description The connection's strategy */
+            strategy: string;
+            /** @description The mapping between Auth0 and IDP user attributes */
+            mapping: components["schemas"]["DirectoryProvisioningMappingItem"][];
+            /** @description Whether periodic automatic synchronization is enabled */
+            synchronize_automatically: boolean;
+            synchronize_groups?: components["schemas"]["SynchronizeGroupsEnum"];
+            /**
+             * Format: date-time
+             * @description The timestamp at which the directory provisioning configuration was created
+             */
+            created_at: string;
+            /**
+             * Format: date-time
+             * @description The timestamp at which the directory provisioning configuration was last updated
+             */
+            updated_at: string;
+            /**
+             * Format: date-time
+             * @description The timestamp at which the connection was last synchronized
+             */
+            last_synchronization_at?: string;
+            /** @description The status of the last synchronization */
+            last_synchronization_status?: string;
+            /** @description The error message of the last synchronization, if any */
+            last_synchronization_error?: string;
+        };
+        DeleteSynchronizedGroupsRequestContent: {
+            /** @description Array of groups to remove from the selection set. */
+            groups: components["schemas"]["SynchronizedGroupSelectionId"][];
+        };
+        /**
+         * @description Group synchronization configuration
+         * @enum {string}
+         */
+        SynchronizeGroupsEnum: "all" | "off" | "selected";
+        GetDirectoryProvisioningResponseContent: {
+            /** @description The connection's identifier */
+            connection_id: string;
+            /** @description The connection's name */
+            connection_name: string;
+            /** @description The connection's strategy */
+            strategy: string;
+            /** @description The mapping between Auth0 and IDP user attributes */
+            mapping: components["schemas"]["DirectoryProvisioningMappingItem"][];
+            /** @description Whether periodic automatic synchronization is enabled */
+            synchronize_automatically: boolean;
+            synchronize_groups?: components["schemas"]["SynchronizeGroupsEnum"];
+            /**
+             * Format: date-time
+             * @description The timestamp at which the directory provisioning configuration was created
+             */
+            created_at: string;
+            /**
+             * Format: date-time
+             * @description The timestamp at which the directory provisioning configuration was last updated
+             */
+            updated_at: string;
+            /**
+             * Format: date-time
+             * @description The timestamp at which the connection was last synchronized
+             */
+            last_synchronization_at?: string;
+            /** @description The status of the last synchronization */
+            last_synchronization_status?: string;
+            /** @description The error message of the last synchronization, if any */
+            last_synchronization_error?: string;
+        };
+        ReplaceSynchronizedGroupsRequestContent: {
+            /** @description Array of Google Workspace Directory group objects to synchronize. */
+            groups: components["schemas"]["SynchronizedGroupPayload"][];
+        };
+        DirectoryProvisioningMappingItem: {
+            /** @description The field location in the Auth0 schema */
+            auth0: string;
+            /** @description The field location in the IDP schema */
+            idp: string;
+        };
+        SynchronizedGroupSelectionId: {
+            /** @description Google Workspace Directory group ID. */
+            id: string;
+        };
+        ListDirectoryProvisioningsResponseContent: {
+            /** @description List of directory provisioning configurations */
+            directory_provisionings: components["schemas"]["DirectoryProvisioning"][];
+            /** @description The cursor to be used as the "from" query parameter for the next page of results. */
+            next?: string;
+        };
+        AddSynchronizedGroupsRequestContent: {
+            /** @description Array of Google Workspace Directory group objects to synchronize. */
+            groups: components["schemas"]["SynchronizedGroupPayload"][];
+        };
+        ListSynchronizedGroupsResponseContent: {
+            /** @description Array of Google Workspace group ids configured for synchronization. */
+            groups: components["schemas"]["SynchronizedGroupPayload"][];
+            /** @description The cursor to be used as the "from" query parameter for the next page of results. */
+            next?: string;
         };
         ScimMappingItem: {
             /** @description The Auth0 profile field (`email`, `app_metadata.department`, …). */
@@ -26627,6 +26957,391 @@ export interface operations {
             };
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
+        };
+    };
+    ListDirectoryProvisionings: {
+        parameters: {
+            query?: {
+                /** @description Optional Id from which to start selection. */
+                from?: string;
+                /** @description Number of results per page. Defaults to 50. */
+                take?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The tenant's directory provisioning configuration. See <strong>Response Schemas</strong> for schema. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListDirectoryProvisioningsResponseContent"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    GetDirectoryProvisioning: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The id of the connection to retrieve its directory provisioning configuration */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The connection's directory provisioning configuration. See <strong>Response Schemas</strong> for schema. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GetDirectoryProvisioningResponseContent"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            /** @description The connection does not exist */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    CreateDirectoryProvisioning: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The id of the connection to create its directory provisioning configuration */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["CreateDirectoryProvisioningRequestContent"];
+                "application/x-www-form-urlencoded": components["schemas"]["CreateDirectoryProvisioningRequestContent"];
+            };
+        };
+        responses: {
+            /** @description The connection's directory provisioning configuration was created. See <strong>Response Schemas</strong> for schema. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CreateDirectoryProvisioningResponseContent"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            /** @description The connection does not exist */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            409: components["responses"]["Conflict"];
+        };
+    };
+    DeleteDirectoryProvisioning: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The id of the connection to delete its directory provisioning configuration */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The connection's directory provisioning configuration has been deleted. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            /** @description The connection does not exist */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    UpdateDirectoryProvisioning: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The id of the connection to create its directory provisioning configuration */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["UpdateDirectoryProvisioningRequestContent"];
+                "application/x-www-form-urlencoded": components["schemas"]["UpdateDirectoryProvisioningRequestContent"];
+            };
+        };
+        responses: {
+            /** @description The connection's directory provisioning configuration was updated. See <strong>Response Schemas</strong> for schema. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UpdateDirectoryProvisioningResponseContent"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            /** @description The connection does not exist */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    GetDirectoryProvisioningDefaultMapping: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The id of the connection to retrieve its directory provisioning configuration */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The connection's directory provisioning default mapping. See <strong>Response Schemas</strong> for schema. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GetDirectoryProvisioningDefaultMappingResponseContent"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            /** @description The connection does not exist */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    CreateDirectorySynchronization: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The id of the connection to trigger synchronization for */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The directory synchronization was triggered. See <strong>Response Schemas</strong> for schema. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CreateDirectorySynchronizationResponseContent"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            /** @description The connection does not exist */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            409: components["responses"]["Conflict"];
+        };
+    };
+    ListSynchronizedGroups: {
+        parameters: {
+            query?: {
+                /** @description Optional Id from which to start selection. */
+                from?: string;
+                /** @description Number of results per page. Defaults to 50. */
+                take?: number;
+                /** @description Query in <a target='_new' href ='https://lucene.apache.org/core/2_9_4/queryparsersyntax.html'>Lucene query string syntax</a>. Only prefix search on "name" or "email" fields are allowed, with a single wildcard suffix. Operators, modifiers, and groupings are not allowed. Terms are treated as case-insensitive. Example query: "name:engineering*". */
+                q?: string;
+            };
+            header?: never;
+            path: {
+                /** @description The id of the connection to list synchronized groups for. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The connection's synchronized groups. See <strong>Response Schemas</strong> for schema. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListSynchronizedGroupsResponseContent"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            /** @description The connection does not exist */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ReplaceSynchronizedGroups: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The id of the connection to create or replace synchronized groups for */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["ReplaceSynchronizedGroupsRequestContent"];
+                "application/x-www-form-urlencoded": components["schemas"]["ReplaceSynchronizedGroupsRequestContent"];
+            };
+        };
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            /** @description The connection does not exist */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            409: components["responses"]["Conflict"];
+        };
+    };
+    AddSynchronizedGroups: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The id of the connection to add synchronized groups to */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["AddSynchronizedGroupsRequestContent"];
+                "application/x-www-form-urlencoded": components["schemas"]["AddSynchronizedGroupsRequestContent"];
+            };
+        };
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            /** @description The connection does not exist */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    DeleteSynchronizedGroups: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The id of the connection to delete synchronized group selections for */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["DeleteSynchronizedGroupsRequestContent"];
+                "application/x-www-form-urlencoded": components["schemas"]["DeleteSynchronizedGroupsRequestContent"];
+            };
+        };
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            /** @description The connection does not exist */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
         };
     };
     GetScimConfiguration: {

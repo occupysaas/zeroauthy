@@ -7140,6 +7140,27 @@ func (e SuspiciousIpThrottlingUpdateShields) Valid() bool {
 	}
 }
 
+// Defines values for SynchronizeGroupsEnum.
+const (
+	SynchronizeGroupsEnumAll      SynchronizeGroupsEnum = "all"
+	SynchronizeGroupsEnumOff      SynchronizeGroupsEnum = "off"
+	SynchronizeGroupsEnumSelected SynchronizeGroupsEnum = "selected"
+)
+
+// Valid indicates whether the value is a known member of the SynchronizeGroupsEnum enum.
+func (e SynchronizeGroupsEnum) Valid() bool {
+	switch e {
+	case SynchronizeGroupsEnumAll:
+		return true
+	case SynchronizeGroupsEnumOff:
+		return true
+	case SynchronizeGroupsEnumSelected:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for SystemLogStreamStatusStatus.
 const (
 	SystemLogStreamStatusStatusActive    SystemLogStreamStatusStatus = "active"
@@ -8514,6 +8535,12 @@ type ActionsPage struct {
 	Page    int      `json:"page"`
 	PerPage int      `json:"per_page"`
 	Total   int      `json:"total"`
+}
+
+// AddSynchronizedGroupsRequestContent defines model for AddSynchronizedGroupsRequestContent.
+type AddSynchronizedGroupsRequestContent struct {
+	// Groups Array of Google Workspace Directory group objects to synchronize.
+	Groups []SynchronizedGroupPayload `json:"groups"`
 }
 
 // AppType `native` (mobile and desktop), `spa` (single-page), `regular_web`
@@ -10758,6 +10785,66 @@ type CreateConnectionProfileResponseContent struct {
 	StrategyOverrides *ConnectionProfileStrategyOverrides `json:"strategy_overrides,omitempty"`
 }
 
+// CreateDirectoryProvisioningRequestContent defines model for CreateDirectoryProvisioningRequestContent.
+type CreateDirectoryProvisioningRequestContent struct {
+	// Mapping The mapping between Auth0 and IDP user attributes
+	Mapping *[]DirectoryProvisioningMappingItem `json:"mapping,omitempty"`
+
+	// SynchronizeAutomatically Whether periodic automatic synchronization is enabled
+	SynchronizeAutomatically *bool `json:"synchronize_automatically,omitempty"`
+
+	// SynchronizeGroups Group synchronization configuration
+	SynchronizeGroups *SynchronizeGroupsEnum `json:"synchronize_groups,omitempty"`
+}
+
+// CreateDirectoryProvisioningResponseContent defines model for CreateDirectoryProvisioningResponseContent.
+type CreateDirectoryProvisioningResponseContent struct {
+	// ConnectionId The connection's identifier
+	ConnectionId string `json:"connection_id"`
+
+	// ConnectionName The connection's name
+	ConnectionName string `json:"connection_name"`
+
+	// CreatedAt The timestamp at which the directory provisioning configuration was created
+	CreatedAt time.Time `json:"created_at"`
+
+	// LastSynchronizationAt The timestamp at which the connection was last synchronized
+	LastSynchronizationAt *time.Time `json:"last_synchronization_at,omitempty"`
+
+	// LastSynchronizationError The error message of the last synchronization, if any
+	LastSynchronizationError *string `json:"last_synchronization_error,omitempty"`
+
+	// LastSynchronizationStatus The status of the last synchronization
+	LastSynchronizationStatus *string `json:"last_synchronization_status,omitempty"`
+
+	// Mapping The mapping between Auth0 and IDP user attributes
+	Mapping []DirectoryProvisioningMappingItem `json:"mapping"`
+
+	// Strategy The connection's strategy
+	Strategy string `json:"strategy"`
+
+	// SynchronizeAutomatically Whether periodic automatic synchronization is enabled
+	SynchronizeAutomatically bool `json:"synchronize_automatically"`
+
+	// SynchronizeGroups Group synchronization configuration
+	SynchronizeGroups *SynchronizeGroupsEnum `json:"synchronize_groups,omitempty"`
+
+	// UpdatedAt The timestamp at which the directory provisioning configuration was last updated
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
+// CreateDirectorySynchronizationResponseContent defines model for CreateDirectorySynchronizationResponseContent.
+type CreateDirectorySynchronizationResponseContent struct {
+	// ConnectionId The connection's identifier
+	ConnectionId string `json:"connection_id"`
+
+	// Status The synchronization status
+	Status string `json:"status"`
+
+	// SynchronizationId The synchronization's identifier
+	SynchronizationId string `json:"synchronization_id"`
+}
+
 // CreateSelfServiceProfileRequestContent defines model for CreateSelfServiceProfileRequestContent.
 type CreateSelfServiceProfileRequestContent struct {
 	// AllowedStrategies List of IdP strategies that will be shown to users during the Self-Service Enterprise Configuration flow. Possible values: [`oidc`, `samlp`, `waad`, `google-apps`, `adfs`, `okta`, `auth0-samlp`, `okta-samlp`, `keycloak-samlp`, `pingfederate`]
@@ -11017,6 +11104,57 @@ type DefaultTokenQuota struct {
 type DefaultTokenQuotaSubject struct {
 	ClientCredentials    IITokenQuotaClientCredentials `json:"client_credentials"`
 	AdditionalProperties map[string]interface{}        `json:"-"`
+}
+
+// DeleteSynchronizedGroupsRequestContent defines model for DeleteSynchronizedGroupsRequestContent.
+type DeleteSynchronizedGroupsRequestContent struct {
+	// Groups Array of groups to remove from the selection set.
+	Groups []SynchronizedGroupSelectionId `json:"groups"`
+}
+
+// DirectoryProvisioning defines model for DirectoryProvisioning.
+type DirectoryProvisioning struct {
+	// ConnectionId The connection's identifier
+	ConnectionId string `json:"connection_id"`
+
+	// ConnectionName The connection's name
+	ConnectionName string `json:"connection_name"`
+
+	// CreatedAt The timestamp at which the directory provisioning configuration was created
+	CreatedAt time.Time `json:"created_at"`
+
+	// LastSynchronizationAt The timestamp at which the connection was last synchronized
+	LastSynchronizationAt *time.Time `json:"last_synchronization_at,omitempty"`
+
+	// LastSynchronizationError The error message of the last synchronization, if any
+	LastSynchronizationError *string `json:"last_synchronization_error,omitempty"`
+
+	// LastSynchronizationStatus The status of the last synchronization
+	LastSynchronizationStatus *string `json:"last_synchronization_status,omitempty"`
+
+	// Mapping The mapping between Auth0 and IDP user attributes
+	Mapping []DirectoryProvisioningMappingItem `json:"mapping"`
+
+	// Strategy The connection's strategy
+	Strategy string `json:"strategy"`
+
+	// SynchronizeAutomatically Whether periodic automatic synchronization is enabled
+	SynchronizeAutomatically bool `json:"synchronize_automatically"`
+
+	// SynchronizeGroups Group synchronization configuration
+	SynchronizeGroups *SynchronizeGroupsEnum `json:"synchronize_groups,omitempty"`
+
+	// UpdatedAt The timestamp at which the directory provisioning configuration was last updated
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
+// DirectoryProvisioningMappingItem defines model for DirectoryProvisioningMappingItem.
+type DirectoryProvisioningMappingItem struct {
+	// Auth0 The field location in the Auth0 schema
+	Auth0 string `json:"auth0"`
+
+	// Idp The field location in the IDP schema
+	Idp string `json:"idp"`
 }
 
 // EmailPreview defines model for EmailPreview.
@@ -11532,6 +11670,48 @@ type GetConnectionProfileTemplateResponseContent struct {
 
 	// Template The structure of the template, which can be used as the payload for creating or updating a Connection Profile.
 	Template *ConnectionProfileTemplate `json:"template,omitempty"`
+}
+
+// GetDirectoryProvisioningDefaultMappingResponseContent defines model for GetDirectoryProvisioningDefaultMappingResponseContent.
+type GetDirectoryProvisioningDefaultMappingResponseContent struct {
+	// Mapping The mapping between Auth0 and IDP user attributes
+	Mapping *[]DirectoryProvisioningMappingItem `json:"mapping,omitempty"`
+}
+
+// GetDirectoryProvisioningResponseContent defines model for GetDirectoryProvisioningResponseContent.
+type GetDirectoryProvisioningResponseContent struct {
+	// ConnectionId The connection's identifier
+	ConnectionId string `json:"connection_id"`
+
+	// ConnectionName The connection's name
+	ConnectionName string `json:"connection_name"`
+
+	// CreatedAt The timestamp at which the directory provisioning configuration was created
+	CreatedAt time.Time `json:"created_at"`
+
+	// LastSynchronizationAt The timestamp at which the connection was last synchronized
+	LastSynchronizationAt *time.Time `json:"last_synchronization_at,omitempty"`
+
+	// LastSynchronizationError The error message of the last synchronization, if any
+	LastSynchronizationError *string `json:"last_synchronization_error,omitempty"`
+
+	// LastSynchronizationStatus The status of the last synchronization
+	LastSynchronizationStatus *string `json:"last_synchronization_status,omitempty"`
+
+	// Mapping The mapping between Auth0 and IDP user attributes
+	Mapping []DirectoryProvisioningMappingItem `json:"mapping"`
+
+	// Strategy The connection's strategy
+	Strategy string `json:"strategy"`
+
+	// SynchronizeAutomatically Whether periodic automatic synchronization is enabled
+	SynchronizeAutomatically bool `json:"synchronize_automatically"`
+
+	// SynchronizeGroups Group synchronization configuration
+	SynchronizeGroups *SynchronizeGroupsEnum `json:"synchronize_groups,omitempty"`
+
+	// UpdatedAt The timestamp at which the directory provisioning configuration was last updated
+	UpdatedAt time.Time `json:"updated_at"`
 }
 
 // GetSelfServiceProfileResponseContent defines model for GetSelfServiceProfileResponseContent.
@@ -12151,6 +12331,15 @@ type ListConnectionProfilesPaginatedResponseContent struct {
 	Next *string `json:"next,omitempty"`
 }
 
+// ListDirectoryProvisioningsResponseContent defines model for ListDirectoryProvisioningsResponseContent.
+type ListDirectoryProvisioningsResponseContent struct {
+	// DirectoryProvisionings List of directory provisioning configurations
+	DirectoryProvisionings []DirectoryProvisioning `json:"directory_provisionings"`
+
+	// Next The cursor to be used as the "from" query parameter for the next page of results.
+	Next *string `json:"next,omitempty"`
+}
+
 // ListSelfServiceProfileCustomTextResponseContent The list of custom text keys and values.
 type ListSelfServiceProfileCustomTextResponseContent map[string]string
 
@@ -12169,6 +12358,15 @@ type ListSelfServiceProfilesResponseContent struct {
 
 // ListSelfServiceProfilesResponseContent0 defines model for ListSelfServiceProfilesResponseContent.0.
 type ListSelfServiceProfilesResponseContent0 = []SelfServiceProfile
+
+// ListSynchronizedGroupsResponseContent defines model for ListSynchronizedGroupsResponseContent.
+type ListSynchronizedGroupsResponseContent struct {
+	// Groups Array of Google Workspace group ids configured for synchronization.
+	Groups []SynchronizedGroupPayload `json:"groups"`
+
+	// Next The cursor to be used as the "from" query parameter for the next page of results.
+	Next *string `json:"next,omitempty"`
+}
 
 // ListTotals The paging members of a list returned with `include_totals=true`; the
 // list itself is under the resource's plural name.
@@ -14437,6 +14635,12 @@ type RefreshTokenSettingsExpirationType string
 // RefreshTokenSettingsRotationType defines model for RefreshTokenSettings.RotationType.
 type RefreshTokenSettingsRotationType string
 
+// ReplaceSynchronizedGroupsRequestContent defines model for ReplaceSynchronizedGroupsRequestContent.
+type ReplaceSynchronizedGroupsRequestContent struct {
+	// Groups Array of Google Workspace Directory group objects to synchronize.
+	Groups []SynchronizedGroupPayload `json:"groups"`
+}
+
 // ResourceServer An API.
 type ResourceServer struct {
 	AllowOfflineAccess                     bool  `json:"allow_offline_access"`
@@ -15103,6 +15307,30 @@ type SuspiciousIpThrottlingUpdate struct {
 
 // SuspiciousIpThrottlingUpdateShields defines model for SuspiciousIpThrottlingUpdate.Shields.
 type SuspiciousIpThrottlingUpdateShields string
+
+// SynchronizeGroupsEnum Group synchronization configuration
+type SynchronizeGroupsEnum string
+
+// SynchronizedGroupPayload defines model for SynchronizedGroupPayload.
+type SynchronizedGroupPayload struct {
+	// DirectMembersCount Number of direct members in the Google Workspace Directory group.
+	DirectMembersCount *int `json:"direct_members_count,omitempty"`
+
+	// Email Google Workspace Directory group email.
+	Email *openapi_types.Email `json:"email,omitempty"`
+
+	// Id Google Workspace Directory group ID.
+	Id string `json:"id"`
+
+	// Name Google Workspace Directory group name.
+	Name *string `json:"name,omitempty"`
+}
+
+// SynchronizedGroupSelectionId defines model for SynchronizedGroupSelectionId.
+type SynchronizedGroupSelectionId struct {
+	// Id Google Workspace Directory group ID.
+	Id string `json:"id"`
+}
 
 // SystemActionExecution defines model for SystemActionExecution.
 type SystemActionExecution struct {
@@ -15782,6 +16010,54 @@ type UpdateConnectionProfileResponseContent struct {
 
 	// StrategyOverrides Strategy-specific overrides for this attribute
 	StrategyOverrides *ConnectionProfileStrategyOverrides `json:"strategy_overrides,omitempty"`
+}
+
+// UpdateDirectoryProvisioningRequestContent defines model for UpdateDirectoryProvisioningRequestContent.
+type UpdateDirectoryProvisioningRequestContent struct {
+	// Mapping The mapping between Auth0 and IDP user attributes
+	Mapping *[]DirectoryProvisioningMappingItem `json:"mapping,omitempty"`
+
+	// SynchronizeAutomatically Whether periodic automatic synchronization is enabled
+	SynchronizeAutomatically *bool `json:"synchronize_automatically,omitempty"`
+
+	// SynchronizeGroups Group synchronization configuration
+	SynchronizeGroups *SynchronizeGroupsEnum `json:"synchronize_groups,omitempty"`
+}
+
+// UpdateDirectoryProvisioningResponseContent defines model for UpdateDirectoryProvisioningResponseContent.
+type UpdateDirectoryProvisioningResponseContent struct {
+	// ConnectionId The connection's identifier
+	ConnectionId string `json:"connection_id"`
+
+	// ConnectionName The connection's name
+	ConnectionName string `json:"connection_name"`
+
+	// CreatedAt The timestamp at which the directory provisioning configuration was created
+	CreatedAt time.Time `json:"created_at"`
+
+	// LastSynchronizationAt The timestamp at which the connection was last synchronized
+	LastSynchronizationAt *time.Time `json:"last_synchronization_at,omitempty"`
+
+	// LastSynchronizationError The error message of the last synchronization, if any
+	LastSynchronizationError *string `json:"last_synchronization_error,omitempty"`
+
+	// LastSynchronizationStatus The status of the last synchronization
+	LastSynchronizationStatus *string `json:"last_synchronization_status,omitempty"`
+
+	// Mapping The mapping between Auth0 and IDP user attributes
+	Mapping []DirectoryProvisioningMappingItem `json:"mapping"`
+
+	// Strategy The connection's strategy
+	Strategy string `json:"strategy"`
+
+	// SynchronizeAutomatically Whether periodic automatic synchronization is enabled
+	SynchronizeAutomatically bool `json:"synchronize_automatically"`
+
+	// SynchronizeGroups Group synchronization configuration
+	SynchronizeGroups *SynchronizeGroupsEnum `json:"synchronize_groups,omitempty"`
+
+	// UpdatedAt The timestamp at which the directory provisioning configuration was last updated
+	UpdatedAt time.Time `json:"updated_at"`
 }
 
 // UpdateSelfServiceProfileRequestContent defines model for UpdateSelfServiceProfileRequestContent.
@@ -16519,6 +16795,15 @@ type GetConnections200JSONResponseBody struct {
 	union json.RawMessage
 }
 
+// ListDirectoryProvisioningsParams defines parameters for ListDirectoryProvisionings.
+type ListDirectoryProvisioningsParams struct {
+	// From Optional Id from which to start selection.
+	From *string `form:"from,omitempty" json:"from,omitempty"`
+
+	// Take Number of results per page. Defaults to 50.
+	Take *int `form:"take,omitempty" json:"take,omitempty"`
+}
+
 // ListScimConfigurationsParams defines parameters for ListScimConfigurations.
 type ListScimConfigurationsParams struct {
 	// From Checkpoint cursor (`next` of the previous page).
@@ -16548,6 +16833,18 @@ type GetConnectionClientsParams struct {
 
 // UpdateConnectionClientsJSONBody defines parameters for UpdateConnectionClients.
 type UpdateConnectionClientsJSONBody = []ConnectionClientStatus
+
+// ListSynchronizedGroupsParams defines parameters for ListSynchronizedGroups.
+type ListSynchronizedGroupsParams struct {
+	// From Optional Id from which to start selection.
+	From *string `form:"from,omitempty" json:"from,omitempty"`
+
+	// Take Number of results per page. Defaults to 50.
+	Take *int `form:"take,omitempty" json:"take,omitempty"`
+
+	// Q Query in <a target='_new' href ='https://lucene.apache.org/core/2_9_4/queryparsersyntax.html'>Lucene query string syntax</a>. Only prefix search on "name" or "email" fields are allowed, with a single wildcard suffix. Operators, modifiers, and groupings are not allowed. Terms are treated as case-insensitive. Example query: "name:engineering*".
+	Q *string `form:"q,omitempty" json:"q,omitempty"`
+}
 
 // CreateScimConfigurationJSONBody defines parameters for CreateScimConfiguration.
 type CreateScimConfigurationJSONBody = ScimConfigurationCreate
@@ -17545,6 +17842,36 @@ type UpdateConnectionJSONRequestBody = ConnectionUpdate
 
 // UpdateConnectionClientsJSONRequestBody defines body for UpdateConnectionClients for application/json ContentType.
 type UpdateConnectionClientsJSONRequestBody = UpdateConnectionClientsJSONBody
+
+// UpdateDirectoryProvisioningJSONRequestBody defines body for UpdateDirectoryProvisioning for application/json ContentType.
+type UpdateDirectoryProvisioningJSONRequestBody = UpdateDirectoryProvisioningRequestContent
+
+// UpdateDirectoryProvisioningFormdataRequestBody defines body for UpdateDirectoryProvisioning for application/x-www-form-urlencoded ContentType.
+type UpdateDirectoryProvisioningFormdataRequestBody = UpdateDirectoryProvisioningRequestContent
+
+// CreateDirectoryProvisioningJSONRequestBody defines body for CreateDirectoryProvisioning for application/json ContentType.
+type CreateDirectoryProvisioningJSONRequestBody = CreateDirectoryProvisioningRequestContent
+
+// CreateDirectoryProvisioningFormdataRequestBody defines body for CreateDirectoryProvisioning for application/x-www-form-urlencoded ContentType.
+type CreateDirectoryProvisioningFormdataRequestBody = CreateDirectoryProvisioningRequestContent
+
+// DeleteSynchronizedGroupsJSONRequestBody defines body for DeleteSynchronizedGroups for application/json ContentType.
+type DeleteSynchronizedGroupsJSONRequestBody = DeleteSynchronizedGroupsRequestContent
+
+// DeleteSynchronizedGroupsFormdataRequestBody defines body for DeleteSynchronizedGroups for application/x-www-form-urlencoded ContentType.
+type DeleteSynchronizedGroupsFormdataRequestBody = DeleteSynchronizedGroupsRequestContent
+
+// AddSynchronizedGroupsJSONRequestBody defines body for AddSynchronizedGroups for application/json ContentType.
+type AddSynchronizedGroupsJSONRequestBody = AddSynchronizedGroupsRequestContent
+
+// AddSynchronizedGroupsFormdataRequestBody defines body for AddSynchronizedGroups for application/x-www-form-urlencoded ContentType.
+type AddSynchronizedGroupsFormdataRequestBody = AddSynchronizedGroupsRequestContent
+
+// ReplaceSynchronizedGroupsJSONRequestBody defines body for ReplaceSynchronizedGroups for application/json ContentType.
+type ReplaceSynchronizedGroupsJSONRequestBody = ReplaceSynchronizedGroupsRequestContent
+
+// ReplaceSynchronizedGroupsFormdataRequestBody defines body for ReplaceSynchronizedGroups for application/x-www-form-urlencoded ContentType.
+type ReplaceSynchronizedGroupsFormdataRequestBody = ReplaceSynchronizedGroupsRequestContent
 
 // PostConnectionKeysJSONRequestBody defines body for PostConnectionKeys for application/json ContentType.
 type PostConnectionKeysJSONRequestBody = PostConnectionKeysRequestContent
@@ -26247,6 +26574,9 @@ type ServerInterface interface {
 	// CreateConnection Create a connection
 	// (POST /api/v2/connections)
 	CreateConnection(w http.ResponseWriter, r *http.Request)
+	// ListDirectoryProvisionings Get a list of directory provisioning configurations
+	// (GET /api/v2/connections-directory-provisionings)
+	ListDirectoryProvisionings(w http.ResponseWriter, r *http.Request, params ListDirectoryProvisioningsParams)
 	// ListScimConfigurations List the tenant's SCIM configurations
 	// (GET /api/v2/connections-scim-configurations)
 	ListScimConfigurations(w http.ResponseWriter, r *http.Request, params ListScimConfigurationsParams)
@@ -26265,6 +26595,36 @@ type ServerInterface interface {
 	// UpdateConnectionClients Enable or disable applications on a connection
 	// (PATCH /api/v2/connections/{id}/clients)
 	UpdateConnectionClients(w http.ResponseWriter, r *http.Request, id string)
+	// DeleteDirectoryProvisioning Delete a directory provisioning configuration
+	// (DELETE /api/v2/connections/{id}/directory-provisioning)
+	DeleteDirectoryProvisioning(w http.ResponseWriter, r *http.Request, id string)
+	// GetDirectoryProvisioning Get a directory provisioning configuration
+	// (GET /api/v2/connections/{id}/directory-provisioning)
+	GetDirectoryProvisioning(w http.ResponseWriter, r *http.Request, id string)
+	// UpdateDirectoryProvisioning Patch a directory provisioning configuration
+	// (PATCH /api/v2/connections/{id}/directory-provisioning)
+	UpdateDirectoryProvisioning(w http.ResponseWriter, r *http.Request, id string)
+	// CreateDirectoryProvisioning Create a directory provisioning configuration
+	// (POST /api/v2/connections/{id}/directory-provisioning)
+	CreateDirectoryProvisioning(w http.ResponseWriter, r *http.Request, id string)
+	// GetDirectoryProvisioningDefaultMapping Get a connection's default directory provisioning attribute mapping
+	// (GET /api/v2/connections/{id}/directory-provisioning/default-mapping)
+	GetDirectoryProvisioningDefaultMapping(w http.ResponseWriter, r *http.Request, id string)
+	// CreateDirectorySynchronization Request an on-demand synchronization of the directory
+	// (POST /api/v2/connections/{id}/directory-provisioning/synchronizations)
+	CreateDirectorySynchronization(w http.ResponseWriter, r *http.Request, id string)
+	// DeleteSynchronizedGroups Delete synchronized group selections for a directory provisioning configuration
+	// (DELETE /api/v2/connections/{id}/directory-provisioning/synchronized-groups)
+	DeleteSynchronizedGroups(w http.ResponseWriter, r *http.Request, id string)
+	// ListSynchronizedGroups Get synchronized groups for a directory provisioning configuration
+	// (GET /api/v2/connections/{id}/directory-provisioning/synchronized-groups)
+	ListSynchronizedGroups(w http.ResponseWriter, r *http.Request, id string, params ListSynchronizedGroupsParams)
+	// AddSynchronizedGroups Add synchronized group selections to a directory provisioning configuration
+	// (POST /api/v2/connections/{id}/directory-provisioning/synchronized-groups)
+	AddSynchronizedGroups(w http.ResponseWriter, r *http.Request, id string)
+	// ReplaceSynchronizedGroups Create or replace synchronized group selections for a directory provisioning configuration
+	// (PUT /api/v2/connections/{id}/directory-provisioning/synchronized-groups)
+	ReplaceSynchronizedGroups(w http.ResponseWriter, r *http.Request, id string)
 	// GetConnectionKeys getConnectionKeys
 	// (GET /api/v2/connections/{id}/keys)
 	GetConnectionKeys(w http.ResponseWriter, r *http.Request, id string)
@@ -27705,6 +28065,12 @@ func (_ Unimplemented) CreateConnection(w http.ResponseWriter, r *http.Request) 
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// ListDirectoryProvisionings Get a list of directory provisioning configurations
+// (GET /api/v2/connections-directory-provisionings)
+func (_ Unimplemented) ListDirectoryProvisionings(w http.ResponseWriter, r *http.Request, params ListDirectoryProvisioningsParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
 // ListScimConfigurations List the tenant's SCIM configurations
 // (GET /api/v2/connections-scim-configurations)
 func (_ Unimplemented) ListScimConfigurations(w http.ResponseWriter, r *http.Request, params ListScimConfigurationsParams) {
@@ -27738,6 +28104,66 @@ func (_ Unimplemented) GetConnectionClients(w http.ResponseWriter, r *http.Reque
 // UpdateConnectionClients Enable or disable applications on a connection
 // (PATCH /api/v2/connections/{id}/clients)
 func (_ Unimplemented) UpdateConnectionClients(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// DeleteDirectoryProvisioning Delete a directory provisioning configuration
+// (DELETE /api/v2/connections/{id}/directory-provisioning)
+func (_ Unimplemented) DeleteDirectoryProvisioning(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetDirectoryProvisioning Get a directory provisioning configuration
+// (GET /api/v2/connections/{id}/directory-provisioning)
+func (_ Unimplemented) GetDirectoryProvisioning(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// UpdateDirectoryProvisioning Patch a directory provisioning configuration
+// (PATCH /api/v2/connections/{id}/directory-provisioning)
+func (_ Unimplemented) UpdateDirectoryProvisioning(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// CreateDirectoryProvisioning Create a directory provisioning configuration
+// (POST /api/v2/connections/{id}/directory-provisioning)
+func (_ Unimplemented) CreateDirectoryProvisioning(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetDirectoryProvisioningDefaultMapping Get a connection's default directory provisioning attribute mapping
+// (GET /api/v2/connections/{id}/directory-provisioning/default-mapping)
+func (_ Unimplemented) GetDirectoryProvisioningDefaultMapping(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// CreateDirectorySynchronization Request an on-demand synchronization of the directory
+// (POST /api/v2/connections/{id}/directory-provisioning/synchronizations)
+func (_ Unimplemented) CreateDirectorySynchronization(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// DeleteSynchronizedGroups Delete synchronized group selections for a directory provisioning configuration
+// (DELETE /api/v2/connections/{id}/directory-provisioning/synchronized-groups)
+func (_ Unimplemented) DeleteSynchronizedGroups(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// ListSynchronizedGroups Get synchronized groups for a directory provisioning configuration
+// (GET /api/v2/connections/{id}/directory-provisioning/synchronized-groups)
+func (_ Unimplemented) ListSynchronizedGroups(w http.ResponseWriter, r *http.Request, id string, params ListSynchronizedGroupsParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// AddSynchronizedGroups Add synchronized group selections to a directory provisioning configuration
+// (POST /api/v2/connections/{id}/directory-provisioning/synchronized-groups)
+func (_ Unimplemented) AddSynchronizedGroups(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// ReplaceSynchronizedGroups Create or replace synchronized group selections for a directory provisioning configuration
+// (PUT /api/v2/connections/{id}/directory-provisioning/synchronized-groups)
+func (_ Unimplemented) ReplaceSynchronizedGroups(w http.ResponseWriter, r *http.Request, id string) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -32688,6 +33114,52 @@ func (siw *ServerInterfaceWrapper) CreateConnection(w http.ResponseWriter, r *ht
 	handler.ServeHTTP(w, r)
 }
 
+// ListDirectoryProvisionings operation middleware
+func (siw *ServerInterfaceWrapper) ListDirectoryProvisionings(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListDirectoryProvisioningsParams
+
+	// ------------- Optional query parameter "from" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "from", r.URL.Query(), &params.From, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "from"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "from", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "take" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "take", r.URL.Query(), &params.Take, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "take"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "take", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListDirectoryProvisionings(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // ListScimConfigurations operation middleware
 func (siw *ServerInterfaceWrapper) ListScimConfigurations(w http.ResponseWriter, r *http.Request) {
 
@@ -32913,6 +33385,308 @@ func (siw *ServerInterfaceWrapper) UpdateConnectionClients(w http.ResponseWriter
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.UpdateConnectionClients(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteDirectoryProvisioning operation middleware
+func (siw *ServerInterfaceWrapper) DeleteDirectoryProvisioning(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteDirectoryProvisioning(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetDirectoryProvisioning operation middleware
+func (siw *ServerInterfaceWrapper) GetDirectoryProvisioning(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetDirectoryProvisioning(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdateDirectoryProvisioning operation middleware
+func (siw *ServerInterfaceWrapper) UpdateDirectoryProvisioning(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateDirectoryProvisioning(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateDirectoryProvisioning operation middleware
+func (siw *ServerInterfaceWrapper) CreateDirectoryProvisioning(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateDirectoryProvisioning(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetDirectoryProvisioningDefaultMapping operation middleware
+func (siw *ServerInterfaceWrapper) GetDirectoryProvisioningDefaultMapping(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetDirectoryProvisioningDefaultMapping(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateDirectorySynchronization operation middleware
+func (siw *ServerInterfaceWrapper) CreateDirectorySynchronization(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateDirectorySynchronization(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteSynchronizedGroups operation middleware
+func (siw *ServerInterfaceWrapper) DeleteSynchronizedGroups(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteSynchronizedGroups(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListSynchronizedGroups operation middleware
+func (siw *ServerInterfaceWrapper) ListSynchronizedGroups(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListSynchronizedGroupsParams
+
+	// ------------- Optional query parameter "from" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "from", r.URL.Query(), &params.From, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "from"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "from", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "take" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "take", r.URL.Query(), &params.Take, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "take"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "take", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "q" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "q", r.URL.Query(), &params.Q, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "q"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "q", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListSynchronizedGroups(w, r, id, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// AddSynchronizedGroups operation middleware
+func (siw *ServerInterfaceWrapper) AddSynchronizedGroups(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.AddSynchronizedGroups(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ReplaceSynchronizedGroups operation middleware
+func (siw *ServerInterfaceWrapper) ReplaceSynchronizedGroups(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ReplaceSynchronizedGroups(w, r, id)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -43049,6 +43823,39 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/api/v2/self-service-profiles/{profileId}/sso-ticket/{id}/revoke", wrapper.RevokeSsoTicket)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/connections-directory-provisionings", wrapper.ListDirectoryProvisionings)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/v2/connections/{id}/directory-provisioning", wrapper.DeleteDirectoryProvisioning)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/connections/{id}/directory-provisioning", wrapper.GetDirectoryProvisioning)
+	})
+	r.Group(func(r chi.Router) {
+		r.Patch(options.BaseURL+"/api/v2/connections/{id}/directory-provisioning", wrapper.UpdateDirectoryProvisioning)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/v2/connections/{id}/directory-provisioning", wrapper.CreateDirectoryProvisioning)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/connections/{id}/directory-provisioning/default-mapping", wrapper.GetDirectoryProvisioningDefaultMapping)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/v2/connections/{id}/directory-provisioning/synchronizations", wrapper.CreateDirectorySynchronization)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/v2/connections/{id}/directory-provisioning/synchronized-groups", wrapper.DeleteSynchronizedGroups)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/connections/{id}/directory-provisioning/synchronized-groups", wrapper.ListSynchronizedGroups)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/v2/connections/{id}/directory-provisioning/synchronized-groups", wrapper.AddSynchronizedGroups)
+	})
+	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/api/v2/connections/{id}/directory-provisioning/synchronized-groups", wrapper.ReplaceSynchronizedGroups)
 	})
 	r.Group(func(r chi.Router) {
 		r.Delete(options.BaseURL+"/api/v2/connections/{id}/scim-configuration", wrapper.DeleteScimConfiguration)

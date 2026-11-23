@@ -125,6 +125,10 @@ var ManagementAPIScopes = []store.Scope{
 	{Value: "create:connection_profiles", Description: "Create connection profiles"},
 	{Value: "update:connection_profiles", Description: "Update connection profiles"},
 	{Value: "delete:connection_profiles", Description: "Delete connection profiles"},
+	{Value: "read:directory_provisionings", Description: "Read directory provisioning configurations"},
+	{Value: "create:directory_provisionings", Description: "Create directory provisioning configurations and synchronizations"},
+	{Value: "update:directory_provisionings", Description: "Update directory provisioning configurations and synchronized groups"},
+	{Value: "delete:directory_provisionings", Description: "Delete directory provisioning configurations"},
 
 	{Value: "read:clients", Description: "Read applications"},
 	{Value: "create:clients", Description: "Create applications"},
