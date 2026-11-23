@@ -417,7 +417,9 @@ func New(d Deps) http.Handler {
 		tr.Post("/u/login/social", lg.SocialStart)
 		tr.Get("/login/callback", lg.SocialCallback)
 		tr.Mount("/scim/v2/connections/{connection_id}", scimHandler.Routes())
-		tr.Handle(selfservice.Path, assistant)
+		// The assistant answers GET and POST only.
+		tr.Get(selfservice.Path, assistant.ServeHTTP)
+		tr.Post(selfservice.Path, assistant.ServeHTTP)
 		if d.Federation != nil && d.Federation.Providers != nil {
 			// Google Workspace directory provisioning consent (Plan 37c Phase C).
 			consent := &dirsync.Consent{Store: d.Store, Wrapper: d.Wrapper, Providers: d.Federation.Providers, Log: d.Log}
