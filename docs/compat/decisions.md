@@ -3933,3 +3933,62 @@ names (1–128 printable ASCII) and response shapes.
 
 Observation points Q1–Q19 (spec §9 and implementation) are listed in
 [plan-1-followups.md](../superpowers/plan-1-followups.md#plan-37c-observation-points).
+
+## D-0160: AD/LDAP connections through the AD/LDAP Connector (Plan 38a)
+
+**Contract frozen and implemented 2026-11-23; merged with maintainer
+approval after green plan-branch CI.** Operator guide:
+[AD/LDAP](../ad-ldap.md). The
+[spec](../superpowers/specs/2026-11-16-zeroauthy-ad-ldap-design.md) and
+[plan](../superpowers/plans/2026-11-16-zeroauthy-plan-38a-ad-ldap.md)
+reserve D-0160–0169. Maintainer rulings (2026-11-22): zeroauthy speaks the
+connector protocol (no native LDAP bind); the E2E suite runs the pinned
+connector release against its own mock LDAP server; replicas forward hub
+requests over internal HTTPS. No live Auth0 tenant was observed by the
+implementer.
+
+Sources: [AD/LDAP connections](https://auth0.com/docs/authenticate/identity-providers/enterprise-identity-providers/active-directory-ldap),
+[Management OpenAPI](https://auth0.com/docs/oas/management/v2/management-api-oas.json)
+(`ConnectionOptionsAD`, `ConnectionProvisioningTicketUrl`, `get_status`
+with the 404 message `not connected to any node`, read 2026-11-22), and
+`auth0/ad-ldap-connector` (MIT) v8.0.5 at
+`474ff00e0cb687fdc9d70acd84588c07d4e90519` (2026-11-11), read 2026-11-23,
+studied, not copied.
+
+**Wire protocol** (every message confirmed by the E2E suite running the
+real connector):
+
+| Step | Message | Source |
+|---|---|---|
+| Ticket information | `GET {ticket}/info` → JSON with `adHub` (required, else "Wrong ticket url"), `connectionName`, `connectionDomain`, `certAuth`, `kerberos`, `realm.name`, `realm.postTokenUrl`; 404 means "Does this connection still exist?" | `lib/provisioningTicket.js`, `server.js` 100–113 |
+| Registration | `POST {ticket}` JSON `{certs: [base64 DER], signInEndpoint: "{SERVER_URL}/wsfed", agentMode, agentVersion}`; the response's `signingKey` becomes `TENANT_SIGNING_KEY` | `lib/configureConnection.js`, `server.js` 124–131 |
+| Both run at every connector start | the ticket is therefore reusable, not single-use (LR38a-4) | `server.js` `startup` |
+| Latency test | after connecting, `GET https://{ticket host}/test` ten times; the connector exits unless each answers 2xx (found by the E2E suite) | `latency_test.js`, `server.js` 146 |
+| CA certificates | the connector replaces Node's CA list with the system store or `SSL_CA_PATH` (a directory of `.pem`/`.crt`/`.cer`), so a private CA goes there, not in `NODE_EXTRA_CA_CERTS` | `lib/add_certs.js` |
+| Hub | WebSocket to `adHub` (`http` → `ws`), frames are JSON `{n, p}`; unparseable frames are ignored | `ws_validator.js` 17, 45–99 |
+| Connector authentication | `{n:"authenticate", p:{jwt}}`, RS256 with the connector's private key, claims `iss` = connection name, `aud` = realm name, `exp` = 1 minute, no other claims | `ws_validator.js` 347–358 |
+| Answer | `authenticated` (the connector starts pinging every 5 s, 4 s pong timeout, reconnects after 5 misses) or `authentication_failure` (the connector exits) | `ws_validator.js` 56–81, 104–133 |
+| Requests | `authenticate_user`, `search_users`, `list_groups`, `change_password` (only with the connector's `ENABLE_WRITE_BACK`), each `{jwt}` HS256 with the signing key, claims `pid`, `username`, `password`, `escaped`, `search`, `limit`; a token that fails verification is dropped without reply | `ws_validator.js` 142–345 |
+| Replies | `{pid}_result`, `{pid}_search_users_result`, `{pid}_list_groups_result`, `{pid}_change_password_result` with `{profile}` or `{err, profile?}`; `err` is the serialized error (`name`, `message`) | same |
+| Error classes | `WrongUsername`, `WrongPassword`, `AccountDisabled`, `AccountExpired`, `AccountLocked`, `PasswordExpired`, `PasswordChangeRequired` (the last two succeed when the connector allows them), `InsufficientAccessRightsError`, `PasswordComplexityError`; anything else is unexpected and the connector exits after replying | `lib/errors/*`, `lib/users.js` `getDetailedError` |
+| Profile | default mapping: `id` (objectGUID, uid or cn), `displayName`, `name.familyName`, `name.givenName`, `nickname`, `groups`, `emails[{value}]`, plus `dn`, `sAMAccountName`, `userPrincipalName`, `department`, `organizationUnits` and other directory attributes; customers may replace the mapper | `lib/defaultProfileMapping.js`, `lib/users.js` `enrichProfile` |
+| Kerberos | the connector's `GET /wsfed` signs a WS-Fed token (issuer `connectionDomain`, audience the realm) and posts it to `realm.postTokenUrl`, accepting a `wreply` only when it equals that URL | `endpoints.js`, `lib/wsfederation-responses.js` |
+
+**Local rulings:**
+
+| ID | Ruling |
+|---|---|
+| LR38a-1 | No zeroauthy-side credential cache; `disable_cache` is stored and returned. |
+| LR38a-2 | The hub requires TLS: a TLS listener, or a proxy trusted with `server.trust_proxy_headers` that sends `X-Forwarded-Proto: https`; there is no development exemption (tests use TLS servers). |
+| LR38a-3 | Replica-to-replica forwarding over HTTPS (`server.replica_url`, `server.replica_ca_file`), signed with an HMAC key derived from the connection's signing key (sealed by the master key), with a one-minute window and single-use nonces; the receiver answers from its own sockets only. |
+| LR38a-4 | One provisioning ticket per connection, created with it, sealed in the store and returned as `provisioning_ticket_url`. It stays valid for the connection's life because the connector reads and posts it at every start (the spec's single-use ticket would break connector restarts). Auth0's own connector behaves the same way, so this follows Auth0 and touches no OIDC behavior; the deviation from the written spec was accepted by the maintainer (2026-11-23). |
+| LR38a-5 | A registration adds the connector's certificate to `certs`, keeping the two most recent (the OpenAPI maximum); sockets authenticated with an evicted certificate are closed. The signing key is generated once per connection and returned to every registration, so several connectors can serve one connection. |
+| LR38a-6 | Connector-managed options (`agentIP`, `agentMode`, `agentVersion`, `signInEndpoint`, `certs`, `thumbprints`, `thumbprints_sha384`) sent through the Management API are ignored and the stored values kept, so Deploy CLI exports round-trip. |
+| LR38a-7 | Hub tokens must verify against a stored certificate, carry the connection's name as `iss`, the realm `urn:auth0:{tenant}:{connection}` as `aud`, and an `exp` at most 5 minutes ahead; a token is accepted once. |
+| LR38a-8 | User ID `ad\|{connection}\|{profile.id}`. `displayName` → `name`, `name.givenName` → `given_name`, `name.familyName` → `family_name`, `nickname`, the first `emails` value → `email` (verified only when the profile says `email_verified: true`); `groups` and the other directory attributes are kept as identity profile data. |
+| LR38a-9 | Error mapping: `WrongUsername`, `WrongPassword` → wrong credentials; `AccountDisabled`, `AccountExpired`, `AccountLocked` → user blocked; `PasswordExpired`, `PasswordChangeRequired` → password change required; anything else, a timeout or no connector online → the connection is not available. Nothing falls back. |
+| LR38a-10 | Kerberos redirects only on the host the ticket names (the connector accepts one `postTokenUrl`); elsewhere the username/password form is shown. |
+| LR38a-11 | Requests time out after 10 s; at most 64 are in flight per connection. |
+| LR38a-12 | Directory passwords change through `PATCH /api/v2/users/{id}` (password alone) and the connector's `change_password` (it needs `ENABLE_WRITE_BACK`); the hosted forgot-password flow is not offered for `ad` connections, whose passwords live in the directory. The sign-in name is kept as identity provider data `ad_username` for it. Final, not a follow-up (maintainer, 2026-11-23): the directory owns the password, and resets outside it are left to the directory's administrators. |
+| LR38a-13 | `groups` and the connector profile's other attributes are identity provider data (`identities[].profileData`), not root attributes (D38-4). |
+| LR38a-14 | A connector socket silent for 30 s is closed (the connector pings every 5 s); session rows are refreshed every 30 s and count as online for 90 s. |

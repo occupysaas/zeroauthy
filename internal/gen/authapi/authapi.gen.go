@@ -1563,6 +1563,16 @@ type OidcLogoutParams struct {
 	UiLocales *string `form:"ui_locales,omitempty" json:"ui_locales,omitempty"`
 }
 
+// AdTicketConfigureJSONBody defines parameters for AdTicketConfigure.
+type AdTicketConfigureJSONBody struct {
+	AgentMode    *bool   `json:"agentMode,omitempty"`
+	AgentVersion *string `json:"agentVersion,omitempty"`
+
+	// Certs The connector certificate (base64 DER).
+	Certs          []string `json:"certs"`
+	SignInEndpoint *string  `json:"signInEndpoint,omitempty"`
+}
+
 // PasswordlessStartParams defines parameters for PasswordlessStart.
 type PasswordlessStartParams struct {
 	XRequestLanguage  *string `json:"x-request-language,omitempty"`
@@ -1822,6 +1832,9 @@ type OauthTokenFormdataRequestBody = TokenFormRequest
 
 // OidcLogoutPostFormdataRequestBody defines body for OidcLogoutPost for application/x-www-form-urlencoded ContentType.
 type OidcLogoutPostFormdataRequestBody = OidcLogoutRequest
+
+// AdTicketConfigureJSONRequestBody defines body for AdTicketConfigure for application/json ContentType.
+type AdTicketConfigureJSONRequestBody AdTicketConfigureJSONBody
 
 // PasskeyChallengeJSONRequestBody defines body for PasskeyChallenge for application/json ContentType.
 type PasskeyChallengeJSONRequestBody = PasskeyChallengeRequest
@@ -2893,6 +2906,9 @@ type ServerInterface interface {
 	// Discovery OpenID Provider configuration
 	// (GET /.well-known/openid-configuration)
 	Discovery(w http.ResponseWriter, r *http.Request)
+	// AdHub AD/LDAP Connector WebSocket hub
+	// (GET /ad-hub)
+	AdHub(w http.ResponseWriter, r *http.Request)
 	// Authorize Start an authorization (login) flow
 	// (GET /authorize)
 	Authorize(w http.ResponseWriter, r *http.Request, params AuthorizeParams)
@@ -2938,6 +2954,12 @@ type ServerInterface interface {
 	// OidcLogoutPost Log the user out (form post)
 	// (POST /oidc/logout)
 	OidcLogoutPost(w http.ResponseWriter, r *http.Request)
+	// AdTicketConfigure Register an AD/LDAP Connector
+	// (POST /p/ad/{ticket})
+	AdTicketConfigure(w http.ResponseWriter, r *http.Request, ticket string)
+	// AdTicketInfo AD/LDAP Connector provisioning ticket information
+	// (GET /p/ad/{ticket}/info)
+	AdTicketInfo(w http.ResponseWriter, r *http.Request, ticket string)
 	// PasskeyChallenge Begin a discoverable passkey login
 	// (POST /passkey/challenge)
 	PasskeyChallenge(w http.ResponseWriter, r *http.Request)
@@ -2977,6 +2999,9 @@ type ServerInterface interface {
 	// SamlpIdPLogoutPost SAML identity-provider single logout (HTTP-POST)
 	// (POST /samlp/{client_id}/logout)
 	SamlpIdPLogoutPost(w http.ResponseWriter, r *http.Request, clientId string)
+	// AdConnectorLatencyTest AD/LDAP Connector latency test
+	// (GET /test)
+	AdConnectorLatencyTest(w http.ResponseWriter, r *http.Request)
 	// Userinfo Get the user's profile
 	// (GET /userinfo)
 	Userinfo(w http.ResponseWriter, r *http.Request)
@@ -3025,6 +3050,12 @@ func (_ Unimplemented) Jwks(w http.ResponseWriter, r *http.Request) {
 // Discovery OpenID Provider configuration
 // (GET /.well-known/openid-configuration)
 func (_ Unimplemented) Discovery(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// AdHub AD/LDAP Connector WebSocket hub
+// (GET /ad-hub)
+func (_ Unimplemented) AdHub(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -3118,6 +3149,18 @@ func (_ Unimplemented) OidcLogoutPost(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// AdTicketConfigure Register an AD/LDAP Connector
+// (POST /p/ad/{ticket})
+func (_ Unimplemented) AdTicketConfigure(w http.ResponseWriter, r *http.Request, ticket string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// AdTicketInfo AD/LDAP Connector provisioning ticket information
+// (GET /p/ad/{ticket}/info)
+func (_ Unimplemented) AdTicketInfo(w http.ResponseWriter, r *http.Request, ticket string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
 // PasskeyChallenge Begin a discoverable passkey login
 // (POST /passkey/challenge)
 func (_ Unimplemented) PasskeyChallenge(w http.ResponseWriter, r *http.Request) {
@@ -3193,6 +3236,12 @@ func (_ Unimplemented) SamlpIdPLogout(w http.ResponseWriter, r *http.Request, cl
 // SamlpIdPLogoutPost SAML identity-provider single logout (HTTP-POST)
 // (POST /samlp/{client_id}/logout)
 func (_ Unimplemented) SamlpIdPLogoutPost(w http.ResponseWriter, r *http.Request, clientId string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// AdConnectorLatencyTest AD/LDAP Connector latency test
+// (GET /test)
+func (_ Unimplemented) AdConnectorLatencyTest(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -3294,6 +3343,20 @@ func (siw *ServerInterfaceWrapper) Discovery(w http.ResponseWriter, r *http.Requ
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.Discovery(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// AdHub operation middleware
+func (siw *ServerInterfaceWrapper) AdHub(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.AdHub(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -3984,6 +4047,58 @@ func (siw *ServerInterfaceWrapper) OidcLogoutPost(w http.ResponseWriter, r *http
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.OidcLogoutPost(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// AdTicketConfigure operation middleware
+func (siw *ServerInterfaceWrapper) AdTicketConfigure(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "ticket" -------------
+	var ticket string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "ticket", chi.URLParam(r, "ticket"), &ticket, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "ticket", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.AdTicketConfigure(w, r, ticket)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// AdTicketInfo operation middleware
+func (siw *ServerInterfaceWrapper) AdTicketInfo(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "ticket" -------------
+	var ticket string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "ticket", chi.URLParam(r, "ticket"), &ticket, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "ticket", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.AdTicketInfo(w, r, ticket)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -4795,6 +4910,20 @@ func (siw *ServerInterfaceWrapper) SamlpIdPLogoutPost(w http.ResponseWriter, r *
 	handler.ServeHTTP(w, r)
 }
 
+// AdConnectorLatencyTest operation middleware
+func (siw *ServerInterfaceWrapper) AdConnectorLatencyTest(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.AdConnectorLatencyTest(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // Userinfo operation middleware
 func (siw *ServerInterfaceWrapper) Userinfo(w http.ResponseWriter, r *http.Request) {
 
@@ -5299,6 +5428,18 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/samlp/{client_id}/logout", wrapper.SamlpIdPLogoutPost)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/p/ad/{ticket}/info", wrapper.AdTicketInfo)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/p/ad/{ticket}", wrapper.AdTicketConfigure)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/test", wrapper.AdConnectorLatencyTest)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/ad-hub", wrapper.AdHub)
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/wsfed", wrapper.WsfedSignIn)

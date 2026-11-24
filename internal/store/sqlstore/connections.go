@@ -168,7 +168,7 @@ func (r connections) Delete(ctx context.Context, tenantID, id string) error {
 		if _, err := tx.exec(ctx, `UPDATE tenants SET default_directory = '' WHERE id = ? AND default_directory = ?`, tenantID, name); err != nil {
 			return err
 		}
-		for _, table := range []string{"organization_connections", "federated_identities", "federated_tokens"} {
+		for _, table := range []string{"organization_connections", "federated_identities", "federated_tokens", "ad_provisionings", "ad_hub_sessions"} {
 			if _, err := tx.exec(ctx, `DELETE FROM `+table+` WHERE tenant_id = ? AND connection_id = ?`, tenantID, id); err != nil {
 				return err
 			}

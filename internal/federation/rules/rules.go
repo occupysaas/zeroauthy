@@ -60,7 +60,7 @@ const (
 
 // IsFederated reports whether strategy is one of the federated strategies.
 func IsFederated(strategy string) bool {
-	return strategy == Apple || strategy == WindowsLive || strategy == WAAD || strategy == Google || strategy == GitHub || strategy == OAuth2 || strategy == OIDC || strategy == Okta || strategy == SAMLP || strategy == ADFS || strategy == GoogleApps
+	return strategy == Apple || strategy == WindowsLive || strategy == WAAD || strategy == Google || strategy == GitHub || strategy == OAuth2 || strategy == OIDC || strategy == Okta || strategy == SAMLP || strategy == ADFS || strategy == GoogleApps || strategy == AD
 }
 
 // IsSocial reports whether identities of strategy are social (isSocial).
@@ -173,6 +173,8 @@ type Settings struct {
 	ADFS *ADFSSettings
 	// GoogleApps is set for the google-apps strategy (Plan 37c).
 	GoogleApps *GoogleAppsSettings
+	// AD is set for the ad strategy (Plan 38a).
+	AD *ADSettings
 }
 
 // ClientSecret returns the plaintext options.client_secret, and whether it is
@@ -193,6 +195,9 @@ func Parse(in Input) (Settings, []error) {
 	}
 	if in.Strategy == ADFS {
 		return parseADFS(in)
+	}
+	if in.Strategy == AD {
+		return parseAD(in)
 	}
 	var errs []error
 	fail := func(format string, args ...any) { errs = append(errs, fmt.Errorf(format, args...)) }

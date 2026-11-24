@@ -48,6 +48,7 @@ var Suites = map[string]func(t *testing.T, newStore Factory){
 	"SelfService":                 testSelfService,
 	"DirectorySync":               testDirectorySync,
 	"SAMLReplay":                  testSAMLReplay,
+	"ADHub":                       testADHub,
 	"GlobalRevocationState":       testGlobalRevocationState,
 	"Clients":                     testClients,
 	"ResourceServers":             testResourceServers,
@@ -96,7 +97,7 @@ var suiteOrder = []string{
 	"PushedAuthRequests",
 	"RefreshTokens", "RefreshTokensII", "DPoP", "TokenQuotas", "PasswordResetTickets", "EmailVerificationTickets", "Tx",
 	"DeviceCodes", "Operators", "Jobs", "TenantsDelete", "EmptyLists",
-	"Email", "HostedLogin", "HostedTransition", "Federation", "ClientCredentials", "Actions", "ActionsII",
+	"Email", "HostedLogin", "HostedTransition", "Federation", "ClientCredentials", "Actions", "ActionsII", "ADHub",
 }
 
 // Areas groups the suites by the part of zeroauthy they back. Every suite in
@@ -107,7 +108,7 @@ var suiteOrder = []string{
 var Areas = map[string][]string{
 	"identity": {"MFA", "Phone", "WebAuthn", "Connections", "PasswordHistories", "Users", "UserDelete", "UserList",
 		"UserQueryMetadataTypes", "Sessions", "AuthTransactions", "PasswordResetTickets", "EmailVerificationTickets",
-		"HostedLogin", "HostedTransition", "Federation", "SessionExpirySnapshots", "SAMLSessionParticipants"},
+		"HostedLogin", "HostedTransition", "Federation", "SessionExpirySnapshots", "SAMLSessionParticipants", "ADHub"},
 	"oauth": {"Clients", "ResourceServers", "ClientGrants", "UserGrants", "SigningKeys", "CustomSigningKeys", "AuthCodes",
 		"PushedAuthRequests", "RefreshTokens", "RefreshTokensII", "DPoP", "TokenQuotas", "DeviceCodes", "ClientCredentials",
 		"OIDCClientSettings", "GlobalRevocationState", "ClientAddons", "ClientAliases", "SAMLReplay"},

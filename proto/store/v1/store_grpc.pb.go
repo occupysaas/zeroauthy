@@ -86,6 +86,8 @@ const (
 	StoreService_WSFedCapabilities_FullMethodName                             = "/zeroauthy.store.v1.StoreService/WSFedCapabilities"
 	StoreService_DirectoryCapabilities_FullMethodName                         = "/zeroauthy.store.v1.StoreService/DirectoryCapabilities"
 	StoreService_DirectoryCall_FullMethodName                                 = "/zeroauthy.store.v1.StoreService/DirectoryCall"
+	StoreService_ADHubCapabilities_FullMethodName                             = "/zeroauthy.store.v1.StoreService/ADHubCapabilities"
+	StoreService_ADHubCall_FullMethodName                                     = "/zeroauthy.store.v1.StoreService/ADHubCall"
 	StoreService_SAMLSessionParticipant_FullMethodName                        = "/zeroauthy.store.v1.StoreService/SAMLSessionParticipant"
 	StoreService_SAMLReplayUse_FullMethodName                                 = "/zeroauthy.store.v1.StoreService/SAMLReplayUse"
 	StoreService_SAMLReplayPurge_FullMethodName                               = "/zeroauthy.store.v1.StoreService/SAMLReplayPurge"
@@ -627,6 +629,11 @@ type StoreServiceClient interface {
 	// and args/result are the JSON of its parameters and results (see
 	// internal/store/grpcstore/directory.go).
 	DirectoryCall(ctx context.Context, in *DirectoryCallRequest, opts ...grpc.CallOption) (*DirectoryCallResult, error)
+	// ad_hub.v1 (Plan 38a): AD/LDAP provisioning and connector sessions.
+	// ADHubCall invokes one store.ADHubStore method: method is its Go name and
+	// args/result are JSON (see internal/store/grpcstore/adhub.go).
+	ADHubCapabilities(ctx context.Context, in *PingRequest, opts ...grpc.CallOption) (*EventsCapabilitiesResult, error)
+	ADHubCall(ctx context.Context, in *ADHubCallRequest, opts ...grpc.CallOption) (*ADHubCallResult, error)
 	SAMLSessionParticipant(ctx context.Context, in *SAMLParticipantWrite, opts ...grpc.CallOption) (*Result, error)
 	SAMLReplayUse(ctx context.Context, in *GlobalRevocationJTIRequest, opts ...grpc.CallOption) (*Result, error)
 	SAMLReplayPurge(ctx context.Context, in *ClientCredentialsPurgeRequest, opts ...grpc.CallOption) (*CountResult, error)
@@ -1737,6 +1744,26 @@ func (c *storeServiceClient) DirectoryCall(ctx context.Context, in *DirectoryCal
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(DirectoryCallResult)
 	err := c.cc.Invoke(ctx, StoreService_DirectoryCall_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) ADHubCapabilities(ctx context.Context, in *PingRequest, opts ...grpc.CallOption) (*EventsCapabilitiesResult, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(EventsCapabilitiesResult)
+	err := c.cc.Invoke(ctx, StoreService_ADHubCapabilities_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) ADHubCall(ctx context.Context, in *ADHubCallRequest, opts ...grpc.CallOption) (*ADHubCallResult, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ADHubCallResult)
+	err := c.cc.Invoke(ctx, StoreService_ADHubCall_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -5912,6 +5939,11 @@ type StoreServiceServer interface {
 	// and args/result are the JSON of its parameters and results (see
 	// internal/store/grpcstore/directory.go).
 	DirectoryCall(context.Context, *DirectoryCallRequest) (*DirectoryCallResult, error)
+	// ad_hub.v1 (Plan 38a): AD/LDAP provisioning and connector sessions.
+	// ADHubCall invokes one store.ADHubStore method: method is its Go name and
+	// args/result are JSON (see internal/store/grpcstore/adhub.go).
+	ADHubCapabilities(context.Context, *PingRequest) (*EventsCapabilitiesResult, error)
+	ADHubCall(context.Context, *ADHubCallRequest) (*ADHubCallResult, error)
 	SAMLSessionParticipant(context.Context, *SAMLParticipantWrite) (*Result, error)
 	SAMLReplayUse(context.Context, *GlobalRevocationJTIRequest) (*Result, error)
 	SAMLReplayPurge(context.Context, *ClientCredentialsPurgeRequest) (*CountResult, error)
@@ -6558,6 +6590,12 @@ func (UnimplementedStoreServiceServer) DirectoryCapabilities(context.Context, *P
 }
 func (UnimplementedStoreServiceServer) DirectoryCall(context.Context, *DirectoryCallRequest) (*DirectoryCallResult, error) {
 	return nil, status.Error(codes.Unimplemented, "method DirectoryCall not implemented")
+}
+func (UnimplementedStoreServiceServer) ADHubCapabilities(context.Context, *PingRequest) (*EventsCapabilitiesResult, error) {
+	return nil, status.Error(codes.Unimplemented, "method ADHubCapabilities not implemented")
+}
+func (UnimplementedStoreServiceServer) ADHubCall(context.Context, *ADHubCallRequest) (*ADHubCallResult, error) {
+	return nil, status.Error(codes.Unimplemented, "method ADHubCall not implemented")
 }
 func (UnimplementedStoreServiceServer) SAMLSessionParticipant(context.Context, *SAMLParticipantWrite) (*Result, error) {
 	return nil, status.Error(codes.Unimplemented, "method SAMLSessionParticipant not implemented")
@@ -8985,6 +9023,42 @@ func _StoreService_DirectoryCall_Handler(srv interface{}, ctx context.Context, d
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(StoreServiceServer).DirectoryCall(ctx, req.(*DirectoryCallRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_ADHubCapabilities_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PingRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).ADHubCapabilities(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_ADHubCapabilities_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).ADHubCapabilities(ctx, req.(*PingRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_ADHubCall_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ADHubCallRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).ADHubCall(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_ADHubCall_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).ADHubCall(ctx, req.(*ADHubCallRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -16456,6 +16530,14 @@ var StoreService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "DirectoryCall",
 			Handler:    _StoreService_DirectoryCall_Handler,
+		},
+		{
+			MethodName: "ADHubCapabilities",
+			Handler:    _StoreService_ADHubCapabilities_Handler,
+		},
+		{
+			MethodName: "ADHubCall",
+			Handler:    _StoreService_ADHubCall_Handler,
 		},
 		{
 			MethodName: "SAMLSessionParticipant",

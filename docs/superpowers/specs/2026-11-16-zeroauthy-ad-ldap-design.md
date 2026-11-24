@@ -1,6 +1,6 @@
 # Plan 38a — AD/LDAP connections through Auth0's AD/LDAP Connector protocol
 
-**Date:** 2026-11-16. **Status:** design; not implemented; the protocol
+**Date:** 2026-11-16. **Status:** maintainer rulings 2026-11-22 (connector protocol; E2E with the pinned connector and its mock LDAP server; internal HTTPS forwarding); implemented 2026-11-23, see the [implementation record](../2026-11-16-plan-38a-implementation-record.md) (D-0160). Originally: the protocol
 choice (§9.1) needs a maintainer ruling before Task 2.
 
 **Roadmap entry:** [management roadmap, Plan 38](2026-10-19-zeroauthy-management-roadmap-design.md)

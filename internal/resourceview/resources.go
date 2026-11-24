@@ -112,6 +112,10 @@ func Connection(spec *connrules.Spec, id string, withClients bool) (map[string]a
 		// write-only: never returned, not even as placeholders.
 		if opts, ok := m["options"].(map[string]any); ok {
 			for _, k := range federatedHiddenOptions {
+				// ad connections keep brute_force_protection (Plan 38a).
+				if k == "brute_force_protection" && spec.Strategy == store.StrategyAD {
+					continue
+				}
 				delete(opts, k)
 			}
 		}

@@ -903,3 +903,25 @@ Recorded under [D-0150](../compat/decisions.md); observe on a live tenant when o
   still refused (Q7); the assistant has no Workspace step yet.
 - **Q15** Checkpoint cursors of group lists (zeroauthy: opaque offsets; an
   insert or delete between pages can shift a later page by one).
+
+## Plan 38a observation points
+
+Recorded under [D-0160](../compat/decisions.md); observe on a live tenant when one is available.
+
+- **D38-1** Ticket URL path (`/p/ad/{ticket}` assumed).
+- **D38-2** `signingKey` in the registration response (the connector reads it; zeroauthy always sends one).
+- **D38-3** AD user ID format (`ad|{connection}|{id}` assumed).
+- **D38-4** Groups mapping (profile `groups`; directory groups after Plan 37c).
+- **D38-5** Auth0's credential cache behind `disable_cache` (zeroauthy has none, LR38a-1).
+- **D38-6** Auth0's request timeout (zeroauthy 10 s).
+- **D38-7** Kerberos redirect details (parameters, host restrictions).
+- **D38-8** Ticket information fields beyond what the connector reads, and Auth0's realm name.
+- **D38-9** When Auth0 sends `search_users` (zeroauthy: never during login).
+- **D38-10** Log event types Auth0 records for AD failures.
+- **D38-11** Forwarding alternative through the store or a job queue.
+- **D38-12** Several connectors per connection (two certificates kept, LR38a-5).
+- **Follow-ups (Plan 38a):** `groups` as a root attribute
+  and directory groups (Plan 37c) from the connector's groups (D38-4); a
+  console view of `list_groups`; ticket rotation without recreating the
+  connection; Kerberos on custom domains (the connector accepts one
+  `postTokenUrl`, LR38a-10).

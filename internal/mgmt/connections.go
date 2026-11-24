@@ -82,7 +82,7 @@ func (h *Handlers) GetConnections(w http.ResponseWriter, r *http.Request, _ mgmt
 		Fail(w, internalError(h, r, "list connections", err))
 		return
 	}
-	out, err := h.connectionViews(got, fields, include)
+	out, err := h.connectionViews(r, got, fields, include)
 	if err != nil {
 		Fail(w, internalError(h, r, "list connections", err))
 		return
@@ -129,7 +129,7 @@ func (h *Handlers) checkpointConnections(w http.ResponseWriter, r *http.Request,
 		last := all[take-1]
 		out["next"] = encodeConnectionCursor(connectionCursor{Name: strings.ToLower(last.Name), ID: last.ID})
 	}
-	views, err := h.connectionViews(all, fields, include)
+	views, err := h.connectionViews(r, all, fields, include)
 	if err != nil {
 		Fail(w, internalError(h, r, "list connections", err))
 		return
@@ -197,7 +197,7 @@ func (h *Handlers) GetConnection(w http.ResponseWriter, r *http.Request, id stri
 		Fail(w, internalError(h, r, "get connection", err))
 		return
 	}
-	views, err := h.connectionViews([]*store.Connection{c}, fields, include)
+	views, err := h.connectionViews(r, []*store.Connection{c}, fields, include)
 	if err != nil {
 		Fail(w, internalError(h, r, "get connection", err))
 		return
@@ -206,10 +206,10 @@ func (h *Handlers) GetConnection(w http.ResponseWriter, r *http.Request, id stri
 }
 
 // connectionViews renders connections in Auth0's shape, projected by fields.
-func (h *Handlers) connectionViews(cs []*store.Connection, fields []string, include bool) ([]map[string]any, error) {
+func (h *Handlers) connectionViews(r *http.Request, cs []*store.Connection, fields []string, include bool) ([]map[string]any, error) {
 	out := make([]map[string]any, len(cs))
 	for i, c := range cs {
-		v, err := h.connectionView(c, false)
+		v, err := h.connectionView(r, c, false)
 		if err != nil {
 			return nil, err
 		}
@@ -221,7 +221,7 @@ func (h *Handlers) connectionViews(cs []*store.Connection, fields []string, incl
 // connectionView is c in Auth0's shape. options.configuration holds one
 // opaque blob per stored value, never the plaintext. enabled_clients is
 // included for create only.
-func (h *Handlers) connectionView(c *store.Connection, withClients bool) (map[string]any, error) {
+func (h *Handlers) connectionView(r *http.Request, c *store.Connection, withClients bool) (map[string]any, error) {
 	spec := connrules.FromConnection(c)
 	// Passwordless credentials share the sealed map but are write-only (P17).
 	if len(c.ConfigurationSealed) > 0 && !spec.Passwordless() {
@@ -239,7 +239,23 @@ func (h *Handlers) connectionView(c *store.Connection, withClients bool) (map[st
 		}
 		spec.Options.Configuration = blobs
 	}
-	return resourceview.Connection(spec, c.ID, withClients)
+	view, err := resourceview.Connection(spec, c.ID, withClients)
+	if err == nil && c.Strategy == store.StrategyAD && h.AD != nil {
+		// provisioning_ticket_url (Plan 38a): on the tenant's canonical host.
+		tn := resolved(r)
+		host := tn.CanonicalHost
+		if host == "" && len(tn.Domains) > 0 {
+			host = tn.Domains[0]
+		}
+		u, e := h.AD.TicketURL(r.Context(), host, c)
+		if e != nil && !errors.Is(e, store.ErrNotFound) {
+			return nil, e
+		}
+		if u != "" {
+			view["provisioning_ticket_url"] = u
+		}
+	}
+	return view, err
 }
 
 // applyFederated finishes a federated write (sealing, immutable bindings,
@@ -265,6 +281,9 @@ func readConnectionBody(body map[string]json.RawMessage, create bool) (*connrule
 	if create {
 		allowed = append([]string{"name", "strategy", "enabled_clients"}, settingsKeys...)
 	}
+	// provisioning_ticket_url is read-only (Plan 38a); exports carry it back
+	// (the Deploy CLI sends what it read), so it is ignored.
+	delete(body, "provisioning_ticket_url")
 	set := map[string]bool{}
 	for _, k := range slices.Sorted(maps.Keys(body)) {
 		if !slices.Contains(allowed, k) {
@@ -436,6 +455,17 @@ func (h *Handlers) CreateConnection(w http.ResponseWriter, r *http.Request) {
 		}
 		prepareADFS(spec, derived)
 	}
+	if spec.Strategy == rules.AD {
+		if h.AD == nil {
+			Fail(w, errADUnavailable)
+			return
+		}
+		if _, err := store.ADHub(r.Context(), h.Store); err != nil {
+			Fail(w, errADUnavailable)
+			return
+		}
+		prepareAD(spec, nil)
+	}
 	if err := normalizeConnection(spec); err != nil {
 		Fail(w, err)
 		return
@@ -462,15 +492,19 @@ func (h *Handlers) CreateConnection(w http.ResponseWriter, r *http.Request) {
 		}
 		if err := tx.Connections().Create(r.Context(), c); errors.Is(err, store.ErrConflict) {
 			return errConnectionConflict
-		} else {
+		} else if err != nil {
 			return err
 		}
+		if c.Strategy == store.StrategyAD {
+			return h.AD.Provision(r.Context(), tx, c)
+		}
+		return nil
 	})
 	if err != nil {
 		h.failTx(w, r, "create connection", err)
 		return
 	}
-	view, err := h.connectionView(c, true)
+	view, err := h.connectionView(r, c, true)
 	if err != nil {
 		Fail(w, internalError(h, r, "create connection", err))
 		return
@@ -595,6 +629,9 @@ func (h *Handlers) UpdateConnection(w http.ResponseWriter, r *http.Request, id s
 			}
 			applySAMLMetadata(spec, samlDerived)
 		}
+		if set["options"] {
+			prepareAD(spec, c.Extra)
+		}
 		if set["options"] && spec.Strategy == rules.ADFS {
 			if server, _ := spec.Options.Extra["adfs_server"].(string); server != "" && adfsDerived == nil {
 				return badBody("options.adfs_server metadata could not be fetched")
@@ -640,7 +677,7 @@ func (h *Handlers) UpdateConnection(w http.ResponseWriter, r *http.Request, id s
 		h.failTx(w, r, "update connection", err)
 		return
 	}
-	view, err := h.connectionView(out, false)
+	view, err := h.connectionView(r, out, false)
 	if err != nil {
 		Fail(w, internalError(h, r, "update connection", err))
 		return
@@ -804,19 +841,36 @@ func (h *Handlers) UpdateConnectionClients(w http.ResponseWriter, r *http.Reques
 	w.WriteHeader(http.StatusNoContent)
 }
 
-// GetConnectionStatus becomes an online probe when AD/LDAP arrives. Every
-// current strategy is offline for this documented AD-only operation.
+// GetConnectionStatus answers 200 when an AD/LDAP Connector serves the ad
+// connection on any replica, and 404 "not connected to any node" otherwise
+// and for every other strategy (Plan 38a, the documented get_status).
 func (h *Handlers) GetConnectionStatus(w http.ResponseWriter, r *http.Request, id string) {
 	if !connectionID.MatchString(id) {
 		Fail(w, errBadConnectionID)
 		return
 	}
-	_, err := h.Store.Connections().Get(r.Context(), resolved(r).ID, id)
-	if err != nil && !errors.Is(err, store.ErrNotFound) {
-		Fail(w, err)
+	c, err := h.Store.Connections().Get(r.Context(), resolved(r).ID, id)
+	if errors.Is(err, store.ErrNotFound) {
+		Fail(w, errConnectionNotFound)
 		return
 	}
-	Fail(w, errConnectionNotFound)
+	if err != nil {
+		Fail(w, internalError(h, r, "connection status", err))
+		return
+	}
+	if c.Strategy == store.StrategyAD && h.AD != nil {
+		online, err := h.AD.Online(r.Context(), c)
+		if err != nil {
+			Fail(w, internalError(h, r, "connection status", err))
+			return
+		}
+		if online {
+			w.Header().Set("Cache-Control", "no-store")
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+	}
+	Fail(w, errNotConnected)
 }
 func (h *Handlers) DeleteConnectionUsersByEmail(w http.ResponseWriter, r *http.Request, id string, p mgmtapi.DeleteConnectionUsersByEmailParams) {
 	if !connectionID.MatchString(id) {

@@ -2,9 +2,9 @@ import type { Connection, SystemTenant } from '../../../api/client'
 
 // Classification and route support are distinct: historical social routes
 // must continue opening generic OIDC connections.
-export const federatedStrategies = ['google-oauth2', 'oauth2', 'oidc', 'windowslive', 'waad', 'apple', 'github', 'okta', 'samlp', 'adfs', 'google-apps'] as const
+export const federatedStrategies = ['google-oauth2', 'oauth2', 'oidc', 'windowslive', 'waad', 'apple', 'github', 'okta', 'samlp', 'adfs', 'google-apps', 'ad'] as const
 export const socialStrategies = ['google-oauth2', 'oauth2', 'windowslive', 'apple', 'github'] as const
-export const enterpriseStrategies = ['oidc', 'okta', 'waad', 'samlp', 'adfs', 'google-apps'] as const
+export const enterpriseStrategies = ['oidc', 'okta', 'waad', 'samlp', 'adfs', 'google-apps', 'ad'] as const
 export type FederatedStrategy = (typeof federatedStrategies)[number]
 export type SocialStrategy = (typeof socialStrategies)[number]
 export type EnterpriseStrategy = (typeof enterpriseStrategies)[number]

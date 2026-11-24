@@ -982,3 +982,57 @@ func TestSCIMGroupsContracts(t *testing.T) {
 		}
 	}
 }
+
+// TestADContracts pins Plan 38a's contract (D-0160): the ad connection
+// strategy and options, provisioning_ticket_url, and the AD/LDAP Connector
+// provisioning and hub routes.
+func TestADContracts(t *testing.T) {
+	m, err := openapi3.NewLoader().LoadFromData(ManagementYAML)
+	if err != nil {
+		t.Fatal(err)
+	}
+	strategies := m.Components.Schemas["ConnectionCreate"].Value.AllOf[1].Value.Properties["strategy"].Value.Enum
+	if !slices.Contains(strategies, any("ad")) {
+		t.Errorf("connection strategies %v lack ad", strategies)
+	}
+	ticket := m.Components.Schemas["Connection"].Value.Properties["provisioning_ticket_url"]
+	if ticket == nil || !ticket.Value.ReadOnly {
+		t.Error("Connection.provisioning_ticket_url missing or not read-only")
+	}
+	opts := m.Components.Schemas["ConnectionOptionsAD"]
+	if opts == nil {
+		t.Fatal("missing ConnectionOptionsAD")
+	}
+	for _, field := range []string{"tenant_domain", "domain_aliases", "ips", "kerberos", "certAuth", "disable_cache",
+		"disable_self_service_change_password", "brute_force_protection", "set_user_root_attributes", "icon_url",
+		"non_persistent_attrs", "upstream_params", "agentIP", "agentMode", "agentVersion", "signInEndpoint", "certs",
+		"thumbprints", "thumbprints_sha384"} {
+		if opts.Value.Properties[field] == nil {
+			t.Errorf("ConnectionOptionsAD missing %s", field)
+		}
+	}
+	for _, field := range []string{"agentIP", "agentMode", "agentVersion", "signInEndpoint", "certs", "thumbprints", "thumbprints_sha384"} {
+		if !opts.Value.Properties[field].Value.ReadOnly {
+			t.Errorf("ConnectionOptionsAD.%s must be read-only (managed by the connector)", field)
+		}
+	}
+	if m.Paths.Value("/api/v2/connections/{id}/status").Get == nil {
+		t.Error("GET /api/v2/connections/{id}/status missing")
+	}
+	a, err := openapi3.NewLoader().LoadFromData(AuthenticationYAML)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if item := a.Paths.Value("/p/ad/{ticket}/info"); item == nil || item.Get == nil {
+		t.Error("route GET /p/ad/{ticket}/info missing")
+	}
+	if item := a.Paths.Value("/p/ad/{ticket}"); item == nil || item.Post == nil {
+		t.Error("route POST /p/ad/{ticket} missing")
+	}
+	if item := a.Paths.Value("/ad-hub"); item == nil || item.Get == nil {
+		t.Error("route GET /ad-hub missing")
+	}
+	if item := a.Paths.Value("/test"); item == nil || item.Get == nil {
+		t.Error("route GET /test (the connector's latency test) missing")
+	}
+}

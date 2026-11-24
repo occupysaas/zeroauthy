@@ -53,6 +53,8 @@ const (
 // Handlers serves the Management API and the system API.
 type Handlers struct {
 	Logout *logout.Service
+	// AD serves ad connections (Plan 38a); nil refuses creating them.
+	AD ADConnections
 	// LogsConfig carries deployment-wide stream transport policy.
 	LogsConfig     logs.Config
 	EventsConfig   events.Config

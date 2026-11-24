@@ -1580,6 +1580,7 @@ func (e ClientUpdateThirdPartySecurityMode) Valid() bool {
 
 // Defines values for ConnectionCreateStrategy.
 const (
+	ConnectionCreateStrategyAd           ConnectionCreateStrategy = "ad"
 	ConnectionCreateStrategyAdfs         ConnectionCreateStrategy = "adfs"
 	ConnectionCreateStrategyApple        ConnectionCreateStrategy = "apple"
 	ConnectionCreateStrategyAuth0        ConnectionCreateStrategy = "auth0"
@@ -1599,6 +1600,8 @@ const (
 // Valid indicates whether the value is a known member of the ConnectionCreateStrategy enum.
 func (e ConnectionCreateStrategy) Valid() bool {
 	switch e {
+	case ConnectionCreateStrategyAd:
+		return true
 	case ConnectionCreateStrategyAdfs:
 		return true
 	case ConnectionCreateStrategyApple:
@@ -1644,6 +1647,27 @@ func (e ConnectionKeyKeyUse) Valid() bool {
 	case ConnectionKeyKeyUseEncryption:
 		return true
 	case ConnectionKeyKeyUseSigning:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ConnectionOptionsADSetUserRootAttributes.
+const (
+	ConnectionOptionsADSetUserRootAttributesNeverOnLogin ConnectionOptionsADSetUserRootAttributes = "never_on_login"
+	ConnectionOptionsADSetUserRootAttributesOnEachLogin  ConnectionOptionsADSetUserRootAttributes = "on_each_login"
+	ConnectionOptionsADSetUserRootAttributesOnFirstLogin ConnectionOptionsADSetUserRootAttributes = "on_first_login"
+)
+
+// Valid indicates whether the value is a known member of the ConnectionOptionsADSetUserRootAttributes enum.
+func (e ConnectionOptionsADSetUserRootAttributes) Valid() bool {
+	switch e {
+	case ConnectionOptionsADSetUserRootAttributesNeverOnLogin:
+		return true
+	case ConnectionOptionsADSetUserRootAttributesOnEachLogin:
+		return true
+	case ConnectionOptionsADSetUserRootAttributesOnFirstLogin:
 		return true
 	default:
 		return false
@@ -9843,9 +9867,12 @@ type Connection struct {
 	Metadata           *map[string]string      `json:"metadata,omitempty"`
 	Name               *string                 `json:"name,omitempty"`
 	Options            *map[string]interface{} `json:"options,omitempty"`
-	Realms             *[]string               `json:"realms,omitempty"`
-	ShowAsButton       *bool                   `json:"show_as_button,omitempty"`
-	Strategy           *string                 `json:"strategy,omitempty"`
+
+	// ProvisioningTicketUrl `ad` connections only (Plan 38a): `https://{tenant host}/p/ad/{ticket}`, the URL the AD/LDAP Connector is installed with. Treat it as a secret: whoever holds it can register a connector.
+	ProvisioningTicketUrl *string   `json:"provisioning_ticket_url,omitempty"`
+	Realms                *[]string `json:"realms,omitempty"`
+	ShowAsButton          *bool     `json:"show_as_button,omitempty"`
+	Strategy              *string   `json:"strategy,omitempty"`
 }
 
 // ConnectionCheckpointPage A page of connections from checkpoint paging.
@@ -9897,11 +9924,11 @@ type ConnectionCreate struct {
 	Realms       *[]string               `json:"realms,omitempty"`
 	ShowAsButton *bool                   `json:"show_as_button,omitempty"`
 
-	// Strategy `samlp` follows ConnectionOptionsSAML (Plan 37a). `adfs` follows ConnectionOptionsADFS (Plan 37b). `google-apps` follows ConnectionOptionsGoogleApps (Plan 37c). `email` and `sms` are passwordless connections whose name must equal the strategy; options follow ConnectionOptionsEmail and ConnectionOptionsSMS (Plan 34). `apple` follows ConnectionOptionsApple; web/native login is active (D-0170). `github` follows ConnectionOptionsGitHub (Plan 39c).
+	// Strategy `samlp` follows ConnectionOptionsSAML (Plan 37a). `adfs` follows ConnectionOptionsADFS (Plan 37b). `google-apps` follows ConnectionOptionsGoogleApps (Plan 37c). `ad` follows ConnectionOptionsAD (Plan 38a): users sign in through Auth0's AD/LDAP Connector, provisioned with the connection's `provisioning_ticket_url`. `email` and `sms` are passwordless connections whose name must equal the strategy; options follow ConnectionOptionsEmail and ConnectionOptionsSMS (Plan 34). `apple` follows ConnectionOptionsApple; web/native login is active (D-0170). `github` follows ConnectionOptionsGitHub (Plan 39c).
 	Strategy ConnectionCreateStrategy `json:"strategy"`
 }
 
-// ConnectionCreateStrategy `samlp` follows ConnectionOptionsSAML (Plan 37a). `adfs` follows ConnectionOptionsADFS (Plan 37b). `google-apps` follows ConnectionOptionsGoogleApps (Plan 37c). `email` and `sms` are passwordless connections whose name must equal the strategy; options follow ConnectionOptionsEmail and ConnectionOptionsSMS (Plan 34). `apple` follows ConnectionOptionsApple; web/native login is active (D-0170). `github` follows ConnectionOptionsGitHub (Plan 39c).
+// ConnectionCreateStrategy `samlp` follows ConnectionOptionsSAML (Plan 37a). `adfs` follows ConnectionOptionsADFS (Plan 37b). `google-apps` follows ConnectionOptionsGoogleApps (Plan 37c). `ad` follows ConnectionOptionsAD (Plan 38a): users sign in through Auth0's AD/LDAP Connector, provisioned with the connection's `provisioning_ticket_url`. `email` and `sms` are passwordless connections whose name must equal the strategy; options follow ConnectionOptionsEmail and ConnectionOptionsSMS (Plan 34). `apple` follows ConnectionOptionsApple; web/native login is active (D-0170). `github` follows ConnectionOptionsGitHub (Plan 39c).
 type ConnectionCreateStrategy string
 
 // ConnectionDeleted defines model for ConnectionDeleted.
@@ -9930,6 +9957,76 @@ type ConnectionKeyKeyUse string
 
 // ConnectionNamePrefixTemplate Connection name prefix template. (Auth0 states the rule with lookaheads: no leading hyphen and no double hyphen; this is the equivalent RE2 pattern.)
 type ConnectionNamePrefixTemplate = string
+
+// ConnectionOptionsAD AD/LDAP connection (`ad`, Plan 38a, D-0160): users authenticate
+// against Active Directory or another LDAP directory through Auth0's
+// open-source AD/LDAP Connector, which runs inside the customer network,
+// is installed with the connection's `provisioning_ticket_url` and dials
+// out to zeroauthy over a WebSocket. `agentIP`, `agentMode`,
+// `agentVersion`, `signInEndpoint`, `certs`, `thumbprints` and
+// `thumbprints_sha384` are managed by the connector: they are set when
+// the connector provisions itself, returned on reads, and values sent
+// through the Management API are ignored (so exports round-trip).
+// `kerberos` with `ips` sends browsers from those ranges to the
+// connector's Windows integrated sign-in (`signInEndpoint`).
+// `upstream_params` is stored only. zeroauthy never caches credentials
+// (LR38a-1); `disable_cache` is stored and returned.
+type ConnectionOptionsAD struct {
+	// AgentIP Address the connector last connected from.
+	AgentIP *string `json:"agentIP,omitempty"`
+
+	// AgentMode Sent by the connector when it provisions itself.
+	AgentMode *bool `json:"agentMode,omitempty"`
+
+	// AgentVersion Version of the connector.
+	AgentVersion *string `json:"agentVersion,omitempty"`
+
+	// BruteForceProtection Count failed logins per connection and username.
+	BruteForceProtection *bool `json:"brute_force_protection,omitempty"`
+
+	// CertAuth Client certificate authentication at the connector (stored and passed to the connector).
+	CertAuth *bool `json:"certAuth,omitempty"`
+
+	// Certs Certificates (base64 DER) of the two most recently provisioned connectors.
+	Certs *[]string `json:"certs,omitempty"`
+
+	// DisableCache Stored and returned; zeroauthy keeps no credential cache.
+	DisableCache *bool `json:"disable_cache,omitempty"`
+
+	// DisableSelfServiceChangePassword Hides the forgot-password link for this connection.
+	DisableSelfServiceChangePassword *bool `json:"disable_self_service_change_password,omitempty"`
+
+	// DomainAliases Email domains for home realm discovery.
+	DomainAliases *[]string `json:"domain_aliases,omitempty"`
+	IconUrl       *string   `json:"icon_url,omitempty"`
+
+	// Ips IP addresses or CIDR ranges of the corporate network (Kerberos).
+	Ips *[]string `json:"ips,omitempty"`
+
+	// Kerberos Windows integrated authentication for requests from `ips`.
+	Kerberos              *bool                                     `json:"kerberos,omitempty"`
+	NonPersistentAttrs    *[]string                                 `json:"non_persistent_attrs,omitempty"`
+	SetUserRootAttributes *ConnectionOptionsADSetUserRootAttributes `json:"set_user_root_attributes,omitempty"`
+
+	// SignInEndpoint The connector's WS-Federation sign-in endpoint (`{SERVER_URL}/wsfed`).
+	SignInEndpoint *string `json:"signInEndpoint,omitempty"`
+
+	// TenantDomain Primary AD domain; home realm discovery and the connector's domain.
+	TenantDomain *string `json:"tenant_domain,omitempty"`
+
+	// Thumbprints SHA-1 thumbprints of `certs`.
+	Thumbprints *[]string `json:"thumbprints,omitempty"`
+
+	// ThumbprintsSha384 SHA-384 thumbprints of `certs`.
+	ThumbprintsSha384 *[]string `json:"thumbprints_sha384,omitempty"`
+
+	// UpstreamParams Stored only.
+	UpstreamParams       *map[string]interface{} `json:"upstream_params,omitempty"`
+	AdditionalProperties map[string]interface{}  `json:"-"`
+}
+
+// ConnectionOptionsADSetUserRootAttributes defines model for ConnectionOptionsAD.SetUserRootAttributes.
+type ConnectionOptionsADSetUserRootAttributes string
 
 // ConnectionOptionsADFS ADFS connection (`adfs`, Plan 37b, D-0140): zeroauthy is a
 // WS-Federation relying party of an ADFS server or any WS-Fed identity
@@ -18498,6 +18595,344 @@ func (a ClientMobileIOS) MarshalJSON() ([]byte, error) {
 		object["team_id"], err = json.Marshal(a.TeamId)
 		if err != nil {
 			return nil, fmt.Errorf("error marshaling 'team_id': %w", err)
+		}
+	}
+
+	for fieldName, field := range a.AdditionalProperties {
+		object[fieldName], err = json.Marshal(field)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling '%s': %w", fieldName, err)
+		}
+	}
+	return json.Marshal(object)
+}
+
+// Getter for additional properties for ConnectionOptionsAD. Returns the specified
+// element and whether it was found
+func (a ConnectionOptionsAD) Get(fieldName string) (value interface{}, found bool) {
+	if a.AdditionalProperties != nil {
+		value, found = a.AdditionalProperties[fieldName]
+	}
+	return
+}
+
+// Setter for additional properties for ConnectionOptionsAD
+func (a *ConnectionOptionsAD) Set(fieldName string, value interface{}) {
+	if a.AdditionalProperties == nil {
+		a.AdditionalProperties = make(map[string]interface{})
+	}
+	a.AdditionalProperties[fieldName] = value
+}
+
+// Override default JSON handling for ConnectionOptionsAD to handle AdditionalProperties
+func (a *ConnectionOptionsAD) UnmarshalJSON(b []byte) error {
+	object := make(map[string]json.RawMessage)
+	err := json.Unmarshal(b, &object)
+	if err != nil {
+		return err
+	}
+
+	if raw, found := object["agentIP"]; found {
+		err = json.Unmarshal(raw, &a.AgentIP)
+		if err != nil {
+			return fmt.Errorf("error reading 'agentIP': %w", err)
+		}
+		delete(object, "agentIP")
+	}
+
+	if raw, found := object["agentMode"]; found {
+		err = json.Unmarshal(raw, &a.AgentMode)
+		if err != nil {
+			return fmt.Errorf("error reading 'agentMode': %w", err)
+		}
+		delete(object, "agentMode")
+	}
+
+	if raw, found := object["agentVersion"]; found {
+		err = json.Unmarshal(raw, &a.AgentVersion)
+		if err != nil {
+			return fmt.Errorf("error reading 'agentVersion': %w", err)
+		}
+		delete(object, "agentVersion")
+	}
+
+	if raw, found := object["brute_force_protection"]; found {
+		err = json.Unmarshal(raw, &a.BruteForceProtection)
+		if err != nil {
+			return fmt.Errorf("error reading 'brute_force_protection': %w", err)
+		}
+		delete(object, "brute_force_protection")
+	}
+
+	if raw, found := object["certAuth"]; found {
+		err = json.Unmarshal(raw, &a.CertAuth)
+		if err != nil {
+			return fmt.Errorf("error reading 'certAuth': %w", err)
+		}
+		delete(object, "certAuth")
+	}
+
+	if raw, found := object["certs"]; found {
+		err = json.Unmarshal(raw, &a.Certs)
+		if err != nil {
+			return fmt.Errorf("error reading 'certs': %w", err)
+		}
+		delete(object, "certs")
+	}
+
+	if raw, found := object["disable_cache"]; found {
+		err = json.Unmarshal(raw, &a.DisableCache)
+		if err != nil {
+			return fmt.Errorf("error reading 'disable_cache': %w", err)
+		}
+		delete(object, "disable_cache")
+	}
+
+	if raw, found := object["disable_self_service_change_password"]; found {
+		err = json.Unmarshal(raw, &a.DisableSelfServiceChangePassword)
+		if err != nil {
+			return fmt.Errorf("error reading 'disable_self_service_change_password': %w", err)
+		}
+		delete(object, "disable_self_service_change_password")
+	}
+
+	if raw, found := object["domain_aliases"]; found {
+		err = json.Unmarshal(raw, &a.DomainAliases)
+		if err != nil {
+			return fmt.Errorf("error reading 'domain_aliases': %w", err)
+		}
+		delete(object, "domain_aliases")
+	}
+
+	if raw, found := object["icon_url"]; found {
+		err = json.Unmarshal(raw, &a.IconUrl)
+		if err != nil {
+			return fmt.Errorf("error reading 'icon_url': %w", err)
+		}
+		delete(object, "icon_url")
+	}
+
+	if raw, found := object["ips"]; found {
+		err = json.Unmarshal(raw, &a.Ips)
+		if err != nil {
+			return fmt.Errorf("error reading 'ips': %w", err)
+		}
+		delete(object, "ips")
+	}
+
+	if raw, found := object["kerberos"]; found {
+		err = json.Unmarshal(raw, &a.Kerberos)
+		if err != nil {
+			return fmt.Errorf("error reading 'kerberos': %w", err)
+		}
+		delete(object, "kerberos")
+	}
+
+	if raw, found := object["non_persistent_attrs"]; found {
+		err = json.Unmarshal(raw, &a.NonPersistentAttrs)
+		if err != nil {
+			return fmt.Errorf("error reading 'non_persistent_attrs': %w", err)
+		}
+		delete(object, "non_persistent_attrs")
+	}
+
+	if raw, found := object["set_user_root_attributes"]; found {
+		err = json.Unmarshal(raw, &a.SetUserRootAttributes)
+		if err != nil {
+			return fmt.Errorf("error reading 'set_user_root_attributes': %w", err)
+		}
+		delete(object, "set_user_root_attributes")
+	}
+
+	if raw, found := object["signInEndpoint"]; found {
+		err = json.Unmarshal(raw, &a.SignInEndpoint)
+		if err != nil {
+			return fmt.Errorf("error reading 'signInEndpoint': %w", err)
+		}
+		delete(object, "signInEndpoint")
+	}
+
+	if raw, found := object["tenant_domain"]; found {
+		err = json.Unmarshal(raw, &a.TenantDomain)
+		if err != nil {
+			return fmt.Errorf("error reading 'tenant_domain': %w", err)
+		}
+		delete(object, "tenant_domain")
+	}
+
+	if raw, found := object["thumbprints"]; found {
+		err = json.Unmarshal(raw, &a.Thumbprints)
+		if err != nil {
+			return fmt.Errorf("error reading 'thumbprints': %w", err)
+		}
+		delete(object, "thumbprints")
+	}
+
+	if raw, found := object["thumbprints_sha384"]; found {
+		err = json.Unmarshal(raw, &a.ThumbprintsSha384)
+		if err != nil {
+			return fmt.Errorf("error reading 'thumbprints_sha384': %w", err)
+		}
+		delete(object, "thumbprints_sha384")
+	}
+
+	if raw, found := object["upstream_params"]; found {
+		err = json.Unmarshal(raw, &a.UpstreamParams)
+		if err != nil {
+			return fmt.Errorf("error reading 'upstream_params': %w", err)
+		}
+		delete(object, "upstream_params")
+	}
+
+	if len(object) != 0 {
+		a.AdditionalProperties = make(map[string]interface{})
+		for fieldName, fieldBuf := range object {
+			var fieldVal interface{}
+			err := json.Unmarshal(fieldBuf, &fieldVal)
+			if err != nil {
+				return fmt.Errorf("error unmarshaling field %s: %w", fieldName, err)
+			}
+			a.AdditionalProperties[fieldName] = fieldVal
+		}
+	}
+	return nil
+}
+
+// Override default JSON handling for ConnectionOptionsAD to handle AdditionalProperties
+func (a ConnectionOptionsAD) MarshalJSON() ([]byte, error) {
+	var err error
+	object := make(map[string]json.RawMessage)
+
+	if a.AgentIP != nil {
+		object["agentIP"], err = json.Marshal(a.AgentIP)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'agentIP': %w", err)
+		}
+	}
+
+	if a.AgentMode != nil {
+		object["agentMode"], err = json.Marshal(a.AgentMode)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'agentMode': %w", err)
+		}
+	}
+
+	if a.AgentVersion != nil {
+		object["agentVersion"], err = json.Marshal(a.AgentVersion)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'agentVersion': %w", err)
+		}
+	}
+
+	if a.BruteForceProtection != nil {
+		object["brute_force_protection"], err = json.Marshal(a.BruteForceProtection)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'brute_force_protection': %w", err)
+		}
+	}
+
+	if a.CertAuth != nil {
+		object["certAuth"], err = json.Marshal(a.CertAuth)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'certAuth': %w", err)
+		}
+	}
+
+	if a.Certs != nil {
+		object["certs"], err = json.Marshal(a.Certs)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'certs': %w", err)
+		}
+	}
+
+	if a.DisableCache != nil {
+		object["disable_cache"], err = json.Marshal(a.DisableCache)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'disable_cache': %w", err)
+		}
+	}
+
+	if a.DisableSelfServiceChangePassword != nil {
+		object["disable_self_service_change_password"], err = json.Marshal(a.DisableSelfServiceChangePassword)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'disable_self_service_change_password': %w", err)
+		}
+	}
+
+	if a.DomainAliases != nil {
+		object["domain_aliases"], err = json.Marshal(a.DomainAliases)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'domain_aliases': %w", err)
+		}
+	}
+
+	if a.IconUrl != nil {
+		object["icon_url"], err = json.Marshal(a.IconUrl)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'icon_url': %w", err)
+		}
+	}
+
+	if a.Ips != nil {
+		object["ips"], err = json.Marshal(a.Ips)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'ips': %w", err)
+		}
+	}
+
+	if a.Kerberos != nil {
+		object["kerberos"], err = json.Marshal(a.Kerberos)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'kerberos': %w", err)
+		}
+	}
+
+	if a.NonPersistentAttrs != nil {
+		object["non_persistent_attrs"], err = json.Marshal(a.NonPersistentAttrs)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'non_persistent_attrs': %w", err)
+		}
+	}
+
+	if a.SetUserRootAttributes != nil {
+		object["set_user_root_attributes"], err = json.Marshal(a.SetUserRootAttributes)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'set_user_root_attributes': %w", err)
+		}
+	}
+
+	if a.SignInEndpoint != nil {
+		object["signInEndpoint"], err = json.Marshal(a.SignInEndpoint)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'signInEndpoint': %w", err)
+		}
+	}
+
+	if a.TenantDomain != nil {
+		object["tenant_domain"], err = json.Marshal(a.TenantDomain)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'tenant_domain': %w", err)
+		}
+	}
+
+	if a.Thumbprints != nil {
+		object["thumbprints"], err = json.Marshal(a.Thumbprints)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'thumbprints': %w", err)
+		}
+	}
+
+	if a.ThumbprintsSha384 != nil {
+		object["thumbprints_sha384"], err = json.Marshal(a.ThumbprintsSha384)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'thumbprints_sha384': %w", err)
+		}
+	}
+
+	if a.UpstreamParams != nil {
+		object["upstream_params"], err = json.Marshal(a.UpstreamParams)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'upstream_params': %w", err)
 		}
 	}
 

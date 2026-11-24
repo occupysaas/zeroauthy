@@ -758,3 +758,27 @@ func TestDecoratorForwardsGlobalRevocation(t *testing.T) {
 		t.Fatal("decorator reports a supported capability as unavailable")
 	}
 }
+
+// The decorator forwards the AD/LDAP store (Plan 38a), also inside
+// transactions.
+func TestDecoratorForwardsADHub(t *testing.T) {
+	ctx := context.Background()
+	s := events.Wrap(memory.New(), events.Config{})
+	err := s.WithTx(ctx, func(tx store.Store) error {
+		repo, err := store.ADHub(ctx, tx)
+		if err != nil {
+			t.Fatalf("%T hides ADHubStore: %v", tx, err)
+		}
+		return repo.CreateADProvisioning(ctx, &store.ADProvisioning{TenantID: "t", ConnectionID: "c", TicketHash: "h"})
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	repo, err := store.ADHub(ctx, s)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if p, err := repo.FindADProvisioning(ctx, "t", "h"); err != nil || p.ConnectionID != "c" {
+		t.Fatalf("find through the decorator: %v %v", p, err)
+	}
+}

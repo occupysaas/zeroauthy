@@ -14,6 +14,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/clientrules"
 	"github.com/zeroauthy/zeroauthy/internal/connrules"
 	"github.com/zeroauthy/zeroauthy/internal/devicecode"
+	"github.com/zeroauthy/zeroauthy/internal/federation/rules"
 	"github.com/zeroauthy/zeroauthy/internal/i18n"
 	"github.com/zeroauthy/zeroauthy/internal/identity"
 	"github.com/zeroauthy/zeroauthy/internal/quotarules"
@@ -386,6 +387,12 @@ func (t *Tenant) validate() []error {
 			fail("connection %q: options is only for the google-oauth2, oauth2, oidc, windowslive, waad, apple and github strategies", c.Name)
 		}
 
+		if spec.Strategy == rules.AD && spec.Options.Extra != nil {
+			// Connector-managed options are never taken from a seed (LR38a-6).
+			for _, k := range rules.ADManaged {
+				delete(spec.Options.Extra, k)
+			}
+		}
 		for _, err := range connrules.Normalize(&spec) {
 			fail("connection %q: %v", c.Name, err)
 		}

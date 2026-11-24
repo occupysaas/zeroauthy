@@ -136,6 +136,11 @@ service StoreService {
   // and args/result are the JSON of its parameters and results (see
   // internal/store/grpcstore/directory.go).
   rpc DirectoryCall(DirectoryCallRequest) returns (DirectoryCallResult);
+  // ad_hub.v1 (Plan 38a): AD/LDAP provisioning and connector sessions.
+  // ADHubCall invokes one store.ADHubStore method: method is its Go name and
+  // args/result are JSON (see internal/store/grpcstore/adhub.go).
+  rpc ADHubCapabilities(PingRequest) returns (EventsCapabilitiesResult);
+  rpc ADHubCall(ADHubCallRequest) returns (ADHubCallResult);
   rpc SAMLSessionParticipant(SAMLParticipantWrite) returns (Result);
   rpc SAMLReplayUse(GlobalRevocationJTIRequest) returns (Result); // connection_id + jti = assertion ID
   rpc SAMLReplayPurge(ClientCredentialsPurgeRequest) returns (CountResult);
@@ -1923,6 +1928,19 @@ message DirectoryCallRequest {
 
 // DirectoryCallResult is a store.Directory method's outcome.
 message DirectoryCallResult {
+  Error error = 1;
+  bytes result = 2; // JSON of the method's results
+}
+
+// ADHubCallRequest invokes a store.ADHubStore method (ad_hub.v1, Plan 38a).
+message ADHubCallRequest {
+  string tx_id = 1;
+  string method = 2;
+  bytes args = 3; // JSON object of the method's parameters
+}
+
+// ADHubCallResult is a store.ADHubStore method's outcome.
+message ADHubCallResult {
   Error error = 1;
   bytes result = 2; // JSON of the method's results
 }

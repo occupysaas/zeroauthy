@@ -850,6 +850,14 @@ func (h *Handlers) UpdateUser(w http.ResponseWriter, r *http.Request, id string)
 		h.failTx(w, r, "update user", err)
 		return
 	}
+	if in.Password != nil {
+		// An ad user's password lives in the directory (Plan 38a).
+		if conn := h.adUserConnection(r, u, in.Connection); conn != nil {
+			eventConnection = conn
+			h.updateADPassword(w, r, u, conn, body, *in.Password, &changed)
+			return
+		}
+	}
 	conn, _, err := h.userConnection(r, u, in.Connection)
 	if err != nil {
 		Fail(w, err)

@@ -908,6 +908,17 @@ export class Api {
     return this.tenantRequest(t, 'GET', '/api/v2/connections/' + encodeURIComponent(id))
   }
 
+  /** Plan 38a: true while an AD/LDAP Connector serves the connection. */
+  async getConnectionStatus(t: SystemTenant, id: string): Promise<boolean> {
+    try {
+      await this.tenantRequest(t, 'GET', '/api/v2/connections/' + encodeURIComponent(id) + '/status')
+      return true
+    } catch (e) {
+      if (e instanceof ApiError && e.status === 404) return false
+      throw e
+    }
+  }
+
   getConnectionKeys(t: SystemTenant, id: string): Promise<ConnectionKey[]> {
     return this.tenantRequest(t, 'GET', '/api/v2/connections/' + encodeURIComponent(id) + '/keys')
   }

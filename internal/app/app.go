@@ -8,6 +8,7 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
+	"github.com/zeroauthy/zeroauthy/internal/adhub"
 	"log/slog"
 	"net"
 	"net/http"
@@ -410,6 +411,13 @@ func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.S
 	tenantEmail.Actions = engine
 	engine.InvitationEmail = tenantEmail
 	flows := &federation.FlowService{Service: federation.Service{Wrapper: wrapper}, Store: st, Providers: providers, Log: log}
+	adService := &adhub.Service{Store: st, Wrapper: wrapper, Log: log, TrustProxyHeaders: cfg.Server.TrustProxyHeaders}
+	adService.Hub = &adhub.Hub{Service: adService, ReplicaID: adhub.NewReplicaID(), ReplicaURL: cfg.Server.ReplicaURL}
+	replicaClient, err := adhub.ReplicaClient(cfg.Server.ReplicaCAFile)
+	if err != nil {
+		return nil, fmt.Errorf("server.replica_ca_file: %w", err)
+	}
+	adService.Hub.Forward = adService.Hub.ForwardOver(replicaClient)
 	dirSyncer := &dirsync.Syncer{Store: st, Wrapper: wrapper, Providers: providers, Log: log,
 		EndSessions: func(ctx context.Context, tx store.Store, tid, uid string) error {
 			return logoutService.WithStore(tx).EndUserSessions(ctx, tid, uid, logout.SessionRevoked)
@@ -462,6 +470,7 @@ func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.S
 			Wrapper:        wrapper,
 			Scripts:        &customdb.Client{Exec: runner, Wrapper: wrapper},
 			Federation:     flows,
+			AD:             adService,
 			Actions:        engine,
 			Phone:          phoneDispatcher,
 

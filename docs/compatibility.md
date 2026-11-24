@@ -25,7 +25,7 @@ Auth0 or Okta.
 | Google Workspace | `google-apps` connections bound to one Workspace (`hd`); directory provisioning of users and groups with administrator consent, on demand and every 40 minutes | [Guide](directory-provisioning.md) |
 | Enterprise login | Directory provisioning (Google Workspace) | Plan 37c phase C |
 | Enterprise login | OIDC/Okta front/back channel, mapping, PAR, JWE, connection keys and domain routing implemented; Entra Graph extras remain deferred | [Guide](enterprise-connections.md) |
-| Enterprise login | Active Directory / LDAP connector | Plan 38 |
+| Enterprise login | `ad` connections through Auth0's AD/LDAP Connector implemented (password login, Kerberos, password change, status, several replicas); a native LDAP bind and the hosted forgot-password flow for `ad` users are not | [Guide](ad-ldap.md) |
 | Social login | Providers beyond Apple, Google, Microsoft, GitHub and generic OAuth 2 / OIDC (Facebook, ...) | Plan 39b |
 | Social login | GitHub: OAuth app sign-in and token retrieval implemented; GitHub Enterprise, device flow and token refresh are not | [Guide](social-connections.md#github) |
 | Native social login | Google and Facebook exchanges (switches are stored only); Apple is implemented | Plan 39b |

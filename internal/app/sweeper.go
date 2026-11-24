@@ -171,6 +171,8 @@ func sweep(ctx context.Context, st store.Store, now time.Time, notifications ...
 			return purgeGlobalRevocationJTIs(ctx, st, before)
 		}, now},
 		{func(ctx context.Context, before time.Time) (int, error) { return purgeSAMLAssertions(ctx, st, before) }, now},
+		// AD/LDAP hub sessions of replicas that stopped (Plan 38a).
+		{func(ctx context.Context, before time.Time) (int, error) { return purgeADHubSessions(ctx, st, before) }, now.Add(-10 * time.Minute)},
 		{func(ctx context.Context, before time.Time) (int, error) {
 			n, err := st.Federation().DeleteExpired(ctx, before)
 			if errors.Is(err, store.ErrFederationUnavailable) {
@@ -242,6 +244,27 @@ func purgeSAMLAssertions(ctx context.Context, st store.Store, before time.Time) 
 		if errors.Is(err, store.ErrSAMLUnavailable) {
 			return total, nil
 		}
+		total += n
+		if err != nil || n < mfaPurgeBatch {
+			return total, err
+		}
+	}
+	return total, nil
+}
+
+// purgeADHubSessions removes AD/LDAP hub session rows no replica refreshes
+// any more (Plan 38a).
+func purgeADHubSessions(ctx context.Context, st store.Store, before time.Time) (int, error) {
+	repo, err := store.ADHub(ctx, st)
+	if errors.Is(err, store.ErrADHubUnavailable) {
+		return 0, nil
+	}
+	if err != nil {
+		return 0, err
+	}
+	total := 0
+	for range mfaPurgeBatches {
+		n, err := repo.PurgeADHubSessions(ctx, before, mfaPurgeBatch)
 		total += n
 		if err != nil || n < mfaPurgeBatch {
 			return total, err

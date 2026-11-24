@@ -3,6 +3,7 @@ package server
 
 import (
 	"context"
+	"github.com/zeroauthy/zeroauthy/internal/adhub"
 	"github.com/zeroauthy/zeroauthy/internal/samlidp"
 	"io/fs"
 	"log/slog"
@@ -113,6 +114,8 @@ type Deps struct {
 
 	// Federation runs social and OIDC login (Plan 24); nil offers none.
 	Federation *federation.FlowService
+	// AD serves ad connections (Plan 38a); nil leaves them unavailable.
+	AD *adhub.Service
 
 	// Actions runs post-login and credentials-exchange flows (Plan 27);
 	// nil runs none. Its effects are sealed with Wrapper.
@@ -163,6 +166,7 @@ type authAPI struct {
 	login  *login.Handlers
 
 	passwordless *passwordless.Handlers
+	ad           *adhub.Service
 }
 
 func (a authAPI) Discovery(w http.ResponseWriter, r *http.Request) { a.oidc.Discovery(w, r) }
@@ -252,6 +256,11 @@ func New(d Deps) http.Handler {
 	r := chi.NewRouter()
 	r.Use(middleware.RequestID, requestLog(d.Log), recoverer(d.Log))
 
+	// AD/LDAP Connector forwarding between replicas (Plan 38a) answers on
+	// any host; requests are authenticated per connection.
+	if d.AD != nil && d.AD.Hub != nil {
+		r.Post(adhub.ForwardPath, d.AD.Hub.ServeForward)
+	}
 	// Operational endpoints answer on any host.
 	r.Get("/healthz", func(w http.ResponseWriter, _ *http.Request) {
 		httpx.WriteJSON(w, http.StatusOK, map[string]string{"status": "ok"})
@@ -307,6 +316,7 @@ func New(d Deps) http.Handler {
 		Actions:           d.Actions,
 		Resets:            dbconnHandlers,
 		Federation:        d.Federation,
+		AD:                adAuthenticator(d.AD),
 		Verification:      verification,
 		Protection:        sharedProtection,
 		DeviceTxnThrottle: d.DeviceTxnThrottle, DeviceIPThrottle: d.DeviceIPThrottle, DeviceTenantThrottle: d.DeviceTenantThrottle,
@@ -355,6 +365,7 @@ func New(d Deps) http.Handler {
 		})
 		proofService := &dpop.Service{Store: d.Store, Wrapper: d.Wrapper}
 		authapi.HandlerWithOptions(authAPI{
+			ad:   d.AD,
 			oidc: &oidc.Handlers{UpstreamLogout: lg.UpstreamLogout, Wrapper: d.Wrapper, Compat: d.Compat, DPoP: proofService, Keys: d.Keys, Store: d.Store, Sessions: d.Sessions, Log: d.Log},
 			oauth: &oauth.Handlers{Compat: d.Compat, Logout: d.Logout,
 				DPoP:       proofService,
@@ -470,6 +481,7 @@ func New(d Deps) http.Handler {
 	}
 	mh := &mgmt.Handlers{
 		Logout:         d.Logout,
+		AD:             adConnections(d.AD),
 		SAMLMetadata:   samlMetadata,
 		LogsConfig:     d.LogsConfig,
 		EventsConfig:   d.EventsConfig,
@@ -542,7 +554,7 @@ func New(d Deps) http.Handler {
 		// registry, so liveness survives a store outage.
 		admitted := d.Domains.Middleware(r)
 		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-			if req.URL.Path == "/healthz" || req.URL.Path == "/readyz" {
+			if req.URL.Path == "/healthz" || req.URL.Path == "/readyz" || req.URL.Path == adhub.ForwardPath {
 				r.ServeHTTP(w, req)
 				return
 			}
@@ -633,4 +645,55 @@ func (a authAPI) WsfedMetadata(w http.ResponseWriter, r *http.Request) {
 }
 func (a authAPI) WsfedClientMetadata(w http.ResponseWriter, r *http.Request, clientID string) {
 	a.saml.WSFedMetadata(w, r, clientID)
+}
+
+// AD/LDAP Connector routes (Plan 38a). Until the handlers land these answer
+// 501 so the generated router compiles and the contract is routable.
+func adNotImplemented(w http.ResponseWriter) {
+	httpx.WriteError(w, http.StatusNotImplemented, "not_implemented", "AD/LDAP connections are not implemented yet")
+}
+
+// AdConnectorLatencyTest answers the connector's start-up latency test
+// (latency_test.js); without a 2xx the connector exits.
+func (authAPI) AdConnectorLatencyTest(w http.ResponseWriter, _ *http.Request) {
+	w.Header().Set("Cache-Control", "no-store")
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	_, _ = w.Write([]byte("OK"))
+}
+func (a authAPI) AdHub(w http.ResponseWriter, r *http.Request) {
+	if a.ad == nil || a.ad.Hub == nil {
+		adNotImplemented(w)
+		return
+	}
+	a.ad.Hub.ServeHTTP(w, r)
+}
+func (a authAPI) AdTicketInfo(w http.ResponseWriter, r *http.Request, ticket string) {
+	if a.ad == nil {
+		adNotImplemented(w)
+		return
+	}
+	a.ad.TicketInfo(w, r, ticket)
+}
+func (a authAPI) AdTicketConfigure(w http.ResponseWriter, r *http.Request, ticket string) {
+	if a.ad == nil {
+		adNotImplemented(w)
+		return
+	}
+	a.ad.TicketConfigure(w, r, ticket)
+}
+
+// adConnections keeps a nil service a nil interface.
+func adConnections(s *adhub.Service) mgmt.ADConnections {
+	if s == nil {
+		return nil
+	}
+	return s
+}
+
+// adAuthenticator keeps a nil service a nil interface.
+func adAuthenticator(s *adhub.Service) login.ADAuthenticator {
+	if s == nil {
+		return nil
+	}
+	return s
 }

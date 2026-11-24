@@ -143,6 +143,14 @@ type Server struct {
 	// Entries may also be comma-separated (one environment variable).
 	// Requires tls_self_signed.
 	TLSSelfSignedHosts []string `koanf:"tls_self_signed_hosts"`
+	// ReplicaURL is this replica's internal https:// base URL, reachable
+	// by the other replicas, which forward AD/LDAP Connector requests to the
+	// replica holding a connector's socket (Plan 38a). Leave it empty on a
+	// single replica. The listener must serve TLS on it.
+	ReplicaURL string `koanf:"replica_url"`
+	// ReplicaCAFile is a PEM bundle trusted for the other replicas'
+	// replica_url certificates; empty uses the system roots.
+	ReplicaCAFile string `koanf:"replica_ca_file"`
 }
 
 // SelfSignedHosts returns TLSSelfSignedHosts with comma-separated entries
@@ -654,6 +662,12 @@ func (c *Config) validate() error {
 	}
 	if c.Server.BaseDomain == "" && c.Server.SystemHost == "" {
 		errs = append(errs, errors.New("server.system_host is required when server.base_domain is empty (the console's host, e.g. system.localhost:8443)"))
+	}
+	if u := c.Server.ReplicaURL; u != "" {
+		parsed, err := url.Parse(u)
+		if err != nil || parsed.Scheme != "https" || parsed.Host == "" || parsed.User != nil || (parsed.Path != "" && parsed.Path != "/") || parsed.RawQuery != "" || parsed.Fragment != "" {
+			errs = append(errs, fmt.Errorf("server.replica_url %q must be an https:// URL without a path", u))
+		}
 	}
 	if h := c.Server.SystemHost; h != "" && (strings.ContainsAny(h, "/?#@ ") || strings.Contains(h, "://")) {
 		errs = append(errs, fmt.Errorf("server.system_host %q must be a host name with an optional port, not a URL", h))

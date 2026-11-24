@@ -73,6 +73,13 @@ func (h *Handlers) identifierPost(w http.ResponseWriter, r *http.Request, f *flo
 			return
 		}
 	}
+	if f.txn.Params["connection"] == "" {
+		// ad connections are found by domain too, and continue to the
+		// password stage (Plan 38a).
+		if conn := federation.MatchHomeRealm(identifier, h.adConnections(r, f)); conn != nil {
+			f.conn = conn
+		}
+	}
 	if f.conn == nil {
 		d := h.stageData(f, identifier)
 		d.Error = f.view.L.T(i18n.KeyErrNoConnection)
@@ -188,7 +195,7 @@ func (h *Handlers) homeRealmAvailable(r *http.Request, f *flow) bool {
 	if e != nil {
 		return false
 	}
-	for _, c := range conns {
+	for _, c := range append(conns, h.adConnections(r, f)...) {
 		cfg, e := federation.ParseConfig(*connrules.FromConnection(c))
 		if e == nil && len(cfg.DomainAliases) > 0 {
 			return true

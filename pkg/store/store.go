@@ -18,6 +18,10 @@ type (
 	SAMLAddonLogout                = store.SAMLAddonLogout
 	SAMLSupporter                  = store.SAMLSupporter
 	WSFedSupporter                 = store.WSFedSupporter
+	ADHubSupporter                 = store.ADHubSupporter
+	ADHubStore                     = store.ADHubStore
+	ADProvisioning                 = store.ADProvisioning
+	ADHubSession                   = store.ADHubSession
 	Directory                      = store.Directory
 	DirectorySupporter             = store.DirectorySupporter
 	UnimplementedDirectory         = store.UnimplementedDirectory
@@ -479,6 +483,12 @@ var ErrWSFedUnavailable = store.ErrWSFedUnavailable
 
 // CheckWSFedSupport reports whether s implements wsfed.v1.
 func CheckWSFedSupport(ctx context.Context, s Store) error { return store.CheckWSFedSupport(ctx, s) }
+
+// ErrADHubUnavailable reports a plugin without ad_hub.v1 (Plan 38a).
+var ErrADHubUnavailable = store.ErrADHubUnavailable
+
+// ADHub returns s's AD/LDAP store after checking ad_hub.v1.
+func ADHub(ctx context.Context, s Store) (ADHubStore, error) { return store.ADHub(ctx, s) }
 
 // ErrDirectoryUnavailable reports a plugin without scim.v1 (Plan 37c).
 var ErrDirectoryUnavailable = store.ErrDirectoryUnavailable
