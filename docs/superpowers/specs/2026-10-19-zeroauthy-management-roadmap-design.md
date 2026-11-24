@@ -30,8 +30,8 @@ per item; items without rulings can start as soon as their track allows.
 | P6 | 43 Token Vault | [spec](2026-11-16-zeroauthy-token-vault-design.md) | which clients may exchange; upstream revocation; vault vs identities |
 | F2 | 37a SAML (in progress on `plan-37a-saml`) | [spec](2026-11-16-zeroauthy-saml-design.md) | none (ruled 2026-11-21: vendor goxmldsig + etree; E2E `@node-saml/node-saml` and `samlify`; SHA-1/RSA-1_5 opt-in only) |
 | F3 | 37b WS-Fed and ADFS | [spec](2026-11-16-zeroauthy-ws-federation-design.md) | none (inherits F2's) |
-| F4 | 37c SCIM, groups, self-service | [spec](2026-11-16-zeroauthy-scim-self-service-design.md) | phase order; directory-sync testing |
-| F5 | 38a AD/LDAP | [spec](2026-11-16-zeroauthy-ad-ldap-design.md) | connector protocol vs LDAP bind; connector E2E pin; replica forwarding |
+| F4 | 37c SCIM, groups, self-service (in progress on `plan-37c-scim`) | [spec](2026-11-16-zeroauthy-scim-self-service-design.md) | none (ruled 2026-11-22: phases A → B → C; Phase C with fixture Directory API coverage, live check later) |
+| F5 | 38a AD/LDAP | [spec](2026-11-16-zeroauthy-ad-ldap-design.md) | none (ruled 2026-11-22, recommended options: Auth0 AD/LDAP Connector protocol, not a native LDAP bind; E2E pins the connector release with its mock LDAP server; replica forwarding over internal HTTPS) |
 | S1 | 39a Apple | [spec](2026-11-16-zeroauthy-apple-design.md) | **done** (merged 2026-11-17, [record](../2026-11-16-plan-39a-implementation-record.md)) |
 | S2 | 39b social providers | [spec](2026-11-16-zeroauthy-social-providers-design.md) | provider order; Tier 2 timing; live checks |
 | A1 | 40 Actions III | [spec](2026-11-16-zeroauthy-actions-iii-design.md) | none |

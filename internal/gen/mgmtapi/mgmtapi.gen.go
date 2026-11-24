@@ -1586,6 +1586,7 @@ const (
 	ConnectionCreateStrategyAuth0        ConnectionCreateStrategy = "auth0"
 	ConnectionCreateStrategyEmail        ConnectionCreateStrategy = "email"
 	ConnectionCreateStrategyGithub       ConnectionCreateStrategy = "github"
+	ConnectionCreateStrategyGoogleApps   ConnectionCreateStrategy = "google-apps"
 	ConnectionCreateStrategyGoogleOauth2 ConnectionCreateStrategy = "google-oauth2"
 	ConnectionCreateStrategyOauth2       ConnectionCreateStrategy = "oauth2"
 	ConnectionCreateStrategyOidc         ConnectionCreateStrategy = "oidc"
@@ -1610,6 +1611,8 @@ func (e ConnectionCreateStrategy) Valid() bool {
 	case ConnectionCreateStrategyEmail:
 		return true
 	case ConnectionCreateStrategyGithub:
+		return true
+	case ConnectionCreateStrategyGoogleApps:
 		return true
 	case ConnectionCreateStrategyGoogleOauth2:
 		return true
@@ -1779,6 +1782,27 @@ func (e ConnectionOptionsGitHubSetUserRootAttributes) Valid() bool {
 	case ConnectionOptionsGitHubSetUserRootAttributesOnEachLogin:
 		return true
 	case ConnectionOptionsGitHubSetUserRootAttributesOnFirstLogin:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ConnectionOptionsGoogleAppsSetUserRootAttributes.
+const (
+	ConnectionOptionsGoogleAppsSetUserRootAttributesNeverOnLogin ConnectionOptionsGoogleAppsSetUserRootAttributes = "never_on_login"
+	ConnectionOptionsGoogleAppsSetUserRootAttributesOnEachLogin  ConnectionOptionsGoogleAppsSetUserRootAttributes = "on_each_login"
+	ConnectionOptionsGoogleAppsSetUserRootAttributesOnFirstLogin ConnectionOptionsGoogleAppsSetUserRootAttributes = "on_first_login"
+)
+
+// Valid indicates whether the value is a known member of the ConnectionOptionsGoogleAppsSetUserRootAttributes enum.
+func (e ConnectionOptionsGoogleAppsSetUserRootAttributes) Valid() bool {
+	switch e {
+	case ConnectionOptionsGoogleAppsSetUserRootAttributesNeverOnLogin:
+		return true
+	case ConnectionOptionsGoogleAppsSetUserRootAttributesOnEachLogin:
+		return true
+	case ConnectionOptionsGoogleAppsSetUserRootAttributesOnFirstLogin:
 		return true
 	default:
 		return false
@@ -2244,6 +2268,111 @@ func (e ConnectionOptionsSMSSyntax) Valid() bool {
 	}
 }
 
+// Defines values for ConnectionProfileCrossAppAccessResourceAppStatusDefaultValueEnum.
+const (
+	ConnectionProfileCrossAppAccessResourceAppStatusDefaultValueEnumDisabled ConnectionProfileCrossAppAccessResourceAppStatusDefaultValueEnum = "disabled"
+	ConnectionProfileCrossAppAccessResourceAppStatusDefaultValueEnumEnabled  ConnectionProfileCrossAppAccessResourceAppStatusDefaultValueEnum = "enabled"
+)
+
+// Valid indicates whether the value is a known member of the ConnectionProfileCrossAppAccessResourceAppStatusDefaultValueEnum enum.
+func (e ConnectionProfileCrossAppAccessResourceAppStatusDefaultValueEnum) Valid() bool {
+	switch e {
+	case ConnectionProfileCrossAppAccessResourceAppStatusDefaultValueEnumDisabled:
+		return true
+	case ConnectionProfileCrossAppAccessResourceAppStatusDefaultValueEnumEnabled:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ConnectionProfileCrossAppAccessResourceAppStatusValueEnum.
+const (
+	ConnectionProfileCrossAppAccessResourceAppStatusValueEnumDisabled ConnectionProfileCrossAppAccessResourceAppStatusValueEnum = "disabled"
+	ConnectionProfileCrossAppAccessResourceAppStatusValueEnumEnabled  ConnectionProfileCrossAppAccessResourceAppStatusValueEnum = "enabled"
+)
+
+// Valid indicates whether the value is a known member of the ConnectionProfileCrossAppAccessResourceAppStatusValueEnum enum.
+func (e ConnectionProfileCrossAppAccessResourceAppStatusValueEnum) Valid() bool {
+	switch e {
+	case ConnectionProfileCrossAppAccessResourceAppStatusValueEnumDisabled:
+		return true
+	case ConnectionProfileCrossAppAccessResourceAppStatusValueEnumEnabled:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ConnectionProfileOrganizationAssignMembershipOnLoginEnum.
+const (
+	ConnectionProfileOrganizationAssignMembershipOnLoginEnumNone     ConnectionProfileOrganizationAssignMembershipOnLoginEnum = "none"
+	ConnectionProfileOrganizationAssignMembershipOnLoginEnumOptional ConnectionProfileOrganizationAssignMembershipOnLoginEnum = "optional"
+	ConnectionProfileOrganizationAssignMembershipOnLoginEnumRequired ConnectionProfileOrganizationAssignMembershipOnLoginEnum = "required"
+)
+
+// Valid indicates whether the value is a known member of the ConnectionProfileOrganizationAssignMembershipOnLoginEnum enum.
+func (e ConnectionProfileOrganizationAssignMembershipOnLoginEnum) Valid() bool {
+	switch e {
+	case ConnectionProfileOrganizationAssignMembershipOnLoginEnumNone:
+		return true
+	case ConnectionProfileOrganizationAssignMembershipOnLoginEnumOptional:
+		return true
+	case ConnectionProfileOrganizationAssignMembershipOnLoginEnumRequired:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ConnectionProfileOrganizationShowAsButtonEnum.
+const (
+	ConnectionProfileOrganizationShowAsButtonEnumNone     ConnectionProfileOrganizationShowAsButtonEnum = "none"
+	ConnectionProfileOrganizationShowAsButtonEnumOptional ConnectionProfileOrganizationShowAsButtonEnum = "optional"
+	ConnectionProfileOrganizationShowAsButtonEnumRequired ConnectionProfileOrganizationShowAsButtonEnum = "required"
+)
+
+// Valid indicates whether the value is a known member of the ConnectionProfileOrganizationShowAsButtonEnum enum.
+func (e ConnectionProfileOrganizationShowAsButtonEnum) Valid() bool {
+	switch e {
+	case ConnectionProfileOrganizationShowAsButtonEnumNone:
+		return true
+	case ConnectionProfileOrganizationShowAsButtonEnumOptional:
+		return true
+	case ConnectionProfileOrganizationShowAsButtonEnumRequired:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ConnectionProfileProvisioningScimTokenScopeEnum.
+const (
+	ConnectionProfileProvisioningScimTokenScopeEnumDeleteUsers ConnectionProfileProvisioningScimTokenScopeEnum = "delete:users"
+	ConnectionProfileProvisioningScimTokenScopeEnumGetUsers    ConnectionProfileProvisioningScimTokenScopeEnum = "get:users"
+	ConnectionProfileProvisioningScimTokenScopeEnumPatchUsers  ConnectionProfileProvisioningScimTokenScopeEnum = "patch:users"
+	ConnectionProfileProvisioningScimTokenScopeEnumPostUsers   ConnectionProfileProvisioningScimTokenScopeEnum = "post:users"
+	ConnectionProfileProvisioningScimTokenScopeEnumPutUsers    ConnectionProfileProvisioningScimTokenScopeEnum = "put:users"
+)
+
+// Valid indicates whether the value is a known member of the ConnectionProfileProvisioningScimTokenScopeEnum enum.
+func (e ConnectionProfileProvisioningScimTokenScopeEnum) Valid() bool {
+	switch e {
+	case ConnectionProfileProvisioningScimTokenScopeEnumDeleteUsers:
+		return true
+	case ConnectionProfileProvisioningScimTokenScopeEnumGetUsers:
+		return true
+	case ConnectionProfileProvisioningScimTokenScopeEnumPatchUsers:
+		return true
+	case ConnectionProfileProvisioningScimTokenScopeEnumPostUsers:
+		return true
+	case ConnectionProfileProvisioningScimTokenScopeEnumPutUsers:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for ConsoleAuthenticationMethodCredentialDeviceType.
 const (
 	ConsoleAuthenticationMethodCredentialDeviceTypeMultiDevice  ConsoleAuthenticationMethodCredentialDeviceType = "multi_device"
@@ -2652,6 +2781,27 @@ const (
 func (e EmailTemplatePatchSyntax) Valid() bool {
 	switch e {
 	case EmailTemplatePatchSyntaxLiquid:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for EnabledFeaturesEnum.
+const (
+	EnabledFeaturesEnumDirectorySync   EnabledFeaturesEnum = "directory_sync"
+	EnabledFeaturesEnumScim            EnabledFeaturesEnum = "scim"
+	EnabledFeaturesEnumUniversalLogout EnabledFeaturesEnum = "universal_logout"
+)
+
+// Valid indicates whether the value is a known member of the EnabledFeaturesEnum enum.
+func (e EnabledFeaturesEnum) Valid() bool {
+	switch e {
+	case EnabledFeaturesEnumDirectorySync:
+		return true
+	case EnabledFeaturesEnumScim:
+		return true
+	case EnabledFeaturesEnumUniversalLogout:
 		return true
 	default:
 		return false
@@ -3267,6 +3417,45 @@ func (e EventsEventStreamWebhookDestinationTypeEnum) Valid() bool {
 	}
 }
 
+// Defines values for GroupMemberMemberType.
+const (
+	GroupMemberMemberTypeGroup GroupMemberMemberType = "group"
+	GroupMemberMemberTypeUser  GroupMemberMemberType = "user"
+)
+
+// Valid indicates whether the value is a known member of the GroupMemberMemberType enum.
+func (e GroupMemberMemberType) Valid() bool {
+	switch e {
+	case GroupMemberMemberTypeGroup:
+		return true
+	case GroupMemberMemberTypeUser:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for GroupMemberType.
+const (
+	GroupMemberTypeConnection   GroupMemberType = "connection"
+	GroupMemberTypeOrganization GroupMemberType = "organization"
+	GroupMemberTypeTenant       GroupMemberType = "tenant"
+)
+
+// Valid indicates whether the value is a known member of the GroupMemberType enum.
+func (e GroupMemberType) Valid() bool {
+	switch e {
+	case GroupMemberTypeConnection:
+		return true
+	case GroupMemberTypeOrganization:
+		return true
+	case GroupMemberTypeTenant:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for IICreateOrganizationAllConnectionRequestContentOrganizationAccessLevel.
 const (
 	IICreateOrganizationAllConnectionRequestContentOrganizationAccessLevelFull     IICreateOrganizationAllConnectionRequestContentOrganizationAccessLevel = "full"
@@ -3527,16 +3716,16 @@ func (e IIOrganizationUsageEnum) Valid() bool {
 
 // Defines values for IISearchParserEnum.
 const (
-	Lucene IISearchParserEnum = "lucene"
-	Scim   IISearchParserEnum = "scim"
+	IISearchParserEnumLucene IISearchParserEnum = "lucene"
+	IISearchParserEnumScim   IISearchParserEnum = "scim"
 )
 
 // Valid indicates whether the value is a known member of the IISearchParserEnum enum.
 func (e IISearchParserEnum) Valid() bool {
 	switch e {
-	case Lucene:
+	case IISearchParserEnumLucene:
 		return true
-	case Scim:
+	case IISearchParserEnumScim:
 		return true
 	default:
 		return false
@@ -6225,12 +6414,15 @@ func (e MFAUpdateAuthenticationMethodRequestPreferredAuthenticationMethod) Valid
 // Defines values for OrganizationEffectiveRoleSources.
 const (
 	OrganizationEffectiveRoleSourcesDirect OrganizationEffectiveRoleSources = "direct"
+	OrganizationEffectiveRoleSourcesGroup  OrganizationEffectiveRoleSources = "group"
 )
 
 // Valid indicates whether the value is a known member of the OrganizationEffectiveRoleSources enum.
 func (e OrganizationEffectiveRoleSources) Valid() bool {
 	switch e {
 	case OrganizationEffectiveRoleSourcesDirect:
+		return true
+	case OrganizationEffectiveRoleSourcesGroup:
 		return true
 	default:
 		return false
@@ -6728,19 +6920,19 @@ func (e ResourceServerSettingsTokenDialect) Valid() bool {
 
 // Defines values for RoamingUVSettingsUserVerification.
 const (
-	Discouraged RoamingUVSettingsUserVerification = "discouraged"
-	Preferred   RoamingUVSettingsUserVerification = "preferred"
-	Required    RoamingUVSettingsUserVerification = "required"
+	RoamingUVSettingsUserVerificationDiscouraged RoamingUVSettingsUserVerification = "discouraged"
+	RoamingUVSettingsUserVerificationPreferred   RoamingUVSettingsUserVerification = "preferred"
+	RoamingUVSettingsUserVerificationRequired    RoamingUVSettingsUserVerification = "required"
 )
 
 // Valid indicates whether the value is a known member of the RoamingUVSettingsUserVerification enum.
 func (e RoamingUVSettingsUserVerification) Valid() bool {
 	switch e {
-	case Discouraged:
+	case RoamingUVSettingsUserVerificationDiscouraged:
 		return true
-	case Preferred:
+	case RoamingUVSettingsUserVerificationPreferred:
 		return true
-	case Required:
+	case RoamingUVSettingsUserVerificationRequired:
 		return true
 	default:
 		return false
@@ -6749,13 +6941,211 @@ func (e RoamingUVSettingsUserVerification) Valid() bool {
 
 // Defines values for RoleCreateType.
 const (
-	Tenant RoleCreateType = "tenant"
+	RoleCreateTypeTenant RoleCreateType = "tenant"
 )
 
 // Valid indicates whether the value is a known member of the RoleCreateType enum.
 func (e RoleCreateType) Valid() bool {
 	switch e {
-	case Tenant:
+	case RoleCreateTypeTenant:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ScimTokenCreateScopes.
+const (
+	ScimTokenCreateScopesDeleteGroups ScimTokenCreateScopes = "delete:groups"
+	ScimTokenCreateScopesDeleteUsers  ScimTokenCreateScopes = "delete:users"
+	ScimTokenCreateScopesGetGroups    ScimTokenCreateScopes = "get:groups"
+	ScimTokenCreateScopesGetUsers     ScimTokenCreateScopes = "get:users"
+	ScimTokenCreateScopesPatchGroups  ScimTokenCreateScopes = "patch:groups"
+	ScimTokenCreateScopesPatchUsers   ScimTokenCreateScopes = "patch:users"
+	ScimTokenCreateScopesPostGroups   ScimTokenCreateScopes = "post:groups"
+	ScimTokenCreateScopesPostUsers    ScimTokenCreateScopes = "post:users"
+	ScimTokenCreateScopesPutGroups    ScimTokenCreateScopes = "put:groups"
+	ScimTokenCreateScopesPutUsers     ScimTokenCreateScopes = "put:users"
+)
+
+// Valid indicates whether the value is a known member of the ScimTokenCreateScopes enum.
+func (e ScimTokenCreateScopes) Valid() bool {
+	switch e {
+	case ScimTokenCreateScopesDeleteGroups:
+		return true
+	case ScimTokenCreateScopesDeleteUsers:
+		return true
+	case ScimTokenCreateScopesGetGroups:
+		return true
+	case ScimTokenCreateScopesGetUsers:
+		return true
+	case ScimTokenCreateScopesPatchGroups:
+		return true
+	case ScimTokenCreateScopesPatchUsers:
+		return true
+	case ScimTokenCreateScopesPostGroups:
+		return true
+	case ScimTokenCreateScopesPostUsers:
+		return true
+	case ScimTokenCreateScopesPutGroups:
+		return true
+	case ScimTokenCreateScopesPutUsers:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for SelfServiceProfileAllowedStrategyEnum.
+const (
+	SelfServiceProfileAllowedStrategyEnumAdfs          SelfServiceProfileAllowedStrategyEnum = "adfs"
+	SelfServiceProfileAllowedStrategyEnumAuth0Samlp    SelfServiceProfileAllowedStrategyEnum = "auth0-samlp"
+	SelfServiceProfileAllowedStrategyEnumGoogleApps    SelfServiceProfileAllowedStrategyEnum = "google-apps"
+	SelfServiceProfileAllowedStrategyEnumKeycloakSamlp SelfServiceProfileAllowedStrategyEnum = "keycloak-samlp"
+	SelfServiceProfileAllowedStrategyEnumOidc          SelfServiceProfileAllowedStrategyEnum = "oidc"
+	SelfServiceProfileAllowedStrategyEnumOkta          SelfServiceProfileAllowedStrategyEnum = "okta"
+	SelfServiceProfileAllowedStrategyEnumOktaSamlp     SelfServiceProfileAllowedStrategyEnum = "okta-samlp"
+	SelfServiceProfileAllowedStrategyEnumPingfederate  SelfServiceProfileAllowedStrategyEnum = "pingfederate"
+	SelfServiceProfileAllowedStrategyEnumSamlp         SelfServiceProfileAllowedStrategyEnum = "samlp"
+	SelfServiceProfileAllowedStrategyEnumWaad          SelfServiceProfileAllowedStrategyEnum = "waad"
+)
+
+// Valid indicates whether the value is a known member of the SelfServiceProfileAllowedStrategyEnum enum.
+func (e SelfServiceProfileAllowedStrategyEnum) Valid() bool {
+	switch e {
+	case SelfServiceProfileAllowedStrategyEnumAdfs:
+		return true
+	case SelfServiceProfileAllowedStrategyEnumAuth0Samlp:
+		return true
+	case SelfServiceProfileAllowedStrategyEnumGoogleApps:
+		return true
+	case SelfServiceProfileAllowedStrategyEnumKeycloakSamlp:
+		return true
+	case SelfServiceProfileAllowedStrategyEnumOidc:
+		return true
+	case SelfServiceProfileAllowedStrategyEnumOkta:
+		return true
+	case SelfServiceProfileAllowedStrategyEnumOktaSamlp:
+		return true
+	case SelfServiceProfileAllowedStrategyEnumPingfederate:
+		return true
+	case SelfServiceProfileAllowedStrategyEnumSamlp:
+		return true
+	case SelfServiceProfileAllowedStrategyEnumWaad:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for SelfServiceProfileCustomTextLanguageEnum.
+const (
+	SelfServiceProfileCustomTextLanguageEnumEn SelfServiceProfileCustomTextLanguageEnum = "en"
+)
+
+// Valid indicates whether the value is a known member of the SelfServiceProfileCustomTextLanguageEnum enum.
+func (e SelfServiceProfileCustomTextLanguageEnum) Valid() bool {
+	switch e {
+	case SelfServiceProfileCustomTextLanguageEnumEn:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for SelfServiceProfileCustomTextPageEnum.
+const (
+	GetStarted SelfServiceProfileCustomTextPageEnum = "get-started"
+)
+
+// Valid indicates whether the value is a known member of the SelfServiceProfileCustomTextPageEnum enum.
+func (e SelfServiceProfileCustomTextPageEnum) Valid() bool {
+	switch e {
+	case GetStarted:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for SelfServiceProfileSsoTicketDomainVerificationEnum.
+const (
+	SelfServiceProfileSsoTicketDomainVerificationEnumNone     SelfServiceProfileSsoTicketDomainVerificationEnum = "none"
+	SelfServiceProfileSsoTicketDomainVerificationEnumOptional SelfServiceProfileSsoTicketDomainVerificationEnum = "optional"
+	SelfServiceProfileSsoTicketDomainVerificationEnumRequired SelfServiceProfileSsoTicketDomainVerificationEnum = "required"
+)
+
+// Valid indicates whether the value is a known member of the SelfServiceProfileSsoTicketDomainVerificationEnum enum.
+func (e SelfServiceProfileSsoTicketDomainVerificationEnum) Valid() bool {
+	switch e {
+	case SelfServiceProfileSsoTicketDomainVerificationEnumNone:
+		return true
+	case SelfServiceProfileSsoTicketDomainVerificationEnumOptional:
+		return true
+	case SelfServiceProfileSsoTicketDomainVerificationEnumRequired:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for SelfServiceProfileSsoTicketIdpInitiatedClientProtocolEnum.
+const (
+	SelfServiceProfileSsoTicketIdpInitiatedClientProtocolEnumOauth2 SelfServiceProfileSsoTicketIdpInitiatedClientProtocolEnum = "oauth2"
+	SelfServiceProfileSsoTicketIdpInitiatedClientProtocolEnumSamlp  SelfServiceProfileSsoTicketIdpInitiatedClientProtocolEnum = "samlp"
+	SelfServiceProfileSsoTicketIdpInitiatedClientProtocolEnumWsfed  SelfServiceProfileSsoTicketIdpInitiatedClientProtocolEnum = "wsfed"
+)
+
+// Valid indicates whether the value is a known member of the SelfServiceProfileSsoTicketIdpInitiatedClientProtocolEnum enum.
+func (e SelfServiceProfileSsoTicketIdpInitiatedClientProtocolEnum) Valid() bool {
+	switch e {
+	case SelfServiceProfileSsoTicketIdpInitiatedClientProtocolEnumOauth2:
+		return true
+	case SelfServiceProfileSsoTicketIdpInitiatedClientProtocolEnumSamlp:
+		return true
+	case SelfServiceProfileSsoTicketIdpInitiatedClientProtocolEnumWsfed:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for SelfServiceProfileSsoTicketProvisioningScopeEnum.
+const (
+	SelfServiceProfileSsoTicketProvisioningScopeEnumDeleteGroups SelfServiceProfileSsoTicketProvisioningScopeEnum = "delete:groups"
+	SelfServiceProfileSsoTicketProvisioningScopeEnumDeleteUsers  SelfServiceProfileSsoTicketProvisioningScopeEnum = "delete:users"
+	SelfServiceProfileSsoTicketProvisioningScopeEnumGetGroups    SelfServiceProfileSsoTicketProvisioningScopeEnum = "get:groups"
+	SelfServiceProfileSsoTicketProvisioningScopeEnumGetUsers     SelfServiceProfileSsoTicketProvisioningScopeEnum = "get:users"
+	SelfServiceProfileSsoTicketProvisioningScopeEnumPatchGroups  SelfServiceProfileSsoTicketProvisioningScopeEnum = "patch:groups"
+	SelfServiceProfileSsoTicketProvisioningScopeEnumPatchUsers   SelfServiceProfileSsoTicketProvisioningScopeEnum = "patch:users"
+	SelfServiceProfileSsoTicketProvisioningScopeEnumPostGroups   SelfServiceProfileSsoTicketProvisioningScopeEnum = "post:groups"
+	SelfServiceProfileSsoTicketProvisioningScopeEnumPostUsers    SelfServiceProfileSsoTicketProvisioningScopeEnum = "post:users"
+	SelfServiceProfileSsoTicketProvisioningScopeEnumPutGroups    SelfServiceProfileSsoTicketProvisioningScopeEnum = "put:groups"
+	SelfServiceProfileSsoTicketProvisioningScopeEnumPutUsers     SelfServiceProfileSsoTicketProvisioningScopeEnum = "put:users"
+)
+
+// Valid indicates whether the value is a known member of the SelfServiceProfileSsoTicketProvisioningScopeEnum enum.
+func (e SelfServiceProfileSsoTicketProvisioningScopeEnum) Valid() bool {
+	switch e {
+	case SelfServiceProfileSsoTicketProvisioningScopeEnumDeleteGroups:
+		return true
+	case SelfServiceProfileSsoTicketProvisioningScopeEnumDeleteUsers:
+		return true
+	case SelfServiceProfileSsoTicketProvisioningScopeEnumGetGroups:
+		return true
+	case SelfServiceProfileSsoTicketProvisioningScopeEnumGetUsers:
+		return true
+	case SelfServiceProfileSsoTicketProvisioningScopeEnumPatchGroups:
+		return true
+	case SelfServiceProfileSsoTicketProvisioningScopeEnumPatchUsers:
+		return true
+	case SelfServiceProfileSsoTicketProvisioningScopeEnumPostGroups:
+		return true
+	case SelfServiceProfileSsoTicketProvisioningScopeEnumPostUsers:
+		return true
+	case SelfServiceProfileSsoTicketProvisioningScopeEnumPutGroups:
+		return true
+	case SelfServiceProfileSsoTicketProvisioningScopeEnumPutUsers:
 		return true
 	default:
 		return false
@@ -6792,6 +7182,27 @@ func (e SuspiciousIpThrottlingUpdateShields) Valid() bool {
 	case SuspiciousIpThrottlingUpdateShieldsAdminNotification:
 		return true
 	case SuspiciousIpThrottlingUpdateShieldsBlock:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for SynchronizeGroupsEnum.
+const (
+	SynchronizeGroupsEnumAll      SynchronizeGroupsEnum = "all"
+	SynchronizeGroupsEnumOff      SynchronizeGroupsEnum = "off"
+	SynchronizeGroupsEnumSelected SynchronizeGroupsEnum = "selected"
+)
+
+// Valid indicates whether the value is a known member of the SynchronizeGroupsEnum enum.
+func (e SynchronizeGroupsEnum) Valid() bool {
+	switch e {
+	case SynchronizeGroupsEnumAll:
+		return true
+	case SynchronizeGroupsEnumOff:
+		return true
+	case SynchronizeGroupsEnumSelected:
 		return true
 	default:
 		return false
@@ -8174,6 +8585,12 @@ type ActionsPage struct {
 	Total   int      `json:"total"`
 }
 
+// AddSynchronizedGroupsRequestContent defines model for AddSynchronizedGroupsRequestContent.
+type AddSynchronizedGroupsRequestContent struct {
+	// Groups Array of Google Workspace Directory group objects to synchronize.
+	Groups []SynchronizedGroupPayload `json:"groups"`
+}
+
 // AppType `native` (mobile and desktop), `spa` (single-page), `regular_web`
 // (server-side web) or `non_interactive` (machine to machine).
 type AppType string
@@ -9424,7 +9841,7 @@ type ClientUpdateThirdPartySecurityMode string
 // Connection A connection. `options.configuration` values are opaque blobs, never
 // plaintext. `enabled_clients` is returned by create only. `fields`
 // can leave out any property but `id` and `is_domain_connection`.
-// For `google-oauth2`, `github`, `oauth2`, `oidc`, `windowslive` and `waad` connections
+// For `google-oauth2`, `google-apps`, `github`, `oauth2`, `oidc`, `windowslive` and `waad` connections
 // `options.client_secret` is write-only: it is sealed when written and
 // never returned.
 // Microsoft connections require GUID client IDs and request exactly
@@ -9507,11 +9924,11 @@ type ConnectionCreate struct {
 	Realms       *[]string               `json:"realms,omitempty"`
 	ShowAsButton *bool                   `json:"show_as_button,omitempty"`
 
-	// Strategy `samlp` follows ConnectionOptionsSAML (Plan 37a). `adfs` follows ConnectionOptionsADFS (Plan 37b). `ad` follows ConnectionOptionsAD (Plan 38a): users sign in through Auth0's AD/LDAP Connector, provisioned with the connection's `provisioning_ticket_url`. `email` and `sms` are passwordless connections whose name must equal the strategy; options follow ConnectionOptionsEmail and ConnectionOptionsSMS (Plan 34). `apple` follows ConnectionOptionsApple; web/native login is active (D-0170). `github` follows ConnectionOptionsGitHub (Plan 39c).
+	// Strategy `samlp` follows ConnectionOptionsSAML (Plan 37a). `adfs` follows ConnectionOptionsADFS (Plan 37b). `google-apps` follows ConnectionOptionsGoogleApps (Plan 37c). `ad` follows ConnectionOptionsAD (Plan 38a): users sign in through Auth0's AD/LDAP Connector, provisioned with the connection's `provisioning_ticket_url`. `email` and `sms` are passwordless connections whose name must equal the strategy; options follow ConnectionOptionsEmail and ConnectionOptionsSMS (Plan 34). `apple` follows ConnectionOptionsApple; web/native login is active (D-0170). `github` follows ConnectionOptionsGitHub (Plan 39c).
 	Strategy ConnectionCreateStrategy `json:"strategy"`
 }
 
-// ConnectionCreateStrategy `samlp` follows ConnectionOptionsSAML (Plan 37a). `adfs` follows ConnectionOptionsADFS (Plan 37b). `ad` follows ConnectionOptionsAD (Plan 38a): users sign in through Auth0's AD/LDAP Connector, provisioned with the connection's `provisioning_ticket_url`. `email` and `sms` are passwordless connections whose name must equal the strategy; options follow ConnectionOptionsEmail and ConnectionOptionsSMS (Plan 34). `apple` follows ConnectionOptionsApple; web/native login is active (D-0170). `github` follows ConnectionOptionsGitHub (Plan 39c).
+// ConnectionCreateStrategy `samlp` follows ConnectionOptionsSAML (Plan 37a). `adfs` follows ConnectionOptionsADFS (Plan 37b). `google-apps` follows ConnectionOptionsGoogleApps (Plan 37c). `ad` follows ConnectionOptionsAD (Plan 38a): users sign in through Auth0's AD/LDAP Connector, provisioned with the connection's `provisioning_ticket_url`. `email` and `sms` are passwordless connections whose name must equal the strategy; options follow ConnectionOptionsEmail and ConnectionOptionsSMS (Plan 34). `apple` follows ConnectionOptionsApple; web/native login is active (D-0170). `github` follows ConnectionOptionsGitHub (Plan 39c).
 type ConnectionCreateStrategy string
 
 // ConnectionDeleted defines model for ConnectionDeleted.
@@ -9537,6 +9954,9 @@ type ConnectionKey struct {
 
 // ConnectionKeyKeyUse defines model for ConnectionKey.KeyUse.
 type ConnectionKeyKeyUse string
+
+// ConnectionNamePrefixTemplate Connection name prefix template. (Auth0 states the rule with lookaheads: no leading hyphen and no double hyphen; this is the equivalent RE2 pattern.)
+type ConnectionNamePrefixTemplate = string
 
 // ConnectionOptionsAD AD/LDAP connection (`ad`, Plan 38a, D-0160): users authenticate
 // against Active Directory or another LDAP directory through Auth0's
@@ -9828,6 +10248,52 @@ type ConnectionOptionsGitHub struct {
 
 // ConnectionOptionsGitHubSetUserRootAttributes defines model for ConnectionOptionsGitHub.SetUserRootAttributes.
 type ConnectionOptionsGitHubSetUserRootAttributes string
+
+// ConnectionOptionsGoogleApps Google Workspace connection (`google-apps`, Plan 37c, D-0150
+// LR37c-14): OpenID Connect sign-in with Google restricted to one
+// Workspace. `domain` is the primary domain; a login succeeds only when
+// the verified ID token's `hd` claim equals it and the email is
+// verified. `user_id` is `google-apps|{email}`, or
+// `google-apps|{Google subject}` with `map_user_id_to_id` (both fixed
+// after creation). `client_secret` is write-only. `api_enable_users`
+// (default true) and `api_enable_groups` gate directory provisioning;
+// the Directory API credentials come from the directory provisioning
+// administrator consent, so `admin_access_token`,
+// `admin_refresh_token` and `admin_access_token_expiresin` are refused.
+// `ext_*` flags are stored only. `allow_setting_login_scopes` and
+// `handle_login_from_social` must be false.
+type ConnectionOptionsGoogleApps struct {
+	ApiEnableGroups *bool   `json:"api_enable_groups,omitempty"`
+	ApiEnableUsers  *bool   `json:"api_enable_users,omitempty"`
+	ClientId        string  `json:"client_id"`
+	ClientSecret    *string `json:"client_secret,omitempty"`
+
+	// Domain Primary Google Workspace domain.
+	Domain string `json:"domain"`
+
+	// DomainAliases Email domains for home realm discovery.
+	DomainAliases     *[]string `json:"domain_aliases,omitempty"`
+	Email             *bool     `json:"email,omitempty"`
+	ExtAgreedTerms    *bool     `json:"ext_agreed_terms,omitempty"`
+	ExtGroups         *bool     `json:"ext_groups,omitempty"`
+	ExtGroupsExtended *bool     `json:"ext_groups_extended,omitempty"`
+	ExtIsAdmin        *bool     `json:"ext_is_admin,omitempty"`
+	ExtIsSuspended    *bool     `json:"ext_is_suspended,omitempty"`
+	IconUrl           *string   `json:"icon_url,omitempty"`
+	MapUserIdToId     *bool     `json:"map_user_id_to_id,omitempty"`
+	Profile           *bool     `json:"profile,omitempty"`
+
+	// Scope Must match the email and profile flags.
+	Scope                 *[]string                                         `json:"scope,omitempty"`
+	SetUserRootAttributes *ConnectionOptionsGoogleAppsSetUserRootAttributes `json:"set_user_root_attributes,omitempty"`
+
+	// TenantDomain Must equal domain when set.
+	TenantDomain         *string                `json:"tenant_domain,omitempty"`
+	AdditionalProperties map[string]interface{} `json:"-"`
+}
+
+// ConnectionOptionsGoogleAppsSetUserRootAttributes defines model for ConnectionOptionsGoogleApps.SetUserRootAttributes.
+type ConnectionOptionsGoogleAppsSetUserRootAttributes string
 
 // ConnectionOptionsOIDC defines model for ConnectionOptionsOIDC.
 type ConnectionOptionsOIDC struct {
@@ -10146,6 +10612,225 @@ type ConnectionPage struct {
 	Total int `json:"total"`
 }
 
+// ConnectionProfile defines model for ConnectionProfile.
+type ConnectionProfile struct {
+	// ConnectionConfig Connection profile configuration.
+	ConnectionConfig *ConnectionProfileConfig `json:"connection_config,omitempty"`
+
+	// ConnectionNamePrefixTemplate Connection name prefix template. (Auth0 states the rule with lookaheads: no leading hyphen and no double hyphen; this is the equivalent RE2 pattern.)
+	ConnectionNamePrefixTemplate *ConnectionNamePrefixTemplate `json:"connection_name_prefix_template,omitempty"`
+
+	// CrossAppAccessResourceApp Controls whether organization admins may enable Cross App Access (XAA) on their Identity Providers.
+	CrossAppAccessResourceApp *ConnectionProfileCrossAppAccessResourceApp `json:"cross_app_access_resource_app,omitempty"`
+
+	// EnabledFeatures Enabled features for the connection profile.
+	EnabledFeatures *ConnectionProfileEnabledFeatures `json:"enabled_features,omitempty"`
+
+	// Id Connection Profile identifier.
+	Id *ConnectionProfileId `json:"id,omitempty"`
+
+	// Name The name of the connection profile.
+	Name *ConnectionProfileName `json:"name,omitempty"`
+
+	// Organization The organization of the connection profile.
+	Organization *ConnectionProfileOrganization `json:"organization,omitempty"`
+
+	// Provisioning Provisioning settings for connections created from this profile.
+	Provisioning *ConnectionProfileProvisioning `json:"provisioning,omitempty"`
+
+	// StrategyOverrides Strategy-specific overrides for this attribute
+	StrategyOverrides *ConnectionProfileStrategyOverrides `json:"strategy_overrides,omitempty"`
+}
+
+// ConnectionProfileConfig Connection profile configuration.
+type ConnectionProfileConfig = map[string]interface{}
+
+// ConnectionProfileCrossAppAccessResourceApp Controls whether organization admins may enable Cross App Access (XAA) on their Identity Providers.
+type ConnectionProfileCrossAppAccessResourceApp struct {
+	// Status The Cross App Access resource app status configuration.
+	Status ConnectionProfileCrossAppAccessResourceAppStatus `json:"status"`
+}
+
+// ConnectionProfileCrossAppAccessResourceAppStatus The Cross App Access resource app status configuration.
+type ConnectionProfileCrossAppAccessResourceAppStatus struct {
+	// AllowedValues The allowed Cross App Access resource app status values.
+	AllowedValues *ConnectionProfileCrossAppAccessResourceAppStatusAllowedValuesEnum `json:"allowed_values,omitempty"`
+
+	// DefaultValue The default Cross App Access resource app status.
+	DefaultValue ConnectionProfileCrossAppAccessResourceAppStatusDefaultValueEnum `json:"default_value"`
+}
+
+// ConnectionProfileCrossAppAccessResourceAppStatusAllowedValuesEnum The allowed Cross App Access resource app status values.
+type ConnectionProfileCrossAppAccessResourceAppStatusAllowedValuesEnum = []ConnectionProfileCrossAppAccessResourceAppStatusValueEnum
+
+// ConnectionProfileCrossAppAccessResourceAppStatusDefaultValueEnum The default Cross App Access resource app status.
+type ConnectionProfileCrossAppAccessResourceAppStatusDefaultValueEnum string
+
+// ConnectionProfileCrossAppAccessResourceAppStatusValueEnum A Cross App Access resource app status value.
+type ConnectionProfileCrossAppAccessResourceAppStatusValueEnum string
+
+// ConnectionProfileEnabledFeatures Enabled features for the connection profile.
+type ConnectionProfileEnabledFeatures = []EnabledFeaturesEnum
+
+// ConnectionProfileId Connection Profile identifier.
+type ConnectionProfileId = string
+
+// ConnectionProfileName The name of the connection profile.
+type ConnectionProfileName = string
+
+// ConnectionProfileOrganization The organization of the connection profile.
+type ConnectionProfileOrganization struct {
+	// AssignMembershipOnLogin Indicates if membership should be assigned on login.
+	AssignMembershipOnLogin *ConnectionProfileOrganizationAssignMembershipOnLoginEnum `json:"assign_membership_on_login,omitempty"`
+
+	// ShowAsButton Indicates if the organization should be shown as a button.
+	ShowAsButton *ConnectionProfileOrganizationShowAsButtonEnum `json:"show_as_button,omitempty"`
+}
+
+// ConnectionProfileOrganizationAssignMembershipOnLoginEnum Indicates if membership should be assigned on login.
+type ConnectionProfileOrganizationAssignMembershipOnLoginEnum string
+
+// ConnectionProfileOrganizationShowAsButtonEnum Indicates if the organization should be shown as a button.
+type ConnectionProfileOrganizationShowAsButtonEnum string
+
+// ConnectionProfileProvisioning Provisioning settings for connections created from this profile.
+type ConnectionProfileProvisioning struct {
+	// GoogleWorkspace Google Workspace provisioning settings.
+	GoogleWorkspace *ConnectionProfileProvisioningGoogleWorkspace `json:"google_workspace,omitempty"`
+
+	// Scim SCIM provisioning settings.
+	Scim *ConnectionProfileProvisioningScim `json:"scim,omitempty"`
+}
+
+// ConnectionProfileProvisioningGoogleWorkspace Google Workspace provisioning settings.
+type ConnectionProfileProvisioningGoogleWorkspace struct {
+	// SyncUsers Whether the connection is authorized to run Google Workspace user provisioning.
+	SyncUsers ConnectionProfileProvisioningGoogleWorkspaceSyncUsers `json:"sync_users"`
+}
+
+// ConnectionProfileProvisioningGoogleWorkspaceSyncUsers Whether the connection is authorized to run Google Workspace user provisioning.
+type ConnectionProfileProvisioningGoogleWorkspaceSyncUsers = bool
+
+// ConnectionProfileProvisioningScim SCIM provisioning settings.
+type ConnectionProfileProvisioningScim struct {
+	// Tokens SCIM token settings for connections created from this profile.
+	Tokens ConnectionProfileProvisioningScimTokens `json:"tokens"`
+}
+
+// ConnectionProfileProvisioningScimTokenDefaultExpiry The default SCIM token expiry, in seconds. `null` means the token never expires by default.
+type ConnectionProfileProvisioningScimTokenDefaultExpiry = int
+
+// ConnectionProfileProvisioningScimTokenMaxAllowedExpiry The maximum SCIM token expiry, in seconds. `null` means there is no maximum.
+type ConnectionProfileProvisioningScimTokenMaxAllowedExpiry = int
+
+// ConnectionProfileProvisioningScimTokenScopeEnum A SCIM token scope.
+type ConnectionProfileProvisioningScimTokenScopeEnum string
+
+// ConnectionProfileProvisioningScimTokenScopes The scopes granted to SCIM tokens.
+type ConnectionProfileProvisioningScimTokenScopes = []ConnectionProfileProvisioningScimTokenScopeEnum
+
+// ConnectionProfileProvisioningScimTokens SCIM token settings for connections created from this profile.
+type ConnectionProfileProvisioningScimTokens struct {
+	// DefaultExpiry The default SCIM token expiry, in seconds. `null` means the token never expires by default.
+	DefaultExpiry *ConnectionProfileProvisioningScimTokenDefaultExpiry `json:"default_expiry,omitempty"`
+
+	// MaxAllowedExpiry The maximum SCIM token expiry, in seconds. `null` means there is no maximum.
+	MaxAllowedExpiry *ConnectionProfileProvisioningScimTokenMaxAllowedExpiry `json:"max_allowed_expiry,omitempty"`
+
+	// Scopes The scopes granted to SCIM tokens.
+	Scopes ConnectionProfileProvisioningScimTokenScopes `json:"scopes"`
+}
+
+// ConnectionProfileStrategyOverride Connection Profile Strategy Override
+type ConnectionProfileStrategyOverride struct {
+	// ConnectionConfig Connection profile strategy overrides connection configuration.
+	ConnectionConfig *ConnectionProfileStrategyOverridesConnectionConfig `json:"connection_config,omitempty"`
+
+	// EnabledFeatures Enabled features for a connections profile strategy override.
+	EnabledFeatures *ConnectionProfileStrategyOverridesEnabledFeatures `json:"enabled_features,omitempty"`
+
+	// Provisioning Provisioning settings for a connection profile strategy override.
+	Provisioning *ConnectionProfileStrategyOverridesProvisioning `json:"provisioning,omitempty"`
+}
+
+// ConnectionProfileStrategyOverrides Strategy-specific overrides for this attribute
+type ConnectionProfileStrategyOverrides struct {
+	// Ad Connection Profile Strategy Override
+	Ad *ConnectionProfileStrategyOverride `json:"ad,omitempty"`
+
+	// Adfs Connection Profile Strategy Override
+	Adfs *ConnectionProfileStrategyOverride `json:"adfs,omitempty"`
+
+	// GoogleApps Connection Profile Strategy Override
+	GoogleApps *ConnectionProfileStrategyOverride `json:"google-apps,omitempty"`
+
+	// Oidc Connection Profile Strategy Override
+	Oidc *ConnectionProfileStrategyOverride `json:"oidc,omitempty"`
+
+	// Okta Connection Profile Strategy Override
+	Okta *ConnectionProfileStrategyOverride `json:"okta,omitempty"`
+
+	// Pingfederate Connection Profile Strategy Override
+	Pingfederate *ConnectionProfileStrategyOverride `json:"pingfederate,omitempty"`
+
+	// Samlp Connection Profile Strategy Override
+	Samlp *ConnectionProfileStrategyOverride `json:"samlp,omitempty"`
+
+	// Waad Connection Profile Strategy Override
+	Waad *ConnectionProfileStrategyOverride `json:"waad,omitempty"`
+}
+
+// ConnectionProfileStrategyOverridesConnectionConfig Connection profile strategy overrides connection configuration.
+type ConnectionProfileStrategyOverridesConnectionConfig = map[string]interface{}
+
+// ConnectionProfileStrategyOverridesEnabledFeatures Enabled features for a connections profile strategy override.
+type ConnectionProfileStrategyOverridesEnabledFeatures = []EnabledFeaturesEnum
+
+// ConnectionProfileStrategyOverridesProvisioning Provisioning settings for a connection profile strategy override.
+type ConnectionProfileStrategyOverridesProvisioning struct {
+	// GoogleWorkspace Google Workspace provisioning settings.
+	GoogleWorkspace *ConnectionProfileProvisioningGoogleWorkspace `json:"google_workspace,omitempty"`
+
+	// Scim SCIM provisioning settings.
+	Scim *ConnectionProfileProvisioningScim `json:"scim,omitempty"`
+}
+
+// ConnectionProfileTemplate The structure of the template, which can be used as the payload for creating or updating a Connection Profile.
+type ConnectionProfileTemplate struct {
+	// ConnectionConfig Connection profile configuration.
+	ConnectionConfig *ConnectionProfileConfig `json:"connection_config,omitempty"`
+
+	// ConnectionNamePrefixTemplate Connection name prefix template. (Auth0 states the rule with lookaheads: no leading hyphen and no double hyphen; this is the equivalent RE2 pattern.)
+	ConnectionNamePrefixTemplate *ConnectionNamePrefixTemplate `json:"connection_name_prefix_template,omitempty"`
+
+	// EnabledFeatures Enabled features for the connection profile.
+	EnabledFeatures *ConnectionProfileEnabledFeatures `json:"enabled_features,omitempty"`
+
+	// Name The name of the connection profile.
+	Name *ConnectionProfileName `json:"name,omitempty"`
+
+	// Organization The organization of the connection profile.
+	Organization *ConnectionProfileOrganization `json:"organization,omitempty"`
+
+	// Provisioning Provisioning settings for connections created from this profile.
+	Provisioning *ConnectionProfileProvisioning `json:"provisioning,omitempty"`
+
+	// StrategyOverrides Strategy-specific overrides for this attribute
+	StrategyOverrides *ConnectionProfileStrategyOverrides `json:"strategy_overrides,omitempty"`
+}
+
+// ConnectionProfileTemplateItem defines model for ConnectionProfileTemplateItem.
+type ConnectionProfileTemplateItem struct {
+	// DisplayName The user-friendly name of the template displayed in the UI.
+	DisplayName *string `json:"display_name,omitempty"`
+
+	// Id The id of the template.
+	Id *string `json:"id,omitempty"`
+
+	// Template The structure of the template, which can be used as the payload for creating or updating a Connection Profile.
+	Template *ConnectionProfileTemplate `json:"template,omitempty"`
+}
+
 // ConnectionSettings The properties of a connection that can be created and updated.
 // Unknown properties are refused (`invalid_body`).
 type ConnectionSettings struct {
@@ -10177,6 +10862,9 @@ type ConnectionTotp struct {
 // `enabled_clients` are unknown properties.
 type ConnectionUpdate = ConnectionSettings
 
+// ConnectionsMetadata Metadata associated with the connection in the form of an object with string values (max 255 chars).  Maximum of 10 metadata properties allowed.
+type ConnectionsMetadata map[string]*string
+
 // ConsoleAuthenticationMethod defines model for ConsoleAuthenticationMethod.
 type ConsoleAuthenticationMethod struct {
 	Aaguid                 *string                                          `json:"aaguid,omitempty"`
@@ -10206,6 +10894,212 @@ type ConsoleRelyingPartyId struct {
 
 // ConsoleRelyingPartyIdKind defines model for ConsoleRelyingPartyId.Kind.
 type ConsoleRelyingPartyIdKind string
+
+// CreateConnectionProfileRequestContent defines model for CreateConnectionProfileRequestContent.
+type CreateConnectionProfileRequestContent struct {
+	// ConnectionConfig Connection profile configuration.
+	ConnectionConfig *ConnectionProfileConfig `json:"connection_config,omitempty"`
+
+	// ConnectionNamePrefixTemplate Connection name prefix template. (Auth0 states the rule with lookaheads: no leading hyphen and no double hyphen; this is the equivalent RE2 pattern.)
+	ConnectionNamePrefixTemplate *ConnectionNamePrefixTemplate `json:"connection_name_prefix_template,omitempty"`
+
+	// CrossAppAccessResourceApp Controls whether organization admins may enable Cross App Access (XAA) on their Identity Providers.
+	CrossAppAccessResourceApp *ConnectionProfileCrossAppAccessResourceApp `json:"cross_app_access_resource_app,omitempty"`
+
+	// EnabledFeatures Enabled features for the connection profile.
+	EnabledFeatures *ConnectionProfileEnabledFeatures `json:"enabled_features,omitempty"`
+
+	// Name The name of the connection profile.
+	Name ConnectionProfileName `json:"name"`
+
+	// Organization The organization of the connection profile.
+	Organization *ConnectionProfileOrganization `json:"organization,omitempty"`
+
+	// Provisioning Provisioning settings for connections created from this profile.
+	Provisioning *ConnectionProfileProvisioning `json:"provisioning,omitempty"`
+
+	// StrategyOverrides Strategy-specific overrides for this attribute
+	StrategyOverrides *ConnectionProfileStrategyOverrides `json:"strategy_overrides,omitempty"`
+}
+
+// CreateConnectionProfileResponseContent defines model for CreateConnectionProfileResponseContent.
+type CreateConnectionProfileResponseContent struct {
+	// ConnectionConfig Connection profile configuration.
+	ConnectionConfig *ConnectionProfileConfig `json:"connection_config,omitempty"`
+
+	// ConnectionNamePrefixTemplate Connection name prefix template. (Auth0 states the rule with lookaheads: no leading hyphen and no double hyphen; this is the equivalent RE2 pattern.)
+	ConnectionNamePrefixTemplate *ConnectionNamePrefixTemplate `json:"connection_name_prefix_template,omitempty"`
+
+	// CrossAppAccessResourceApp Controls whether organization admins may enable Cross App Access (XAA) on their Identity Providers.
+	CrossAppAccessResourceApp *ConnectionProfileCrossAppAccessResourceApp `json:"cross_app_access_resource_app,omitempty"`
+
+	// EnabledFeatures Enabled features for the connection profile.
+	EnabledFeatures *ConnectionProfileEnabledFeatures `json:"enabled_features,omitempty"`
+
+	// Id Connection Profile identifier.
+	Id *ConnectionProfileId `json:"id,omitempty"`
+
+	// Name The name of the connection profile.
+	Name *ConnectionProfileName `json:"name,omitempty"`
+
+	// Organization The organization of the connection profile.
+	Organization *ConnectionProfileOrganization `json:"organization,omitempty"`
+
+	// Provisioning Provisioning settings for connections created from this profile.
+	Provisioning *ConnectionProfileProvisioning `json:"provisioning,omitempty"`
+
+	// StrategyOverrides Strategy-specific overrides for this attribute
+	StrategyOverrides *ConnectionProfileStrategyOverrides `json:"strategy_overrides,omitempty"`
+}
+
+// CreateDirectoryProvisioningRequestContent defines model for CreateDirectoryProvisioningRequestContent.
+type CreateDirectoryProvisioningRequestContent struct {
+	// Mapping The mapping between Auth0 and IDP user attributes
+	Mapping *[]DirectoryProvisioningMappingItem `json:"mapping,omitempty"`
+
+	// SynchronizeAutomatically Whether periodic automatic synchronization is enabled
+	SynchronizeAutomatically *bool `json:"synchronize_automatically,omitempty"`
+
+	// SynchronizeGroups Group synchronization configuration
+	SynchronizeGroups *SynchronizeGroupsEnum `json:"synchronize_groups,omitempty"`
+}
+
+// CreateDirectoryProvisioningResponseContent defines model for CreateDirectoryProvisioningResponseContent.
+type CreateDirectoryProvisioningResponseContent struct {
+	// ConnectionId The connection's identifier
+	ConnectionId string `json:"connection_id"`
+
+	// ConnectionName The connection's name
+	ConnectionName string `json:"connection_name"`
+
+	// CreatedAt The timestamp at which the directory provisioning configuration was created
+	CreatedAt time.Time `json:"created_at"`
+
+	// LastSynchronizationAt The timestamp at which the connection was last synchronized
+	LastSynchronizationAt *time.Time `json:"last_synchronization_at,omitempty"`
+
+	// LastSynchronizationError The error message of the last synchronization, if any
+	LastSynchronizationError *string `json:"last_synchronization_error,omitempty"`
+
+	// LastSynchronizationStatus The status of the last synchronization
+	LastSynchronizationStatus *string `json:"last_synchronization_status,omitempty"`
+
+	// Mapping The mapping between Auth0 and IDP user attributes
+	Mapping []DirectoryProvisioningMappingItem `json:"mapping"`
+
+	// Strategy The connection's strategy
+	Strategy string `json:"strategy"`
+
+	// SynchronizeAutomatically Whether periodic automatic synchronization is enabled
+	SynchronizeAutomatically bool `json:"synchronize_automatically"`
+
+	// SynchronizeGroups Group synchronization configuration
+	SynchronizeGroups *SynchronizeGroupsEnum `json:"synchronize_groups,omitempty"`
+
+	// UpdatedAt The timestamp at which the directory provisioning configuration was last updated
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
+// CreateDirectorySynchronizationResponseContent defines model for CreateDirectorySynchronizationResponseContent.
+type CreateDirectorySynchronizationResponseContent struct {
+	// ConnectionId The connection's identifier
+	ConnectionId string `json:"connection_id"`
+
+	// Status The synchronization status
+	Status string `json:"status"`
+
+	// SynchronizationId The synchronization's identifier
+	SynchronizationId string `json:"synchronization_id"`
+}
+
+// CreateSelfServiceProfileRequestContent defines model for CreateSelfServiceProfileRequestContent.
+type CreateSelfServiceProfileRequestContent struct {
+	// AllowedStrategies List of IdP strategies that will be shown to users during the Self-Service Enterprise Configuration flow. Possible values: [`oidc`, `samlp`, `waad`, `google-apps`, `adfs`, `okta`, `auth0-samlp`, `okta-samlp`, `keycloak-samlp`, `pingfederate`]
+	AllowedStrategies *[]SelfServiceProfileAllowedStrategyEnum `json:"allowed_strategies,omitempty"`
+	Branding          *SelfServiceProfileBrandingProperties    `json:"branding,omitempty"`
+
+	// Description The description of the self-service Profile.
+	Description *string `json:"description,omitempty"`
+
+	// Name The name of the self-service Profile.
+	Name string `json:"name"`
+
+	// UserAttributeProfileId ID of the user-attribute-profile to associate with this self-service profile.
+	UserAttributeProfileId *string `json:"user_attribute_profile_id,omitempty"`
+
+	// UserAttributes List of attributes to be mapped that will be shown to the user during the Self-Service Enterprise Configuration flow.
+	UserAttributes *[]SelfServiceProfileUserAttribute `json:"user_attributes,omitempty"`
+}
+
+// CreateSelfServiceProfileResponseContent defines model for CreateSelfServiceProfileResponseContent.
+type CreateSelfServiceProfileResponseContent struct {
+	// AllowedStrategies List of IdP strategies that will be shown to users during the Self-Service Enterprise Configuration flow. Possible values: [`oidc`, `samlp`, `waad`, `google-apps`, `adfs`, `okta`, `auth0-samlp`, `okta-samlp`, `keycloak-samlp`, `pingfederate`]
+	AllowedStrategies *[]SelfServiceProfileAllowedStrategyEnum `json:"allowed_strategies,omitempty"`
+	Branding          *SelfServiceProfileBrandingProperties    `json:"branding,omitempty"`
+
+	// CreatedAt The time when this self-service Profile was created.
+	CreatedAt *time.Time `json:"created_at,omitempty"`
+
+	// Description The description of the self-service Profile.
+	Description *string `json:"description,omitempty"`
+
+	// Id The unique ID of the self-service Profile.
+	Id *string `json:"id,omitempty"`
+
+	// Name The name of the self-service Profile.
+	Name *string `json:"name,omitempty"`
+
+	// UpdatedAt The time when this self-service Profile was updated.
+	UpdatedAt *time.Time `json:"updated_at,omitempty"`
+
+	// UserAttributeProfileId ID of the user-attribute-profile to associate with this self-service profile.
+	UserAttributeProfileId *string `json:"user_attribute_profile_id,omitempty"`
+
+	// UserAttributes List of attributes to be mapped that will be shown to the user during the Self-Service Enterprise Configuration flow.
+	UserAttributes *[]SelfServiceProfileUserAttribute `json:"user_attributes,omitempty"`
+}
+
+// CreateSelfServiceProfileSsoTicketRequestContent defines model for CreateSelfServiceProfileSsoTicketRequestContent.
+type CreateSelfServiceProfileSsoTicketRequestContent struct {
+	// ConnectionConfig If provided, this will create a new connection for the Self-Service Enterprise Configuration flow with the given configuration
+	ConnectionConfig *SelfServiceProfileSsoTicketConnectionConfig `json:"connection_config,omitempty"`
+
+	// ConnectionId If provided, this will allow editing of the provided connection during the Self-Service Enterprise Configuration flow
+	ConnectionId *string `json:"connection_id,omitempty"`
+
+	// DomainAliasesConfig Configuration for the setup of the connection’s domain_aliases in the Self-Service Enterprise Configuration flow.
+	DomainAliasesConfig *SelfServiceProfileSsoTicketDomainAliasesConfig `json:"domain_aliases_config,omitempty"`
+
+	// EnabledClients List of client_ids that the connection will be enabled for.
+	EnabledClients *[]string `json:"enabled_clients,omitempty"`
+
+	// EnabledFeatures Specifies which features are enabled for an "edit connection" ticket. Only applicable when connection ID is provided.
+	EnabledFeatures *SelfServiceProfileSsoTicketEnabledFeatures `json:"enabled_features,omitempty"`
+
+	// EnabledOrganizations List of organizations that the connection will be enabled for.
+	EnabledOrganizations *[]SelfServiceProfileSsoTicketEnabledOrganization `json:"enabled_organizations,omitempty"`
+
+	// ProvisioningConfig Configuration for the setup of Provisioning in the self-service flow.
+	ProvisioningConfig *SelfServiceProfileSsoTicketProvisioningConfig `json:"provisioning_config,omitempty"`
+
+	// ThirdPartyClientAccessConfig Configuration for Third Party Client Access during the Self-Service Enterprise Configuration flow.
+	ThirdPartyClientAccessConfig *ThirdPartyClientAccessConfig `json:"third_party_client_access_config,omitempty"`
+
+	// TtlSec Number of seconds for which the ticket is valid before expiration. If unspecified or set to 0, this value defaults to 432000 seconds (5 days).
+	TtlSec *int `json:"ttl_sec,omitempty"`
+
+	// UniversalLogoutConfig Configuration for the setup of Universal Logout in the Self-Service Enterprise Configuration flow.
+	UniversalLogoutConfig *SelfServiceProfileSsoTicketUniversalLogoutConfig `json:"universal_logout_config,omitempty"`
+
+	// UseForOrganizationDiscovery Indicates whether a verified domain should be used for organization discovery during authentication.
+	UseForOrganizationDiscovery *bool `json:"use_for_organization_discovery,omitempty"`
+}
+
+// CreateSelfServiceProfileSsoTicketResponseContent defines model for CreateSelfServiceProfileSsoTicketResponseContent.
+type CreateSelfServiceProfileSsoTicketResponseContent struct {
+	// Ticket The URL for the created ticket.
+	Ticket *string `json:"ticket,omitempty"`
+}
 
 // CustomDomain defines model for CustomDomain.
 type CustomDomain struct {
@@ -10379,6 +11273,57 @@ type DefaultTokenQuotaSubject struct {
 	AdditionalProperties map[string]interface{}        `json:"-"`
 }
 
+// DeleteSynchronizedGroupsRequestContent defines model for DeleteSynchronizedGroupsRequestContent.
+type DeleteSynchronizedGroupsRequestContent struct {
+	// Groups Array of groups to remove from the selection set.
+	Groups []SynchronizedGroupSelectionId `json:"groups"`
+}
+
+// DirectoryProvisioning defines model for DirectoryProvisioning.
+type DirectoryProvisioning struct {
+	// ConnectionId The connection's identifier
+	ConnectionId string `json:"connection_id"`
+
+	// ConnectionName The connection's name
+	ConnectionName string `json:"connection_name"`
+
+	// CreatedAt The timestamp at which the directory provisioning configuration was created
+	CreatedAt time.Time `json:"created_at"`
+
+	// LastSynchronizationAt The timestamp at which the connection was last synchronized
+	LastSynchronizationAt *time.Time `json:"last_synchronization_at,omitempty"`
+
+	// LastSynchronizationError The error message of the last synchronization, if any
+	LastSynchronizationError *string `json:"last_synchronization_error,omitempty"`
+
+	// LastSynchronizationStatus The status of the last synchronization
+	LastSynchronizationStatus *string `json:"last_synchronization_status,omitempty"`
+
+	// Mapping The mapping between Auth0 and IDP user attributes
+	Mapping []DirectoryProvisioningMappingItem `json:"mapping"`
+
+	// Strategy The connection's strategy
+	Strategy string `json:"strategy"`
+
+	// SynchronizeAutomatically Whether periodic automatic synchronization is enabled
+	SynchronizeAutomatically bool `json:"synchronize_automatically"`
+
+	// SynchronizeGroups Group synchronization configuration
+	SynchronizeGroups *SynchronizeGroupsEnum `json:"synchronize_groups,omitempty"`
+
+	// UpdatedAt The timestamp at which the directory provisioning configuration was last updated
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
+// DirectoryProvisioningMappingItem defines model for DirectoryProvisioningMappingItem.
+type DirectoryProvisioningMappingItem struct {
+	// Auth0 The field location in the Auth0 schema
+	Auth0 string `json:"auth0"`
+
+	// Idp The field location in the IDP schema
+	Idp string `json:"idp"`
+}
+
 // EmailPreview defines model for EmailPreview.
 type EmailPreview struct {
 	From      string `json:"from"`
@@ -10479,6 +11424,9 @@ type EmailVerificationTicketCreate struct {
 	TtlSec *int   `json:"ttl_sec,omitempty"`
 	UserId string `json:"user_id"`
 }
+
+// EnabledFeaturesEnum Enum for enabled features.
+type EnabledFeaturesEnum string
 
 // EventsCreateEventStreamActionRequestContent defines model for EventsCreateEventStreamActionRequestContent.
 type EventsCreateEventStreamActionRequestContent struct {
@@ -10847,6 +11795,183 @@ type EventsUpdateEventStreamRequestContent struct {
 // EventsUpdateEventStreamResponseContent defines model for EventsUpdateEventStreamResponseContent.
 type EventsUpdateEventStreamResponseContent struct {
 	union json.RawMessage
+}
+
+// GetConnectionProfileResponseContent defines model for GetConnectionProfileResponseContent.
+type GetConnectionProfileResponseContent struct {
+	// ConnectionConfig Connection profile configuration.
+	ConnectionConfig *ConnectionProfileConfig `json:"connection_config,omitempty"`
+
+	// ConnectionNamePrefixTemplate Connection name prefix template. (Auth0 states the rule with lookaheads: no leading hyphen and no double hyphen; this is the equivalent RE2 pattern.)
+	ConnectionNamePrefixTemplate *ConnectionNamePrefixTemplate `json:"connection_name_prefix_template,omitempty"`
+
+	// CrossAppAccessResourceApp Controls whether organization admins may enable Cross App Access (XAA) on their Identity Providers.
+	CrossAppAccessResourceApp *ConnectionProfileCrossAppAccessResourceApp `json:"cross_app_access_resource_app,omitempty"`
+
+	// EnabledFeatures Enabled features for the connection profile.
+	EnabledFeatures *ConnectionProfileEnabledFeatures `json:"enabled_features,omitempty"`
+
+	// Id Connection Profile identifier.
+	Id *ConnectionProfileId `json:"id,omitempty"`
+
+	// Name The name of the connection profile.
+	Name *ConnectionProfileName `json:"name,omitempty"`
+
+	// Organization The organization of the connection profile.
+	Organization *ConnectionProfileOrganization `json:"organization,omitempty"`
+
+	// Provisioning Provisioning settings for connections created from this profile.
+	Provisioning *ConnectionProfileProvisioning `json:"provisioning,omitempty"`
+
+	// StrategyOverrides Strategy-specific overrides for this attribute
+	StrategyOverrides *ConnectionProfileStrategyOverrides `json:"strategy_overrides,omitempty"`
+}
+
+// GetConnectionProfileTemplateResponseContent defines model for GetConnectionProfileTemplateResponseContent.
+type GetConnectionProfileTemplateResponseContent struct {
+	// DisplayName The user-friendly name of the template displayed in the UI.
+	DisplayName *string `json:"display_name,omitempty"`
+
+	// Id The id of the template.
+	Id *string `json:"id,omitempty"`
+
+	// Template The structure of the template, which can be used as the payload for creating or updating a Connection Profile.
+	Template *ConnectionProfileTemplate `json:"template,omitempty"`
+}
+
+// GetDirectoryProvisioningDefaultMappingResponseContent defines model for GetDirectoryProvisioningDefaultMappingResponseContent.
+type GetDirectoryProvisioningDefaultMappingResponseContent struct {
+	// Mapping The mapping between Auth0 and IDP user attributes
+	Mapping *[]DirectoryProvisioningMappingItem `json:"mapping,omitempty"`
+}
+
+// GetDirectoryProvisioningResponseContent defines model for GetDirectoryProvisioningResponseContent.
+type GetDirectoryProvisioningResponseContent struct {
+	// ConnectionId The connection's identifier
+	ConnectionId string `json:"connection_id"`
+
+	// ConnectionName The connection's name
+	ConnectionName string `json:"connection_name"`
+
+	// CreatedAt The timestamp at which the directory provisioning configuration was created
+	CreatedAt time.Time `json:"created_at"`
+
+	// LastSynchronizationAt The timestamp at which the connection was last synchronized
+	LastSynchronizationAt *time.Time `json:"last_synchronization_at,omitempty"`
+
+	// LastSynchronizationError The error message of the last synchronization, if any
+	LastSynchronizationError *string `json:"last_synchronization_error,omitempty"`
+
+	// LastSynchronizationStatus The status of the last synchronization
+	LastSynchronizationStatus *string `json:"last_synchronization_status,omitempty"`
+
+	// Mapping The mapping between Auth0 and IDP user attributes
+	Mapping []DirectoryProvisioningMappingItem `json:"mapping"`
+
+	// Strategy The connection's strategy
+	Strategy string `json:"strategy"`
+
+	// SynchronizeAutomatically Whether periodic automatic synchronization is enabled
+	SynchronizeAutomatically bool `json:"synchronize_automatically"`
+
+	// SynchronizeGroups Group synchronization configuration
+	SynchronizeGroups *SynchronizeGroupsEnum `json:"synchronize_groups,omitempty"`
+
+	// UpdatedAt The timestamp at which the directory provisioning configuration was last updated
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
+// GetSelfServiceProfileResponseContent defines model for GetSelfServiceProfileResponseContent.
+type GetSelfServiceProfileResponseContent struct {
+	// AllowedStrategies List of IdP strategies that will be shown to users during the Self-Service Enterprise Configuration flow. Possible values: [`oidc`, `samlp`, `waad`, `google-apps`, `adfs`, `okta`, `auth0-samlp`, `okta-samlp`, `keycloak-samlp`, `pingfederate`]
+	AllowedStrategies *[]SelfServiceProfileAllowedStrategyEnum `json:"allowed_strategies,omitempty"`
+	Branding          *SelfServiceProfileBrandingProperties    `json:"branding,omitempty"`
+
+	// CreatedAt The time when this self-service Profile was created.
+	CreatedAt *time.Time `json:"created_at,omitempty"`
+
+	// Description The description of the self-service Profile.
+	Description *string `json:"description,omitempty"`
+
+	// Id The unique ID of the self-service Profile.
+	Id *string `json:"id,omitempty"`
+
+	// Name The name of the self-service Profile.
+	Name *string `json:"name,omitempty"`
+
+	// UpdatedAt The time when this self-service Profile was updated.
+	UpdatedAt *time.Time `json:"updated_at,omitempty"`
+
+	// UserAttributeProfileId ID of the user-attribute-profile to associate with this self-service profile.
+	UserAttributeProfileId *string `json:"user_attribute_profile_id,omitempty"`
+
+	// UserAttributes List of attributes to be mapped that will be shown to the user during the Self-Service Enterprise Configuration flow.
+	UserAttributes *[]SelfServiceProfileUserAttribute `json:"user_attributes,omitempty"`
+}
+
+// Group A directory group (Plan 37c). Groups belong to one connection and are created by SCIM. No property is required because `fields` can project any away.
+type Group struct {
+	ConnectionId *string    `json:"connection_id,omitempty"`
+	CreatedAt    *time.Time `json:"created_at,omitempty"`
+	ExternalId   *string    `json:"external_id,omitempty"`
+
+	// Id `grp_` and 14 to 22 base58 characters.
+	Id *GroupID `json:"id,omitempty"`
+
+	// Name Unique within its connection.
+	Name       *string    `json:"name,omitempty"`
+	TenantName *string    `json:"tenant_name,omitempty"`
+	UpdatedAt  *time.Time `json:"updated_at,omitempty"`
+}
+
+// GroupCheckpoint defines model for GroupCheckpoint.
+type GroupCheckpoint struct {
+	Groups []Group `json:"groups"`
+	Next   *string `json:"next,omitempty"`
+}
+
+// GroupID `grp_` and 14 to 22 base58 characters.
+type GroupID = string
+
+// GroupIDList defines model for GroupIDList.
+type GroupIDList struct {
+	Groups []GroupID `json:"groups"`
+}
+
+// GroupMember defines model for GroupMember.
+type GroupMember struct {
+	ConnectionId *string                `json:"connection_id,omitempty"`
+	CreatedAt    *time.Time             `json:"created_at,omitempty"`
+	Id           *string                `json:"id,omitempty"`
+	MemberType   *GroupMemberMemberType `json:"member_type,omitempty"`
+	Type         *GroupMemberType       `json:"type,omitempty"`
+}
+
+// GroupMemberMemberType defines model for GroupMember.MemberType.
+type GroupMemberMemberType string
+
+// GroupMemberType defines model for GroupMember.Type.
+type GroupMemberType string
+
+// GroupMemberPage defines model for GroupMemberPage.
+type GroupMemberPage struct {
+	Members []GroupMember `json:"members"`
+	Next    *string       `json:"next,omitempty"`
+}
+
+// GroupPage defines model for GroupPage.
+type GroupPage struct {
+	Groups []Group  `json:"groups"`
+	Limit  *float32 `json:"limit,omitempty"`
+	Next   *string  `json:"next,omitempty"`
+	Start  *float32 `json:"start,omitempty"`
+	Total  *float32 `json:"total,omitempty"`
+}
+
+// GroupRolePage defines model for GroupRolePage.
+type GroupRolePage struct {
+	Next  *string `json:"next,omitempty"`
+	Roles []Role  `json:"roles"`
 }
 
 // IIAppMetadata defines model for IIAppMetadata.
@@ -11359,6 +12484,56 @@ type JwtConfiguration struct {
 
 // JwtConfigurationAlg ID token algorithm. HS256 requires a confidential client with a usable client secret (D-0080).
 type JwtConfigurationAlg string
+
+// ListConnectionProfileTemplateResponseContent defines model for ListConnectionProfileTemplateResponseContent.
+type ListConnectionProfileTemplateResponseContent struct {
+	ConnectionProfileTemplates *[]ConnectionProfileTemplateItem `json:"connection_profile_templates,omitempty"`
+}
+
+// ListConnectionProfilesPaginatedResponseContent defines model for ListConnectionProfilesPaginatedResponseContent.
+type ListConnectionProfilesPaginatedResponseContent struct {
+	ConnectionProfiles *[]ConnectionProfile `json:"connection_profiles,omitempty"`
+
+	// Next A cursor to be used as the "from" query parameter for the next page of results.
+	Next *string `json:"next,omitempty"`
+}
+
+// ListDirectoryProvisioningsResponseContent defines model for ListDirectoryProvisioningsResponseContent.
+type ListDirectoryProvisioningsResponseContent struct {
+	// DirectoryProvisionings List of directory provisioning configurations
+	DirectoryProvisionings []DirectoryProvisioning `json:"directory_provisionings"`
+
+	// Next The cursor to be used as the "from" query parameter for the next page of results.
+	Next *string `json:"next,omitempty"`
+}
+
+// ListSelfServiceProfileCustomTextResponseContent The list of custom text keys and values.
+type ListSelfServiceProfileCustomTextResponseContent map[string]string
+
+// ListSelfServiceProfilesPaginatedResponseContent defines model for ListSelfServiceProfilesPaginatedResponseContent.
+type ListSelfServiceProfilesPaginatedResponseContent struct {
+	Limit               *float32              `json:"limit,omitempty"`
+	SelfServiceProfiles *[]SelfServiceProfile `json:"self_service_profiles,omitempty"`
+	Start               *float32              `json:"start,omitempty"`
+	Total               *float32              `json:"total,omitempty"`
+}
+
+// ListSelfServiceProfilesResponseContent defines model for ListSelfServiceProfilesResponseContent.
+type ListSelfServiceProfilesResponseContent struct {
+	union json.RawMessage
+}
+
+// ListSelfServiceProfilesResponseContent0 defines model for ListSelfServiceProfilesResponseContent.0.
+type ListSelfServiceProfilesResponseContent0 = []SelfServiceProfile
+
+// ListSynchronizedGroupsResponseContent defines model for ListSynchronizedGroupsResponseContent.
+type ListSynchronizedGroupsResponseContent struct {
+	// Groups Array of Google Workspace group ids configured for synchronization.
+	Groups []SynchronizedGroupPayload `json:"groups"`
+
+	// Next The cursor to be used as the "from" query parameter for the next page of results.
+	Next *string `json:"next,omitempty"`
+}
 
 // ListTotals The paging members of a list returned with `include_totals=true`; the
 // list itself is under the resource's plural name.
@@ -13103,7 +14278,7 @@ type OrganizationEffectiveRole struct {
 	Id          string `json:"id"`
 	Name        string `json:"name"`
 
-	// Sources Where the role comes from; only `direct` until groups exist.
+	// Sources Where the role comes from; `group` when a directory group of the member holds it in the organization (Plan 37c).
 	Sources []OrganizationEffectiveRoleSources `json:"sources"`
 }
 
@@ -13627,6 +14802,12 @@ type RefreshTokenSettingsExpirationType string
 // RefreshTokenSettingsRotationType defines model for RefreshTokenSettings.RotationType.
 type RefreshTokenSettingsRotationType string
 
+// ReplaceSynchronizedGroupsRequestContent defines model for ReplaceSynchronizedGroupsRequestContent.
+type ReplaceSynchronizedGroupsRequestContent struct {
+	// Groups Array of Google Workspace Directory group objects to synchronize.
+	Groups []SynchronizedGroupPayload `json:"groups"`
+}
+
 // ResourceServer An API.
 type ResourceServer struct {
 	AllowOfflineAccess                     bool  `json:"allow_offline_access"`
@@ -13874,6 +15055,11 @@ type RoleCreate struct {
 // RoleCreateType defines model for RoleCreate.Type.
 type RoleCreateType string
 
+// RoleIDList defines model for RoleIDList.
+type RoleIDList struct {
+	Roles []string `json:"roles"`
+}
+
 // RolePage defines model for RolePage.
 type RolePage struct {
 	Limit int    `json:"limit"`
@@ -13915,6 +15101,79 @@ type RoleUserPage struct {
 	Users []RoleUser `json:"users"`
 }
 
+// ScimConfiguration defines model for ScimConfiguration.
+type ScimConfiguration struct {
+	ConnectionId    string            `json:"connection_id"`
+	ConnectionName  string            `json:"connection_name"`
+	CreatedAt       time.Time         `json:"created_at"`
+	Mapping         []ScimMappingItem `json:"mapping"`
+	Strategy        string            `json:"strategy"`
+	TenantName      string            `json:"tenant_name"`
+	UpdatedOn       time.Time         `json:"updated_on"`
+	UserIdAttribute string            `json:"user_id_attribute"`
+}
+
+// ScimConfigurationCreate defines model for ScimConfigurationCreate.
+type ScimConfigurationCreate struct {
+	Mapping         *[]ScimMappingItem `json:"mapping,omitempty"`
+	UserIdAttribute *string            `json:"user_id_attribute,omitempty"`
+}
+
+// ScimConfigurationList defines model for ScimConfigurationList.
+type ScimConfigurationList struct {
+	Next               *string             `json:"next,omitempty"`
+	ScimConfigurations []ScimConfiguration `json:"scim_configurations"`
+}
+
+// ScimConfigurationUpdate defines model for ScimConfigurationUpdate.
+type ScimConfigurationUpdate struct {
+	Mapping         []ScimMappingItem `json:"mapping"`
+	UserIdAttribute string            `json:"user_id_attribute"`
+}
+
+// ScimDefaultMapping defines model for ScimDefaultMapping.
+type ScimDefaultMapping struct {
+	Mapping *[]ScimMappingItem `json:"mapping,omitempty"`
+}
+
+// ScimMappingItem defines model for ScimMappingItem.
+type ScimMappingItem struct {
+	// Auth0 The Auth0 profile field (`email`, `app_metadata.department`, …).
+	Auth0 string `json:"auth0"`
+
+	// Scim The SCIM attribute path (`emails[primary eq true].value`, …).
+	Scim string `json:"scim"`
+}
+
+// ScimToken defines model for ScimToken.
+type ScimToken struct {
+	CreatedAt  *time.Time `json:"created_at,omitempty"`
+	LastUsedAt *time.Time `json:"last_used_at,omitempty"`
+	Scopes     *[]string  `json:"scopes,omitempty"`
+	TokenId    *string    `json:"token_id,omitempty"`
+	ValidUntil *time.Time `json:"valid_until,omitempty"`
+}
+
+// ScimTokenCreate SCIM token request. `token_lifetime` in seconds must be greater than 900; null or absent means no expiry.
+type ScimTokenCreate struct {
+	Scopes        *[]ScimTokenCreateScopes `json:"scopes,omitempty"`
+	TokenLifetime *int                     `json:"token_lifetime,omitempty"`
+}
+
+// ScimTokenCreateScopes defines model for ScimTokenCreate.Scopes.
+type ScimTokenCreateScopes string
+
+// ScimTokenCreated defines model for ScimTokenCreated.
+type ScimTokenCreated struct {
+	CreatedAt *time.Time `json:"created_at,omitempty"`
+	Scopes    *[]string  `json:"scopes,omitempty"`
+
+	// Token Shown once.
+	Token      *string    `json:"token,omitempty"`
+	TokenId    *string    `json:"token_id,omitempty"`
+	ValidUntil *time.Time `json:"valid_until,omitempty"`
+}
+
 // ScriptTry defines model for ScriptTry.
 type ScriptTry struct {
 	// Args The script's arguments, without the callback.
@@ -13942,6 +15201,194 @@ type ScriptTryResult struct {
 	Result interface{} `json:"result"`
 }
 
+// SelfServiceProfile defines model for SelfServiceProfile.
+type SelfServiceProfile struct {
+	// AllowedStrategies List of IdP strategies that will be shown to users during the Self-Service Enterprise Configuration flow. Possible values: [`oidc`, `samlp`, `waad`, `google-apps`, `adfs`, `okta`, `auth0-samlp`, `okta-samlp`, `keycloak-samlp`, `pingfederate`]
+	AllowedStrategies *[]SelfServiceProfileAllowedStrategyEnum `json:"allowed_strategies,omitempty"`
+	Branding          *SelfServiceProfileBrandingProperties    `json:"branding,omitempty"`
+
+	// CreatedAt The time when this self-service Profile was created.
+	CreatedAt *time.Time `json:"created_at,omitempty"`
+
+	// Description The description of the self-service Profile.
+	Description *string `json:"description,omitempty"`
+
+	// Id The unique ID of the self-service Profile.
+	Id *string `json:"id,omitempty"`
+
+	// Name The name of the self-service Profile.
+	Name *string `json:"name,omitempty"`
+
+	// UpdatedAt The time when this self-service Profile was updated.
+	UpdatedAt *time.Time `json:"updated_at,omitempty"`
+
+	// UserAttributeProfileId ID of the user-attribute-profile to associate with this self-service profile.
+	UserAttributeProfileId *string `json:"user_attribute_profile_id,omitempty"`
+
+	// UserAttributes List of attributes to be mapped that will be shown to the user during the Self-Service Enterprise Configuration flow.
+	UserAttributes *[]SelfServiceProfileUserAttribute `json:"user_attributes,omitempty"`
+}
+
+// SelfServiceProfileAllowedStrategyEnum defines model for SelfServiceProfileAllowedStrategyEnum.
+type SelfServiceProfileAllowedStrategyEnum string
+
+// SelfServiceProfileBranding defines model for SelfServiceProfileBranding.
+type SelfServiceProfileBranding = SelfServiceProfileBrandingProperties
+
+// SelfServiceProfileBrandingColors defines model for SelfServiceProfileBrandingColors.
+type SelfServiceProfileBrandingColors struct {
+	Primary              string                 `json:"primary"`
+	AdditionalProperties map[string]interface{} `json:"-"`
+}
+
+// SelfServiceProfileBrandingProperties defines model for SelfServiceProfileBrandingProperties.
+type SelfServiceProfileBrandingProperties struct {
+	Colors               *SelfServiceProfileBrandingColors `json:"colors,omitempty"`
+	LogoUrl              *string                           `json:"logo_url,omitempty"`
+	AdditionalProperties map[string]interface{}            `json:"-"`
+}
+
+// SelfServiceProfileCustomTextLanguageEnum The language of the custom text.
+type SelfServiceProfileCustomTextLanguageEnum string
+
+// SelfServiceProfileCustomTextPageEnum The page where the custom text is shown.
+type SelfServiceProfileCustomTextPageEnum string
+
+// SelfServiceProfileDescription The description of the self-service Profile.
+type SelfServiceProfileDescription = string
+
+// SelfServiceProfileSsoTicketConnectionConfig If provided, this will create a new connection for the Self-Service Enterprise Configuration flow with the given configuration
+type SelfServiceProfileSsoTicketConnectionConfig struct {
+	// DisplayName Connection name used in the new universal login experience
+	DisplayName *string `json:"display_name,omitempty"`
+
+	// IsDomainConnection <code>true</code> promotes to a domain-level connection so that third-party applications can use it. <code>false</code> does not promote the connection, so only first-party applications with the connection enabled can use it. (Defaults to <code>false</code>.)
+	IsDomainConnection *bool `json:"is_domain_connection,omitempty"`
+
+	// Metadata Metadata associated with the connection in the form of an object with string values (max 255 chars).  Maximum of 10 metadata properties allowed.
+	Metadata *ConnectionsMetadata `json:"metadata,omitempty"`
+
+	// Name The name of the connection that will be created as a part of the Self-Service Enterprise Configuration flow.
+	Name string `json:"name"`
+
+	// Options The connection's options (depend on the connection strategy)
+	Options *SelfServiceProfileSsoTicketConnectionOptions `json:"options,omitempty"`
+
+	// ShowAsButton Enables showing a button for the connection in the login page (new experience only). If false, it will be usable only by HRD. (Defaults to <code>false</code>.)
+	ShowAsButton *bool `json:"show_as_button,omitempty"`
+}
+
+// SelfServiceProfileSsoTicketConnectionOptions The connection's options (depend on the connection strategy)
+type SelfServiceProfileSsoTicketConnectionOptions struct {
+	// DomainAliases List of domain_aliases that can be authenticated in the Identity Provider
+	DomainAliases *[]string `json:"domain_aliases,omitempty"`
+
+	// IconUrl URL for the icon. Must use HTTPS.
+	IconUrl *string `json:"icon_url,omitempty"`
+
+	// Idpinitiated Allows IdP-initiated login
+	Idpinitiated *SelfServiceProfileSsoTicketIdpInitiatedOptions `json:"idpinitiated,omitempty"`
+}
+
+// SelfServiceProfileSsoTicketDomainAliasesConfig Configuration for the setup of the connection’s domain_aliases in the Self-Service Enterprise Configuration flow.
+type SelfServiceProfileSsoTicketDomainAliasesConfig struct {
+	// DomainVerification Whether the end user should complete the domain verification step. Possible values are 'none' (the step is not shown to the user), 'optional' (the user may add a domain alias in the domain verification step) or 'required' (the user must add a domain alias in order to enable the connection). Defaults to 'none'.
+	DomainVerification SelfServiceProfileSsoTicketDomainVerificationEnum `json:"domain_verification"`
+
+	// PendingDomains List of domains that will be submitted for verification during the Self-Service Enterprise Configuration flow.
+	PendingDomains *[]string `json:"pending_domains,omitempty"`
+}
+
+// SelfServiceProfileSsoTicketDomainVerificationEnum Whether the end user should complete the domain verification step. Possible values are 'none' (the step is not shown to the user), 'optional' (the user may add a domain alias in the domain verification step) or 'required' (the user must add a domain alias in order to enable the connection). Defaults to 'none'.
+type SelfServiceProfileSsoTicketDomainVerificationEnum string
+
+// SelfServiceProfileSsoTicketEnabledFeatures Specifies which features are enabled for an "edit connection" ticket. Only applicable when connection ID is provided.
+type SelfServiceProfileSsoTicketEnabledFeatures struct {
+	// DomainVerification Whether domain verification is enabled in this ticket.
+	DomainVerification *bool `json:"domain_verification,omitempty"`
+
+	// Provisioning Whether provisioning configuration is enabled in this ticket.
+	Provisioning *bool `json:"provisioning,omitempty"`
+
+	// Sso Whether SSO configuration is enabled in this ticket.
+	Sso *bool `json:"sso,omitempty"`
+}
+
+// SelfServiceProfileSsoTicketEnabledOrganization defines model for SelfServiceProfileSsoTicketEnabledOrganization.
+type SelfServiceProfileSsoTicketEnabledOrganization struct {
+	// AssignMembershipOnLogin When true, all users that log in with this connection will be automatically granted membership in the organization. When false, users must be granted membership in the organization before logging in with this connection.
+	AssignMembershipOnLogin *bool `json:"assign_membership_on_login,omitempty"`
+
+	// OrganizationId Organization identifier.
+	OrganizationId string `json:"organization_id"`
+
+	// ShowAsButton Determines whether a connection should be displayed on this organization’s login prompt. Only applicable for enterprise connections. Default: true.
+	ShowAsButton *bool `json:"show_as_button,omitempty"`
+}
+
+// SelfServiceProfileSsoTicketGoogleWorkspaceConfig Configuration for Google Workspace Directory Sync during the self-service flow.
+type SelfServiceProfileSsoTicketGoogleWorkspaceConfig struct {
+	// SyncGroups Whether to enable Google Workspace Directory Sync for groups during the self-service flow.
+	SyncGroups *bool `json:"sync_groups,omitempty"`
+
+	// SyncUsers Whether to enable Google Workspace Directory Sync for users during the self-service flow.
+	SyncUsers bool `json:"sync_users"`
+}
+
+// SelfServiceProfileSsoTicketIdpInitiatedClientProtocolEnum The protocol used to connect to the the default application
+type SelfServiceProfileSsoTicketIdpInitiatedClientProtocolEnum string
+
+// SelfServiceProfileSsoTicketIdpInitiatedOptions Allows IdP-initiated login
+type SelfServiceProfileSsoTicketIdpInitiatedOptions struct {
+	// ClientAuthorizequery Query string options to customize the behaviour for OpenID Connect when <code>idpinitiated.client_protocol</code> is <code>oauth2</code>. Allowed parameters: <code>redirect_uri</code>, <code>scope</code>, <code>response_type</code>. For example, <code>redirect_uri=https://jwt.io&scope=openid email&response_type=token</code>
+	ClientAuthorizequery *string `json:"client_authorizequery,omitempty"`
+
+	// ClientId Default application <code>client_id</code> user is redirected to after validated SAML response
+	ClientId *string `json:"client_id,omitempty"`
+
+	// ClientProtocol The protocol used to connect to the the default application
+	ClientProtocol *SelfServiceProfileSsoTicketIdpInitiatedClientProtocolEnum `json:"client_protocol,omitempty"`
+
+	// Enabled Enables IdP-initiated login for this connection
+	Enabled *bool `json:"enabled,omitempty"`
+}
+
+// SelfServiceProfileSsoTicketProvisioningConfig Configuration for the setup of Provisioning in the self-service flow.
+type SelfServiceProfileSsoTicketProvisioningConfig struct {
+	// GoogleWorkspace Configuration for Google Workspace Directory Sync during the self-service flow.
+	GoogleWorkspace *SelfServiceProfileSsoTicketGoogleWorkspaceConfig `json:"google_workspace,omitempty"`
+
+	// Scopes The scopes of the SCIM tokens generated during the self-service flow.
+	Scopes *[]SelfServiceProfileSsoTicketProvisioningScopeEnum `json:"scopes,omitempty"`
+
+	// TokenLifetime Lifetime of the tokens in seconds. Must be greater than 900. If not provided, the tokens don't expire.
+	TokenLifetime *int `json:"token_lifetime,omitempty"`
+}
+
+// SelfServiceProfileSsoTicketProvisioningScopeEnum defines model for SelfServiceProfileSsoTicketProvisioningScopeEnum.
+type SelfServiceProfileSsoTicketProvisioningScopeEnum string
+
+// SelfServiceProfileSsoTicketUniversalLogoutConfig Configuration for the setup of Universal Logout in the Self-Service Enterprise Configuration flow.
+type SelfServiceProfileSsoTicketUniversalLogoutConfig struct {
+	// AllowConfiguration Whether the end user can set up Universal Logout during the Self-Service Enterprise Configuration flow.
+	AllowConfiguration bool `json:"allow_configuration"`
+}
+
+// SelfServiceProfileUserAttribute defines model for SelfServiceProfileUserAttribute.
+type SelfServiceProfileUserAttribute struct {
+	// Description Description of this attribute.
+	Description string `json:"description"`
+
+	// IsOptional Determines if this attribute is required
+	IsOptional bool `json:"is_optional"`
+
+	// Name Identifier of this attribute.
+	Name string `json:"name"`
+}
+
+// SelfServiceProfileUserAttributes List of attributes to be mapped that will be shown to the user during the Self-Service Enterprise Configuration flow.
+type SelfServiceProfileUserAttributes = []SelfServiceProfileUserAttribute
+
 // SessionDevice The IP addresses and user agents of the session; there are no ASN keys.
 type SessionDevice struct {
 	InitialIp        *string `json:"initial_ip,omitempty"`
@@ -13957,6 +15404,12 @@ type SessionMetadata map[string]string
 type SessionMetadataUpdate struct {
 	SessionMetadata *SessionMetadata `json:"session_metadata"`
 }
+
+// SetSelfServiceProfileCustomTextRequestContent The list of text keys and values to customize the Self-Service Enterprise Configuration flow page. Values can be plain text or rich HTML content limited to basic styling tags and hyperlinks.
+type SetSelfServiceProfileCustomTextRequestContent map[string]string
+
+// SetSelfServiceProfileCustomTextResponseContent The resulting list of custom text keys and values.
+type SetSelfServiceProfileCustomTextResponseContent map[string]string
 
 // SignedRequestObject JAR settings. Prefer a different key from `private_key_jwt` (advice, not enforced).
 type SignedRequestObject struct {
@@ -14021,6 +15474,30 @@ type SuspiciousIpThrottlingUpdate struct {
 
 // SuspiciousIpThrottlingUpdateShields defines model for SuspiciousIpThrottlingUpdate.Shields.
 type SuspiciousIpThrottlingUpdateShields string
+
+// SynchronizeGroupsEnum Group synchronization configuration
+type SynchronizeGroupsEnum string
+
+// SynchronizedGroupPayload defines model for SynchronizedGroupPayload.
+type SynchronizedGroupPayload struct {
+	// DirectMembersCount Number of direct members in the Google Workspace Directory group.
+	DirectMembersCount *int `json:"direct_members_count,omitempty"`
+
+	// Email Google Workspace Directory group email.
+	Email *openapi_types.Email `json:"email,omitempty"`
+
+	// Id Google Workspace Directory group ID.
+	Id string `json:"id"`
+
+	// Name Google Workspace Directory group name.
+	Name *string `json:"name,omitempty"`
+}
+
+// SynchronizedGroupSelectionId defines model for SynchronizedGroupSelectionId.
+type SynchronizedGroupSelectionId struct {
+	// Id Google Workspace Directory group ID.
+	Id string `json:"id"`
+}
 
 // SystemActionExecution defines model for SystemActionExecution.
 type SystemActionExecution struct {
@@ -14579,6 +16056,12 @@ type TenantUpdate struct {
 	FriendlyName *string   `json:"friendly_name,omitempty"`
 }
 
+// ThirdPartyClientAccessConfig Configuration for Third Party Client Access during the Self-Service Enterprise Configuration flow.
+type ThirdPartyClientAccessConfig struct {
+	// AllowConfiguration Whether third-party applications can configure the connection as a domain-level connection during the Self-Service Enterprise Configuration flow.
+	AllowConfiguration bool `json:"allow_configuration"`
+}
+
 // Ticket defines model for Ticket.
 type Ticket struct {
 	// Ticket The ticket's URL. Its token is shown only here.
@@ -14637,6 +16120,158 @@ type TokenExchangeProfilePage struct {
 type TokenExchangeProfileUpdate struct {
 	Name             *string `json:"name,omitempty"`
 	SubjectTokenType *string `json:"subject_token_type,omitempty"`
+}
+
+// UpdateConnectionProfileRequestContent defines model for UpdateConnectionProfileRequestContent.
+type UpdateConnectionProfileRequestContent struct {
+	// ConnectionConfig Connection profile configuration.
+	ConnectionConfig *ConnectionProfileConfig `json:"connection_config,omitempty"`
+
+	// ConnectionNamePrefixTemplate Connection name prefix template. (Auth0 states the rule with lookaheads: no leading hyphen and no double hyphen; this is the equivalent RE2 pattern.)
+	ConnectionNamePrefixTemplate *ConnectionNamePrefixTemplate `json:"connection_name_prefix_template,omitempty"`
+
+	// CrossAppAccessResourceApp Controls whether organization admins may enable Cross App Access (XAA) on their Identity Providers.
+	CrossAppAccessResourceApp *ConnectionProfileCrossAppAccessResourceApp `json:"cross_app_access_resource_app,omitempty"`
+
+	// EnabledFeatures Enabled features for the connection profile.
+	EnabledFeatures *ConnectionProfileEnabledFeatures `json:"enabled_features,omitempty"`
+
+	// Name The name of the connection profile.
+	Name *ConnectionProfileName `json:"name,omitempty"`
+
+	// Organization The organization of the connection profile.
+	Organization *ConnectionProfileOrganization `json:"organization,omitempty"`
+
+	// Provisioning Provisioning settings for connections created from this profile.
+	Provisioning *ConnectionProfileProvisioning `json:"provisioning,omitempty"`
+
+	// StrategyOverrides Strategy-specific overrides for this attribute
+	StrategyOverrides *ConnectionProfileStrategyOverrides `json:"strategy_overrides,omitempty"`
+}
+
+// UpdateConnectionProfileResponseContent defines model for UpdateConnectionProfileResponseContent.
+type UpdateConnectionProfileResponseContent struct {
+	// ConnectionConfig Connection profile configuration.
+	ConnectionConfig *ConnectionProfileConfig `json:"connection_config,omitempty"`
+
+	// ConnectionNamePrefixTemplate Connection name prefix template. (Auth0 states the rule with lookaheads: no leading hyphen and no double hyphen; this is the equivalent RE2 pattern.)
+	ConnectionNamePrefixTemplate *ConnectionNamePrefixTemplate `json:"connection_name_prefix_template,omitempty"`
+
+	// CrossAppAccessResourceApp Controls whether organization admins may enable Cross App Access (XAA) on their Identity Providers.
+	CrossAppAccessResourceApp *ConnectionProfileCrossAppAccessResourceApp `json:"cross_app_access_resource_app,omitempty"`
+
+	// EnabledFeatures Enabled features for the connection profile.
+	EnabledFeatures *ConnectionProfileEnabledFeatures `json:"enabled_features,omitempty"`
+
+	// Id Connection Profile identifier.
+	Id *ConnectionProfileId `json:"id,omitempty"`
+
+	// Name The name of the connection profile.
+	Name *ConnectionProfileName `json:"name,omitempty"`
+
+	// Organization The organization of the connection profile.
+	Organization *ConnectionProfileOrganization `json:"organization,omitempty"`
+
+	// Provisioning Provisioning settings for connections created from this profile.
+	Provisioning *ConnectionProfileProvisioning `json:"provisioning,omitempty"`
+
+	// StrategyOverrides Strategy-specific overrides for this attribute
+	StrategyOverrides *ConnectionProfileStrategyOverrides `json:"strategy_overrides,omitempty"`
+}
+
+// UpdateDirectoryProvisioningRequestContent defines model for UpdateDirectoryProvisioningRequestContent.
+type UpdateDirectoryProvisioningRequestContent struct {
+	// Mapping The mapping between Auth0 and IDP user attributes
+	Mapping *[]DirectoryProvisioningMappingItem `json:"mapping,omitempty"`
+
+	// SynchronizeAutomatically Whether periodic automatic synchronization is enabled
+	SynchronizeAutomatically *bool `json:"synchronize_automatically,omitempty"`
+
+	// SynchronizeGroups Group synchronization configuration
+	SynchronizeGroups *SynchronizeGroupsEnum `json:"synchronize_groups,omitempty"`
+}
+
+// UpdateDirectoryProvisioningResponseContent defines model for UpdateDirectoryProvisioningResponseContent.
+type UpdateDirectoryProvisioningResponseContent struct {
+	// ConnectionId The connection's identifier
+	ConnectionId string `json:"connection_id"`
+
+	// ConnectionName The connection's name
+	ConnectionName string `json:"connection_name"`
+
+	// CreatedAt The timestamp at which the directory provisioning configuration was created
+	CreatedAt time.Time `json:"created_at"`
+
+	// LastSynchronizationAt The timestamp at which the connection was last synchronized
+	LastSynchronizationAt *time.Time `json:"last_synchronization_at,omitempty"`
+
+	// LastSynchronizationError The error message of the last synchronization, if any
+	LastSynchronizationError *string `json:"last_synchronization_error,omitempty"`
+
+	// LastSynchronizationStatus The status of the last synchronization
+	LastSynchronizationStatus *string `json:"last_synchronization_status,omitempty"`
+
+	// Mapping The mapping between Auth0 and IDP user attributes
+	Mapping []DirectoryProvisioningMappingItem `json:"mapping"`
+
+	// Strategy The connection's strategy
+	Strategy string `json:"strategy"`
+
+	// SynchronizeAutomatically Whether periodic automatic synchronization is enabled
+	SynchronizeAutomatically bool `json:"synchronize_automatically"`
+
+	// SynchronizeGroups Group synchronization configuration
+	SynchronizeGroups *SynchronizeGroupsEnum `json:"synchronize_groups,omitempty"`
+
+	// UpdatedAt The timestamp at which the directory provisioning configuration was last updated
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
+// UpdateSelfServiceProfileRequestContent defines model for UpdateSelfServiceProfileRequestContent.
+type UpdateSelfServiceProfileRequestContent struct {
+	// AllowedStrategies List of IdP strategies that will be shown to users during the Self-Service Enterprise Configuration flow. Possible values: [`oidc`, `samlp`, `waad`, `google-apps`, `adfs`, `okta`, `auth0-samlp`, `okta-samlp`, `keycloak-samlp`, `pingfederate`]
+	AllowedStrategies *[]SelfServiceProfileAllowedStrategyEnum `json:"allowed_strategies,omitempty"`
+	Branding          *SelfServiceProfileBranding              `json:"branding,omitempty"`
+
+	// Description The description of the self-service Profile.
+	Description *SelfServiceProfileDescription `json:"description,omitempty"`
+
+	// Name The name of the self-service Profile.
+	Name *string `json:"name,omitempty"`
+
+	// UserAttributeProfileId ID of the user-attribute-profile to associate with this self-service profile.
+	UserAttributeProfileId *string `json:"user_attribute_profile_id,omitempty"`
+
+	// UserAttributes List of attributes to be mapped that will be shown to the user during the Self-Service Enterprise Configuration flow.
+	UserAttributes *SelfServiceProfileUserAttributes `json:"user_attributes,omitempty"`
+}
+
+// UpdateSelfServiceProfileResponseContent defines model for UpdateSelfServiceProfileResponseContent.
+type UpdateSelfServiceProfileResponseContent struct {
+	// AllowedStrategies List of IdP strategies that will be shown to users during the Self-Service Enterprise Configuration flow. Possible values: [`oidc`, `samlp`, `waad`, `google-apps`, `adfs`, `okta`, `auth0-samlp`, `okta-samlp`, `keycloak-samlp`, `pingfederate`]
+	AllowedStrategies *[]SelfServiceProfileAllowedStrategyEnum `json:"allowed_strategies,omitempty"`
+	Branding          *SelfServiceProfileBrandingProperties    `json:"branding,omitempty"`
+
+	// CreatedAt The time when this self-service Profile was created.
+	CreatedAt *time.Time `json:"created_at,omitempty"`
+
+	// Description The description of the self-service Profile.
+	Description *string `json:"description,omitempty"`
+
+	// Id The unique ID of the self-service Profile.
+	Id *string `json:"id,omitempty"`
+
+	// Name The name of the self-service Profile.
+	Name *string `json:"name,omitempty"`
+
+	// UpdatedAt The time when this self-service Profile was updated.
+	UpdatedAt *time.Time `json:"updated_at,omitempty"`
+
+	// UserAttributeProfileId ID of the user-attribute-profile to associate with this self-service profile.
+	UserAttributeProfileId *string `json:"user_attribute_profile_id,omitempty"`
+
+	// UserAttributes List of attributes to be mapped that will be shown to the user during the Self-Service Enterprise Configuration flow.
+	UserAttributes *[]SelfServiceProfileUserAttribute `json:"user_attributes,omitempty"`
 }
 
 // User A user in Auth0's shape. Fields without a value are left out:
@@ -14731,6 +16366,29 @@ type UserGrantPage struct {
 
 	// Total The number of results on all pages.
 	Total int `json:"total"`
+}
+
+// UserGroup A group of the user, with the membership's creation time.
+type UserGroup struct {
+	ConnectionId *string    `json:"connection_id,omitempty"`
+	CreatedAt    *time.Time `json:"created_at,omitempty"`
+	ExternalId   *string    `json:"external_id,omitempty"`
+
+	// Id `grp_` and 14 to 22 base58 characters.
+	Id                  *GroupID   `json:"id,omitempty"`
+	MembershipCreatedAt *time.Time `json:"membership_created_at,omitempty"`
+	Name                *string    `json:"name,omitempty"`
+	TenantName          *string    `json:"tenant_name,omitempty"`
+	UpdatedAt           *time.Time `json:"updated_at,omitempty"`
+}
+
+// UserGroupPage defines model for UserGroupPage.
+type UserGroupPage struct {
+	Groups []UserGroup `json:"groups"`
+	Limit  *float32    `json:"limit,omitempty"`
+	Next   *string     `json:"next,omitempty"`
+	Start  *float32    `json:"start,omitempty"`
+	Total  *float32    `json:"total,omitempty"`
 }
 
 // UserIdentity defines model for UserIdentity.
@@ -15257,6 +16915,15 @@ type GetClientParams struct {
 	IncludeFields *IncludeFields `form:"include_fields,omitempty" json:"include_fields,omitempty"`
 }
 
+// ListConnectionProfilesParams defines parameters for ListConnectionProfiles.
+type ListConnectionProfilesParams struct {
+	// From Optional Id from which to start selection.
+	From *string `form:"from,omitempty" json:"from,omitempty"`
+
+	// Take Number of results per page. Defaults to 5.
+	Take *int `form:"take,omitempty" json:"take,omitempty"`
+}
+
 // GetConnectionsParams defines parameters for GetConnections.
 type GetConnectionsParams struct {
 	// Page Page index of the results, from 0.
@@ -15295,6 +16962,24 @@ type GetConnections200JSONResponseBody struct {
 	union json.RawMessage
 }
 
+// ListDirectoryProvisioningsParams defines parameters for ListDirectoryProvisionings.
+type ListDirectoryProvisioningsParams struct {
+	// From Optional Id from which to start selection.
+	From *string `form:"from,omitempty" json:"from,omitempty"`
+
+	// Take Number of results per page. Defaults to 50.
+	Take *int `form:"take,omitempty" json:"take,omitempty"`
+}
+
+// ListScimConfigurationsParams defines parameters for ListScimConfigurations.
+type ListScimConfigurationsParams struct {
+	// From Checkpoint cursor (`next` of the previous page).
+	From *string `form:"from,omitempty" json:"from,omitempty"`
+
+	// Take Number of results, 1 to 100 (default 50).
+	Take *int `form:"take,omitempty" json:"take,omitempty"`
+}
+
 // GetConnectionParams defines parameters for GetConnection.
 type GetConnectionParams struct {
 	// Fields Comma-separated fields to include or, with `include_fields=false`, to leave out. `id` and `is_domain_connection` are always returned.
@@ -15315,6 +17000,21 @@ type GetConnectionClientsParams struct {
 
 // UpdateConnectionClientsJSONBody defines parameters for UpdateConnectionClients.
 type UpdateConnectionClientsJSONBody = []ConnectionClientStatus
+
+// ListSynchronizedGroupsParams defines parameters for ListSynchronizedGroups.
+type ListSynchronizedGroupsParams struct {
+	// From Optional Id from which to start selection.
+	From *string `form:"from,omitempty" json:"from,omitempty"`
+
+	// Take Number of results per page. Defaults to 50.
+	Take *int `form:"take,omitempty" json:"take,omitempty"`
+
+	// Q Query in <a target='_new' href ='https://lucene.apache.org/core/2_9_4/queryparsersyntax.html'>Lucene query string syntax</a>. Only prefix search on "name" or "email" fields are allowed, with a single wildcard suffix. Operators, modifiers, and groupings are not allowed. Terms are treated as case-insensitive. Example query: "name:engineering*".
+	Q *string `form:"q,omitempty" json:"q,omitempty"`
+}
+
+// CreateScimConfigurationJSONBody defines parameters for CreateScimConfiguration.
+type CreateScimConfigurationJSONBody = ScimConfigurationCreate
 
 // DeleteConnectionUsersByEmailParams defines parameters for DeleteConnectionUsersByEmail.
 type DeleteConnectionUsersByEmailParams struct {
@@ -15404,6 +17104,56 @@ type GetGrants200JSONResponseBody0 = []UserGrant
 // GetGrants200JSONResponseBody defines parameters for GetGrants.
 type GetGrants200JSONResponseBody struct {
 	union json.RawMessage
+}
+
+// ListGroupsParams defines parameters for ListGroups.
+type ListGroupsParams struct {
+	ConnectionId *string `form:"connection_id,omitempty" json:"connection_id,omitempty"`
+	Name         *string `form:"name,omitempty" json:"name,omitempty"`
+	ExternalId   *string `form:"external_id,omitempty" json:"external_id,omitempty"`
+
+	// Search Case-insensitive prefix of the group name.
+	Search        *string `form:"search,omitempty" json:"search,omitempty"`
+	Fields        *string `form:"fields,omitempty" json:"fields,omitempty"`
+	IncludeFields *bool   `form:"include_fields,omitempty" json:"include_fields,omitempty"`
+	Page          *int    `form:"page,omitempty" json:"page,omitempty"`
+	PerPage       *int    `form:"per_page,omitempty" json:"per_page,omitempty"`
+	IncludeTotals *bool   `form:"include_totals,omitempty" json:"include_totals,omitempty"`
+
+	// From Checkpoint cursor (`next` of the previous page).
+	From *string `form:"from,omitempty" json:"from,omitempty"`
+
+	// Take Number of results, 1 to 100 (default 50).
+	Take *int `form:"take,omitempty" json:"take,omitempty"`
+}
+
+// ListGroups200JSONResponseBody0 defines parameters for ListGroups.
+type ListGroups200JSONResponseBody0 = []Group
+
+// ListGroups200JSONResponseBody defines parameters for ListGroups.
+type ListGroups200JSONResponseBody struct {
+	union json.RawMessage
+}
+
+// ListGroupMembersParams defines parameters for ListGroupMembers.
+type ListGroupMembersParams struct {
+	Fields        *string `form:"fields,omitempty" json:"fields,omitempty"`
+	IncludeFields *bool   `form:"include_fields,omitempty" json:"include_fields,omitempty"`
+
+	// From Checkpoint cursor (`next` of the previous page).
+	From *string `form:"from,omitempty" json:"from,omitempty"`
+
+	// Take Number of results, 1 to 100 (default 50).
+	Take *int `form:"take,omitempty" json:"take,omitempty"`
+}
+
+// ListGroupRolesParams defines parameters for ListGroupRoles.
+type ListGroupRolesParams struct {
+	// From Checkpoint cursor (`next` of the previous page).
+	From *string `form:"from,omitempty" json:"from,omitempty"`
+
+	// Take Number of results, 1 to 100 (default 50).
+	Take *int `form:"take,omitempty" json:"take,omitempty"`
 }
 
 // CreateGuardianEnrollmentTicketParams defines parameters for CreateGuardianEnrollmentTicket.
@@ -15575,6 +17325,24 @@ type ListOrganizationConnections200JSONResponseBody struct {
 	union json.RawMessage
 }
 
+// ListOrganizationGroupsParams defines parameters for ListOrganizationGroups.
+type ListOrganizationGroupsParams struct {
+	// From Checkpoint cursor (`next` of the previous page).
+	From *string `form:"from,omitempty" json:"from,omitempty"`
+
+	// Take Number of results, 1 to 100 (default 50).
+	Take *int `form:"take,omitempty" json:"take,omitempty"`
+}
+
+// ListOrganizationGroupRolesParams defines parameters for ListOrganizationGroupRoles.
+type ListOrganizationGroupRolesParams struct {
+	// From Checkpoint cursor (`next` of the previous page).
+	From *string `form:"from,omitempty" json:"from,omitempty"`
+
+	// Take Number of results, 1 to 100 (default 50).
+	Take *int `form:"take,omitempty" json:"take,omitempty"`
+}
+
 // ListOrganizationInvitationsParams defines parameters for ListOrganizationInvitations.
 type ListOrganizationInvitationsParams struct {
 	Page          *int    `form:"page,omitempty" json:"page,omitempty"`
@@ -15630,6 +17398,17 @@ type ListOrganizationMembers200JSONResponseBody struct {
 
 // ListOrganizationMemberEffectiveRolesParams defines parameters for ListOrganizationMemberEffectiveRoles.
 type ListOrganizationMemberEffectiveRolesParams struct {
+	// From Checkpoint cursor (`next` of the previous page).
+	From *string `form:"from,omitempty" json:"from,omitempty"`
+
+	// Take Number of results, 1 to 100 (default 50).
+	Take *int `form:"take,omitempty" json:"take,omitempty"`
+}
+
+// ListOrganizationMemberRoleSourceGroupsParams defines parameters for ListOrganizationMemberRoleSourceGroups.
+type ListOrganizationMemberRoleSourceGroupsParams struct {
+	RoleId string `form:"role_id" json:"role_id"`
+
 	// From Checkpoint cursor (`next` of the previous page).
 	From *string `form:"from,omitempty" json:"from,omitempty"`
 
@@ -15767,6 +17546,15 @@ type GetRoles200JSONResponseBody struct {
 	union json.RawMessage
 }
 
+// ListRoleGroupsParams defines parameters for ListRoleGroups.
+type ListRoleGroupsParams struct {
+	// From Checkpoint cursor (`next` of the previous page).
+	From *string `form:"from,omitempty" json:"from,omitempty"`
+
+	// Take Number of results, 1 to 100 (default 50).
+	Take *int `form:"take,omitempty" json:"take,omitempty"`
+}
+
 // GetRolePermissionsParams defines parameters for GetRolePermissions.
 type GetRolePermissionsParams struct {
 	Page          *int  `form:"page,omitempty" json:"page,omitempty"`
@@ -15816,6 +17604,24 @@ type GetRulesParams struct {
 
 	// IncludeFields Whether `fields` lists the fields to include (true) or to leave out (false).
 	IncludeFields *IncludeFields `form:"include_fields,omitempty" json:"include_fields,omitempty"`
+}
+
+// ListSelfServiceProfilesParams defines parameters for ListSelfServiceProfiles.
+type ListSelfServiceProfilesParams struct {
+	// Page Page index of the results to return. First page is 0.
+	Page *int `form:"page,omitempty" json:"page,omitempty"`
+
+	// PerPage Number of results per page. Defaults to 50.
+	PerPage *int `form:"per_page,omitempty" json:"per_page,omitempty"`
+
+	// IncludeTotals Return results inside an object that contains the total result count (true) or as a direct array of results (false, default).
+	IncludeTotals *bool `form:"include_totals,omitempty" json:"include_totals,omitempty"`
+}
+
+// CreateSsoTicketParams defines parameters for CreateSsoTicket.
+type CreateSsoTicketParams struct {
+	// Auth0CustomDomain Custom domain to be used for this request
+	Auth0CustomDomain *string `json:"auth0-custom-domain,omitempty"`
 }
 
 // GetDailyStatsParams defines parameters for GetDailyStats.
@@ -15926,6 +17732,40 @@ type GetAuthenticationMethodsParams struct {
 	Page          *int  `form:"page,omitempty" json:"page,omitempty"`
 	PerPage       *int  `form:"per_page,omitempty" json:"per_page,omitempty"`
 	IncludeTotals *bool `form:"include_totals,omitempty" json:"include_totals,omitempty"`
+}
+
+// ListUserRoleSourceGroupsParams defines parameters for ListUserRoleSourceGroups.
+type ListUserRoleSourceGroupsParams struct {
+	RoleId string `form:"role_id" json:"role_id"`
+
+	// From Checkpoint cursor (`next` of the previous page).
+	From *string `form:"from,omitempty" json:"from,omitempty"`
+
+	// Take Number of results, 1 to 100 (default 50).
+	Take *int `form:"take,omitempty" json:"take,omitempty"`
+}
+
+// ListUserGroupsParams defines parameters for ListUserGroups.
+type ListUserGroupsParams struct {
+	Fields        *string `form:"fields,omitempty" json:"fields,omitempty"`
+	IncludeFields *bool   `form:"include_fields,omitempty" json:"include_fields,omitempty"`
+	Page          *int    `form:"page,omitempty" json:"page,omitempty"`
+	PerPage       *int    `form:"per_page,omitempty" json:"per_page,omitempty"`
+	IncludeTotals *bool   `form:"include_totals,omitempty" json:"include_totals,omitempty"`
+
+	// From Checkpoint cursor (`next` of the previous page).
+	From *string `form:"from,omitempty" json:"from,omitempty"`
+
+	// Take Number of results, 1 to 100 (default 50).
+	Take *int `form:"take,omitempty" json:"take,omitempty"`
+}
+
+// ListUserGroups200JSONResponseBody0 defines parameters for ListUserGroups.
+type ListUserGroups200JSONResponseBody0 = []UserGroup
+
+// ListUserGroups200JSONResponseBody defines parameters for ListUserGroups.
+type ListUserGroups200JSONResponseBody struct {
+	union json.RawMessage
 }
 
 // GetUserLogsParams defines parameters for GetUserLogs.
@@ -16149,6 +17989,18 @@ type PostClientCredentialsJSONRequestBody = ClientCredentialCreate
 // PatchClientCredentialJSONRequestBody defines body for PatchClientCredential for application/json ContentType.
 type PatchClientCredentialJSONRequestBody = ClientCredentialUpdate
 
+// CreateConnectionProfileJSONRequestBody defines body for CreateConnectionProfile for application/json ContentType.
+type CreateConnectionProfileJSONRequestBody = CreateConnectionProfileRequestContent
+
+// CreateConnectionProfileFormdataRequestBody defines body for CreateConnectionProfile for application/x-www-form-urlencoded ContentType.
+type CreateConnectionProfileFormdataRequestBody = CreateConnectionProfileRequestContent
+
+// UpdateConnectionProfileJSONRequestBody defines body for UpdateConnectionProfile for application/json ContentType.
+type UpdateConnectionProfileJSONRequestBody = UpdateConnectionProfileRequestContent
+
+// UpdateConnectionProfileFormdataRequestBody defines body for UpdateConnectionProfile for application/x-www-form-urlencoded ContentType.
+type UpdateConnectionProfileFormdataRequestBody = UpdateConnectionProfileRequestContent
+
 // CreateConnectionJSONRequestBody defines body for CreateConnection for application/json ContentType.
 type CreateConnectionJSONRequestBody = ConnectionCreate
 
@@ -16158,11 +18010,50 @@ type UpdateConnectionJSONRequestBody = ConnectionUpdate
 // UpdateConnectionClientsJSONRequestBody defines body for UpdateConnectionClients for application/json ContentType.
 type UpdateConnectionClientsJSONRequestBody = UpdateConnectionClientsJSONBody
 
+// UpdateDirectoryProvisioningJSONRequestBody defines body for UpdateDirectoryProvisioning for application/json ContentType.
+type UpdateDirectoryProvisioningJSONRequestBody = UpdateDirectoryProvisioningRequestContent
+
+// UpdateDirectoryProvisioningFormdataRequestBody defines body for UpdateDirectoryProvisioning for application/x-www-form-urlencoded ContentType.
+type UpdateDirectoryProvisioningFormdataRequestBody = UpdateDirectoryProvisioningRequestContent
+
+// CreateDirectoryProvisioningJSONRequestBody defines body for CreateDirectoryProvisioning for application/json ContentType.
+type CreateDirectoryProvisioningJSONRequestBody = CreateDirectoryProvisioningRequestContent
+
+// CreateDirectoryProvisioningFormdataRequestBody defines body for CreateDirectoryProvisioning for application/x-www-form-urlencoded ContentType.
+type CreateDirectoryProvisioningFormdataRequestBody = CreateDirectoryProvisioningRequestContent
+
+// DeleteSynchronizedGroupsJSONRequestBody defines body for DeleteSynchronizedGroups for application/json ContentType.
+type DeleteSynchronizedGroupsJSONRequestBody = DeleteSynchronizedGroupsRequestContent
+
+// DeleteSynchronizedGroupsFormdataRequestBody defines body for DeleteSynchronizedGroups for application/x-www-form-urlencoded ContentType.
+type DeleteSynchronizedGroupsFormdataRequestBody = DeleteSynchronizedGroupsRequestContent
+
+// AddSynchronizedGroupsJSONRequestBody defines body for AddSynchronizedGroups for application/json ContentType.
+type AddSynchronizedGroupsJSONRequestBody = AddSynchronizedGroupsRequestContent
+
+// AddSynchronizedGroupsFormdataRequestBody defines body for AddSynchronizedGroups for application/x-www-form-urlencoded ContentType.
+type AddSynchronizedGroupsFormdataRequestBody = AddSynchronizedGroupsRequestContent
+
+// ReplaceSynchronizedGroupsJSONRequestBody defines body for ReplaceSynchronizedGroups for application/json ContentType.
+type ReplaceSynchronizedGroupsJSONRequestBody = ReplaceSynchronizedGroupsRequestContent
+
+// ReplaceSynchronizedGroupsFormdataRequestBody defines body for ReplaceSynchronizedGroups for application/x-www-form-urlencoded ContentType.
+type ReplaceSynchronizedGroupsFormdataRequestBody = ReplaceSynchronizedGroupsRequestContent
+
 // PostConnectionKeysJSONRequestBody defines body for PostConnectionKeys for application/json ContentType.
 type PostConnectionKeysJSONRequestBody = PostConnectionKeysRequestContent
 
 // PostConnectionKeysRotateJSONRequestBody defines body for PostConnectionKeysRotate for application/json ContentType.
 type PostConnectionKeysRotateJSONRequestBody = PostConnectionKeysRequestContent
+
+// UpdateScimConfigurationJSONRequestBody defines body for UpdateScimConfiguration for application/json ContentType.
+type UpdateScimConfigurationJSONRequestBody = ScimConfigurationUpdate
+
+// CreateScimConfigurationJSONRequestBody defines body for CreateScimConfiguration for application/json ContentType.
+type CreateScimConfigurationJSONRequestBody = CreateScimConfigurationJSONBody
+
+// CreateScimTokenJSONRequestBody defines body for CreateScimToken for application/json ContentType.
+type CreateScimTokenJSONRequestBody = ScimTokenCreate
 
 // CreateCustomDomainJSONRequestBody defines body for CreateCustomDomain for application/json ContentType.
 type CreateCustomDomainJSONRequestBody = CustomDomainCreate
@@ -16199,6 +18090,12 @@ type RedeliverEventsJSONRequestBody = EventsCreateEventStreamRedeliveryRequestCo
 
 // TestEventStreamJSONRequestBody defines body for TestEventStream for application/json ContentType.
 type TestEventStreamJSONRequestBody = EventsCreateEventStreamTestEventRequestContent
+
+// RemoveGroupRolesJSONRequestBody defines body for RemoveGroupRoles for application/json ContentType.
+type RemoveGroupRolesJSONRequestBody = RoleIDList
+
+// AssignGroupRolesJSONRequestBody defines body for AssignGroupRoles for application/json ContentType.
+type AssignGroupRolesJSONRequestBody = RoleIDList
 
 // CreateGuardianEnrollmentTicketJSONRequestBody defines body for CreateGuardianEnrollmentTicket for application/json ContentType.
 type CreateGuardianEnrollmentTicketJSONRequestBody = MFACreateGuardianEnrollmentTicketRequest
@@ -16326,6 +18223,12 @@ type CreateOrganizationConnectionJSONRequestBody = OrganizationEnabledConnection
 // UpdateOrganizationConnectionJSONRequestBody defines body for UpdateOrganizationConnection for application/json ContentType.
 type UpdateOrganizationConnectionJSONRequestBody = OrganizationEnabledConnectionUpdate
 
+// RemoveOrganizationGroupRolesJSONRequestBody defines body for RemoveOrganizationGroupRoles for application/json ContentType.
+type RemoveOrganizationGroupRolesJSONRequestBody = RoleIDList
+
+// AssignOrganizationGroupRolesJSONRequestBody defines body for AssignOrganizationGroupRoles for application/json ContentType.
+type AssignOrganizationGroupRolesJSONRequestBody = RoleIDList
+
 // CreateOrganizationInvitationJSONRequestBody defines body for CreateOrganizationInvitation for application/json ContentType.
 type CreateOrganizationInvitationJSONRequestBody = OrganizationInvitationCreate
 
@@ -16368,6 +18271,12 @@ type PostRolesJSONRequestBody = RoleCreate
 // PatchRolesByIdJSONRequestBody defines body for PatchRolesById for application/json ContentType.
 type PatchRolesByIdJSONRequestBody = RoleUpdate
 
+// RemoveRoleGroupsJSONRequestBody defines body for RemoveRoleGroups for application/json ContentType.
+type RemoveRoleGroupsJSONRequestBody = GroupIDList
+
+// AssignRoleGroupsJSONRequestBody defines body for AssignRoleGroups for application/json ContentType.
+type AssignRoleGroupsJSONRequestBody = GroupIDList
+
 // DeleteRolePermissionsJSONRequestBody defines body for DeleteRolePermissions for application/json ContentType.
 type DeleteRolePermissionsJSONRequestBody = RBACPermissionBatch
 
@@ -16376,6 +18285,30 @@ type PostRolePermissionsJSONRequestBody = RBACPermissionBatch
 
 // PostRoleUsersJSONRequestBody defines body for PostRoleUsers for application/json ContentType.
 type PostRoleUsersJSONRequestBody = RoleUserBatch
+
+// CreateSelfServiceProfileJSONRequestBody defines body for CreateSelfServiceProfile for application/json ContentType.
+type CreateSelfServiceProfileJSONRequestBody = CreateSelfServiceProfileRequestContent
+
+// CreateSelfServiceProfileFormdataRequestBody defines body for CreateSelfServiceProfile for application/x-www-form-urlencoded ContentType.
+type CreateSelfServiceProfileFormdataRequestBody = CreateSelfServiceProfileRequestContent
+
+// UpdateSelfServiceProfileJSONRequestBody defines body for UpdateSelfServiceProfile for application/json ContentType.
+type UpdateSelfServiceProfileJSONRequestBody = UpdateSelfServiceProfileRequestContent
+
+// UpdateSelfServiceProfileFormdataRequestBody defines body for UpdateSelfServiceProfile for application/x-www-form-urlencoded ContentType.
+type UpdateSelfServiceProfileFormdataRequestBody = UpdateSelfServiceProfileRequestContent
+
+// SetSelfServiceProfileCustomTextJSONRequestBody defines body for SetSelfServiceProfileCustomText for application/json ContentType.
+type SetSelfServiceProfileCustomTextJSONRequestBody = SetSelfServiceProfileCustomTextRequestContent
+
+// SetSelfServiceProfileCustomTextFormdataRequestBody defines body for SetSelfServiceProfileCustomText for application/x-www-form-urlencoded ContentType.
+type SetSelfServiceProfileCustomTextFormdataRequestBody = SetSelfServiceProfileCustomTextRequestContent
+
+// CreateSsoTicketJSONRequestBody defines body for CreateSsoTicket for application/json ContentType.
+type CreateSsoTicketJSONRequestBody = CreateSelfServiceProfileSsoTicketRequestContent
+
+// CreateSsoTicketFormdataRequestBody defines body for CreateSsoTicket for application/x-www-form-urlencoded ContentType.
+type CreateSsoTicketFormdataRequestBody = CreateSelfServiceProfileSsoTicketRequestContent
 
 // UpdateSessionJSONRequestBody defines body for UpdateSession for application/json ContentType.
 type UpdateSessionJSONRequestBody = SessionMetadataUpdate
@@ -18112,6 +20045,325 @@ func (a ConnectionOptionsGitHub) MarshalJSON() ([]byte, error) {
 		object["write_repo_hook"], err = json.Marshal(a.WriteRepoHook)
 		if err != nil {
 			return nil, fmt.Errorf("error marshaling 'write_repo_hook': %w", err)
+		}
+	}
+
+	for fieldName, field := range a.AdditionalProperties {
+		object[fieldName], err = json.Marshal(field)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling '%s': %w", fieldName, err)
+		}
+	}
+	return json.Marshal(object)
+}
+
+// Getter for additional properties for ConnectionOptionsGoogleApps. Returns the specified
+// element and whether it was found
+func (a ConnectionOptionsGoogleApps) Get(fieldName string) (value interface{}, found bool) {
+	if a.AdditionalProperties != nil {
+		value, found = a.AdditionalProperties[fieldName]
+	}
+	return
+}
+
+// Setter for additional properties for ConnectionOptionsGoogleApps
+func (a *ConnectionOptionsGoogleApps) Set(fieldName string, value interface{}) {
+	if a.AdditionalProperties == nil {
+		a.AdditionalProperties = make(map[string]interface{})
+	}
+	a.AdditionalProperties[fieldName] = value
+}
+
+// Override default JSON handling for ConnectionOptionsGoogleApps to handle AdditionalProperties
+func (a *ConnectionOptionsGoogleApps) UnmarshalJSON(b []byte) error {
+	object := make(map[string]json.RawMessage)
+	err := json.Unmarshal(b, &object)
+	if err != nil {
+		return err
+	}
+
+	if raw, found := object["api_enable_groups"]; found {
+		err = json.Unmarshal(raw, &a.ApiEnableGroups)
+		if err != nil {
+			return fmt.Errorf("error reading 'api_enable_groups': %w", err)
+		}
+		delete(object, "api_enable_groups")
+	}
+
+	if raw, found := object["api_enable_users"]; found {
+		err = json.Unmarshal(raw, &a.ApiEnableUsers)
+		if err != nil {
+			return fmt.Errorf("error reading 'api_enable_users': %w", err)
+		}
+		delete(object, "api_enable_users")
+	}
+
+	if raw, found := object["client_id"]; found {
+		err = json.Unmarshal(raw, &a.ClientId)
+		if err != nil {
+			return fmt.Errorf("error reading 'client_id': %w", err)
+		}
+		delete(object, "client_id")
+	}
+
+	if raw, found := object["client_secret"]; found {
+		err = json.Unmarshal(raw, &a.ClientSecret)
+		if err != nil {
+			return fmt.Errorf("error reading 'client_secret': %w", err)
+		}
+		delete(object, "client_secret")
+	}
+
+	if raw, found := object["domain"]; found {
+		err = json.Unmarshal(raw, &a.Domain)
+		if err != nil {
+			return fmt.Errorf("error reading 'domain': %w", err)
+		}
+		delete(object, "domain")
+	}
+
+	if raw, found := object["domain_aliases"]; found {
+		err = json.Unmarshal(raw, &a.DomainAliases)
+		if err != nil {
+			return fmt.Errorf("error reading 'domain_aliases': %w", err)
+		}
+		delete(object, "domain_aliases")
+	}
+
+	if raw, found := object["email"]; found {
+		err = json.Unmarshal(raw, &a.Email)
+		if err != nil {
+			return fmt.Errorf("error reading 'email': %w", err)
+		}
+		delete(object, "email")
+	}
+
+	if raw, found := object["ext_agreed_terms"]; found {
+		err = json.Unmarshal(raw, &a.ExtAgreedTerms)
+		if err != nil {
+			return fmt.Errorf("error reading 'ext_agreed_terms': %w", err)
+		}
+		delete(object, "ext_agreed_terms")
+	}
+
+	if raw, found := object["ext_groups"]; found {
+		err = json.Unmarshal(raw, &a.ExtGroups)
+		if err != nil {
+			return fmt.Errorf("error reading 'ext_groups': %w", err)
+		}
+		delete(object, "ext_groups")
+	}
+
+	if raw, found := object["ext_groups_extended"]; found {
+		err = json.Unmarshal(raw, &a.ExtGroupsExtended)
+		if err != nil {
+			return fmt.Errorf("error reading 'ext_groups_extended': %w", err)
+		}
+		delete(object, "ext_groups_extended")
+	}
+
+	if raw, found := object["ext_is_admin"]; found {
+		err = json.Unmarshal(raw, &a.ExtIsAdmin)
+		if err != nil {
+			return fmt.Errorf("error reading 'ext_is_admin': %w", err)
+		}
+		delete(object, "ext_is_admin")
+	}
+
+	if raw, found := object["ext_is_suspended"]; found {
+		err = json.Unmarshal(raw, &a.ExtIsSuspended)
+		if err != nil {
+			return fmt.Errorf("error reading 'ext_is_suspended': %w", err)
+		}
+		delete(object, "ext_is_suspended")
+	}
+
+	if raw, found := object["icon_url"]; found {
+		err = json.Unmarshal(raw, &a.IconUrl)
+		if err != nil {
+			return fmt.Errorf("error reading 'icon_url': %w", err)
+		}
+		delete(object, "icon_url")
+	}
+
+	if raw, found := object["map_user_id_to_id"]; found {
+		err = json.Unmarshal(raw, &a.MapUserIdToId)
+		if err != nil {
+			return fmt.Errorf("error reading 'map_user_id_to_id': %w", err)
+		}
+		delete(object, "map_user_id_to_id")
+	}
+
+	if raw, found := object["profile"]; found {
+		err = json.Unmarshal(raw, &a.Profile)
+		if err != nil {
+			return fmt.Errorf("error reading 'profile': %w", err)
+		}
+		delete(object, "profile")
+	}
+
+	if raw, found := object["scope"]; found {
+		err = json.Unmarshal(raw, &a.Scope)
+		if err != nil {
+			return fmt.Errorf("error reading 'scope': %w", err)
+		}
+		delete(object, "scope")
+	}
+
+	if raw, found := object["set_user_root_attributes"]; found {
+		err = json.Unmarshal(raw, &a.SetUserRootAttributes)
+		if err != nil {
+			return fmt.Errorf("error reading 'set_user_root_attributes': %w", err)
+		}
+		delete(object, "set_user_root_attributes")
+	}
+
+	if raw, found := object["tenant_domain"]; found {
+		err = json.Unmarshal(raw, &a.TenantDomain)
+		if err != nil {
+			return fmt.Errorf("error reading 'tenant_domain': %w", err)
+		}
+		delete(object, "tenant_domain")
+	}
+
+	if len(object) != 0 {
+		a.AdditionalProperties = make(map[string]interface{})
+		for fieldName, fieldBuf := range object {
+			var fieldVal interface{}
+			err := json.Unmarshal(fieldBuf, &fieldVal)
+			if err != nil {
+				return fmt.Errorf("error unmarshaling field %s: %w", fieldName, err)
+			}
+			a.AdditionalProperties[fieldName] = fieldVal
+		}
+	}
+	return nil
+}
+
+// Override default JSON handling for ConnectionOptionsGoogleApps to handle AdditionalProperties
+func (a ConnectionOptionsGoogleApps) MarshalJSON() ([]byte, error) {
+	var err error
+	object := make(map[string]json.RawMessage)
+
+	if a.ApiEnableGroups != nil {
+		object["api_enable_groups"], err = json.Marshal(a.ApiEnableGroups)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'api_enable_groups': %w", err)
+		}
+	}
+
+	if a.ApiEnableUsers != nil {
+		object["api_enable_users"], err = json.Marshal(a.ApiEnableUsers)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'api_enable_users': %w", err)
+		}
+	}
+
+	object["client_id"], err = json.Marshal(a.ClientId)
+	if err != nil {
+		return nil, fmt.Errorf("error marshaling 'client_id': %w", err)
+	}
+
+	if a.ClientSecret != nil {
+		object["client_secret"], err = json.Marshal(a.ClientSecret)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'client_secret': %w", err)
+		}
+	}
+
+	object["domain"], err = json.Marshal(a.Domain)
+	if err != nil {
+		return nil, fmt.Errorf("error marshaling 'domain': %w", err)
+	}
+
+	if a.DomainAliases != nil {
+		object["domain_aliases"], err = json.Marshal(a.DomainAliases)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'domain_aliases': %w", err)
+		}
+	}
+
+	if a.Email != nil {
+		object["email"], err = json.Marshal(a.Email)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'email': %w", err)
+		}
+	}
+
+	if a.ExtAgreedTerms != nil {
+		object["ext_agreed_terms"], err = json.Marshal(a.ExtAgreedTerms)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'ext_agreed_terms': %w", err)
+		}
+	}
+
+	if a.ExtGroups != nil {
+		object["ext_groups"], err = json.Marshal(a.ExtGroups)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'ext_groups': %w", err)
+		}
+	}
+
+	if a.ExtGroupsExtended != nil {
+		object["ext_groups_extended"], err = json.Marshal(a.ExtGroupsExtended)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'ext_groups_extended': %w", err)
+		}
+	}
+
+	if a.ExtIsAdmin != nil {
+		object["ext_is_admin"], err = json.Marshal(a.ExtIsAdmin)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'ext_is_admin': %w", err)
+		}
+	}
+
+	if a.ExtIsSuspended != nil {
+		object["ext_is_suspended"], err = json.Marshal(a.ExtIsSuspended)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'ext_is_suspended': %w", err)
+		}
+	}
+
+	if a.IconUrl != nil {
+		object["icon_url"], err = json.Marshal(a.IconUrl)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'icon_url': %w", err)
+		}
+	}
+
+	if a.MapUserIdToId != nil {
+		object["map_user_id_to_id"], err = json.Marshal(a.MapUserIdToId)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'map_user_id_to_id': %w", err)
+		}
+	}
+
+	if a.Profile != nil {
+		object["profile"], err = json.Marshal(a.Profile)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'profile': %w", err)
+		}
+	}
+
+	if a.Scope != nil {
+		object["scope"], err = json.Marshal(a.Scope)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'scope': %w", err)
+		}
+	}
+
+	if a.SetUserRootAttributes != nil {
+		object["set_user_root_attributes"], err = json.Marshal(a.SetUserRootAttributes)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'set_user_root_attributes': %w", err)
+		}
+	}
+
+	if a.TenantDomain != nil {
+		object["tenant_domain"], err = json.Marshal(a.TenantDomain)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'tenant_domain': %w", err)
 		}
 	}
 
@@ -20795,6 +23047,155 @@ func (a MFASetAuthenticationMethodsResponse_AuthenticationMethods_Item) MarshalJ
 	return json.Marshal(object)
 }
 
+// Getter for additional properties for SelfServiceProfileBrandingColors. Returns the specified
+// element and whether it was found
+func (a SelfServiceProfileBrandingColors) Get(fieldName string) (value interface{}, found bool) {
+	if a.AdditionalProperties != nil {
+		value, found = a.AdditionalProperties[fieldName]
+	}
+	return
+}
+
+// Setter for additional properties for SelfServiceProfileBrandingColors
+func (a *SelfServiceProfileBrandingColors) Set(fieldName string, value interface{}) {
+	if a.AdditionalProperties == nil {
+		a.AdditionalProperties = make(map[string]interface{})
+	}
+	a.AdditionalProperties[fieldName] = value
+}
+
+// Override default JSON handling for SelfServiceProfileBrandingColors to handle AdditionalProperties
+func (a *SelfServiceProfileBrandingColors) UnmarshalJSON(b []byte) error {
+	object := make(map[string]json.RawMessage)
+	err := json.Unmarshal(b, &object)
+	if err != nil {
+		return err
+	}
+
+	if raw, found := object["primary"]; found {
+		err = json.Unmarshal(raw, &a.Primary)
+		if err != nil {
+			return fmt.Errorf("error reading 'primary': %w", err)
+		}
+		delete(object, "primary")
+	}
+
+	if len(object) != 0 {
+		a.AdditionalProperties = make(map[string]interface{})
+		for fieldName, fieldBuf := range object {
+			var fieldVal interface{}
+			err := json.Unmarshal(fieldBuf, &fieldVal)
+			if err != nil {
+				return fmt.Errorf("error unmarshaling field %s: %w", fieldName, err)
+			}
+			a.AdditionalProperties[fieldName] = fieldVal
+		}
+	}
+	return nil
+}
+
+// Override default JSON handling for SelfServiceProfileBrandingColors to handle AdditionalProperties
+func (a SelfServiceProfileBrandingColors) MarshalJSON() ([]byte, error) {
+	var err error
+	object := make(map[string]json.RawMessage)
+
+	object["primary"], err = json.Marshal(a.Primary)
+	if err != nil {
+		return nil, fmt.Errorf("error marshaling 'primary': %w", err)
+	}
+
+	for fieldName, field := range a.AdditionalProperties {
+		object[fieldName], err = json.Marshal(field)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling '%s': %w", fieldName, err)
+		}
+	}
+	return json.Marshal(object)
+}
+
+// Getter for additional properties for SelfServiceProfileBrandingProperties. Returns the specified
+// element and whether it was found
+func (a SelfServiceProfileBrandingProperties) Get(fieldName string) (value interface{}, found bool) {
+	if a.AdditionalProperties != nil {
+		value, found = a.AdditionalProperties[fieldName]
+	}
+	return
+}
+
+// Setter for additional properties for SelfServiceProfileBrandingProperties
+func (a *SelfServiceProfileBrandingProperties) Set(fieldName string, value interface{}) {
+	if a.AdditionalProperties == nil {
+		a.AdditionalProperties = make(map[string]interface{})
+	}
+	a.AdditionalProperties[fieldName] = value
+}
+
+// Override default JSON handling for SelfServiceProfileBrandingProperties to handle AdditionalProperties
+func (a *SelfServiceProfileBrandingProperties) UnmarshalJSON(b []byte) error {
+	object := make(map[string]json.RawMessage)
+	err := json.Unmarshal(b, &object)
+	if err != nil {
+		return err
+	}
+
+	if raw, found := object["colors"]; found {
+		err = json.Unmarshal(raw, &a.Colors)
+		if err != nil {
+			return fmt.Errorf("error reading 'colors': %w", err)
+		}
+		delete(object, "colors")
+	}
+
+	if raw, found := object["logo_url"]; found {
+		err = json.Unmarshal(raw, &a.LogoUrl)
+		if err != nil {
+			return fmt.Errorf("error reading 'logo_url': %w", err)
+		}
+		delete(object, "logo_url")
+	}
+
+	if len(object) != 0 {
+		a.AdditionalProperties = make(map[string]interface{})
+		for fieldName, fieldBuf := range object {
+			var fieldVal interface{}
+			err := json.Unmarshal(fieldBuf, &fieldVal)
+			if err != nil {
+				return fmt.Errorf("error unmarshaling field %s: %w", fieldName, err)
+			}
+			a.AdditionalProperties[fieldName] = fieldVal
+		}
+	}
+	return nil
+}
+
+// Override default JSON handling for SelfServiceProfileBrandingProperties to handle AdditionalProperties
+func (a SelfServiceProfileBrandingProperties) MarshalJSON() ([]byte, error) {
+	var err error
+	object := make(map[string]json.RawMessage)
+
+	if a.Colors != nil {
+		object["colors"], err = json.Marshal(a.Colors)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'colors': %w", err)
+		}
+	}
+
+	if a.LogoUrl != nil {
+		object["logo_url"], err = json.Marshal(a.LogoUrl)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'logo_url': %w", err)
+		}
+	}
+
+	for fieldName, field := range a.AdditionalProperties {
+		object[fieldName], err = json.Marshal(field)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling '%s': %w", fieldName, err)
+		}
+	}
+	return json.Marshal(object)
+}
+
 // Getter for additional properties for User. Returns the specified
 // element and whether it was found
 func (a User) Get(fieldName string) (value interface{}, found bool) {
@@ -22239,6 +24640,68 @@ func (t *IIListOrganizationInvitationsResponseContent) UnmarshalJSON(b []byte) e
 	return err
 }
 
+// AsListSelfServiceProfilesResponseContent0 returns the union data inside the ListSelfServiceProfilesResponseContent as a ListSelfServiceProfilesResponseContent0
+func (t ListSelfServiceProfilesResponseContent) AsListSelfServiceProfilesResponseContent0() (ListSelfServiceProfilesResponseContent0, error) {
+	var body ListSelfServiceProfilesResponseContent0
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromListSelfServiceProfilesResponseContent0 overwrites any union data inside the ListSelfServiceProfilesResponseContent as the provided ListSelfServiceProfilesResponseContent0
+func (t *ListSelfServiceProfilesResponseContent) FromListSelfServiceProfilesResponseContent0(v ListSelfServiceProfilesResponseContent0) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeListSelfServiceProfilesResponseContent0 performs a merge with any union data inside the ListSelfServiceProfilesResponseContent, using the provided ListSelfServiceProfilesResponseContent0
+func (t *ListSelfServiceProfilesResponseContent) MergeListSelfServiceProfilesResponseContent0(v ListSelfServiceProfilesResponseContent0) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsListSelfServiceProfilesPaginatedResponseContent returns the union data inside the ListSelfServiceProfilesResponseContent as a ListSelfServiceProfilesPaginatedResponseContent
+func (t ListSelfServiceProfilesResponseContent) AsListSelfServiceProfilesPaginatedResponseContent() (ListSelfServiceProfilesPaginatedResponseContent, error) {
+	var body ListSelfServiceProfilesPaginatedResponseContent
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromListSelfServiceProfilesPaginatedResponseContent overwrites any union data inside the ListSelfServiceProfilesResponseContent as the provided ListSelfServiceProfilesPaginatedResponseContent
+func (t *ListSelfServiceProfilesResponseContent) FromListSelfServiceProfilesPaginatedResponseContent(v ListSelfServiceProfilesPaginatedResponseContent) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeListSelfServiceProfilesPaginatedResponseContent performs a merge with any union data inside the ListSelfServiceProfilesResponseContent, using the provided ListSelfServiceProfilesPaginatedResponseContent
+func (t *ListSelfServiceProfilesResponseContent) MergeListSelfServiceProfilesPaginatedResponseContent(v ListSelfServiceProfilesPaginatedResponseContent) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t ListSelfServiceProfilesResponseContent) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *ListSelfServiceProfilesResponseContent) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
 // AsLogEventsResponse0 returns the union data inside the LogEventsResponse as a LogEventsResponse0
 func (t LogEventsResponse) AsLogEventsResponse0() (LogEventsResponse0, error) {
 	var body LogEventsResponse0
@@ -23563,6 +26026,68 @@ func (t *GetGrants200JSONResponseBody) UnmarshalJSON(b []byte) error {
 	return err
 }
 
+// AsListGroups200JSONResponseBody0 returns the union data inside the ListGroups200JSONResponseBody as a ListGroups200JSONResponseBody0
+func (t ListGroups200JSONResponseBody) AsListGroups200JSONResponseBody0() (ListGroups200JSONResponseBody0, error) {
+	var body ListGroups200JSONResponseBody0
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromListGroups200JSONResponseBody0 overwrites any union data inside the ListGroups200JSONResponseBody as the provided ListGroups200JSONResponseBody0
+func (t *ListGroups200JSONResponseBody) FromListGroups200JSONResponseBody0(v ListGroups200JSONResponseBody0) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeListGroups200JSONResponseBody0 performs a merge with any union data inside the ListGroups200JSONResponseBody, using the provided ListGroups200JSONResponseBody0
+func (t *ListGroups200JSONResponseBody) MergeListGroups200JSONResponseBody0(v ListGroups200JSONResponseBody0) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsGroupPage returns the union data inside the ListGroups200JSONResponseBody as a GroupPage
+func (t ListGroups200JSONResponseBody) AsGroupPage() (GroupPage, error) {
+	var body GroupPage
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromGroupPage overwrites any union data inside the ListGroups200JSONResponseBody as the provided GroupPage
+func (t *ListGroups200JSONResponseBody) FromGroupPage(v GroupPage) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeGroupPage performs a merge with any union data inside the ListGroups200JSONResponseBody, using the provided GroupPage
+func (t *ListGroups200JSONResponseBody) MergeGroupPage(v GroupPage) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t ListGroups200JSONResponseBody) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *ListGroups200JSONResponseBody) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
 // AsGetJobErrors200JSONResponseBody0 returns the union data inside the GetJobErrors200JSONResponseBody as a GetJobErrors200JSONResponseBody0
 func (t GetJobErrors200JSONResponseBody) AsGetJobErrors200JSONResponseBody0() (GetJobErrors200JSONResponseBody0, error) {
 	var body GetJobErrors200JSONResponseBody0
@@ -24261,6 +26786,68 @@ func (t *GetUsers200JSONResponseBody) UnmarshalJSON(b []byte) error {
 	return err
 }
 
+// AsListUserGroups200JSONResponseBody0 returns the union data inside the ListUserGroups200JSONResponseBody as a ListUserGroups200JSONResponseBody0
+func (t ListUserGroups200JSONResponseBody) AsListUserGroups200JSONResponseBody0() (ListUserGroups200JSONResponseBody0, error) {
+	var body ListUserGroups200JSONResponseBody0
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromListUserGroups200JSONResponseBody0 overwrites any union data inside the ListUserGroups200JSONResponseBody as the provided ListUserGroups200JSONResponseBody0
+func (t *ListUserGroups200JSONResponseBody) FromListUserGroups200JSONResponseBody0(v ListUserGroups200JSONResponseBody0) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeListUserGroups200JSONResponseBody0 performs a merge with any union data inside the ListUserGroups200JSONResponseBody, using the provided ListUserGroups200JSONResponseBody0
+func (t *ListUserGroups200JSONResponseBody) MergeListUserGroups200JSONResponseBody0(v ListUserGroups200JSONResponseBody0) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsUserGroupPage returns the union data inside the ListUserGroups200JSONResponseBody as a UserGroupPage
+func (t ListUserGroups200JSONResponseBody) AsUserGroupPage() (UserGroupPage, error) {
+	var body UserGroupPage
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromUserGroupPage overwrites any union data inside the ListUserGroups200JSONResponseBody as the provided UserGroupPage
+func (t *ListUserGroups200JSONResponseBody) FromUserGroupPage(v UserGroupPage) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeUserGroupPage performs a merge with any union data inside the ListUserGroups200JSONResponseBody, using the provided UserGroupPage
+func (t *ListUserGroups200JSONResponseBody) MergeUserGroupPage(v UserGroupPage) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t ListUserGroups200JSONResponseBody) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *ListUserGroups200JSONResponseBody) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
 // AsListUserOrganizations200JSONResponseBody0 returns the union data inside the ListUserOrganizations200JSONResponseBody as a ListUserOrganizations200JSONResponseBody0
 func (t ListUserOrganizations200JSONResponseBody) AsListUserOrganizations200JSONResponseBody0() (ListUserOrganizations200JSONResponseBody0, error) {
 	var body ListUserOrganizations200JSONResponseBody0
@@ -24514,6 +27101,9 @@ type ServerInterface interface {
 	// PreviewTenantBranding Preview tenant Universal Login branding.
 	// (POST /api/system/tenants/{tenant}/branding/preview)
 	PreviewTenantBranding(w http.ResponseWriter, r *http.Request, tenant string)
+	// CreateDirectoryProvisioningConsent Create a Google Workspace administrator consent link for directory provisioning.
+	// (POST /api/system/tenants/{tenant}/connections/{id}/directory-provisioning/consent)
+	CreateDirectoryProvisioningConsent(w http.ResponseWriter, r *http.Request, tenant string, id string)
 	// GetTenantPasskeyPrerequisites Read the prerequisites for passkey login
 	// (GET /api/system/tenants/{tenant}/connections/{id}/passkey-prerequisites)
 	GetTenantPasskeyPrerequisites(w http.ResponseWriter, r *http.Request, tenant string, id string)
@@ -24784,12 +27374,39 @@ type ServerInterface interface {
 	// RotateClientSecret Rotate an application's secret
 	// (POST /api/v2/clients/{id}/rotate-secret)
 	RotateClientSecret(w http.ResponseWriter, r *http.Request, id string)
+	// ListConnectionProfiles Get Connection Profiles
+	// (GET /api/v2/connection-profiles)
+	ListConnectionProfiles(w http.ResponseWriter, r *http.Request, params ListConnectionProfilesParams)
+	// CreateConnectionProfile Create a connection profile
+	// (POST /api/v2/connection-profiles)
+	CreateConnectionProfile(w http.ResponseWriter, r *http.Request)
+	// ListConnectionProfileTemplates Get Connection Profile Templates
+	// (GET /api/v2/connection-profiles/templates)
+	ListConnectionProfileTemplates(w http.ResponseWriter, r *http.Request)
+	// GetConnectionProfileTemplate Get Connection Profile Template
+	// (GET /api/v2/connection-profiles/templates/{id})
+	GetConnectionProfileTemplate(w http.ResponseWriter, r *http.Request, id string)
+	// DeleteConnectionProfile Delete Connection Profile
+	// (DELETE /api/v2/connection-profiles/{id})
+	DeleteConnectionProfile(w http.ResponseWriter, r *http.Request, id string)
+	// GetConnectionProfile Get Connection Profile
+	// (GET /api/v2/connection-profiles/{id})
+	GetConnectionProfile(w http.ResponseWriter, r *http.Request, id string)
+	// UpdateConnectionProfile Modify a Connection Profile
+	// (PATCH /api/v2/connection-profiles/{id})
+	UpdateConnectionProfile(w http.ResponseWriter, r *http.Request, id string)
 	// GetConnections List connections
 	// (GET /api/v2/connections)
 	GetConnections(w http.ResponseWriter, r *http.Request, params GetConnectionsParams)
 	// CreateConnection Create a connection
 	// (POST /api/v2/connections)
 	CreateConnection(w http.ResponseWriter, r *http.Request)
+	// ListDirectoryProvisionings Get a list of directory provisioning configurations
+	// (GET /api/v2/connections-directory-provisionings)
+	ListDirectoryProvisionings(w http.ResponseWriter, r *http.Request, params ListDirectoryProvisioningsParams)
+	// ListScimConfigurations List the tenant's SCIM configurations
+	// (GET /api/v2/connections-scim-configurations)
+	ListScimConfigurations(w http.ResponseWriter, r *http.Request, params ListScimConfigurationsParams)
 	// DeleteConnection Delete a connection
 	// (DELETE /api/v2/connections/{id})
 	DeleteConnection(w http.ResponseWriter, r *http.Request, id string)
@@ -24805,6 +27422,36 @@ type ServerInterface interface {
 	// UpdateConnectionClients Enable or disable applications on a connection
 	// (PATCH /api/v2/connections/{id}/clients)
 	UpdateConnectionClients(w http.ResponseWriter, r *http.Request, id string)
+	// DeleteDirectoryProvisioning Delete a directory provisioning configuration
+	// (DELETE /api/v2/connections/{id}/directory-provisioning)
+	DeleteDirectoryProvisioning(w http.ResponseWriter, r *http.Request, id string)
+	// GetDirectoryProvisioning Get a directory provisioning configuration
+	// (GET /api/v2/connections/{id}/directory-provisioning)
+	GetDirectoryProvisioning(w http.ResponseWriter, r *http.Request, id string)
+	// UpdateDirectoryProvisioning Patch a directory provisioning configuration
+	// (PATCH /api/v2/connections/{id}/directory-provisioning)
+	UpdateDirectoryProvisioning(w http.ResponseWriter, r *http.Request, id string)
+	// CreateDirectoryProvisioning Create a directory provisioning configuration
+	// (POST /api/v2/connections/{id}/directory-provisioning)
+	CreateDirectoryProvisioning(w http.ResponseWriter, r *http.Request, id string)
+	// GetDirectoryProvisioningDefaultMapping Get a connection's default directory provisioning attribute mapping
+	// (GET /api/v2/connections/{id}/directory-provisioning/default-mapping)
+	GetDirectoryProvisioningDefaultMapping(w http.ResponseWriter, r *http.Request, id string)
+	// CreateDirectorySynchronization Request an on-demand synchronization of the directory
+	// (POST /api/v2/connections/{id}/directory-provisioning/synchronizations)
+	CreateDirectorySynchronization(w http.ResponseWriter, r *http.Request, id string)
+	// DeleteSynchronizedGroups Delete synchronized group selections for a directory provisioning configuration
+	// (DELETE /api/v2/connections/{id}/directory-provisioning/synchronized-groups)
+	DeleteSynchronizedGroups(w http.ResponseWriter, r *http.Request, id string)
+	// ListSynchronizedGroups Get synchronized groups for a directory provisioning configuration
+	// (GET /api/v2/connections/{id}/directory-provisioning/synchronized-groups)
+	ListSynchronizedGroups(w http.ResponseWriter, r *http.Request, id string, params ListSynchronizedGroupsParams)
+	// AddSynchronizedGroups Add synchronized group selections to a directory provisioning configuration
+	// (POST /api/v2/connections/{id}/directory-provisioning/synchronized-groups)
+	AddSynchronizedGroups(w http.ResponseWriter, r *http.Request, id string)
+	// ReplaceSynchronizedGroups Create or replace synchronized group selections for a directory provisioning configuration
+	// (PUT /api/v2/connections/{id}/directory-provisioning/synchronized-groups)
+	ReplaceSynchronizedGroups(w http.ResponseWriter, r *http.Request, id string)
 	// GetConnectionKeys getConnectionKeys
 	// (GET /api/v2/connections/{id}/keys)
 	GetConnectionKeys(w http.ResponseWriter, r *http.Request, id string)
@@ -24814,6 +27461,30 @@ type ServerInterface interface {
 	// PostConnectionKeysRotate postConnectionKeysRotate
 	// (POST /api/v2/connections/{id}/keys/rotate)
 	PostConnectionKeysRotate(w http.ResponseWriter, r *http.Request, id string)
+	// DeleteScimConfiguration Delete a connection's SCIM configuration and its tokens
+	// (DELETE /api/v2/connections/{id}/scim-configuration)
+	DeleteScimConfiguration(w http.ResponseWriter, r *http.Request, id string)
+	// GetScimConfiguration Get a connection's SCIM configuration
+	// (GET /api/v2/connections/{id}/scim-configuration)
+	GetScimConfiguration(w http.ResponseWriter, r *http.Request, id string)
+	// UpdateScimConfiguration Update a connection's SCIM configuration
+	// (PATCH /api/v2/connections/{id}/scim-configuration)
+	UpdateScimConfiguration(w http.ResponseWriter, r *http.Request, id string)
+	// CreateScimConfiguration Create a connection's SCIM configuration
+	// (POST /api/v2/connections/{id}/scim-configuration)
+	CreateScimConfiguration(w http.ResponseWriter, r *http.Request, id string)
+	// GetScimDefaultMapping Get the default SCIM mapping
+	// (GET /api/v2/connections/{id}/scim-configuration/default-mapping)
+	GetScimDefaultMapping(w http.ResponseWriter, r *http.Request, id string)
+	// ListScimTokens List a connection's SCIM tokens
+	// (GET /api/v2/connections/{id}/scim-configuration/tokens)
+	ListScimTokens(w http.ResponseWriter, r *http.Request, id string)
+	// CreateScimToken Create a SCIM token
+	// (POST /api/v2/connections/{id}/scim-configuration/tokens)
+	CreateScimToken(w http.ResponseWriter, r *http.Request, id string)
+	// DeleteScimToken Delete a SCIM token
+	// (DELETE /api/v2/connections/{id}/scim-configuration/tokens/{tokenId})
+	DeleteScimToken(w http.ResponseWriter, r *http.Request, id string, tokenId string)
 	// GetConnectionStatus getConnectionStatus
 	// (GET /api/v2/connections/{id}/status)
 	GetConnectionStatus(w http.ResponseWriter, r *http.Request, id string)
@@ -24913,6 +27584,27 @@ type ServerInterface interface {
 	// DeleteGrant Delete a grant
 	// (DELETE /api/v2/grants/{id})
 	DeleteGrant(w http.ResponseWriter, r *http.Request, id string)
+	// ListGroups List groups
+	// (GET /api/v2/groups)
+	ListGroups(w http.ResponseWriter, r *http.Request, params ListGroupsParams)
+	// DeleteGroup Delete a group with its memberships and role assignments
+	// (DELETE /api/v2/groups/{id})
+	DeleteGroup(w http.ResponseWriter, r *http.Request, id GroupID)
+	// GetGroup Get a group
+	// (GET /api/v2/groups/{id})
+	GetGroup(w http.ResponseWriter, r *http.Request, id GroupID)
+	// ListGroupMembers List a group's members
+	// (GET /api/v2/groups/{id}/members)
+	ListGroupMembers(w http.ResponseWriter, r *http.Request, id GroupID, params ListGroupMembersParams)
+	// RemoveGroupRoles Remove roles from a group
+	// (DELETE /api/v2/groups/{id}/roles)
+	RemoveGroupRoles(w http.ResponseWriter, r *http.Request, id GroupID)
+	// ListGroupRoles List a group's roles
+	// (GET /api/v2/groups/{id}/roles)
+	ListGroupRoles(w http.ResponseWriter, r *http.Request, id GroupID, params ListGroupRolesParams)
+	// AssignGroupRoles Assign roles to a group
+	// (POST /api/v2/groups/{id}/roles)
+	AssignGroupRoles(w http.ResponseWriter, r *http.Request, id GroupID)
 	// CreateGuardianEnrollmentTicket CreateGuardianEnrollmentTicket
 	// (POST /api/v2/guardian/enrollments/ticket)
 	CreateGuardianEnrollmentTicket(w http.ResponseWriter, r *http.Request, params CreateGuardianEnrollmentTicketParams)
@@ -25192,6 +27884,18 @@ type ServerInterface interface {
 	// UpdateOrganizationConnection Change an enabled connection's flags
 	// (PATCH /api/v2/organizations/{id}/enabled_connections/{connection_id})
 	UpdateOrganizationConnection(w http.ResponseWriter, r *http.Request, id string, connectionId string)
+	// ListOrganizationGroups List the groups assigned to an organization
+	// (GET /api/v2/organizations/{id}/groups)
+	ListOrganizationGroups(w http.ResponseWriter, r *http.Request, id OrganizationId, params ListOrganizationGroupsParams)
+	// RemoveOrganizationGroupRoles Remove roles from a group in an organization
+	// (DELETE /api/v2/organizations/{id}/groups/{group_id}/roles)
+	RemoveOrganizationGroupRoles(w http.ResponseWriter, r *http.Request, id OrganizationId, groupId GroupID)
+	// ListOrganizationGroupRoles List a group's roles in an organization
+	// (GET /api/v2/organizations/{id}/groups/{group_id}/roles)
+	ListOrganizationGroupRoles(w http.ResponseWriter, r *http.Request, id OrganizationId, groupId GroupID, params ListOrganizationGroupRolesParams)
+	// AssignOrganizationGroupRoles Assign roles to a group in an organization
+	// (POST /api/v2/organizations/{id}/groups/{group_id}/roles)
+	AssignOrganizationGroupRoles(w http.ResponseWriter, r *http.Request, id OrganizationId, groupId GroupID)
 	// ListOrganizationInvitations GET /organizations/{id}/invitations
 	// (GET /api/v2/organizations/{id}/invitations)
 	ListOrganizationInvitations(w http.ResponseWriter, r *http.Request, id string, params ListOrganizationInvitationsParams)
@@ -25216,6 +27920,9 @@ type ServerInterface interface {
 	// ListOrganizationMemberEffectiveRoles List a member's effective organization roles with their sources (checkpoint pagination); only direct roles until groups exist
 	// (GET /api/v2/organizations/{id}/members/{user_id}/effective-roles)
 	ListOrganizationMemberEffectiveRoles(w http.ResponseWriter, r *http.Request, id OrganizationId, userId MemberUserId, params ListOrganizationMemberEffectiveRolesParams)
+	// ListOrganizationMemberRoleSourceGroups List the groups that grant an organization member a role
+	// (GET /api/v2/organizations/{id}/members/{user_id}/effective-roles/sources/groups)
+	ListOrganizationMemberRoleSourceGroups(w http.ResponseWriter, r *http.Request, id OrganizationId, userId MemberUserId, params ListOrganizationMemberRoleSourceGroupsParams)
 	// RemoveOrganizationMemberRoles Remove roles from a member; roles not assigned are ignored
 	// (DELETE /api/v2/organizations/{id}/members/{user_id}/roles)
 	RemoveOrganizationMemberRoles(w http.ResponseWriter, r *http.Request, id OrganizationId, userId MemberUserId)
@@ -25291,6 +27998,15 @@ type ServerInterface interface {
 	// PatchRolesById PatchRolesById in the current tenant
 	// (PATCH /api/v2/roles/{id})
 	PatchRolesById(w http.ResponseWriter, r *http.Request, id string)
+	// RemoveRoleGroups Remove groups from a role
+	// (DELETE /api/v2/roles/{id}/groups)
+	RemoveRoleGroups(w http.ResponseWriter, r *http.Request, id string)
+	// ListRoleGroups List a role's groups
+	// (GET /api/v2/roles/{id}/groups)
+	ListRoleGroups(w http.ResponseWriter, r *http.Request, id string, params ListRoleGroupsParams)
+	// AssignRoleGroups Assign groups to a role
+	// (POST /api/v2/roles/{id}/groups)
+	AssignRoleGroups(w http.ResponseWriter, r *http.Request, id string)
 	// DeleteRolePermissions DeleteRolePermissions in the current tenant
 	// (DELETE /api/v2/roles/{id}/permissions)
 	DeleteRolePermissions(w http.ResponseWriter, r *http.Request, id string)
@@ -25312,6 +28028,33 @@ type ServerInterface interface {
 	// GetRulesConfigs Return no retired Rules configuration keys.
 	// (GET /api/v2/rules-configs)
 	GetRulesConfigs(w http.ResponseWriter, r *http.Request)
+	// ListSelfServiceProfiles Get self-service profiles
+	// (GET /api/v2/self-service-profiles)
+	ListSelfServiceProfiles(w http.ResponseWriter, r *http.Request, params ListSelfServiceProfilesParams)
+	// CreateSelfServiceProfile Create a self-service profile
+	// (POST /api/v2/self-service-profiles)
+	CreateSelfServiceProfile(w http.ResponseWriter, r *http.Request)
+	// DeleteSelfServiceProfile Delete a self-service profile by Id
+	// (DELETE /api/v2/self-service-profiles/{id})
+	DeleteSelfServiceProfile(w http.ResponseWriter, r *http.Request, id string)
+	// GetSelfServiceProfile Get a self-service profile by Id
+	// (GET /api/v2/self-service-profiles/{id})
+	GetSelfServiceProfile(w http.ResponseWriter, r *http.Request, id string)
+	// UpdateSelfServiceProfile Update a self-service profile
+	// (PATCH /api/v2/self-service-profiles/{id})
+	UpdateSelfServiceProfile(w http.ResponseWriter, r *http.Request, id string)
+	// GetSelfServiceProfileCustomText Get custom text for a self-service profile
+	// (GET /api/v2/self-service-profiles/{id}/custom-text/{language}/{page})
+	GetSelfServiceProfileCustomText(w http.ResponseWriter, r *http.Request, id string, language SelfServiceProfileCustomTextLanguageEnum, page SelfServiceProfileCustomTextPageEnum)
+	// SetSelfServiceProfileCustomText Set custom text for a self-service profile
+	// (PUT /api/v2/self-service-profiles/{id}/custom-text/{language}/{page})
+	SetSelfServiceProfileCustomText(w http.ResponseWriter, r *http.Request, id string, language SelfServiceProfileCustomTextLanguageEnum, page SelfServiceProfileCustomTextPageEnum)
+	// CreateSsoTicket Create an access ticket to initiate the Self-Service Enterprise Configuration flow
+	// (POST /api/v2/self-service-profiles/{id}/sso-ticket)
+	CreateSsoTicket(w http.ResponseWriter, r *http.Request, id string, params CreateSsoTicketParams)
+	// RevokeSsoTicket Revoke a Self-Service Enterprise Configuration access ticket
+	// (POST /api/v2/self-service-profiles/{profileId}/sso-ticket/{id}/revoke)
+	RevokeSsoTicket(w http.ResponseWriter, r *http.Request, profileId string, id string)
 	// DeleteSession Delete a session
 	// (DELETE /api/v2/sessions/{id})
 	DeleteSession(w http.ResponseWriter, r *http.Request, id string)
@@ -25411,9 +28154,15 @@ type ServerInterface interface {
 	// DeleteUserAuthenticators DeleteUserAuthenticators
 	// (DELETE /api/v2/users/{id}/authenticators)
 	DeleteUserAuthenticators(w http.ResponseWriter, r *http.Request, id string)
+	// ListUserRoleSourceGroups List the groups that grant a user a role
+	// (GET /api/v2/users/{id}/effective-roles/sources/groups)
+	ListUserRoleSourceGroups(w http.ResponseWriter, r *http.Request, id string, params ListUserRoleSourceGroupsParams)
 	// GetUserEnrollments GetUserEnrollments
 	// (GET /api/v2/users/{id}/enrollments)
 	GetUserEnrollments(w http.ResponseWriter, r *http.Request, id string)
+	// ListUserGroups List the groups a user belongs to
+	// (GET /api/v2/users/{id}/groups)
+	ListUserGroups(w http.ResponseWriter, r *http.Request, id string, params ListUserGroupsParams)
 	// LinkUserIdentity Link a user account to this user
 	// (POST /api/v2/users/{id}/identities)
 	LinkUserIdentity(w http.ResponseWriter, r *http.Request, id string)
@@ -25546,6 +28295,12 @@ func (_ Unimplemented) GetTenantActionExecutionAttempt(w http.ResponseWriter, r 
 // PreviewTenantBranding Preview tenant Universal Login branding.
 // (POST /api/system/tenants/{tenant}/branding/preview)
 func (_ Unimplemented) PreviewTenantBranding(w http.ResponseWriter, r *http.Request, tenant string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// CreateDirectoryProvisioningConsent Create a Google Workspace administrator consent link for directory provisioning.
+// (POST /api/system/tenants/{tenant}/connections/{id}/directory-provisioning/consent)
+func (_ Unimplemented) CreateDirectoryProvisioningConsent(w http.ResponseWriter, r *http.Request, tenant string, id string) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -26089,6 +28844,48 @@ func (_ Unimplemented) RotateClientSecret(w http.ResponseWriter, r *http.Request
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// ListConnectionProfiles Get Connection Profiles
+// (GET /api/v2/connection-profiles)
+func (_ Unimplemented) ListConnectionProfiles(w http.ResponseWriter, r *http.Request, params ListConnectionProfilesParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// CreateConnectionProfile Create a connection profile
+// (POST /api/v2/connection-profiles)
+func (_ Unimplemented) CreateConnectionProfile(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// ListConnectionProfileTemplates Get Connection Profile Templates
+// (GET /api/v2/connection-profiles/templates)
+func (_ Unimplemented) ListConnectionProfileTemplates(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetConnectionProfileTemplate Get Connection Profile Template
+// (GET /api/v2/connection-profiles/templates/{id})
+func (_ Unimplemented) GetConnectionProfileTemplate(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// DeleteConnectionProfile Delete Connection Profile
+// (DELETE /api/v2/connection-profiles/{id})
+func (_ Unimplemented) DeleteConnectionProfile(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetConnectionProfile Get Connection Profile
+// (GET /api/v2/connection-profiles/{id})
+func (_ Unimplemented) GetConnectionProfile(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// UpdateConnectionProfile Modify a Connection Profile
+// (PATCH /api/v2/connection-profiles/{id})
+func (_ Unimplemented) UpdateConnectionProfile(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
 // GetConnections List connections
 // (GET /api/v2/connections)
 func (_ Unimplemented) GetConnections(w http.ResponseWriter, r *http.Request, params GetConnectionsParams) {
@@ -26098,6 +28895,18 @@ func (_ Unimplemented) GetConnections(w http.ResponseWriter, r *http.Request, pa
 // CreateConnection Create a connection
 // (POST /api/v2/connections)
 func (_ Unimplemented) CreateConnection(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// ListDirectoryProvisionings Get a list of directory provisioning configurations
+// (GET /api/v2/connections-directory-provisionings)
+func (_ Unimplemented) ListDirectoryProvisionings(w http.ResponseWriter, r *http.Request, params ListDirectoryProvisioningsParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// ListScimConfigurations List the tenant's SCIM configurations
+// (GET /api/v2/connections-scim-configurations)
+func (_ Unimplemented) ListScimConfigurations(w http.ResponseWriter, r *http.Request, params ListScimConfigurationsParams) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -26131,6 +28940,66 @@ func (_ Unimplemented) UpdateConnectionClients(w http.ResponseWriter, r *http.Re
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// DeleteDirectoryProvisioning Delete a directory provisioning configuration
+// (DELETE /api/v2/connections/{id}/directory-provisioning)
+func (_ Unimplemented) DeleteDirectoryProvisioning(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetDirectoryProvisioning Get a directory provisioning configuration
+// (GET /api/v2/connections/{id}/directory-provisioning)
+func (_ Unimplemented) GetDirectoryProvisioning(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// UpdateDirectoryProvisioning Patch a directory provisioning configuration
+// (PATCH /api/v2/connections/{id}/directory-provisioning)
+func (_ Unimplemented) UpdateDirectoryProvisioning(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// CreateDirectoryProvisioning Create a directory provisioning configuration
+// (POST /api/v2/connections/{id}/directory-provisioning)
+func (_ Unimplemented) CreateDirectoryProvisioning(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetDirectoryProvisioningDefaultMapping Get a connection's default directory provisioning attribute mapping
+// (GET /api/v2/connections/{id}/directory-provisioning/default-mapping)
+func (_ Unimplemented) GetDirectoryProvisioningDefaultMapping(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// CreateDirectorySynchronization Request an on-demand synchronization of the directory
+// (POST /api/v2/connections/{id}/directory-provisioning/synchronizations)
+func (_ Unimplemented) CreateDirectorySynchronization(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// DeleteSynchronizedGroups Delete synchronized group selections for a directory provisioning configuration
+// (DELETE /api/v2/connections/{id}/directory-provisioning/synchronized-groups)
+func (_ Unimplemented) DeleteSynchronizedGroups(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// ListSynchronizedGroups Get synchronized groups for a directory provisioning configuration
+// (GET /api/v2/connections/{id}/directory-provisioning/synchronized-groups)
+func (_ Unimplemented) ListSynchronizedGroups(w http.ResponseWriter, r *http.Request, id string, params ListSynchronizedGroupsParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// AddSynchronizedGroups Add synchronized group selections to a directory provisioning configuration
+// (POST /api/v2/connections/{id}/directory-provisioning/synchronized-groups)
+func (_ Unimplemented) AddSynchronizedGroups(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// ReplaceSynchronizedGroups Create or replace synchronized group selections for a directory provisioning configuration
+// (PUT /api/v2/connections/{id}/directory-provisioning/synchronized-groups)
+func (_ Unimplemented) ReplaceSynchronizedGroups(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
 // GetConnectionKeys getConnectionKeys
 // (GET /api/v2/connections/{id}/keys)
 func (_ Unimplemented) GetConnectionKeys(w http.ResponseWriter, r *http.Request, id string) {
@@ -26146,6 +29015,54 @@ func (_ Unimplemented) PostConnectionKeys(w http.ResponseWriter, r *http.Request
 // PostConnectionKeysRotate postConnectionKeysRotate
 // (POST /api/v2/connections/{id}/keys/rotate)
 func (_ Unimplemented) PostConnectionKeysRotate(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// DeleteScimConfiguration Delete a connection's SCIM configuration and its tokens
+// (DELETE /api/v2/connections/{id}/scim-configuration)
+func (_ Unimplemented) DeleteScimConfiguration(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetScimConfiguration Get a connection's SCIM configuration
+// (GET /api/v2/connections/{id}/scim-configuration)
+func (_ Unimplemented) GetScimConfiguration(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// UpdateScimConfiguration Update a connection's SCIM configuration
+// (PATCH /api/v2/connections/{id}/scim-configuration)
+func (_ Unimplemented) UpdateScimConfiguration(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// CreateScimConfiguration Create a connection's SCIM configuration
+// (POST /api/v2/connections/{id}/scim-configuration)
+func (_ Unimplemented) CreateScimConfiguration(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetScimDefaultMapping Get the default SCIM mapping
+// (GET /api/v2/connections/{id}/scim-configuration/default-mapping)
+func (_ Unimplemented) GetScimDefaultMapping(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// ListScimTokens List a connection's SCIM tokens
+// (GET /api/v2/connections/{id}/scim-configuration/tokens)
+func (_ Unimplemented) ListScimTokens(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// CreateScimToken Create a SCIM token
+// (POST /api/v2/connections/{id}/scim-configuration/tokens)
+func (_ Unimplemented) CreateScimToken(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// DeleteScimToken Delete a SCIM token
+// (DELETE /api/v2/connections/{id}/scim-configuration/tokens/{tokenId})
+func (_ Unimplemented) DeleteScimToken(w http.ResponseWriter, r *http.Request, id string, tokenId string) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -26344,6 +29261,48 @@ func (_ Unimplemented) GetGrants(w http.ResponseWriter, r *http.Request, params 
 // DeleteGrant Delete a grant
 // (DELETE /api/v2/grants/{id})
 func (_ Unimplemented) DeleteGrant(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// ListGroups List groups
+// (GET /api/v2/groups)
+func (_ Unimplemented) ListGroups(w http.ResponseWriter, r *http.Request, params ListGroupsParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// DeleteGroup Delete a group with its memberships and role assignments
+// (DELETE /api/v2/groups/{id})
+func (_ Unimplemented) DeleteGroup(w http.ResponseWriter, r *http.Request, id GroupID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetGroup Get a group
+// (GET /api/v2/groups/{id})
+func (_ Unimplemented) GetGroup(w http.ResponseWriter, r *http.Request, id GroupID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// ListGroupMembers List a group's members
+// (GET /api/v2/groups/{id}/members)
+func (_ Unimplemented) ListGroupMembers(w http.ResponseWriter, r *http.Request, id GroupID, params ListGroupMembersParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// RemoveGroupRoles Remove roles from a group
+// (DELETE /api/v2/groups/{id}/roles)
+func (_ Unimplemented) RemoveGroupRoles(w http.ResponseWriter, r *http.Request, id GroupID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// ListGroupRoles List a group's roles
+// (GET /api/v2/groups/{id}/roles)
+func (_ Unimplemented) ListGroupRoles(w http.ResponseWriter, r *http.Request, id GroupID, params ListGroupRolesParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// AssignGroupRoles Assign roles to a group
+// (POST /api/v2/groups/{id}/roles)
+func (_ Unimplemented) AssignGroupRoles(w http.ResponseWriter, r *http.Request, id GroupID) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -26905,6 +29864,30 @@ func (_ Unimplemented) UpdateOrganizationConnection(w http.ResponseWriter, r *ht
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// ListOrganizationGroups List the groups assigned to an organization
+// (GET /api/v2/organizations/{id}/groups)
+func (_ Unimplemented) ListOrganizationGroups(w http.ResponseWriter, r *http.Request, id OrganizationId, params ListOrganizationGroupsParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// RemoveOrganizationGroupRoles Remove roles from a group in an organization
+// (DELETE /api/v2/organizations/{id}/groups/{group_id}/roles)
+func (_ Unimplemented) RemoveOrganizationGroupRoles(w http.ResponseWriter, r *http.Request, id OrganizationId, groupId GroupID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// ListOrganizationGroupRoles List a group's roles in an organization
+// (GET /api/v2/organizations/{id}/groups/{group_id}/roles)
+func (_ Unimplemented) ListOrganizationGroupRoles(w http.ResponseWriter, r *http.Request, id OrganizationId, groupId GroupID, params ListOrganizationGroupRolesParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// AssignOrganizationGroupRoles Assign roles to a group in an organization
+// (POST /api/v2/organizations/{id}/groups/{group_id}/roles)
+func (_ Unimplemented) AssignOrganizationGroupRoles(w http.ResponseWriter, r *http.Request, id OrganizationId, groupId GroupID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
 // ListOrganizationInvitations GET /organizations/{id}/invitations
 // (GET /api/v2/organizations/{id}/invitations)
 func (_ Unimplemented) ListOrganizationInvitations(w http.ResponseWriter, r *http.Request, id string, params ListOrganizationInvitationsParams) {
@@ -26950,6 +29933,12 @@ func (_ Unimplemented) AddOrganizationMembers(w http.ResponseWriter, r *http.Req
 // ListOrganizationMemberEffectiveRoles List a member's effective organization roles with their sources (checkpoint pagination); only direct roles until groups exist
 // (GET /api/v2/organizations/{id}/members/{user_id}/effective-roles)
 func (_ Unimplemented) ListOrganizationMemberEffectiveRoles(w http.ResponseWriter, r *http.Request, id OrganizationId, userId MemberUserId, params ListOrganizationMemberEffectiveRolesParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// ListOrganizationMemberRoleSourceGroups List the groups that grant an organization member a role
+// (GET /api/v2/organizations/{id}/members/{user_id}/effective-roles/sources/groups)
+func (_ Unimplemented) ListOrganizationMemberRoleSourceGroups(w http.ResponseWriter, r *http.Request, id OrganizationId, userId MemberUserId, params ListOrganizationMemberRoleSourceGroupsParams) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -27103,6 +30092,24 @@ func (_ Unimplemented) PatchRolesById(w http.ResponseWriter, r *http.Request, id
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// RemoveRoleGroups Remove groups from a role
+// (DELETE /api/v2/roles/{id}/groups)
+func (_ Unimplemented) RemoveRoleGroups(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// ListRoleGroups List a role's groups
+// (GET /api/v2/roles/{id}/groups)
+func (_ Unimplemented) ListRoleGroups(w http.ResponseWriter, r *http.Request, id string, params ListRoleGroupsParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// AssignRoleGroups Assign groups to a role
+// (POST /api/v2/roles/{id}/groups)
+func (_ Unimplemented) AssignRoleGroups(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
 // DeleteRolePermissions DeleteRolePermissions in the current tenant
 // (DELETE /api/v2/roles/{id}/permissions)
 func (_ Unimplemented) DeleteRolePermissions(w http.ResponseWriter, r *http.Request, id string) {
@@ -27142,6 +30149,60 @@ func (_ Unimplemented) GetRules(w http.ResponseWriter, r *http.Request, params G
 // GetRulesConfigs Return no retired Rules configuration keys.
 // (GET /api/v2/rules-configs)
 func (_ Unimplemented) GetRulesConfigs(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// ListSelfServiceProfiles Get self-service profiles
+// (GET /api/v2/self-service-profiles)
+func (_ Unimplemented) ListSelfServiceProfiles(w http.ResponseWriter, r *http.Request, params ListSelfServiceProfilesParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// CreateSelfServiceProfile Create a self-service profile
+// (POST /api/v2/self-service-profiles)
+func (_ Unimplemented) CreateSelfServiceProfile(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// DeleteSelfServiceProfile Delete a self-service profile by Id
+// (DELETE /api/v2/self-service-profiles/{id})
+func (_ Unimplemented) DeleteSelfServiceProfile(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetSelfServiceProfile Get a self-service profile by Id
+// (GET /api/v2/self-service-profiles/{id})
+func (_ Unimplemented) GetSelfServiceProfile(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// UpdateSelfServiceProfile Update a self-service profile
+// (PATCH /api/v2/self-service-profiles/{id})
+func (_ Unimplemented) UpdateSelfServiceProfile(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetSelfServiceProfileCustomText Get custom text for a self-service profile
+// (GET /api/v2/self-service-profiles/{id}/custom-text/{language}/{page})
+func (_ Unimplemented) GetSelfServiceProfileCustomText(w http.ResponseWriter, r *http.Request, id string, language SelfServiceProfileCustomTextLanguageEnum, page SelfServiceProfileCustomTextPageEnum) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// SetSelfServiceProfileCustomText Set custom text for a self-service profile
+// (PUT /api/v2/self-service-profiles/{id}/custom-text/{language}/{page})
+func (_ Unimplemented) SetSelfServiceProfileCustomText(w http.ResponseWriter, r *http.Request, id string, language SelfServiceProfileCustomTextLanguageEnum, page SelfServiceProfileCustomTextPageEnum) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// CreateSsoTicket Create an access ticket to initiate the Self-Service Enterprise Configuration flow
+// (POST /api/v2/self-service-profiles/{id}/sso-ticket)
+func (_ Unimplemented) CreateSsoTicket(w http.ResponseWriter, r *http.Request, id string, params CreateSsoTicketParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// RevokeSsoTicket Revoke a Self-Service Enterprise Configuration access ticket
+// (POST /api/v2/self-service-profiles/{profileId}/sso-ticket/{id}/revoke)
+func (_ Unimplemented) RevokeSsoTicket(w http.ResponseWriter, r *http.Request, profileId string, id string) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -27343,9 +30404,21 @@ func (_ Unimplemented) DeleteUserAuthenticators(w http.ResponseWriter, r *http.R
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// ListUserRoleSourceGroups List the groups that grant a user a role
+// (GET /api/v2/users/{id}/effective-roles/sources/groups)
+func (_ Unimplemented) ListUserRoleSourceGroups(w http.ResponseWriter, r *http.Request, id string, params ListUserRoleSourceGroupsParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
 // GetUserEnrollments GetUserEnrollments
 // (GET /api/v2/users/{id}/enrollments)
 func (_ Unimplemented) GetUserEnrollments(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// ListUserGroups List the groups a user belongs to
+// (GET /api/v2/users/{id}/groups)
+func (_ Unimplemented) ListUserGroups(w http.ResponseWriter, r *http.Request, id string, params ListUserGroupsParams) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -27818,6 +30891,41 @@ func (siw *ServerInterfaceWrapper) PreviewTenantBranding(w http.ResponseWriter, 
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.PreviewTenantBranding(w, r, tenant)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateDirectoryProvisioningConsent operation middleware
+func (siw *ServerInterfaceWrapper) CreateDirectoryProvisioningConsent(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "tenant" -------------
+	var tenant string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "tenant", chi.URLParam(r, "tenant"), &tenant, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "tenant", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateDirectoryProvisioningConsent(w, r, tenant, id)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -30545,6 +33653,184 @@ func (siw *ServerInterfaceWrapper) RotateClientSecret(w http.ResponseWriter, r *
 	handler.ServeHTTP(w, r)
 }
 
+// ListConnectionProfiles operation middleware
+func (siw *ServerInterfaceWrapper) ListConnectionProfiles(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListConnectionProfilesParams
+
+	// ------------- Optional query parameter "from" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "from", r.URL.Query(), &params.From, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "from"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "from", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "take" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "take", r.URL.Query(), &params.Take, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "take"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "take", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListConnectionProfiles(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateConnectionProfile operation middleware
+func (siw *ServerInterfaceWrapper) CreateConnectionProfile(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateConnectionProfile(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListConnectionProfileTemplates operation middleware
+func (siw *ServerInterfaceWrapper) ListConnectionProfileTemplates(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListConnectionProfileTemplates(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetConnectionProfileTemplate operation middleware
+func (siw *ServerInterfaceWrapper) GetConnectionProfileTemplate(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetConnectionProfileTemplate(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteConnectionProfile operation middleware
+func (siw *ServerInterfaceWrapper) DeleteConnectionProfile(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteConnectionProfile(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetConnectionProfile operation middleware
+func (siw *ServerInterfaceWrapper) GetConnectionProfile(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetConnectionProfile(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdateConnectionProfile operation middleware
+func (siw *ServerInterfaceWrapper) UpdateConnectionProfile(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateConnectionProfile(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // GetConnections operation middleware
 func (siw *ServerInterfaceWrapper) GetConnections(w http.ResponseWriter, r *http.Request) {
 
@@ -30687,6 +33973,98 @@ func (siw *ServerInterfaceWrapper) CreateConnection(w http.ResponseWriter, r *ht
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.CreateConnection(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListDirectoryProvisionings operation middleware
+func (siw *ServerInterfaceWrapper) ListDirectoryProvisionings(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListDirectoryProvisioningsParams
+
+	// ------------- Optional query parameter "from" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "from", r.URL.Query(), &params.From, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "from"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "from", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "take" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "take", r.URL.Query(), &params.Take, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "take"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "take", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListDirectoryProvisionings(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListScimConfigurations operation middleware
+func (siw *ServerInterfaceWrapper) ListScimConfigurations(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListScimConfigurationsParams
+
+	// ------------- Optional query parameter "from" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "from", r.URL.Query(), &params.From, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "from"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "from", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "take" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "take", r.URL.Query(), &params.Take, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "take"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "take", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListScimConfigurations(w, r, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -30884,6 +34262,308 @@ func (siw *ServerInterfaceWrapper) UpdateConnectionClients(w http.ResponseWriter
 	handler.ServeHTTP(w, r)
 }
 
+// DeleteDirectoryProvisioning operation middleware
+func (siw *ServerInterfaceWrapper) DeleteDirectoryProvisioning(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteDirectoryProvisioning(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetDirectoryProvisioning operation middleware
+func (siw *ServerInterfaceWrapper) GetDirectoryProvisioning(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetDirectoryProvisioning(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdateDirectoryProvisioning operation middleware
+func (siw *ServerInterfaceWrapper) UpdateDirectoryProvisioning(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateDirectoryProvisioning(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateDirectoryProvisioning operation middleware
+func (siw *ServerInterfaceWrapper) CreateDirectoryProvisioning(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateDirectoryProvisioning(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetDirectoryProvisioningDefaultMapping operation middleware
+func (siw *ServerInterfaceWrapper) GetDirectoryProvisioningDefaultMapping(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetDirectoryProvisioningDefaultMapping(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateDirectorySynchronization operation middleware
+func (siw *ServerInterfaceWrapper) CreateDirectorySynchronization(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateDirectorySynchronization(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteSynchronizedGroups operation middleware
+func (siw *ServerInterfaceWrapper) DeleteSynchronizedGroups(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteSynchronizedGroups(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListSynchronizedGroups operation middleware
+func (siw *ServerInterfaceWrapper) ListSynchronizedGroups(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListSynchronizedGroupsParams
+
+	// ------------- Optional query parameter "from" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "from", r.URL.Query(), &params.From, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "from"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "from", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "take" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "take", r.URL.Query(), &params.Take, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "take"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "take", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "q" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "q", r.URL.Query(), &params.Q, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "q"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "q", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListSynchronizedGroups(w, r, id, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// AddSynchronizedGroups operation middleware
+func (siw *ServerInterfaceWrapper) AddSynchronizedGroups(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.AddSynchronizedGroups(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ReplaceSynchronizedGroups operation middleware
+func (siw *ServerInterfaceWrapper) ReplaceSynchronizedGroups(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ReplaceSynchronizedGroups(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // GetConnectionKeys operation middleware
 func (siw *ServerInterfaceWrapper) GetConnectionKeys(w http.ResponseWriter, r *http.Request) {
 
@@ -30953,6 +34633,223 @@ func (siw *ServerInterfaceWrapper) PostConnectionKeysRotate(w http.ResponseWrite
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.PostConnectionKeysRotate(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteScimConfiguration operation middleware
+func (siw *ServerInterfaceWrapper) DeleteScimConfiguration(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteScimConfiguration(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetScimConfiguration operation middleware
+func (siw *ServerInterfaceWrapper) GetScimConfiguration(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetScimConfiguration(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdateScimConfiguration operation middleware
+func (siw *ServerInterfaceWrapper) UpdateScimConfiguration(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateScimConfiguration(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateScimConfiguration operation middleware
+func (siw *ServerInterfaceWrapper) CreateScimConfiguration(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateScimConfiguration(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetScimDefaultMapping operation middleware
+func (siw *ServerInterfaceWrapper) GetScimDefaultMapping(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetScimDefaultMapping(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListScimTokens operation middleware
+func (siw *ServerInterfaceWrapper) ListScimTokens(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListScimTokens(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateScimToken operation middleware
+func (siw *ServerInterfaceWrapper) CreateScimToken(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateScimToken(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteScimToken operation middleware
+func (siw *ServerInterfaceWrapper) DeleteScimToken(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "tokenId" -------------
+	var tokenId string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "tokenId", chi.URLParam(r, "tokenId"), &tokenId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "tokenId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteScimToken(w, r, id, tokenId)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -32049,6 +35946,409 @@ func (siw *ServerInterfaceWrapper) DeleteGrant(w http.ResponseWriter, r *http.Re
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.DeleteGrant(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListGroups operation middleware
+func (siw *ServerInterfaceWrapper) ListGroups(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListGroupsParams
+
+	// ------------- Optional query parameter "connection_id" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "connection_id", r.URL.Query(), &params.ConnectionId, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "connection_id"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "connection_id", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "name" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "name", r.URL.Query(), &params.Name, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "name"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "name", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "external_id" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "external_id", r.URL.Query(), &params.ExternalId, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "external_id"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "external_id", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "search" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "search", r.URL.Query(), &params.Search, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "search"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "search", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "fields" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "fields", r.URL.Query(), &params.Fields, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "fields"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "fields", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "include_fields" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "include_fields", r.URL.Query(), &params.IncludeFields, runtime.BindQueryParameterOptions{Type: "boolean", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "include_fields"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "include_fields", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "page" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "page", r.URL.Query(), &params.Page, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "page"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "page", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "per_page" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "per_page", r.URL.Query(), &params.PerPage, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "per_page"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "per_page", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "include_totals" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "include_totals", r.URL.Query(), &params.IncludeTotals, runtime.BindQueryParameterOptions{Type: "boolean", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "include_totals"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "include_totals", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "from" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "from", r.URL.Query(), &params.From, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "from"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "from", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "take" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "take", r.URL.Query(), &params.Take, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "take"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "take", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListGroups(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteGroup operation middleware
+func (siw *ServerInterfaceWrapper) DeleteGroup(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id GroupID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteGroup(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetGroup operation middleware
+func (siw *ServerInterfaceWrapper) GetGroup(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id GroupID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetGroup(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListGroupMembers operation middleware
+func (siw *ServerInterfaceWrapper) ListGroupMembers(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id GroupID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListGroupMembersParams
+
+	// ------------- Optional query parameter "fields" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "fields", r.URL.Query(), &params.Fields, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "fields"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "fields", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "include_fields" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "include_fields", r.URL.Query(), &params.IncludeFields, runtime.BindQueryParameterOptions{Type: "boolean", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "include_fields"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "include_fields", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "from" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "from", r.URL.Query(), &params.From, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "from"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "from", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "take" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "take", r.URL.Query(), &params.Take, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "take"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "take", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListGroupMembers(w, r, id, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// RemoveGroupRoles operation middleware
+func (siw *ServerInterfaceWrapper) RemoveGroupRoles(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id GroupID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.RemoveGroupRoles(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListGroupRoles operation middleware
+func (siw *ServerInterfaceWrapper) ListGroupRoles(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id GroupID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListGroupRolesParams
+
+	// ------------- Optional query parameter "from" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "from", r.URL.Query(), &params.From, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "from"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "from", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "take" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "take", r.URL.Query(), &params.Take, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "take"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "take", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListGroupRoles(w, r, id, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// AssignGroupRoles operation middleware
+func (siw *ServerInterfaceWrapper) AssignGroupRoles(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id GroupID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.AssignGroupRoles(w, r, id)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -34609,6 +38909,195 @@ func (siw *ServerInterfaceWrapper) UpdateOrganizationConnection(w http.ResponseW
 	handler.ServeHTTP(w, r)
 }
 
+// ListOrganizationGroups operation middleware
+func (siw *ServerInterfaceWrapper) ListOrganizationGroups(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id OrganizationId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListOrganizationGroupsParams
+
+	// ------------- Optional query parameter "from" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "from", r.URL.Query(), &params.From, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "from"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "from", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "take" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "take", r.URL.Query(), &params.Take, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "take"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "take", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListOrganizationGroups(w, r, id, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// RemoveOrganizationGroupRoles operation middleware
+func (siw *ServerInterfaceWrapper) RemoveOrganizationGroupRoles(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id OrganizationId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "group_id" -------------
+	var groupId GroupID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "group_id", chi.URLParam(r, "group_id"), &groupId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "group_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.RemoveOrganizationGroupRoles(w, r, id, groupId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListOrganizationGroupRoles operation middleware
+func (siw *ServerInterfaceWrapper) ListOrganizationGroupRoles(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id OrganizationId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "group_id" -------------
+	var groupId GroupID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "group_id", chi.URLParam(r, "group_id"), &groupId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "group_id", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListOrganizationGroupRolesParams
+
+	// ------------- Optional query parameter "from" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "from", r.URL.Query(), &params.From, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "from"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "from", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "take" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "take", r.URL.Query(), &params.Take, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "take"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "take", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListOrganizationGroupRoles(w, r, id, groupId, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// AssignOrganizationGroupRoles operation middleware
+func (siw *ServerInterfaceWrapper) AssignOrganizationGroupRoles(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id OrganizationId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "group_id" -------------
+	var groupId GroupID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "group_id", chi.URLParam(r, "group_id"), &groupId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "group_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.AssignOrganizationGroupRoles(w, r, id, groupId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // ListOrganizationInvitations operation middleware
 func (siw *ServerInterfaceWrapper) ListOrganizationInvitations(w http.ResponseWriter, r *http.Request) {
 
@@ -35092,6 +39581,83 @@ func (siw *ServerInterfaceWrapper) ListOrganizationMemberEffectiveRoles(w http.R
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.ListOrganizationMemberEffectiveRoles(w, r, id, userId, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListOrganizationMemberRoleSourceGroups operation middleware
+func (siw *ServerInterfaceWrapper) ListOrganizationMemberRoleSourceGroups(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id OrganizationId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "user_id" -------------
+	var userId MemberUserId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "user_id", chi.URLParam(r, "user_id"), &userId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "user_id", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListOrganizationMemberRoleSourceGroupsParams
+
+	// ------------- Required query parameter "role_id" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, true, "role_id", r.URL.Query(), &params.RoleId, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "role_id"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "role_id", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "from" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "from", r.URL.Query(), &params.From, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "from"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "from", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "take" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "take", r.URL.Query(), &params.Take, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "take"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "take", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListOrganizationMemberRoleSourceGroups(w, r, id, userId, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -36113,6 +40679,113 @@ func (siw *ServerInterfaceWrapper) PatchRolesById(w http.ResponseWriter, r *http
 	handler.ServeHTTP(w, r)
 }
 
+// RemoveRoleGroups operation middleware
+func (siw *ServerInterfaceWrapper) RemoveRoleGroups(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.RemoveRoleGroups(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListRoleGroups operation middleware
+func (siw *ServerInterfaceWrapper) ListRoleGroups(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListRoleGroupsParams
+
+	// ------------- Optional query parameter "from" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "from", r.URL.Query(), &params.From, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "from"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "from", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "take" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "take", r.URL.Query(), &params.Take, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "take"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "take", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListRoleGroups(w, r, id, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// AssignRoleGroups operation middleware
+func (siw *ServerInterfaceWrapper) AssignRoleGroups(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.AssignRoleGroups(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // DeleteRolePermissions operation middleware
 func (siw *ServerInterfaceWrapper) DeleteRolePermissions(w http.ResponseWriter, r *http.Request) {
 
@@ -36456,6 +41129,330 @@ func (siw *ServerInterfaceWrapper) GetRulesConfigs(w http.ResponseWriter, r *htt
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetRulesConfigs(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListSelfServiceProfiles operation middleware
+func (siw *ServerInterfaceWrapper) ListSelfServiceProfiles(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListSelfServiceProfilesParams
+
+	// ------------- Optional query parameter "page" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "page", r.URL.Query(), &params.Page, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "page"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "page", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "per_page" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "per_page", r.URL.Query(), &params.PerPage, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "per_page"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "per_page", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "include_totals" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "include_totals", r.URL.Query(), &params.IncludeTotals, runtime.BindQueryParameterOptions{Type: "boolean", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "include_totals"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "include_totals", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListSelfServiceProfiles(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateSelfServiceProfile operation middleware
+func (siw *ServerInterfaceWrapper) CreateSelfServiceProfile(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateSelfServiceProfile(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteSelfServiceProfile operation middleware
+func (siw *ServerInterfaceWrapper) DeleteSelfServiceProfile(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteSelfServiceProfile(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetSelfServiceProfile operation middleware
+func (siw *ServerInterfaceWrapper) GetSelfServiceProfile(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetSelfServiceProfile(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdateSelfServiceProfile operation middleware
+func (siw *ServerInterfaceWrapper) UpdateSelfServiceProfile(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateSelfServiceProfile(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetSelfServiceProfileCustomText operation middleware
+func (siw *ServerInterfaceWrapper) GetSelfServiceProfileCustomText(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "language" -------------
+	var language SelfServiceProfileCustomTextLanguageEnum
+
+	err = runtime.BindStyledParameterWithOptions("simple", "language", chi.URLParam(r, "language"), &language, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "language", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "page" -------------
+	var page SelfServiceProfileCustomTextPageEnum
+
+	err = runtime.BindStyledParameterWithOptions("simple", "page", chi.URLParam(r, "page"), &page, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "page", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetSelfServiceProfileCustomText(w, r, id, language, page)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SetSelfServiceProfileCustomText operation middleware
+func (siw *ServerInterfaceWrapper) SetSelfServiceProfileCustomText(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "language" -------------
+	var language SelfServiceProfileCustomTextLanguageEnum
+
+	err = runtime.BindStyledParameterWithOptions("simple", "language", chi.URLParam(r, "language"), &language, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "language", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "page" -------------
+	var page SelfServiceProfileCustomTextPageEnum
+
+	err = runtime.BindStyledParameterWithOptions("simple", "page", chi.URLParam(r, "page"), &page, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "page", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SetSelfServiceProfileCustomText(w, r, id, language, page)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateSsoTicket operation middleware
+func (siw *ServerInterfaceWrapper) CreateSsoTicket(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params CreateSsoTicketParams
+
+	headers := r.Header
+
+	// ------------- Optional header parameter "auth0-custom-domain" -------------
+	if valueList, found := headers[http.CanonicalHeaderKey("auth0-custom-domain")]; found {
+		var Auth0CustomDomain string
+		n := len(valueList)
+		if n != 1 {
+			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "auth0-custom-domain", Count: n})
+			return
+		}
+
+		err = runtime.BindStyledParameterWithOptions("simple", "auth0-custom-domain", valueList[0], &Auth0CustomDomain, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "string", Format: ""})
+		if err != nil {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "auth0-custom-domain", Err: err})
+			return
+		}
+
+		params.Auth0CustomDomain = &Auth0CustomDomain
+
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateSsoTicket(w, r, id, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// RevokeSsoTicket operation middleware
+func (siw *ServerInterfaceWrapper) RevokeSsoTicket(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "profileId" -------------
+	var profileId string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "profileId", chi.URLParam(r, "profileId"), &profileId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "profileId", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.RevokeSsoTicket(w, r, profileId, id)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -37596,6 +42593,74 @@ func (siw *ServerInterfaceWrapper) DeleteUserAuthenticators(w http.ResponseWrite
 	handler.ServeHTTP(w, r)
 }
 
+// ListUserRoleSourceGroups operation middleware
+func (siw *ServerInterfaceWrapper) ListUserRoleSourceGroups(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListUserRoleSourceGroupsParams
+
+	// ------------- Required query parameter "role_id" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, true, "role_id", r.URL.Query(), &params.RoleId, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "role_id"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "role_id", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "from" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "from", r.URL.Query(), &params.From, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "from"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "from", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "take" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "take", r.URL.Query(), &params.Take, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "take"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "take", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListUserRoleSourceGroups(w, r, id, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // GetUserEnrollments operation middleware
 func (siw *ServerInterfaceWrapper) GetUserEnrollments(w http.ResponseWriter, r *http.Request) {
 
@@ -37613,6 +42678,126 @@ func (siw *ServerInterfaceWrapper) GetUserEnrollments(w http.ResponseWriter, r *
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetUserEnrollments(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListUserGroups operation middleware
+func (siw *ServerInterfaceWrapper) ListUserGroups(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListUserGroupsParams
+
+	// ------------- Optional query parameter "fields" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "fields", r.URL.Query(), &params.Fields, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "fields"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "fields", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "include_fields" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "include_fields", r.URL.Query(), &params.IncludeFields, runtime.BindQueryParameterOptions{Type: "boolean", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "include_fields"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "include_fields", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "page" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "page", r.URL.Query(), &params.Page, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "page"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "page", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "per_page" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "per_page", r.URL.Query(), &params.PerPage, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "per_page"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "per_page", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "include_totals" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "include_totals", r.URL.Query(), &params.IncludeTotals, runtime.BindQueryParameterOptions{Type: "boolean", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "include_totals"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "include_totals", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "from" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "from", r.URL.Query(), &params.From, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "from"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "from", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "take" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "take", r.URL.Query(), &params.Take, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "take"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "take", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListUserGroups(w, r, id, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -39025,6 +44210,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Post(options.BaseURL+"/api/system/tenants/{tenant}/emails/test", wrapper.TestTenantEmail)
 	})
 	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/system/tenants/{tenant}/connections/{id}/directory-provisioning/consent", wrapper.CreateDirectoryProvisioningConsent)
+	})
+	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/api/system/tenants/{tenant}/connections/{id}/passwordless/try", wrapper.TryConnectionPasswordless)
 	})
 	r.Group(func(r chi.Router) {
@@ -39458,6 +44646,165 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/api/v2/users/{id}/recovery-code-regeneration", wrapper.CreateUserRecoveryCode)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/connection-profiles", wrapper.ListConnectionProfiles)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/v2/connection-profiles", wrapper.CreateConnectionProfile)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/connection-profiles/templates", wrapper.ListConnectionProfileTemplates)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/connection-profiles/templates/{id}", wrapper.GetConnectionProfileTemplate)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/v2/connection-profiles/{id}", wrapper.DeleteConnectionProfile)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/connection-profiles/{id}", wrapper.GetConnectionProfile)
+	})
+	r.Group(func(r chi.Router) {
+		r.Patch(options.BaseURL+"/api/v2/connection-profiles/{id}", wrapper.UpdateConnectionProfile)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/self-service-profiles", wrapper.ListSelfServiceProfiles)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/v2/self-service-profiles", wrapper.CreateSelfServiceProfile)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/v2/self-service-profiles/{id}", wrapper.DeleteSelfServiceProfile)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/self-service-profiles/{id}", wrapper.GetSelfServiceProfile)
+	})
+	r.Group(func(r chi.Router) {
+		r.Patch(options.BaseURL+"/api/v2/self-service-profiles/{id}", wrapper.UpdateSelfServiceProfile)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/self-service-profiles/{id}/custom-text/{language}/{page}", wrapper.GetSelfServiceProfileCustomText)
+	})
+	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/api/v2/self-service-profiles/{id}/custom-text/{language}/{page}", wrapper.SetSelfServiceProfileCustomText)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/v2/self-service-profiles/{id}/sso-ticket", wrapper.CreateSsoTicket)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/v2/self-service-profiles/{profileId}/sso-ticket/{id}/revoke", wrapper.RevokeSsoTicket)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/connections-directory-provisionings", wrapper.ListDirectoryProvisionings)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/v2/connections/{id}/directory-provisioning", wrapper.DeleteDirectoryProvisioning)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/connections/{id}/directory-provisioning", wrapper.GetDirectoryProvisioning)
+	})
+	r.Group(func(r chi.Router) {
+		r.Patch(options.BaseURL+"/api/v2/connections/{id}/directory-provisioning", wrapper.UpdateDirectoryProvisioning)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/v2/connections/{id}/directory-provisioning", wrapper.CreateDirectoryProvisioning)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/connections/{id}/directory-provisioning/default-mapping", wrapper.GetDirectoryProvisioningDefaultMapping)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/v2/connections/{id}/directory-provisioning/synchronizations", wrapper.CreateDirectorySynchronization)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/v2/connections/{id}/directory-provisioning/synchronized-groups", wrapper.DeleteSynchronizedGroups)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/connections/{id}/directory-provisioning/synchronized-groups", wrapper.ListSynchronizedGroups)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/v2/connections/{id}/directory-provisioning/synchronized-groups", wrapper.AddSynchronizedGroups)
+	})
+	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/api/v2/connections/{id}/directory-provisioning/synchronized-groups", wrapper.ReplaceSynchronizedGroups)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/v2/connections/{id}/scim-configuration", wrapper.DeleteScimConfiguration)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/connections/{id}/scim-configuration", wrapper.GetScimConfiguration)
+	})
+	r.Group(func(r chi.Router) {
+		r.Patch(options.BaseURL+"/api/v2/connections/{id}/scim-configuration", wrapper.UpdateScimConfiguration)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/v2/connections/{id}/scim-configuration", wrapper.CreateScimConfiguration)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/connections/{id}/scim-configuration/default-mapping", wrapper.GetScimDefaultMapping)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/connections/{id}/scim-configuration/tokens", wrapper.ListScimTokens)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/v2/connections/{id}/scim-configuration/tokens", wrapper.CreateScimToken)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/v2/connections/{id}/scim-configuration/tokens/{tokenId}", wrapper.DeleteScimToken)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/connections-scim-configurations", wrapper.ListScimConfigurations)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/groups", wrapper.ListGroups)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/v2/groups/{id}", wrapper.DeleteGroup)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/groups/{id}", wrapper.GetGroup)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/groups/{id}/members", wrapper.ListGroupMembers)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/v2/groups/{id}/roles", wrapper.RemoveGroupRoles)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/groups/{id}/roles", wrapper.ListGroupRoles)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/v2/groups/{id}/roles", wrapper.AssignGroupRoles)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/v2/roles/{id}/groups", wrapper.RemoveRoleGroups)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/roles/{id}/groups", wrapper.ListRoleGroups)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/v2/roles/{id}/groups", wrapper.AssignRoleGroups)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/users/{id}/groups", wrapper.ListUserGroups)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/users/{id}/effective-roles/sources/groups", wrapper.ListUserRoleSourceGroups)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/organizations/{id}/groups", wrapper.ListOrganizationGroups)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/v2/organizations/{id}/groups/{group_id}/roles", wrapper.RemoveOrganizationGroupRoles)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/organizations/{id}/groups/{group_id}/roles", wrapper.ListOrganizationGroupRoles)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/v2/organizations/{id}/groups/{group_id}/roles", wrapper.AssignOrganizationGroupRoles)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/organizations/{id}/members/{user_id}/effective-roles/sources/groups", wrapper.ListOrganizationMemberRoleSourceGroups)
 	})
 
 	return r

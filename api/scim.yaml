@@ -1,0 +1,653 @@
+# api/scim.yaml
+openapi: 3.1.0
+info:
+  title: zeroauthy inbound SCIM 2.0
+  version: 0.1.0
+  summary: The SCIM 2.0 service provider of an enterprise connection (Plan 37c, D-0150).
+  description: Each connection with a SCIM configuration serves RFC 7644 at `/scim/v2/connections/{connection_id}`. A SCIM token (Management API `.../scim-configuration/tokens`) authorizes requests for that connection only; its scopes gate each method. Bulk, sort and `attributes` are not supported. Errors use the RFC 7644 §3.12 error schema.
+  license:
+    name: Apache-2.0
+    identifier: Apache-2.0
+servers:
+- url: https://{tenant_domain}/scim/v2/connections/{connection_id}
+  variables:
+    tenant_domain:
+      default: tenant.example.com
+    connection_id:
+      default: con_0000000000000000
+paths:
+  /Users:
+    get:
+      operationId: ListScimUsers
+      summary: List or search users
+      x-source:
+      - https://auth0.com/docs/authenticate/protocols/scim/configure-inbound-scim
+      - https://www.rfc-editor.org/rfc/rfc7644
+      security:
+      - scimToken:
+        - get:users
+      parameters:
+      - name: filter
+        in: query
+        schema:
+          type: string
+          maxLength: 1024
+        description: 'RFC 7644 §3.4.2.2 filter. Users: `eq`, `and`, `or`; Groups: `displayName eq`.'
+      - name: startIndex
+        in: query
+        schema:
+          type: integer
+          minimum: 1
+      - name: count
+        in: query
+        schema:
+          type: integer
+          minimum: 0
+      responses:
+        '200':
+          description: ListResponse
+          content:
+            application/scim+json:
+              schema:
+                $ref: '#/components/schemas/ListResponse'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+    post:
+      operationId: CreateScimUser
+      summary: Provision a user on the connection
+      x-source:
+      - https://auth0.com/docs/authenticate/protocols/scim/configure-inbound-scim
+      - https://www.rfc-editor.org/rfc/rfc7644
+      security:
+      - scimToken:
+        - post:users
+      requestBody:
+        required: true
+        content:
+          application/scim+json:
+            schema:
+              $ref: '#/components/schemas/User'
+          application/json:
+            schema:
+              $ref: '#/components/schemas/User'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/scim+json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+        '409':
+          $ref: '#/components/responses/Error'
+  /Users/{id}:
+    get:
+      operationId: GetScimUser
+      summary: Get a user by its user_id
+      x-source:
+      - https://auth0.com/docs/authenticate/protocols/scim/configure-inbound-scim
+      - https://www.rfc-editor.org/rfc/rfc7644
+      security:
+      - scimToken:
+        - get:users
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: User
+          content:
+            application/scim+json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+    put:
+      operationId: ReplaceScimUser
+      summary: Replace a user
+      x-source:
+      - https://auth0.com/docs/authenticate/protocols/scim/configure-inbound-scim
+      - https://www.rfc-editor.org/rfc/rfc7644
+      security:
+      - scimToken:
+        - put:users
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        required: true
+        content:
+          application/scim+json:
+            schema:
+              $ref: '#/components/schemas/User'
+          application/json:
+            schema:
+              $ref: '#/components/schemas/User'
+      responses:
+        '200':
+          description: User
+          content:
+            application/scim+json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+    patch:
+      operationId: PatchScimUser
+      summary: Patch a user (RFC 7644 §3.5.2)
+      x-source:
+      - https://auth0.com/docs/authenticate/protocols/scim/configure-inbound-scim
+      - https://www.rfc-editor.org/rfc/rfc7644
+      security:
+      - scimToken:
+        - patch:users
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        required: true
+        content:
+          application/scim+json:
+            schema:
+              $ref: '#/components/schemas/PatchOp'
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchOp'
+      responses:
+        '200':
+          description: User
+          content:
+            application/scim+json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+    delete:
+      operationId: DeleteScimUser
+      summary: Delete a user
+      x-source:
+      - https://auth0.com/docs/authenticate/protocols/scim/configure-inbound-scim
+      - https://www.rfc-editor.org/rfc/rfc7644
+      security:
+      - scimToken:
+        - delete:users
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '204':
+          description: Deleted
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+  /Groups:
+    get:
+      operationId: ListScimGroups
+      summary: List or search groups
+      x-source:
+      - https://auth0.com/docs/authenticate/protocols/scim/configure-inbound-scim
+      - https://www.rfc-editor.org/rfc/rfc7644
+      security:
+      - scimToken:
+        - get:groups
+      parameters:
+      - name: filter
+        in: query
+        schema:
+          type: string
+          maxLength: 1024
+        description: 'RFC 7644 §3.4.2.2 filter. Users: `eq`, `and`, `or`; Groups: `displayName eq`.'
+      - name: startIndex
+        in: query
+        schema:
+          type: integer
+          minimum: 1
+      - name: count
+        in: query
+        schema:
+          type: integer
+          minimum: 0
+      responses:
+        '200':
+          description: ListResponse
+          content:
+            application/scim+json:
+              schema:
+                $ref: '#/components/schemas/ListResponse'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+    post:
+      operationId: CreateScimGroup
+      summary: Create a group
+      x-source:
+      - https://auth0.com/docs/authenticate/protocols/scim/configure-inbound-scim
+      - https://www.rfc-editor.org/rfc/rfc7644
+      security:
+      - scimToken:
+        - post:groups
+      requestBody:
+        required: true
+        content:
+          application/scim+json:
+            schema:
+              $ref: '#/components/schemas/Group'
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Group'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/scim+json:
+              schema:
+                $ref: '#/components/schemas/Group'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+        '409':
+          $ref: '#/components/responses/Error'
+  /Groups/{id}:
+    get:
+      operationId: GetScimGroup
+      summary: Get a group
+      x-source:
+      - https://auth0.com/docs/authenticate/protocols/scim/configure-inbound-scim
+      - https://www.rfc-editor.org/rfc/rfc7644
+      security:
+      - scimToken:
+        - get:groups
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Group
+          content:
+            application/scim+json:
+              schema:
+                $ref: '#/components/schemas/Group'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+    put:
+      operationId: ReplaceScimGroup
+      summary: Replace a group
+      x-source:
+      - https://auth0.com/docs/authenticate/protocols/scim/configure-inbound-scim
+      - https://www.rfc-editor.org/rfc/rfc7644
+      security:
+      - scimToken:
+        - put:groups
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        required: true
+        content:
+          application/scim+json:
+            schema:
+              $ref: '#/components/schemas/Group'
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Group'
+      responses:
+        '200':
+          description: Group
+          content:
+            application/scim+json:
+              schema:
+                $ref: '#/components/schemas/Group'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+    patch:
+      operationId: PatchScimGroup
+      summary: Patch a group (members add, remove, replace)
+      x-source:
+      - https://auth0.com/docs/authenticate/protocols/scim/configure-inbound-scim
+      - https://www.rfc-editor.org/rfc/rfc7644
+      security:
+      - scimToken:
+        - patch:groups
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        required: true
+        content:
+          application/scim+json:
+            schema:
+              $ref: '#/components/schemas/PatchOp'
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchOp'
+      responses:
+        '200':
+          description: Group
+          content:
+            application/scim+json:
+              schema:
+                $ref: '#/components/schemas/Group'
+        '204':
+          description: Patched
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+    delete:
+      operationId: DeleteScimGroup
+      summary: Delete a group
+      x-source:
+      - https://auth0.com/docs/authenticate/protocols/scim/configure-inbound-scim
+      - https://www.rfc-editor.org/rfc/rfc7644
+      security:
+      - scimToken:
+        - delete:groups
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '204':
+          description: Deleted
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+  /ServiceProviderConfig:
+    get:
+      operationId: GetScimServiceProviderConfig
+      summary: Service provider configuration (RFC 7643 §5)
+      x-source:
+      - https://auth0.com/docs/authenticate/protocols/scim/configure-inbound-scim
+      - https://www.rfc-editor.org/rfc/rfc7644
+      security:
+      - scimToken: []
+      responses:
+        '200':
+          description: ServiceProviderConfig
+          content:
+            application/scim+json:
+              schema:
+                type: object
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+  /ResourceTypes:
+    get:
+      operationId: ListScimResourceTypes
+      summary: Resource types (RFC 7643 §6)
+      x-source:
+      - https://auth0.com/docs/authenticate/protocols/scim/configure-inbound-scim
+      - https://www.rfc-editor.org/rfc/rfc7644
+      security:
+      - scimToken: []
+      responses:
+        '200':
+          description: ListResponse
+          content:
+            application/scim+json:
+              schema:
+                $ref: '#/components/schemas/ListResponse'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+  /Schemas:
+    get:
+      operationId: ListScimSchemas
+      summary: Schemas (RFC 7643 §7)
+      x-source:
+      - https://auth0.com/docs/authenticate/protocols/scim/configure-inbound-scim
+      - https://www.rfc-editor.org/rfc/rfc7644
+      security:
+      - scimToken: []
+      responses:
+        '200':
+          description: ListResponse
+          content:
+            application/scim+json:
+              schema:
+                $ref: '#/components/schemas/ListResponse'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+components:
+  securitySchemes:
+    scimToken:
+      type: http
+      scheme: bearer
+      description: A SCIM token of this connection.
+  responses:
+    Error:
+      description: RFC 7644 §3.12 error
+      content:
+        application/scim+json:
+          schema:
+            $ref: '#/components/schemas/Error'
+  schemas:
+    Error:
+      type: object
+      required:
+      - schemas
+      - status
+      properties:
+        schemas:
+          type: array
+          items:
+            type: string
+            const: urn:ietf:params:scim:api:messages:2.0:Error
+        status:
+          type: string
+        scimType:
+          type: string
+        detail:
+          type: string
+    ListResponse:
+      type: object
+      required:
+      - schemas
+      - totalResults
+      - Resources
+      properties:
+        schemas:
+          type: array
+          items:
+            type: string
+        totalResults:
+          type: integer
+        startIndex:
+          type: integer
+        itemsPerPage:
+          type: integer
+        Resources:
+          type: array
+          items:
+            type: object
+    User:
+      type: object
+      required:
+      - schemas
+      additionalProperties: true
+      description: RFC 7643 §4.1 core user; attributes map to the profile through the connection's SCIM mapping. `id` is the zeroauthy user_id; `password` is refused.
+      properties:
+        schemas:
+          type: array
+          items:
+            type: string
+        id:
+          type: string
+          readOnly: true
+        externalId:
+          type: string
+        userName:
+          type: string
+        active:
+          type: boolean
+        meta:
+          type: object
+          readOnly: true
+    Group:
+      type: object
+      required:
+      - schemas
+      - displayName
+      additionalProperties: true
+      properties:
+        schemas:
+          type: array
+          items:
+            type: string
+        id:
+          type: string
+          readOnly: true
+        externalId:
+          type: string
+          maxLength: 256
+        displayName:
+          type: string
+          minLength: 1
+          maxLength: 128
+        members:
+          type: array
+          items:
+            type: object
+            properties:
+              value:
+                type: string
+              display:
+                type: string
+              type:
+                type: string
+                enum:
+                - User
+        meta:
+          type: object
+          readOnly: true
+    PatchOp:
+      type: object
+      required:
+      - schemas
+      - Operations
+      properties:
+        schemas:
+          type: array
+          items:
+            type: string
+            const: urn:ietf:params:scim:api:messages:2.0:PatchOp
+        Operations:
+          type: array
+          minItems: 1
+          maxItems: 1000
+          items:
+            type: object
+            required:
+            - op
+            properties:
+              op:
+                type: string
+              path:
+                type: string
+              value: {}

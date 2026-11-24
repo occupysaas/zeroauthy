@@ -1,0 +1,3 @@
+CREATE TABLE directory_provisionings (tenant_id TEXT NOT NULL, connection_id TEXT NOT NULL, doc TEXT NOT NULL, admin_grant BYTEA NULL, created_at BIGINT NOT NULL, updated_at BIGINT NOT NULL, last_sync_at BIGINT NULL, last_sync_status TEXT NOT NULL, last_sync_error TEXT NOT NULL, sync_id TEXT NOT NULL, next_sync_at BIGINT NULL, lease_until BIGINT NULL, PRIMARY KEY (tenant_id,connection_id));
+CREATE INDEX directory_provisionings_due ON directory_provisionings (next_sync_at);
+CREATE TABLE directory_synchronized_groups (tenant_id TEXT NOT NULL, connection_id TEXT NOT NULL, group_id TEXT NOT NULL, doc TEXT NOT NULL, PRIMARY KEY (tenant_id,connection_id,group_id));

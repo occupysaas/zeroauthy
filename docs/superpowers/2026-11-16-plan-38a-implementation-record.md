@@ -3,7 +3,10 @@
 Status: **implementation and local verification complete**, starting from
 `main` commit `953ee03e` (PR #85 merged; Plan 37c's PR #87 not yet merged).
 Branch: `plan-38a-ad-ldap`; worktree: `/mnt/nvme2/code/zeroauthy-plan38a`.
-Full plan-branch CI and maintainer approval govern integration.
+Plan-branch CI passed (run 45293348939, 52 jobs; the first run failed
+`e2e-ad` because CI runners have no OS keychain, fixed in `2a0fec94`). Main
+(with Plan 37c) was merged in and migration 0046 renumbered to 0049; the
+maintainer approved the merge on 2026-11-23.
 
 Spec: [AD/LDAP design](specs/2026-11-16-zeroauthy-ad-ldap-design.md).
 Plan: [Plan 38a](plans/2026-11-16-zeroauthy-plan-38a-ad-ldap.md).
@@ -20,7 +23,7 @@ replica forwarding over internal HTTPS.
    `provisioning_ticket_url`, status route, ticket and hub routes), D-0160
    with the connector wire protocol and source references, inventory block.
 2. Task 2: options rules, provisioning tickets and signing keys
-   (`store.ADHubStore`, `ad_hub.v1`, migration `0046_ad_hub`, conformance
+   (`store.ADHubStore`, `ad_hub.v1`, migration `0049_ad_hub`, conformance
    suite `ADHub`), ticket routes, connector-managed options read-only,
    status route, logscrub and request-log hiding of the ticket.
 3. Task 3: the WebSocket hub: TLS only, RS256 connector tokens verified
@@ -40,12 +43,14 @@ replica forwarding over internal HTTPS.
 
 - **LR38a-4 (spec deviation):** the ticket is reusable for the
   connection's life, not single use: the connector reads `{ticket}/info`
-  and posts its certificate at every start (`server.js`).
+  and posts its certificate at every start (`server.js`). Accepted by the
+  maintainer (2026-11-23): Auth0's connector needs the same, so there is no
+  Auth0 or OIDC drift.
 - **LR38a-12:** directory passwords change through the Management API; the
-  hosted forgot-password flow is not offered for `ad` connections
-  (follow-up).
-- **Migration 0046** is main's latest + 1; Plan 37c holds 0046–0048 on its
-  branch, so whichever merges second renumbers.
+  hosted forgot-password flow is not offered for `ad` connections. Ruled
+  final by the maintainer (2026-11-23): the directory owns the password.
+- **Migration 0049:** renumbered from 0046 when Plan 37c (0046–0048)
+  merged first (maintainer, 2026-11-23).
 - **gRPC:** one `ADHubCall` JSON RPC behind `ad_hub.v1`, like Plan 37c's
   `DirectoryCall`.
 - **Forwarding key:** derived per connection from its sealed signing key
@@ -82,5 +87,5 @@ Local toolchain: Go `1.27.4-X:nodwarf5`; Node 26.8.1; podman.
 PostgreSQL and MySQL for `ADHub` (plan-branch CI runs them), a live Auth0
 tenant (observation points D38-1…12), Kerberos with a real Windows
 domain (the Kerberos path is covered by Go tests with a signing fixture),
-and the hosted forgot-password flow for `ad` users (not implemented,
+and the hosted forgot-password flow for `ad` users (not offered by design,
 LR38a-12).

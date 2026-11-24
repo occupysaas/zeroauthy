@@ -1357,3 +1357,7 @@ func (h *Handlers) createPasswordlessUser(w http.ResponseWriter, r *http.Request
 	}
 	writeJSON(w, http.StatusCreated, view)
 }
+
+// SCIMDeleteUser deletes a user for an inbound SCIM DELETE (Plan 37c) with
+// the same guards, events and logout as DELETE /api/v2/users/{id}.
+func (h *Handlers) SCIMDeleteUser(r *http.Request, id string) error { return h.deleteUser(r, id) }

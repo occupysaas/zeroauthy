@@ -11,8 +11,9 @@ covered separately in [email.md](email.md).
 | Microsoft Entra / Microsoft 365 work and school | `waad` | Enterprise |
 | Gmail, Google accounts using another email address, Google Workspace | `google-oauth2` | Social |
 
-Google Workspace uses the existing Google connection. This does not add the
-separate `google-apps` enterprise strategy. Microsoft personal accounts can
+Google Workspace accounts can sign in through the Google connection. To
+restrict a connection to one Workspace and synchronize its directory, use the
+`google-apps` enterprise strategy instead ([Directory provisioning](directory-provisioning.md)). Microsoft personal accounts can
 also use addresses outside the Outlook/Hotmail domains. Email suffixes do not
 select account type or authorize membership.
 

@@ -60,7 +60,7 @@ const (
 
 // IsFederated reports whether strategy is one of the federated strategies.
 func IsFederated(strategy string) bool {
-	return strategy == Apple || strategy == WindowsLive || strategy == WAAD || strategy == Google || strategy == GitHub || strategy == OAuth2 || strategy == OIDC || strategy == Okta || strategy == SAMLP || strategy == ADFS || strategy == AD
+	return strategy == Apple || strategy == WindowsLive || strategy == WAAD || strategy == Google || strategy == GitHub || strategy == OAuth2 || strategy == OIDC || strategy == Okta || strategy == SAMLP || strategy == ADFS || strategy == GoogleApps || strategy == AD
 }
 
 // IsSocial reports whether identities of strategy are social (isSocial).
@@ -171,6 +171,8 @@ type Settings struct {
 	SAML *SAMLSettings
 	// ADFS is set for the adfs strategy (Plan 37b).
 	ADFS *ADFSSettings
+	// GoogleApps is set for the google-apps strategy (Plan 37c).
+	GoogleApps *GoogleAppsSettings
 	// AD is set for the ad strategy (Plan 38a).
 	AD *ADSettings
 }
@@ -260,7 +262,7 @@ func Parse(in Input) (Settings, []error) {
 	}
 
 	for _, k := range slices.Sorted(maps.Keys(rejectedOptions)) {
-		if _, ok := o[k]; ok && !((in.Strategy == OIDC || in.Strategy == Okta) && enterpriseOption(k) && (k != "domain" || in.Strategy == Okta)) && !(in.Strategy == WAAD && (k == "domain" || k == "tenant_domain" || k == "domain_aliases")) && !((in.Strategy == Apple || in.Strategy == GitHub) && k == "freeform_scopes") {
+		if _, ok := o[k]; ok && !((in.Strategy == OIDC || in.Strategy == Okta) && enterpriseOption(k) && (k != "domain" || in.Strategy == Okta)) && !((in.Strategy == WAAD || in.Strategy == GoogleApps) && (k == "domain" || k == "tenant_domain" || k == "domain_aliases")) && !((in.Strategy == Apple || in.Strategy == GitHub) && k == "freeform_scopes") {
 			fail("options.%s: %s", k, rejectedOptions[k])
 		}
 	}
@@ -297,6 +299,8 @@ func Parse(in Input) (Settings, []error) {
 		errs = append(errs, parseMicrosoft(o, &out)...)
 	case Google:
 		errs = append(errs, parseGoogle(o, &out)...)
+	case GoogleApps:
+		errs = append(errs, parseGoogleApps(o, &out)...)
 	case GitHub:
 		errs = append(errs, parseGitHub(o, in.ConnectedAccounts, &out)...)
 	case OAuth2:

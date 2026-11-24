@@ -41,6 +41,11 @@ type Store interface {
 	DPoP() DPoP
 	TokenQuotas() TokenQuotas
 	ConnectionKeys() ConnectionKeys
+	// Directory is Plan 37c's SCIM and group state (scim.v1).
+	Directory() Directory
+	SelfService() SelfService
+	// DirectorySync is Plan 37c Phase C directory provisioning.
+	DirectorySync() DirectorySync
 	MFA() MFA
 	Phone() Phone
 	WebAuthn() WebAuthn

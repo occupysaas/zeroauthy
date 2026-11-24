@@ -129,6 +129,13 @@ service StoreService {
   rpc SAMLCapabilities(PingRequest) returns (EventsCapabilitiesResult);
   // wsfed.v1 (Plan 37b) gates client_aliases (unique per tenant) and form_template.
   rpc WSFedCapabilities(PingRequest) returns (EventsCapabilitiesResult);
+  // scim.v1 (Plan 37c): SCIM configurations and tokens, directory groups,
+  // members and group roles (store.Directory).
+  rpc DirectoryCapabilities(PingRequest) returns (EventsCapabilitiesResult);
+  // DirectoryCall invokes one store.Directory method: method is its Go name
+  // and args/result are the JSON of its parameters and results (see
+  // internal/store/grpcstore/directory.go).
+  rpc DirectoryCall(DirectoryCallRequest) returns (DirectoryCallResult);
   // ad_hub.v1 (Plan 38a): AD/LDAP provisioning and connector sessions.
   // ADHubCall invokes one store.ADHubStore method: method is its Go name and
   // args/result are JSON (see internal/store/grpcstore/adhub.go).
@@ -629,6 +636,8 @@ message Error {
     KIND_EVENTS_UNAVAILABLE = 15; // store.ErrEventsUnavailable
     KIND_LOGS_UNAVAILABLE = 14; // store.ErrLogsUnavailable
     KIND_ORGANIZATIONS_UNAVAILABLE = 12; // store.ErrOrganizationsUnavailable
+    KIND_DIRECTORY_UNAVAILABLE = 23; // store.ErrDirectoryUnavailable (scim.v1, Plan 37c)
+    KIND_SCIM_TOKEN_LIMIT = 24; // store.ErrSCIMTokenLimit (Plan 37c)
   }
   Kind kind = 1;
   string message = 2; // human-readable; for KIND_UNSPECIFIED the whole error
@@ -1909,6 +1918,19 @@ message CodeBindingRequest {
 message SessionTokenOwnersResult { Error error = 1; repeated string user_ids = 2; }
 
 message GlobalRevocationJTIRequest {string tx_id=1;string tenant_id=2;string connection_id=3;string jti=4;google.protobuf.Timestamp expires_at=5;google.protobuf.Timestamp now=6;}
+
+// DirectoryCallRequest invokes a store.Directory method (scim.v1, Plan 37c).
+message DirectoryCallRequest {
+  string tx_id = 1;
+  string method = 2;
+  bytes args = 3; // JSON object of the method's parameters
+}
+
+// DirectoryCallResult is a store.Directory method's outcome.
+message DirectoryCallResult {
+  Error error = 1;
+  bytes result = 2; // JSON of the method's results
+}
 
 // ADHubCallRequest invokes a store.ADHubStore method (ad_hub.v1, Plan 38a).
 message ADHubCallRequest {

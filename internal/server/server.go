@@ -21,6 +21,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/customdb"
 	"github.com/zeroauthy/zeroauthy/internal/customdomain"
 	"github.com/zeroauthy/zeroauthy/internal/dbconn"
+	"github.com/zeroauthy/zeroauthy/internal/dirsync"
 	"github.com/zeroauthy/zeroauthy/internal/dpop"
 	"github.com/zeroauthy/zeroauthy/internal/email"
 	"github.com/zeroauthy/zeroauthy/internal/email/providers"
@@ -43,6 +44,8 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/phone"
 	"github.com/zeroauthy/zeroauthy/internal/protection"
 	"github.com/zeroauthy/zeroauthy/internal/ratelimit"
+	"github.com/zeroauthy/zeroauthy/internal/scim"
+	"github.com/zeroauthy/zeroauthy/internal/selfservice"
 	"github.com/zeroauthy/zeroauthy/internal/session"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/tenant"
@@ -327,6 +330,23 @@ func New(d Deps) http.Handler {
 	}
 	lg.Passwordless = pwl
 
+	// Inbound SCIM 2.0 (Plan 37c): deletes go through the Management API's
+	// user deletion (events, logout), wired once mh exists.
+	var scimDelete func(*http.Request, string) error
+	scimHandler := &scim.Handler{Store: d.Store, Log: d.Log,
+		DeleteUser: func(r *http.Request, id string) error { return scimDelete(r, id) },
+		EndSessions: func(ctx context.Context, tx store.Store, tid, uid string) error {
+			if d.Logout == nil {
+				_, err := tx.Sessions().DeleteByUser(ctx, tid, uid)
+				return err
+			}
+			return d.Logout.WithStore(tx).EndUserSessions(ctx, tid, uid, logout.SessionRevoked)
+		}}
+
+	// The self-service SSO assistant (Plan 37c Phase B) writes through the
+	// Management API's handlers, wired once mh exists.
+	assistant := &selfservice.Handler{Store: d.Store, Log: d.Log}
+
 	// Authentication API: every route is tenant-scoped.
 	r.Group(func(tr chi.Router) {
 		// The limiter runs right after tenant resolution, ahead of any
@@ -407,6 +427,16 @@ func New(d Deps) http.Handler {
 		tr.Post("/u/passkey-enrollment-local", lg.PasskeyEnrollmentPost)
 		tr.Post("/u/login/social", lg.SocialStart)
 		tr.Get("/login/callback", lg.SocialCallback)
+		tr.Mount("/scim/v2/connections/{connection_id}", scimHandler.Routes())
+		// The assistant answers GET and POST only.
+		tr.Get(selfservice.Path, assistant.ServeHTTP)
+		tr.Post(selfservice.Path, assistant.ServeHTTP)
+		if d.Federation != nil && d.Federation.Providers != nil {
+			// Google Workspace directory provisioning consent (Plan 37c Phase C).
+			consent := &dirsync.Consent{Store: d.Store, Wrapper: d.Wrapper, Providers: d.Federation.Providers, Log: d.Log}
+			tr.Get(dirsync.ConsentPath, consent.ServeHTTP)
+			tr.Get(dirsync.CallbackPath, consent.ServeHTTP)
+		}
 		tr.Post("/login/callback", lg.SocialCallback)
 		tr.Get("/u/consent", lg.ConsentPage)
 		tr.Post("/u/consent", lg.ConsentSubmit)
@@ -468,6 +498,8 @@ func New(d Deps) http.Handler {
 		Domains:                d.Domains,
 		RestrictSharedRPIDs:    d.RestrictSharedRPIDs,
 	}
+	scimDelete = mh.SCIMDeleteUser
+	assistant.Writes = mh
 	mr.Use(d.Resolver.Middleware, systemOnly, mgmtCORS(systemOrigin), auth, mh.LogMiddleware, operatorOnly)
 	if len(d.ExportKey) > 0 {
 		mh.Export = &mgmt.ExportLink{Key: d.ExportKey}

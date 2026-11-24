@@ -64,7 +64,7 @@ describe('Social connection detail', () => {
     const oidc = connection('con_i', { name: 'corp', strategy: 'oidc', options: { client_id: 'c', discovery_url: 'https://i.example/d', scopes: 'openid' } })
     const { wrapper } = await mountAt(Detail, '/t/acme/social/con_i', route(() => ({ status: 200, body: oidc })))
     expect(wrapper.find('#enterprise-channel').exists()).toBe(true)
-    expect(wrapper.findAll('[role="tab"]').map((t) => t.text())).toEqual(['Settings', 'Mapping', 'Keys', 'Login experience', 'Applications', 'Danger zone'])
+    expect(wrapper.findAll('[role="tab"]').map((t) => t.text())).toEqual(['Settings', 'Mapping', 'Keys', 'Login experience', 'Provisioning', 'Applications', 'Danger zone'])
     expect(wrapper.text()).not.toContain('Password')
     wrapper.unmount()
   })

@@ -9,7 +9,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/store"
 )
 
-// The SQL store implements store.ADHubStore (Plan 38a, migration 0046).
+// The SQL store implements store.ADHubStore (Plan 38a, migration 0049).
 
 const adProvisioningCols = `tenant_id,connection_id,ticket_hash,ticket_sealed,signing_key_sealed,created_at`
 const adSessionCols = `tenant_id,connection_id,session_id,replica_id,replica_url,cert_thumbprint,agent_ip,connected_at,last_seen_at`

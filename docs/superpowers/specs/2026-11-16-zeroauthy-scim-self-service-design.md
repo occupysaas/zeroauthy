@@ -1,6 +1,6 @@
 # Plan 37c — Inbound SCIM, directory groups, self-service SSO, connection profiles and directory provisioning
 
-**Date:** 2026-11-16. **Status:** design; not implemented.
+**Date:** 2026-11-16. **Status:** Phase A in progress (contract frozen 2026-11-22, D-0150).
 
 **Roadmap entry:** [management roadmap, Plan 37](2026-10-19-zeroauthy-management-roadmap-design.md)
 ("SCIM configuration and tokens with an inbound SCIM 2.0 server;
@@ -223,6 +223,9 @@ domain verification in the assistant; **Q10** built-in connection profile
 templates; **Q11** automatic sync interval.
 
 ## 10. Decisions needed from the maintainer
+
+**Ruled 2026-11-22 (maintainer):** A → B → C; Phase C may ship with
+fixture-only Directory API coverage.
 
 1. Phase order: A → B → C as proposed, or B first (self-service is the
    B2B-facing feature; SCIM is what enterprise customers ask about first).

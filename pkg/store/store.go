@@ -22,6 +22,27 @@ type (
 	ADHubStore                     = store.ADHubStore
 	ADProvisioning                 = store.ADProvisioning
 	ADHubSession                   = store.ADHubSession
+	Directory                      = store.Directory
+	DirectorySupporter             = store.DirectorySupporter
+	UnimplementedDirectory         = store.UnimplementedDirectory
+	SelfService                    = store.SelfService
+	SelfServiceSupporter           = store.SelfServiceSupporter
+	UnimplementedSelfService       = store.UnimplementedSelfService
+	SelfServiceProfile             = store.SelfServiceProfile
+	DirectorySync                  = store.DirectorySync
+	DirectorySyncSupporter         = store.DirectorySyncSupporter
+	UnimplementedDirectorySync     = store.UnimplementedDirectorySync
+	DirectoryProvisioning          = store.DirectoryProvisioning
+	SynchronizedGroup              = store.SynchronizedGroup
+	SSOTicket                      = store.SSOTicket
+	ConnectionProfile              = store.ConnectionProfile
+	SCIMConfig                     = store.SCIMConfig
+	SCIMMapping                    = store.SCIMMapping
+	SCIMToken                      = store.SCIMToken
+	Group                          = store.Group
+	GroupMember                    = store.GroupMember
+	GroupFilter                    = store.GroupFilter
+	GroupRole                      = store.GroupRole
 	SAMLParticipant                = store.SAMLParticipant
 	SAMLSessionRecorder            = store.SAMLSessionRecorder
 	SAMLReplayStore                = store.SAMLReplayStore
@@ -468,3 +489,15 @@ var ErrADHubUnavailable = store.ErrADHubUnavailable
 
 // ADHub returns s's AD/LDAP store after checking ad_hub.v1.
 func ADHub(ctx context.Context, s Store) (ADHubStore, error) { return store.ADHub(ctx, s) }
+
+// ErrDirectoryUnavailable reports a plugin without scim.v1 (Plan 37c).
+var ErrDirectoryUnavailable = store.ErrDirectoryUnavailable
+
+// ErrSCIMTokenLimit reports a SCIM token beyond the per-connection limit.
+var ErrSCIMTokenLimit = store.ErrSCIMTokenLimit
+
+// ErrSelfServiceUnavailable reports a plugin without scim.v1 version 2.
+var ErrSelfServiceUnavailable = store.ErrSelfServiceUnavailable
+
+// ErrDirectorySyncUnavailable reports a plugin without scim.v1 version 3.
+var ErrDirectorySyncUnavailable = store.ErrDirectorySyncUnavailable

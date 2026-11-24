@@ -1,0 +1,10 @@
+CREATE TABLE scim_configurations (tenant_id TEXT NOT NULL, connection_id TEXT NOT NULL, user_id_attribute TEXT NOT NULL, mapping TEXT NOT NULL, created_at BIGINT NOT NULL, updated_at BIGINT NOT NULL, PRIMARY KEY (tenant_id,connection_id));
+CREATE TABLE scim_tokens (tenant_id TEXT NOT NULL, id TEXT NOT NULL, connection_id TEXT NOT NULL, token_hash TEXT NOT NULL, scopes TEXT NOT NULL, created_at BIGINT NOT NULL, expires_at BIGINT NULL, last_used_at BIGINT NULL, PRIMARY KEY (tenant_id,id));
+CREATE UNIQUE INDEX scim_tokens_hash ON scim_tokens (tenant_id,token_hash);
+CREATE INDEX scim_tokens_connection ON scim_tokens (tenant_id,connection_id);
+CREATE TABLE directory_groups (tenant_id TEXT NOT NULL, id TEXT NOT NULL, connection_id TEXT NOT NULL, name TEXT NOT NULL, external_id TEXT NOT NULL, created_at BIGINT NOT NULL, updated_at BIGINT NOT NULL, PRIMARY KEY (tenant_id,id));
+CREATE UNIQUE INDEX directory_groups_name ON directory_groups (tenant_id,connection_id,name);
+CREATE TABLE directory_group_members (tenant_id TEXT NOT NULL, group_id TEXT NOT NULL, user_id TEXT NOT NULL, created_at BIGINT NOT NULL, PRIMARY KEY (tenant_id,group_id,user_id));
+CREATE INDEX directory_group_members_user ON directory_group_members (tenant_id,user_id);
+CREATE TABLE directory_group_roles (tenant_id TEXT NOT NULL, group_id TEXT NOT NULL, role_id TEXT NOT NULL, organization_id TEXT NOT NULL, PRIMARY KEY (tenant_id,group_id,role_id,organization_id));
+CREATE INDEX directory_group_roles_role ON directory_group_roles (tenant_id,role_id);

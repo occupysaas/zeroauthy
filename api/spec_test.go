@@ -11,7 +11,7 @@ import (
 	"github.com/getkin/kin-openapi/openapi3"
 )
 
-var specs = map[string][]byte{"authentication.yaml": AuthenticationYAML, "management.yaml": ManagementYAML}
+var specs = map[string][]byte{"authentication.yaml": AuthenticationYAML, "management.yaml": ManagementYAML, "scim.yaml": SCIMYAML}
 
 func TestSpecsAreValid(t *testing.T) {
 	for name, data := range specs {
@@ -913,6 +913,72 @@ func TestWSFedContracts(t *testing.T) {
 		item := a.Paths.Value(path)
 		if item == nil || item.Get == nil {
 			t.Errorf("route GET %s missing", path)
+		}
+	}
+}
+
+// TestSCIMGroupsContracts pins Plan 37c phase A (D-0150): SCIM
+// configuration and tokens, directory groups with roles, and the SCIM 2.0
+// server routes.
+func TestSCIMGroupsContracts(t *testing.T) {
+	m, err := openapi3.NewLoader().LoadFromData(ManagementYAML)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for path, methods := range map[string][]string{
+		"/api/v2/connections/{id}/scim-configuration":                  {"GET", "POST", "PATCH", "DELETE"},
+		"/api/v2/connections/{id}/scim-configuration/default-mapping":  {"GET"},
+		"/api/v2/connections/{id}/scim-configuration/tokens":           {"GET", "POST"},
+		"/api/v2/connections/{id}/scim-configuration/tokens/{tokenId}": {"DELETE"},
+		"/api/v2/connections-scim-configurations":                      {"GET"},
+		"/api/v2/groups":                                     {"GET"},
+		"/api/v2/groups/{id}":                                {"GET", "DELETE"},
+		"/api/v2/groups/{id}/members":                        {"GET"},
+		"/api/v2/groups/{id}/roles":                          {"GET", "POST", "DELETE"},
+		"/api/v2/roles/{id}/groups":                          {"GET", "POST", "DELETE"},
+		"/api/v2/users/{id}/groups":                          {"GET"},
+		"/api/v2/users/{id}/effective-roles/sources/groups":  {"GET"},
+		"/api/v2/organizations/{id}/groups":                  {"GET"},
+		"/api/v2/organizations/{id}/groups/{group_id}/roles": {"GET", "POST", "DELETE"},
+		"/api/v2/organizations/{id}/members/{user_id}/effective-roles/sources/groups": {"GET"},
+	} {
+		item := m.Paths.Value(path)
+		if item == nil {
+			t.Errorf("route %s missing", path)
+			continue
+		}
+		for _, method := range methods {
+			if item.GetOperation(method) == nil {
+				t.Errorf("route %s %s missing", method, path)
+			}
+		}
+	}
+	for _, name := range []string{"Group", "GroupID", "ScimConfiguration", "ScimTokenCreate", "ScimToken", "ScimTokenCreated", "ScimMappingItem"} {
+		if m.Components.Schemas[name] == nil {
+			t.Errorf("schema %s missing", name)
+		}
+	}
+	if lt := m.Components.Schemas["ScimTokenCreate"].Value.Properties["token_lifetime"].Value.Min; lt == nil || *lt != 901 {
+		t.Error("token_lifetime must be greater than 900")
+	}
+	s, err := openapi3.NewLoader().LoadFromData(SCIMYAML)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for path, methods := range map[string][]string{
+		"/Users": {"GET", "POST"}, "/Users/{id}": {"GET", "PUT", "PATCH", "DELETE"},
+		"/Groups": {"GET", "POST"}, "/Groups/{id}": {"GET", "PUT", "PATCH", "DELETE"},
+		"/ServiceProviderConfig": {"GET"}, "/ResourceTypes": {"GET"}, "/Schemas": {"GET"},
+	} {
+		item := s.Paths.Value(path)
+		if item == nil {
+			t.Errorf("SCIM route %s missing", path)
+			continue
+		}
+		for _, method := range methods {
+			if item.GetOperation(method) == nil {
+				t.Errorf("SCIM route %s %s missing", method, path)
+			}
 		}
 	}
 }

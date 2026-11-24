@@ -45,3 +45,55 @@ func TestOpenedForwardsADHub(t *testing.T) {
 		t.Fatalf("GetADProvisioning through the wrapper: %v", err)
 	}
 }
+
+// The process wrapper must forward scim.v1 (Plan 37c): a wrapped store that
+// cannot report it is unavailable.
+func TestOpenedForwardsDirectoryCapability(t *testing.T) {
+	var _ store.DirectorySupporter = (*opened)(nil)
+	o := &opened{Store: noDirectory{memory.New()}}
+	defer o.Store.Close()
+	if store.DirectoryAvailable(o) {
+		t.Fatal("wrapper without scim.v1 reported support")
+	}
+	if !store.DirectoryAvailable(&opened{Store: memory.New()}) {
+		t.Fatal("wrapper hid scim.v1")
+	}
+}
+
+type noDirectory struct{ store.Store }
+
+func (noDirectory) DirectorySupported() bool { return false }
+
+// The process wrapper must forward scim.v1 version 2 (Plan 37c Phase B).
+func TestOpenedForwardsSelfServiceCapability(t *testing.T) {
+	var _ store.SelfServiceSupporter = (*opened)(nil)
+	o := &opened{Store: noSelfService{memory.New()}}
+	defer o.Store.Close()
+	if store.SelfServiceAvailable(o) {
+		t.Fatal("wrapper without self-service reported support")
+	}
+	if !store.SelfServiceAvailable(&opened{Store: memory.New()}) {
+		t.Fatal("wrapper hid self-service")
+	}
+}
+
+type noSelfService struct{ store.Store }
+
+func (noSelfService) SelfServiceSupported() bool { return false }
+
+// The process wrapper must forward scim.v1 version 3 (Plan 37c Phase C).
+func TestOpenedForwardsDirectorySyncCapability(t *testing.T) {
+	var _ store.DirectorySyncSupporter = (*opened)(nil)
+	o := &opened{Store: noDirectorySync{memory.New()}}
+	defer o.Store.Close()
+	if store.DirectorySyncAvailable(o) {
+		t.Fatal("wrapper without directory provisioning reported support")
+	}
+	if !store.DirectorySyncAvailable(&opened{Store: memory.New()}) {
+		t.Fatal("wrapper hid directory provisioning")
+	}
+}
+
+type noDirectorySync struct{ store.Store }
+
+func (noDirectorySync) DirectorySyncSupported() bool { return false }

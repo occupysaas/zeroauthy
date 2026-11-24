@@ -290,7 +290,9 @@ func wantSupport(trigger, name string) string {
 		return "supported"
 	}
 	switch name {
-	case "groups.getUserGroups", "groups.hasGroupMembership", "rules.wasExecuted":
+	case "groups.getUserGroups", "groups.hasGroupMembership":
+		return "supported" // Plan 37c directory groups
+	case "rules.wasExecuted":
 		return "empty"
 	}
 	for _, ns := range []string{"session.", "refreshToken.", "authentication.", "multifactor.", "prompt.", "samlResponse."} {

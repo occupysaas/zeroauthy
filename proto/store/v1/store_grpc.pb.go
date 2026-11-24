@@ -84,6 +84,8 @@ const (
 	StoreService_OIDCLogoutCapabilities_FullMethodName                        = "/zeroauthy.store.v1.StoreService/OIDCLogoutCapabilities"
 	StoreService_SAMLCapabilities_FullMethodName                              = "/zeroauthy.store.v1.StoreService/SAMLCapabilities"
 	StoreService_WSFedCapabilities_FullMethodName                             = "/zeroauthy.store.v1.StoreService/WSFedCapabilities"
+	StoreService_DirectoryCapabilities_FullMethodName                         = "/zeroauthy.store.v1.StoreService/DirectoryCapabilities"
+	StoreService_DirectoryCall_FullMethodName                                 = "/zeroauthy.store.v1.StoreService/DirectoryCall"
 	StoreService_ADHubCapabilities_FullMethodName                             = "/zeroauthy.store.v1.StoreService/ADHubCapabilities"
 	StoreService_ADHubCall_FullMethodName                                     = "/zeroauthy.store.v1.StoreService/ADHubCall"
 	StoreService_SAMLSessionParticipant_FullMethodName                        = "/zeroauthy.store.v1.StoreService/SAMLSessionParticipant"
@@ -620,6 +622,13 @@ type StoreServiceClient interface {
 	SAMLCapabilities(ctx context.Context, in *PingRequest, opts ...grpc.CallOption) (*EventsCapabilitiesResult, error)
 	// wsfed.v1 (Plan 37b) gates client_aliases (unique per tenant) and form_template.
 	WSFedCapabilities(ctx context.Context, in *PingRequest, opts ...grpc.CallOption) (*EventsCapabilitiesResult, error)
+	// scim.v1 (Plan 37c): SCIM configurations and tokens, directory groups,
+	// members and group roles (store.Directory).
+	DirectoryCapabilities(ctx context.Context, in *PingRequest, opts ...grpc.CallOption) (*EventsCapabilitiesResult, error)
+	// DirectoryCall invokes one store.Directory method: method is its Go name
+	// and args/result are the JSON of its parameters and results (see
+	// internal/store/grpcstore/directory.go).
+	DirectoryCall(ctx context.Context, in *DirectoryCallRequest, opts ...grpc.CallOption) (*DirectoryCallResult, error)
 	// ad_hub.v1 (Plan 38a): AD/LDAP provisioning and connector sessions.
 	// ADHubCall invokes one store.ADHubStore method: method is its Go name and
 	// args/result are JSON (see internal/store/grpcstore/adhub.go).
@@ -1715,6 +1724,26 @@ func (c *storeServiceClient) WSFedCapabilities(ctx context.Context, in *PingRequ
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(EventsCapabilitiesResult)
 	err := c.cc.Invoke(ctx, StoreService_WSFedCapabilities_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) DirectoryCapabilities(ctx context.Context, in *PingRequest, opts ...grpc.CallOption) (*EventsCapabilitiesResult, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(EventsCapabilitiesResult)
+	err := c.cc.Invoke(ctx, StoreService_DirectoryCapabilities_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) DirectoryCall(ctx context.Context, in *DirectoryCallRequest, opts ...grpc.CallOption) (*DirectoryCallResult, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DirectoryCallResult)
+	err := c.cc.Invoke(ctx, StoreService_DirectoryCall_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -5903,6 +5932,13 @@ type StoreServiceServer interface {
 	SAMLCapabilities(context.Context, *PingRequest) (*EventsCapabilitiesResult, error)
 	// wsfed.v1 (Plan 37b) gates client_aliases (unique per tenant) and form_template.
 	WSFedCapabilities(context.Context, *PingRequest) (*EventsCapabilitiesResult, error)
+	// scim.v1 (Plan 37c): SCIM configurations and tokens, directory groups,
+	// members and group roles (store.Directory).
+	DirectoryCapabilities(context.Context, *PingRequest) (*EventsCapabilitiesResult, error)
+	// DirectoryCall invokes one store.Directory method: method is its Go name
+	// and args/result are the JSON of its parameters and results (see
+	// internal/store/grpcstore/directory.go).
+	DirectoryCall(context.Context, *DirectoryCallRequest) (*DirectoryCallResult, error)
 	// ad_hub.v1 (Plan 38a): AD/LDAP provisioning and connector sessions.
 	// ADHubCall invokes one store.ADHubStore method: method is its Go name and
 	// args/result are JSON (see internal/store/grpcstore/adhub.go).
@@ -6548,6 +6584,12 @@ func (UnimplementedStoreServiceServer) SAMLCapabilities(context.Context, *PingRe
 }
 func (UnimplementedStoreServiceServer) WSFedCapabilities(context.Context, *PingRequest) (*EventsCapabilitiesResult, error) {
 	return nil, status.Error(codes.Unimplemented, "method WSFedCapabilities not implemented")
+}
+func (UnimplementedStoreServiceServer) DirectoryCapabilities(context.Context, *PingRequest) (*EventsCapabilitiesResult, error) {
+	return nil, status.Error(codes.Unimplemented, "method DirectoryCapabilities not implemented")
+}
+func (UnimplementedStoreServiceServer) DirectoryCall(context.Context, *DirectoryCallRequest) (*DirectoryCallResult, error) {
+	return nil, status.Error(codes.Unimplemented, "method DirectoryCall not implemented")
 }
 func (UnimplementedStoreServiceServer) ADHubCapabilities(context.Context, *PingRequest) (*EventsCapabilitiesResult, error) {
 	return nil, status.Error(codes.Unimplemented, "method ADHubCapabilities not implemented")
@@ -8945,6 +8987,42 @@ func _StoreService_WSFedCapabilities_Handler(srv interface{}, ctx context.Contex
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(StoreServiceServer).WSFedCapabilities(ctx, req.(*PingRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_DirectoryCapabilities_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PingRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).DirectoryCapabilities(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_DirectoryCapabilities_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).DirectoryCapabilities(ctx, req.(*PingRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_DirectoryCall_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DirectoryCallRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).DirectoryCall(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_DirectoryCall_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).DirectoryCall(ctx, req.(*DirectoryCallRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -16444,6 +16522,14 @@ var StoreService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "WSFedCapabilities",
 			Handler:    _StoreService_WSFedCapabilities_Handler,
+		},
+		{
+			MethodName: "DirectoryCapabilities",
+			Handler:    _StoreService_DirectoryCapabilities_Handler,
+		},
+		{
+			MethodName: "DirectoryCall",
+			Handler:    _StoreService_DirectoryCall_Handler,
 		},
 		{
 			MethodName: "ADHubCapabilities",

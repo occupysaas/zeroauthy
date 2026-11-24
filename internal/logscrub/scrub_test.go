@@ -360,3 +360,13 @@ func TestBackchannelURLRedacted(t *testing.T) {
 		t.Fatal("credential-bearing logout URL logged")
 	}
 }
+
+// Plan 37c Phase C: Auth0's google-apps administrator tokens and the
+// directory consent link and cookie are secrets.
+func TestDirectoryProvisioningKeysSensitive(t *testing.T) {
+	for _, k := range []string{"admin_access_token", "admin_refresh_token", "admin_access_token_expiresin", "ticket", "code", "cookie"} {
+		if !logscrub.SensitiveKey(k) {
+			t.Errorf("%s is not sensitive", k)
+		}
+	}
+}
