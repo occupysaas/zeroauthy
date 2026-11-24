@@ -25,6 +25,7 @@ export const sections: Section[] = [
   { key: 'passwordless-sms', label: 'phone.passwordlessSMS', group: 'navGroup.authentication', path: 'passwordless/sms', status: 'live' },
   { key: 'social', label: 'nav.social', group: 'navGroup.authentication', path: 'social', status: 'live' },
   { key: 'enterprise', label: 'nav.enterprise', group: 'navGroup.authentication', path: 'enterprise', status: 'live' },
+  { key: 'self-service', label: 'nav.selfService', group: 'navGroup.authentication', path: 'self-service', status: 'live' },
   {
     key: 'users',
     label: 'nav.users',
@@ -33,6 +34,7 @@ export const sections: Section[] = [
     status: 'live',
   },
   { key: 'roles', label: 'nav.roles', group: 'navGroup.userManagement', path: 'roles', status: 'live' },
+  { key: 'groups', label: 'nav.groups', group: 'navGroup.userManagement', path: 'groups', status: 'live' },
   { key: 'organizations', label: 'nav.organizations', group: 'navGroup.userManagement', path: 'organizations', status: 'live' },
   { key: 'attack-protection', label: 'nav.attackProtection', group: 'navGroup.security', path: 'attack-protection', status: 'live' },
   { key: 'mfa', label: 'nav.mfa', group: 'navGroup.security', path: 'mfa', status: 'live' },

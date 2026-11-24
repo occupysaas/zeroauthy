@@ -3873,3 +3873,63 @@ Implementation rulings (recorded in the
 
 Observation points W1–W5 (spec §4) and later W-n are listed in
 [plan-1-followups.md](../superpowers/plan-1-followups.md#plan-37b-observation-points).
+
+## D-0150: Inbound SCIM, directory groups, self-service SSO and directory provisioning (Plan 37c)
+
+**Phase A contract frozen 2026-11-22; Phase B and Phase C contracts frozen 2026-11-23**
+(self-service profiles, custom text, SSO tickets and connection profiles,
+imported from the Management OpenAPI with Auth0's schemas; the one
+lookahead pattern, `ConnectionNamePrefixTemplate`, is restated for RE2;
+Phase C's directory provisioning operations likewise). The
+[spec](../superpowers/specs/2026-11-16-zeroauthy-scim-self-service-design.md) and
+[plan](../superpowers/plans/2026-11-16-zeroauthy-plan-37c-scim-self-service.md)
+reserve D-0150–0159. No live Auth0 tenant was observed by the implementer.
+
+**Maintainer rulings (2026-11-22, spec §10):** phases ship in the order
+A (SCIM and groups) → B (self-service SSO) → C (directory provisioning);
+Phase C ships with fixture coverage of the Google Directory API only, and a
+live check is an observation point.
+
+Sources: [Configure inbound SCIM](https://auth0.com/docs/authenticate/protocols/scim/configure-inbound-scim),
+[Inbound SCIM for SAML and OpenID](https://auth0.com/docs/authenticate/protocols/scim/configure-inbound-scim-for-identity-providers-using-saml-or-openid),
+[Manage inbound SCIM with the Management API](https://auth0.com/docs/authenticate/protocols/scim/manage-an-inbound-scim-deployment-with-the-management-api),
+[Assign roles to groups](https://auth0.com/docs/manage-users/access-control/configure-core-rbac/rbac-users/assign-roles-to-groups),
+[Management OpenAPI](https://auth0.com/docs/oas/management/v2/management-api-oas.json)
+(read 2026-11-22), RFC 7643 and RFC 7644.
+
+What the Auth0 documentation fixes: SCIM for `samlp`, `oidc`, `okta` and
+`waad` connections (Google Workspace uses directory sync); Users POST, GET,
+PUT, PATCH, search (`eq`, `and`, `or`) and DELETE, Groups POST, GET, PUT,
+PATCH, search (`eq`) and DELETE; token scopes
+`get|post|put|patch|delete:users|groups`; at most two active tokens; a
+minimum lifetime of 900 seconds or no expiry; SCIM `id` is the `user_id`,
+`id` and `meta` cannot be mapped and `password` is unusable; only root
+profile attributes are searchable; `active` is the inverse of `blocked`, and
+deactivation ends sessions, revokes refresh tokens and triggers back-channel
+logout; group `displayName` is unique per connection and only `user`
+members are supported; group roles are inherited by members at login, and
+organization members inherit organization roles of their groups. The OpenAPI
+fixes the Management operations, scopes, group IDs (`grp_` + 14–22 base58),
+names (1–128 printable ASCII) and response shapes.
+
+| Local ruling | Contract |
+|---|---|
+| LR37c-1 | `user_attribute_profile_id` is stored only (user attribute profiles are Early Access). |
+| LR37c-2 | The SCIM routes (`api/scim.yaml`) are routed by hand in `internal/scim`, not generated: SCIM uses `application/scim+json`, RFC 7644 errors and filters; a route test keeps them in step with the contract. |
+| LR37c-3 | The SCIM base is `https://{tenant host}/scim/v2/connections/{connection_id}` (Q3; Auth0 shows the URL only in its Dashboard). |
+| LR37c-4 | `POST .../scim-configuration` with an empty body takes the default mapping and `user_id_attribute` `externalId` (the Okta and OpenID instructions rely on `externalId`). |
+| LR37c-5 | `/organizations/{id}/roles/{role_id}/groups` (Early Access) is not implemented; `organization groups` are the groups of the organization's enabled connections. |
+| LR37c-6 | SCIM discovery (`ServiceProviderConfig`, `ResourceTypes`, `Schemas`) needs a valid token of the connection, so SCIM-enabled connections cannot be enumerated. |
+| LR37c-7 | Group roles enter tokens through the one authorization snapshot every token path uses: tenant group roles always, organization group roles only in that organization and only for groups of connections enabled on it (400 otherwise). Organization effective roles list only organization roles, with the `group` source (Q14). |
+| LR37c-8 | A second SCIM configuration answers 400 with "already exists" (the Deploy CLI 9.1.0 `scimHandler` matches that message); group-list cursors are offsets (Q15); `hasGroupMembership` matches any listed group by name or ID (Q13). |
+| LR37c-10 | Self-service storage is scim.v1 capability version 2 over the same plugin RPC; request bodies are validated against Auth0's schemas in the embedded contract at runtime (kin-openapi). |
+| LR37c-11 | `allowed_strategies`: `samlp`, `oidc`, `okta`, `waad`, `adfs` (Q7); ticket lifetime default and maximum 432000 s (Q8, from the OpenAPI); ticket link `https://{host}/self-service/connections-flow?ticket=` (Q2); revocation takes the token; built-in connection profile templates `cpt_sso` and `cpt_scim` (Q10). |
+| LR37c-12 | The assistant writes through the Management handlers as `self-service-assistant` with six scopes; the ticket binds the one connection it creates and later steps change only that one; domain aliases only from `pending_domains` (domain verification otherwise: Q9); Entra ID single directory only. |
+| LR37c-13 | The test sign-in is an ordinary login through the ticket's first application (no side-effect-free test mode); revisit with the maintainer. |
+| LR37c-14 | `google-apps` (Phase C) is OpenID Connect with Google: a login succeeds only when the verified ID token's `hd` equals `options.domain` and `email_verified` is true (the email suffix and the `hd` request parameter prove nothing). `user_id` is `google-apps\|{lowercase email}` (Auth0's default) or the Google subject with `map_user_id_to_id`; both settings are immutable. Auth0's `admin_access_token`, `admin_refresh_token` and `admin_access_token_expiresin` are refused, `ext_*` flags are stored only, `allow_setting_login_scopes` and `handle_login_from_social` must be false. |
+| LR37c-15 | The Directory API grant comes from an administrator consent on the tenant host: an operator gets a sealed 15-minute link from `POST /api/system/tenants/{tenant}/connections/{id}/directory-provisioning/consent`; the administrator approves offline read-only Directory API scopes; the callback `https://{host}/directory-provisioning/callback` (registered on the Google OAuth client) checks the sealed attempt cookie, state, PKCE, nonce and `hd`, and keeps the refresh token, sealed to tenant and connection, only after a Directory API call proves administrator access. Auth0 runs this step from its Dashboard. Storage is `scim.v1` capability version 3 (migration 0048). |
+| LR37c-16 | Synchronization lists the domain's users (and all or selected groups with their user members), creates and updates users with the configured mapping (default `email`←`primaryEmail`, `name`←`name.fullName`, `given_name`←`name.givenName`, `family_name`←`name.familyName`, `picture`←`thumbnailPhotoUrl`), blocks suspended, archived and removed users (sessions, refresh tokens, back-channel logout) and lifts only blocks it set; groups of a `google-apps` connection belong to synchronization. Runs on demand and every 40 minutes when automatic; `last_synchronization_status` is `success` or `failed` with a fixed error text. |
+| LR37c-9 | A path-less PATCH value key that parses as an attribute path (`name.givenName`, URN-qualified extension attributes, as Entra ID sends) is set at that path. |
+
+Observation points Q1–Q19 (spec §9 and implementation) are listed in
+[plan-1-followups.md](../superpowers/plan-1-followups.md#plan-37c-observation-points).

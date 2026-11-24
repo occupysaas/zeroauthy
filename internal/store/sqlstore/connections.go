@@ -173,6 +173,9 @@ func (r connections) Delete(ctx context.Context, tenantID, id string) error {
 				return err
 			}
 		}
+		if err := tx.dropDirectoryConnection(ctx, tenantID, id); err != nil {
+			return err
+		}
 		_, err = tx.exec(ctx, `DELETE FROM connections WHERE tenant_id = ? AND id = ?`, tenantID, id)
 		return err
 	})

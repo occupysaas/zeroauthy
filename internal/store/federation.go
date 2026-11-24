@@ -210,11 +210,11 @@ func (id *Identity) FederatedSubject() (string, bool, error) {
 // rawSubjectProvider reports whether a provider's identity user_id is the bare
 // upstream subject rather than "<connection>|<subject>".
 func rawSubjectProvider(provider string) bool {
-	return provider == rules.Google || provider == rules.WindowsLive || provider == rules.Apple || provider == rules.GitHub
+	return provider == rules.Google || provider == rules.GoogleApps || provider == rules.WindowsLive || provider == rules.Apple || provider == rules.GitHub
 }
 
 // FederatedPublicID returns the local public user ID of a federated identity:
-// "apple|<sub>", "github|<id>", "google-oauth2|<sub>", "oauth2|<connection>|<sub>" or
+// "apple|<sub>", "github|<id>", "google-oauth2|<sub>", "google-apps|<email or sub>", "oauth2|<connection>|<sub>" or
 // "oidc|<connection>|<sub>", "windowslive|<sub>" or "waad|<connection>|<subject>".
 func FederatedPublicID(provider, connection, subject string) string {
 	if rawSubjectProvider(provider) {

@@ -2826,6 +2826,39 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/system/tenants/{tenant}/connections/{id}/directory-provisioning/consent": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The tenant's name. */
+                tenant: string;
+                /** @description The google-apps connection ID. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create a Google Workspace administrator consent link for directory provisioning.
+         * @description A zeroauthy extension on the system host (Plan 37c, D-0150
+         *     LR37c-15). Requires signed and current operator grants for the
+         *     target tenant, a google-apps connection with a client secret and
+         *     a directory provisioning configuration. Returns a link, valid 15
+         *     minutes, on the tenant's canonical host; a Google Workspace
+         *     administrator opens it, approves read-only Directory API access,
+         *     and zeroauthy stores the refresh token sealed and schedules a
+         *     synchronization. `redirect_uri` must be listed on the Google OAuth
+         *     client. Auth0 runs this step from its Dashboard.
+         */
+        post: operations["createDirectoryProvisioningConsent"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/system/tenants/{tenant}/connections/{id}/passwordless/try": {
         parameters: {
             query?: never;
@@ -4544,10 +4577,1511 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v2/connection-profiles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Connection Profiles
+         * @description Retrieve a list of Connection Profiles. This endpoint supports Checkpoint pagination.
+         */
+        get: operations["ListConnectionProfiles"];
+        put?: never;
+        /**
+         * Create a connection profile
+         * @description Create a Connection Profile.
+         */
+        post: operations["CreateConnectionProfile"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/connection-profiles/templates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Connection Profile Templates
+         * @description Retrieve a list of Connection Profile Templates.
+         */
+        get: operations["ListConnectionProfileTemplates"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/connection-profiles/templates/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Connection Profile Template
+         * @description Retrieve a Connection Profile Template.
+         */
+        get: operations["GetConnectionProfileTemplate"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/connection-profiles/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Connection Profile
+         * @description Retrieve details about a single Connection Profile specified by ID.
+         */
+        get: operations["GetConnectionProfile"];
+        put?: never;
+        post?: never;
+        /**
+         * Delete Connection Profile
+         * @description Delete a single Connection Profile specified by ID.
+         */
+        delete: operations["DeleteConnectionProfile"];
+        options?: never;
+        head?: never;
+        /**
+         * Modify a Connection Profile
+         * @description Update the details of a specific Connection Profile.
+         */
+        patch: operations["UpdateConnectionProfile"];
+        trace?: never;
+    };
+    "/api/v2/self-service-profiles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get self-service profiles
+         * @description Retrieves self-service profiles.
+         */
+        get: operations["ListSelfServiceProfiles"];
+        put?: never;
+        /**
+         * Create a self-service profile
+         * @description Creates a self-service profile.
+         */
+        post: operations["CreateSelfServiceProfile"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/self-service-profiles/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get a self-service profile by Id
+         * @description Retrieves a self-service profile by Id.
+         */
+        get: operations["GetSelfServiceProfile"];
+        put?: never;
+        post?: never;
+        /**
+         * Delete a self-service profile by Id
+         * @description Deletes a self-service profile by Id.
+         */
+        delete: operations["DeleteSelfServiceProfile"];
+        options?: never;
+        head?: never;
+        /**
+         * Update a self-service profile
+         * @description Updates a self-service profile.
+         */
+        patch: operations["UpdateSelfServiceProfile"];
+        trace?: never;
+    };
+    "/api/v2/self-service-profiles/{id}/custom-text/{language}/{page}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get custom text for a self-service profile
+         * @description Retrieves text customizations for a given self-service profile, language and Self-Service Enterprise Configuration flow page.
+         */
+        get: operations["GetSelfServiceProfileCustomText"];
+        /**
+         * Set custom text for a self-service profile
+         * @description Updates text customizations for a given self-service profile, language and Self-Service Enterprise Configuration flow page.
+         */
+        put: operations["SetSelfServiceProfileCustomText"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/self-service-profiles/{id}/sso-ticket": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create an access ticket to initiate the Self-Service Enterprise Configuration flow
+         * @description Creates an access ticket to initiate the Self-Service Enterprise Configuration flow using a self-service profile.
+         */
+        post: operations["CreateSsoTicket"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/self-service-profiles/{profileId}/sso-ticket/{id}/revoke": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Revoke a Self-Service Enterprise Configuration access ticket
+         * @description Revokes a Self-Service Enterprise Configuration access ticket and invalidates associated sessions. The ticket will no longer be accepted to initiate a Self-Service Enterprise Configuration session. If any users have already started a session through this ticket, their session will be terminated. Clients should expect a `202 Accepted` response upon successful processing, indicating that the request has been acknowledged and that the revocation is underway but may not be fully completed at the time of response. If the specified ticket does not exist, a `202 Accepted` response is also returned, signaling that no further action is required.
+         *     Clients should treat these `202` responses as an acknowledgment that the request has been accepted and is in progress, even if the ticket was not found.
+         */
+        post: operations["RevokeSsoTicket"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/connections-directory-provisionings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get a list of directory provisioning configurations
+         * @description Retrieve a list of directory provisioning configurations of a tenant.
+         */
+        get: operations["ListDirectoryProvisionings"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/connections/{id}/directory-provisioning": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get a directory provisioning configuration
+         * @description Retrieve the directory provisioning configuration of a connection.
+         */
+        get: operations["GetDirectoryProvisioning"];
+        put?: never;
+        /**
+         * Create a directory provisioning configuration
+         * @description Create a directory provisioning configuration for a connection.
+         */
+        post: operations["CreateDirectoryProvisioning"];
+        /**
+         * Delete a directory provisioning configuration
+         * @description Delete the directory provisioning configuration of a connection.
+         */
+        delete: operations["DeleteDirectoryProvisioning"];
+        options?: never;
+        head?: never;
+        /**
+         * Patch a directory provisioning configuration
+         * @description Update the directory provisioning configuration of a connection.
+         */
+        patch: operations["UpdateDirectoryProvisioning"];
+        trace?: never;
+    };
+    "/api/v2/connections/{id}/directory-provisioning/default-mapping": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get a connection's default directory provisioning attribute mapping
+         * @description Retrieve the directory provisioning default attribute mapping of a connection.
+         */
+        get: operations["GetDirectoryProvisioningDefaultMapping"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/connections/{id}/directory-provisioning/synchronizations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Request an on-demand synchronization of the directory
+         * @description Request an on-demand synchronization of the directory.
+         */
+        post: operations["CreateDirectorySynchronization"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/connections/{id}/directory-provisioning/synchronized-groups": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get synchronized groups for a directory provisioning configuration
+         * @description Retrieve the configured synchronized groups for a connection directory provisioning configuration.
+         */
+        get: operations["ListSynchronizedGroups"];
+        /**
+         * Create or replace synchronized group selections for a directory provisioning configuration
+         * @description Create or replace the selected groups for a connection directory provisioning configuration.
+         */
+        put: operations["ReplaceSynchronizedGroups"];
+        /**
+         * Add synchronized group selections to a directory provisioning configuration
+         * @description Add synchronized group selections to a directory provisioning configuration.
+         */
+        post: operations["AddSynchronizedGroups"];
+        /**
+         * Delete synchronized group selections for a directory provisioning configuration
+         * @description Delete synchronized group selections for a directory provisioning configuration
+         */
+        delete: operations["DeleteSynchronizedGroups"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/connections/{id}/scim-configuration": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get a connection's SCIM configuration */
+        get: operations["GetScimConfiguration"];
+        put?: never;
+        /**
+         * Create a connection's SCIM configuration
+         * @description Only `samlp`, `oidc`, `okta` and `waad` connections accept SCIM (Plan 37c, D-0150). An empty body takes the default mapping and `user_id_attribute` `externalId`.
+         */
+        post: operations["CreateScimConfiguration"];
+        /** Delete a connection's SCIM configuration and its tokens */
+        delete: operations["DeleteScimConfiguration"];
+        options?: never;
+        head?: never;
+        /** Update a connection's SCIM configuration */
+        patch: operations["UpdateScimConfiguration"];
+        trace?: never;
+    };
+    "/api/v2/connections/{id}/scim-configuration/default-mapping": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get the default SCIM mapping */
+        get: operations["GetScimDefaultMapping"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/connections/{id}/scim-configuration/tokens": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List a connection's SCIM tokens */
+        get: operations["ListScimTokens"];
+        put?: never;
+        /**
+         * Create a SCIM token
+         * @description The token is returned once and stored hashed. At most two unexpired tokens per connection.
+         */
+        post: operations["CreateScimToken"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/connections/{id}/scim-configuration/tokens/{tokenId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete a SCIM token */
+        delete: operations["DeleteScimToken"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/connections-scim-configurations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List the tenant's SCIM configurations */
+        get: operations["ListScimConfigurations"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/groups": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List groups */
+        get: operations["ListGroups"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/groups/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get a group */
+        get: operations["GetGroup"];
+        put?: never;
+        post?: never;
+        /** Delete a group with its memberships and role assignments */
+        delete: operations["DeleteGroup"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/groups/{id}/members": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List a group's members */
+        get: operations["ListGroupMembers"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/groups/{id}/roles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List a group's roles */
+        get: operations["ListGroupRoles"];
+        put?: never;
+        /** Assign roles to a group */
+        post: operations["AssignGroupRoles"];
+        /** Remove roles from a group */
+        delete: operations["RemoveGroupRoles"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/roles/{id}/groups": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List a role's groups */
+        get: operations["ListRoleGroups"];
+        put?: never;
+        /** Assign groups to a role */
+        post: operations["AssignRoleGroups"];
+        /** Remove groups from a role */
+        delete: operations["RemoveRoleGroups"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/users/{id}/groups": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List the groups a user belongs to */
+        get: operations["ListUserGroups"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/users/{id}/effective-roles/sources/groups": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List the groups that grant a user a role */
+        get: operations["ListUserRoleSourceGroups"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/organizations/{id}/groups": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the groups assigned to an organization
+         * @description The groups of the connections enabled on the organization (D-0150).
+         */
+        get: operations["ListOrganizationGroups"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/organizations/{id}/groups/{group_id}/roles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List a group's roles in an organization */
+        get: operations["ListOrganizationGroupRoles"];
+        put?: never;
+        /** Assign roles to a group in an organization */
+        post: operations["AssignOrganizationGroupRoles"];
+        /** Remove roles from a group in an organization */
+        delete: operations["RemoveOrganizationGroupRoles"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/organizations/{id}/members/{user_id}/effective-roles/sources/groups": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List the groups that grant an organization member a role */
+        get: operations["ListOrganizationMemberRoleSourceGroups"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** @description `grp_` and 14 to 22 base58 characters. */
+        GroupID: string;
+        /** @description A directory group (Plan 37c). Groups belong to one connection and are created by SCIM. No property is required because `fields` can project any away. */
+        Group: {
+            id?: components["schemas"]["GroupID"];
+            /** @description Unique within its connection. */
+            name?: string;
+            external_id?: string;
+            connection_id?: string;
+            tenant_name?: string;
+            /** Format: date-time */
+            created_at?: string;
+            /** Format: date-time */
+            updated_at?: string;
+        };
+        GroupPage: {
+            groups: components["schemas"]["Group"][];
+            next?: string;
+            start?: number;
+            limit?: number;
+            total?: number;
+        };
+        GroupCheckpoint: {
+            groups: components["schemas"]["Group"][];
+            next?: string;
+        };
+        /** @description A group of the user, with the membership's creation time. */
+        UserGroup: {
+            id?: components["schemas"]["GroupID"];
+            name?: string;
+            external_id?: string;
+            connection_id?: string;
+            tenant_name?: string;
+            /** Format: date-time */
+            created_at?: string;
+            /** Format: date-time */
+            updated_at?: string;
+            /** Format: date-time */
+            membership_created_at?: string;
+        };
+        UserGroupPage: {
+            groups: components["schemas"]["UserGroup"][];
+            next?: string;
+            start?: number;
+            limit?: number;
+            total?: number;
+        };
+        GroupMember: {
+            id?: string;
+            /** @enum {string} */
+            member_type?: "user" | "group";
+            /** @enum {string} */
+            type?: "connection" | "organization" | "tenant";
+            connection_id?: string;
+            /** Format: date-time */
+            created_at?: string;
+        };
+        GroupMemberPage: {
+            members: components["schemas"]["GroupMember"][];
+            next?: string;
+        };
+        GroupRolePage: {
+            roles: components["schemas"]["Role"][];
+            next?: string;
+        };
+        RoleIDList: {
+            roles: string[];
+        };
+        GroupIDList: {
+            groups: components["schemas"]["GroupID"][];
+        };
+        SelfServiceProfileBrandingProperties: {
+            /** Format: uri */
+            logo_url?: string;
+            colors?: components["schemas"]["SelfServiceProfileBrandingColors"];
+        } & {
+            [key: string]: unknown;
+        };
+        ConnectionProfileTemplateItem: {
+            /** @description The id of the template. */
+            id?: string;
+            /** @description The user-friendly name of the template displayed in the UI. */
+            display_name?: string;
+            template?: components["schemas"]["ConnectionProfileTemplate"];
+        };
+        SelfServiceProfileUserAttribute: {
+            /** @description Identifier of this attribute. */
+            name: string;
+            /** @description Description of this attribute. */
+            description: string;
+            /** @description Determines if this attribute is required */
+            is_optional: boolean;
+        };
+        CreateConnectionProfileResponseContent: {
+            id?: components["schemas"]["ConnectionProfileId"];
+            name?: components["schemas"]["ConnectionProfileName"];
+            organization?: components["schemas"]["ConnectionProfileOrganization"];
+            connection_name_prefix_template?: components["schemas"]["ConnectionNamePrefixTemplate"];
+            enabled_features?: components["schemas"]["ConnectionProfileEnabledFeatures"];
+            connection_config?: components["schemas"]["ConnectionProfileConfig"];
+            strategy_overrides?: components["schemas"]["ConnectionProfileStrategyOverrides"];
+            provisioning?: components["schemas"]["ConnectionProfileProvisioning"];
+            cross_app_access_resource_app?: components["schemas"]["ConnectionProfileCrossAppAccessResourceApp"];
+        };
+        /**
+         * @description The page where the custom text is shown.
+         * @enum {string}
+         */
+        SelfServiceProfileCustomTextPageEnum: "get-started";
+        /** @enum {string} */
+        SelfServiceProfileSsoTicketProvisioningScopeEnum: "get:users" | "post:users" | "put:users" | "patch:users" | "delete:users" | "get:groups" | "post:groups" | "put:groups" | "patch:groups" | "delete:groups";
+        CreateSelfServiceProfileSsoTicketRequestContent: {
+            /**
+             * Format: connection-id
+             * @description If provided, this will allow editing of the provided connection during the Self-Service Enterprise Configuration flow
+             */
+            connection_id?: string;
+            connection_config?: components["schemas"]["SelfServiceProfileSsoTicketConnectionConfig"];
+            /** @description List of client_ids that the connection will be enabled for. */
+            enabled_clients?: string[];
+            /** @description List of organizations that the connection will be enabled for. */
+            enabled_organizations?: components["schemas"]["SelfServiceProfileSsoTicketEnabledOrganization"][];
+            /** @description Number of seconds for which the ticket is valid before expiration. If unspecified or set to 0, this value defaults to 432000 seconds (5 days). */
+            ttl_sec?: number;
+            domain_aliases_config?: components["schemas"]["SelfServiceProfileSsoTicketDomainAliasesConfig"];
+            provisioning_config?: components["schemas"]["SelfServiceProfileSsoTicketProvisioningConfig"];
+            /** @description Indicates whether a verified domain should be used for organization discovery during authentication. */
+            use_for_organization_discovery?: boolean;
+            third_party_client_access_config?: components["schemas"]["ThirdPartyClientAccessConfig"];
+            universal_logout_config?: components["schemas"]["SelfServiceProfileSsoTicketUniversalLogoutConfig"];
+            enabled_features?: components["schemas"]["SelfServiceProfileSsoTicketEnabledFeatures"];
+        };
+        CreateSelfServiceProfileSsoTicketResponseContent: {
+            /** @description The URL for the created ticket. */
+            ticket?: string;
+        };
+        /** @description The resulting list of custom text keys and values. */
+        SetSelfServiceProfileCustomTextResponseContent: {
+            [key: string]: string;
+        };
+        /** @description Configuration for Third Party Client Access during the Self-Service Enterprise Configuration flow. */
+        ThirdPartyClientAccessConfig: {
+            /** @description Whether third-party applications can configure the connection as a domain-level connection during the Self-Service Enterprise Configuration flow. */
+            allow_configuration: boolean;
+        };
+        /** @description List of attributes to be mapped that will be shown to the user during the Self-Service Enterprise Configuration flow. */
+        SelfServiceProfileUserAttributes: components["schemas"]["SelfServiceProfileUserAttribute"][] | null;
+        /**
+         * @description Whether the end user should complete the domain verification step. Possible values are 'none' (the step is not shown to the user), 'optional' (the user may add a domain alias in the domain verification step) or 'required' (the user must add a domain alias in order to enable the connection). Defaults to 'none'.
+         * @enum {string}
+         */
+        SelfServiceProfileSsoTicketDomainVerificationEnum: "none" | "optional" | "required";
+        /** @description The Cross App Access resource app status configuration. */
+        ConnectionProfileCrossAppAccessResourceAppStatus: {
+            default_value: components["schemas"]["ConnectionProfileCrossAppAccessResourceAppStatusDefaultValueEnum"];
+            allowed_values?: components["schemas"]["ConnectionProfileCrossAppAccessResourceAppStatusAllowedValuesEnum"];
+        };
+        /**
+         * @description Enum for enabled features.
+         * @enum {string}
+         */
+        EnabledFeaturesEnum: "scim" | "universal_logout" | "directory_sync";
+        /** @description Configuration for the setup of Universal Logout in the Self-Service Enterprise Configuration flow. */
+        SelfServiceProfileSsoTicketUniversalLogoutConfig: {
+            /** @description Whether the end user can set up Universal Logout during the Self-Service Enterprise Configuration flow. */
+            allow_configuration: boolean;
+        };
+        /** @description SCIM provisioning settings. */
+        ConnectionProfileProvisioningScim: {
+            tokens: components["schemas"]["ConnectionProfileProvisioningScimTokens"];
+        };
+        /** @description Metadata associated with the connection in the form of an object with string values (max 255 chars).  Maximum of 10 metadata properties allowed. */
+        ConnectionsMetadata: {
+            [key: string]: string | null;
+        };
+        /** @description The name of the connection profile. */
+        ConnectionProfileName: string;
+        ConnectionProfile: {
+            id?: components["schemas"]["ConnectionProfileId"];
+            name?: components["schemas"]["ConnectionProfileName"];
+            organization?: components["schemas"]["ConnectionProfileOrganization"];
+            connection_name_prefix_template?: components["schemas"]["ConnectionNamePrefixTemplate"];
+            enabled_features?: components["schemas"]["ConnectionProfileEnabledFeatures"];
+            connection_config?: components["schemas"]["ConnectionProfileConfig"];
+            strategy_overrides?: components["schemas"]["ConnectionProfileStrategyOverrides"];
+            provisioning?: components["schemas"]["ConnectionProfileProvisioning"];
+            cross_app_access_resource_app?: components["schemas"]["ConnectionProfileCrossAppAccessResourceApp"];
+        };
+        GetConnectionProfileTemplateResponseContent: {
+            /** @description The id of the template. */
+            id?: string;
+            /** @description The user-friendly name of the template displayed in the UI. */
+            display_name?: string;
+            template?: components["schemas"]["ConnectionProfileTemplate"];
+        };
+        /** @description If provided, this will create a new connection for the Self-Service Enterprise Configuration flow with the given configuration */
+        SelfServiceProfileSsoTicketConnectionConfig: {
+            /**
+             * @description The name of the connection that will be created as a part of the Self-Service Enterprise Configuration flow.
+             * @default sso-generated-SAML-customer-12
+             */
+            name: string;
+            /** @description Connection name used in the new universal login experience */
+            display_name?: string;
+            /** @description <code>true</code> promotes to a domain-level connection so that third-party applications can use it. <code>false</code> does not promote the connection, so only first-party applications with the connection enabled can use it. (Defaults to <code>false</code>.) */
+            is_domain_connection?: boolean;
+            /** @description Enables showing a button for the connection in the login page (new experience only). If false, it will be usable only by HRD. (Defaults to <code>false</code>.) */
+            show_as_button?: boolean;
+            metadata?: components["schemas"]["ConnectionsMetadata"];
+            options?: components["schemas"]["SelfServiceProfileSsoTicketConnectionOptions"];
+        };
+        /** @description The maximum SCIM token expiry, in seconds. `null` means there is no maximum. */
+        ConnectionProfileProvisioningScimTokenMaxAllowedExpiry: number | null;
+        /**
+         * @description Indicates if the organization should be shown as a button.
+         * @enum {string}
+         */
+        ConnectionProfileOrganizationShowAsButtonEnum: "none" | "optional" | "required";
+        /** @description Connection name prefix template. (Auth0 states the rule with lookaheads: no leading hyphen and no double hyphen; this is the equivalent RE2 pattern.) */
+        ConnectionNamePrefixTemplate: string;
+        /** @description The allowed Cross App Access resource app status values. */
+        ConnectionProfileCrossAppAccessResourceAppStatusAllowedValuesEnum: components["schemas"]["ConnectionProfileCrossAppAccessResourceAppStatusValueEnum"][];
+        /** @description The scopes granted to SCIM tokens. */
+        ConnectionProfileProvisioningScimTokenScopes: components["schemas"]["ConnectionProfileProvisioningScimTokenScopeEnum"][];
+        /** @description Enabled features for a connections profile strategy override. */
+        ConnectionProfileStrategyOverridesEnabledFeatures: components["schemas"]["EnabledFeaturesEnum"][];
+        UpdateSelfServiceProfileResponseContent: {
+            /**
+             * @description The unique ID of the self-service Profile.
+             * @default ssp_n7SNCL8seoyV1TuSTCnAeo
+             */
+            id?: string;
+            /** @description The name of the self-service Profile. */
+            name?: string;
+            /** @description The description of the self-service Profile. */
+            description?: string;
+            /** @description List of attributes to be mapped that will be shown to the user during the Self-Service Enterprise Configuration flow. */
+            user_attributes?: components["schemas"]["SelfServiceProfileUserAttribute"][];
+            /**
+             * Format: date-time
+             * @description The time when this self-service Profile was created.
+             * @default 2021-01-01T00:00:00.000Z
+             */
+            created_at?: string;
+            /**
+             * Format: date-time
+             * @description The time when this self-service Profile was updated.
+             * @default 2021-01-01T00:00:00.000Z
+             */
+            updated_at?: string;
+            branding?: components["schemas"]["SelfServiceProfileBrandingProperties"];
+            /** @description List of IdP strategies that will be shown to users during the Self-Service Enterprise Configuration flow. Possible values: [`oidc`, `samlp`, `waad`, `google-apps`, `adfs`, `okta`, `auth0-samlp`, `okta-samlp`, `keycloak-samlp`, `pingfederate`] */
+            allowed_strategies?: components["schemas"]["SelfServiceProfileAllowedStrategyEnum"][];
+            /**
+             * Format: user-attribute-profile-id
+             * @description ID of the user-attribute-profile to associate with this self-service profile.
+             */
+            user_attribute_profile_id?: string;
+        };
+        /** @description Whether the connection is authorized to run Google Workspace user provisioning. */
+        ConnectionProfileProvisioningGoogleWorkspaceSyncUsers: boolean;
+        CreateSelfServiceProfileRequestContent: {
+            /** @description The name of the self-service Profile. */
+            name: string;
+            /** @description The description of the self-service Profile. */
+            description?: string;
+            branding?: components["schemas"]["SelfServiceProfileBrandingProperties"];
+            /** @description List of IdP strategies that will be shown to users during the Self-Service Enterprise Configuration flow. Possible values: [`oidc`, `samlp`, `waad`, `google-apps`, `adfs`, `okta`, `auth0-samlp`, `okta-samlp`, `keycloak-samlp`, `pingfederate`] */
+            allowed_strategies?: components["schemas"]["SelfServiceProfileAllowedStrategyEnum"][];
+            /** @description List of attributes to be mapped that will be shown to the user during the Self-Service Enterprise Configuration flow. */
+            user_attributes?: components["schemas"]["SelfServiceProfileUserAttribute"][];
+            /**
+             * Format: user-attribute-profile-id
+             * @description ID of the user-attribute-profile to associate with this self-service profile.
+             */
+            user_attribute_profile_id?: string;
+        };
+        CreateConnectionProfileRequestContent: {
+            name: components["schemas"]["ConnectionProfileName"];
+            organization?: components["schemas"]["ConnectionProfileOrganization"];
+            connection_name_prefix_template?: components["schemas"]["ConnectionNamePrefixTemplate"];
+            enabled_features?: components["schemas"]["ConnectionProfileEnabledFeatures"];
+            connection_config?: components["schemas"]["ConnectionProfileConfig"];
+            strategy_overrides?: components["schemas"]["ConnectionProfileStrategyOverrides"];
+            provisioning?: components["schemas"]["ConnectionProfileProvisioning"];
+            cross_app_access_resource_app?: components["schemas"]["ConnectionProfileCrossAppAccessResourceApp"];
+        };
+        /**
+         * Format: connection-profile-id
+         * @description Connection Profile identifier.
+         */
+        ConnectionProfileId: string;
+        /** @description The list of text keys and values to customize the Self-Service Enterprise Configuration flow page. Values can be plain text or rich HTML content limited to basic styling tags and hyperlinks. */
+        SetSelfServiceProfileCustomTextRequestContent: {
+            [key: string]: string;
+        };
+        /**
+         * @description The protocol used to connect to the the default application
+         * @enum {string}
+         */
+        SelfServiceProfileSsoTicketIdpInitiatedClientProtocolEnum: "samlp" | "wsfed" | "oauth2";
+        /** @description Configuration for the setup of the connection’s domain_aliases in the Self-Service Enterprise Configuration flow. */
+        SelfServiceProfileSsoTicketDomainAliasesConfig: {
+            domain_verification: components["schemas"]["SelfServiceProfileSsoTicketDomainVerificationEnum"];
+            /** @description List of domains that will be submitted for verification during the Self-Service Enterprise Configuration flow. */
+            pending_domains?: string[];
+        };
+        SelfServiceProfileBranding: components["schemas"]["SelfServiceProfileBrandingProperties"] | null;
+        /** @description Provisioning settings for a connection profile strategy override. */
+        ConnectionProfileStrategyOverridesProvisioning: {
+            scim?: components["schemas"]["ConnectionProfileProvisioningScim"];
+            google_workspace?: components["schemas"]["ConnectionProfileProvisioningGoogleWorkspace"];
+        };
+        SelfServiceProfileBrandingColors: {
+            primary: string;
+        } & {
+            [key: string]: unknown;
+        };
+        GetConnectionProfileResponseContent: {
+            id?: components["schemas"]["ConnectionProfileId"];
+            name?: components["schemas"]["ConnectionProfileName"];
+            organization?: components["schemas"]["ConnectionProfileOrganization"];
+            connection_name_prefix_template?: components["schemas"]["ConnectionNamePrefixTemplate"];
+            enabled_features?: components["schemas"]["ConnectionProfileEnabledFeatures"];
+            connection_config?: components["schemas"]["ConnectionProfileConfig"];
+            strategy_overrides?: components["schemas"]["ConnectionProfileStrategyOverrides"];
+            provisioning?: components["schemas"]["ConnectionProfileProvisioning"];
+            cross_app_access_resource_app?: components["schemas"]["ConnectionProfileCrossAppAccessResourceApp"];
+        };
+        UpdateConnectionProfileResponseContent: {
+            id?: components["schemas"]["ConnectionProfileId"];
+            name?: components["schemas"]["ConnectionProfileName"];
+            organization?: components["schemas"]["ConnectionProfileOrganization"];
+            connection_name_prefix_template?: components["schemas"]["ConnectionNamePrefixTemplate"];
+            enabled_features?: components["schemas"]["ConnectionProfileEnabledFeatures"];
+            connection_config?: components["schemas"]["ConnectionProfileConfig"];
+            strategy_overrides?: components["schemas"]["ConnectionProfileStrategyOverrides"];
+            provisioning?: components["schemas"]["ConnectionProfileProvisioning"];
+            cross_app_access_resource_app?: components["schemas"]["ConnectionProfileCrossAppAccessResourceApp"];
+        };
+        /** @description Connection profile strategy overrides connection configuration. */
+        ConnectionProfileStrategyOverridesConnectionConfig: Record<string, never>;
+        /** @description SCIM token settings for connections created from this profile. */
+        ConnectionProfileProvisioningScimTokens: {
+            scopes: components["schemas"]["ConnectionProfileProvisioningScimTokenScopes"];
+            default_expiry?: components["schemas"]["ConnectionProfileProvisioningScimTokenDefaultExpiry"];
+            max_allowed_expiry?: components["schemas"]["ConnectionProfileProvisioningScimTokenMaxAllowedExpiry"];
+        };
+        /** @description The description of the self-service Profile. */
+        SelfServiceProfileDescription: string | null;
+        /** @description Enabled features for the connection profile. */
+        ConnectionProfileEnabledFeatures: components["schemas"]["EnabledFeaturesEnum"][];
+        /**
+         * @description The default Cross App Access resource app status.
+         * @enum {string}
+         */
+        ConnectionProfileCrossAppAccessResourceAppStatusDefaultValueEnum: "enabled" | "disabled";
+        ListSelfServiceProfilesResponseContent: components["schemas"]["SelfServiceProfile"][] | components["schemas"]["ListSelfServiceProfilesPaginatedResponseContent"];
+        /** @description Allows IdP-initiated login */
+        SelfServiceProfileSsoTicketIdpInitiatedOptions: {
+            /** @description Enables IdP-initiated login for this connection */
+            enabled?: boolean;
+            /**
+             * Format: client-id
+             * @description Default application <code>client_id</code> user is redirected to after validated SAML response
+             */
+            client_id?: string;
+            client_protocol?: components["schemas"]["SelfServiceProfileSsoTicketIdpInitiatedClientProtocolEnum"];
+            /** @description Query string options to customize the behaviour for OpenID Connect when <code>idpinitiated.client_protocol</code> is <code>oauth2</code>. Allowed parameters: <code>redirect_uri</code>, <code>scope</code>, <code>response_type</code>. For example, <code>redirect_uri=https://jwt.io&scope=openid email&response_type=token</code> */
+            client_authorizequery?: string;
+        } | null;
+        ListSelfServiceProfilesPaginatedResponseContent: {
+            start?: number;
+            limit?: number;
+            total?: number;
+            self_service_profiles?: components["schemas"]["SelfServiceProfile"][];
+        };
+        /** @description Configuration for the setup of Provisioning in the self-service flow. */
+        SelfServiceProfileSsoTicketProvisioningConfig: {
+            /** @description The scopes of the SCIM tokens generated during the self-service flow. */
+            scopes?: components["schemas"]["SelfServiceProfileSsoTicketProvisioningScopeEnum"][];
+            google_workspace?: components["schemas"]["SelfServiceProfileSsoTicketGoogleWorkspaceConfig"];
+            /** @description Lifetime of the tokens in seconds. Must be greater than 900. If not provided, the tokens don't expire. */
+            token_lifetime?: number | null;
+        };
+        UpdateSelfServiceProfileRequestContent: {
+            /** @description The name of the self-service Profile. */
+            name?: string;
+            description?: components["schemas"]["SelfServiceProfileDescription"];
+            branding?: components["schemas"]["SelfServiceProfileBranding"];
+            /** @description List of IdP strategies that will be shown to users during the Self-Service Enterprise Configuration flow. Possible values: [`oidc`, `samlp`, `waad`, `google-apps`, `adfs`, `okta`, `auth0-samlp`, `okta-samlp`, `keycloak-samlp`, `pingfederate`] */
+            allowed_strategies?: components["schemas"]["SelfServiceProfileAllowedStrategyEnum"][];
+            user_attributes?: components["schemas"]["SelfServiceProfileUserAttributes"];
+            /**
+             * Format: user-attribute-profile-id
+             * @description ID of the user-attribute-profile to associate with this self-service profile.
+             */
+            user_attribute_profile_id?: string | null;
+        };
+        /** @description Specifies which features are enabled for an "edit connection" ticket. Only applicable when connection ID is provided. */
+        SelfServiceProfileSsoTicketEnabledFeatures: {
+            /** @description Whether SSO configuration is enabled in this ticket. */
+            sso?: boolean;
+            /** @description Whether domain verification is enabled in this ticket. */
+            domain_verification?: boolean;
+            /** @description Whether provisioning configuration is enabled in this ticket. */
+            provisioning?: boolean;
+        };
+        /** @description The organization of the connection profile. */
+        ConnectionProfileOrganization: {
+            show_as_button?: components["schemas"]["ConnectionProfileOrganizationShowAsButtonEnum"];
+            assign_membership_on_login?: components["schemas"]["ConnectionProfileOrganizationAssignMembershipOnLoginEnum"];
+        };
+        /**
+         * @description The language of the custom text.
+         * @enum {string}
+         */
+        SelfServiceProfileCustomTextLanguageEnum: "en";
+        /** @description Connection profile configuration. */
+        ConnectionProfileConfig: Record<string, never>;
+        /** @description Google Workspace provisioning settings. */
+        ConnectionProfileProvisioningGoogleWorkspace: {
+            sync_users: components["schemas"]["ConnectionProfileProvisioningGoogleWorkspaceSyncUsers"];
+        };
+        /** @description Controls whether organization admins may enable Cross App Access (XAA) on their Identity Providers. */
+        ConnectionProfileCrossAppAccessResourceApp: {
+            status: components["schemas"]["ConnectionProfileCrossAppAccessResourceAppStatus"];
+        };
+        /**
+         * @description A SCIM token scope.
+         * @enum {string}
+         */
+        ConnectionProfileProvisioningScimTokenScopeEnum: "get:users" | "post:users" | "patch:users" | "delete:users" | "put:users";
+        SelfServiceProfileSsoTicketEnabledOrganization: {
+            /**
+             * Format: organization-id
+             * @description Organization identifier.
+             */
+            organization_id: string;
+            /** @description When true, all users that log in with this connection will be automatically granted membership in the organization. When false, users must be granted membership in the organization before logging in with this connection. */
+            assign_membership_on_login?: boolean;
+            /** @description Determines whether a connection should be displayed on this organization’s login prompt. Only applicable for enterprise connections. Default: true. */
+            show_as_button?: boolean;
+        };
+        /** @description The connection's options (depend on the connection strategy) */
+        SelfServiceProfileSsoTicketConnectionOptions: {
+            /**
+             * Format: strict-https-uri-or-null
+             * @description URL for the icon. Must use HTTPS.
+             */
+            icon_url?: string | null;
+            /** @description List of domain_aliases that can be authenticated in the Identity Provider */
+            domain_aliases?: string[] | null;
+            idpinitiated?: components["schemas"]["SelfServiceProfileSsoTicketIdpInitiatedOptions"];
+        } | null;
+        /** @description Configuration for Google Workspace Directory Sync during the self-service flow. */
+        SelfServiceProfileSsoTicketGoogleWorkspaceConfig: {
+            /** @description Whether to enable Google Workspace Directory Sync for users during the self-service flow. */
+            sync_users: boolean;
+            /** @description Whether to enable Google Workspace Directory Sync for groups during the self-service flow. */
+            sync_groups?: boolean;
+        };
+        ListConnectionProfilesPaginatedResponseContent: {
+            /** @description A cursor to be used as the "from" query parameter for the next page of results. */
+            next?: string;
+            connection_profiles?: components["schemas"]["ConnectionProfile"][];
+        };
+        /**
+         * @description A Cross App Access resource app status value.
+         * @enum {string}
+         */
+        ConnectionProfileCrossAppAccessResourceAppStatusValueEnum: "enabled" | "disabled";
+        /**
+         * @description Indicates if membership should be assigned on login.
+         * @enum {string}
+         */
+        ConnectionProfileOrganizationAssignMembershipOnLoginEnum: "none" | "optional" | "required";
+        SelfServiceProfile: {
+            /**
+             * @description The unique ID of the self-service Profile.
+             * @default ssp_n7SNCL8seoyV1TuSTCnAeo
+             */
+            id?: string;
+            /** @description The name of the self-service Profile. */
+            name?: string;
+            /** @description The description of the self-service Profile. */
+            description?: string;
+            /** @description List of attributes to be mapped that will be shown to the user during the Self-Service Enterprise Configuration flow. */
+            user_attributes?: components["schemas"]["SelfServiceProfileUserAttribute"][];
+            /**
+             * Format: date-time
+             * @description The time when this self-service Profile was created.
+             * @default 2021-01-01T00:00:00.000Z
+             */
+            created_at?: string;
+            /**
+             * Format: date-time
+             * @description The time when this self-service Profile was updated.
+             * @default 2021-01-01T00:00:00.000Z
+             */
+            updated_at?: string;
+            branding?: components["schemas"]["SelfServiceProfileBrandingProperties"];
+            /** @description List of IdP strategies that will be shown to users during the Self-Service Enterprise Configuration flow. Possible values: [`oidc`, `samlp`, `waad`, `google-apps`, `adfs`, `okta`, `auth0-samlp`, `okta-samlp`, `keycloak-samlp`, `pingfederate`] */
+            allowed_strategies?: components["schemas"]["SelfServiceProfileAllowedStrategyEnum"][];
+            /**
+             * Format: user-attribute-profile-id
+             * @description ID of the user-attribute-profile to associate with this self-service profile.
+             */
+            user_attribute_profile_id?: string;
+        };
+        ListConnectionProfileTemplateResponseContent: {
+            connection_profile_templates?: components["schemas"]["ConnectionProfileTemplateItem"][];
+        };
+        CreateSelfServiceProfileResponseContent: {
+            /**
+             * @description The unique ID of the self-service Profile.
+             * @default ssp_n7SNCL8seoyV1TuSTCnAeo
+             */
+            id?: string;
+            /** @description The name of the self-service Profile. */
+            name?: string;
+            /** @description The description of the self-service Profile. */
+            description?: string;
+            /** @description List of attributes to be mapped that will be shown to the user during the Self-Service Enterprise Configuration flow. */
+            user_attributes?: components["schemas"]["SelfServiceProfileUserAttribute"][];
+            /**
+             * Format: date-time
+             * @description The time when this self-service Profile was created.
+             * @default 2021-01-01T00:00:00.000Z
+             */
+            created_at?: string;
+            /**
+             * Format: date-time
+             * @description The time when this self-service Profile was updated.
+             * @default 2021-01-01T00:00:00.000Z
+             */
+            updated_at?: string;
+            branding?: components["schemas"]["SelfServiceProfileBrandingProperties"];
+            /** @description List of IdP strategies that will be shown to users during the Self-Service Enterprise Configuration flow. Possible values: [`oidc`, `samlp`, `waad`, `google-apps`, `adfs`, `okta`, `auth0-samlp`, `okta-samlp`, `keycloak-samlp`, `pingfederate`] */
+            allowed_strategies?: components["schemas"]["SelfServiceProfileAllowedStrategyEnum"][];
+            /**
+             * Format: user-attribute-profile-id
+             * @description ID of the user-attribute-profile to associate with this self-service profile.
+             */
+            user_attribute_profile_id?: string;
+        };
+        GetSelfServiceProfileResponseContent: {
+            /**
+             * @description The unique ID of the self-service Profile.
+             * @default ssp_n7SNCL8seoyV1TuSTCnAeo
+             */
+            id?: string;
+            /** @description The name of the self-service Profile. */
+            name?: string;
+            /** @description The description of the self-service Profile. */
+            description?: string;
+            /** @description List of attributes to be mapped that will be shown to the user during the Self-Service Enterprise Configuration flow. */
+            user_attributes?: components["schemas"]["SelfServiceProfileUserAttribute"][];
+            /**
+             * Format: date-time
+             * @description The time when this self-service Profile was created.
+             * @default 2021-01-01T00:00:00.000Z
+             */
+            created_at?: string;
+            /**
+             * Format: date-time
+             * @description The time when this self-service Profile was updated.
+             * @default 2021-01-01T00:00:00.000Z
+             */
+            updated_at?: string;
+            branding?: components["schemas"]["SelfServiceProfileBrandingProperties"];
+            /** @description List of IdP strategies that will be shown to users during the Self-Service Enterprise Configuration flow. Possible values: [`oidc`, `samlp`, `waad`, `google-apps`, `adfs`, `okta`, `auth0-samlp`, `okta-samlp`, `keycloak-samlp`, `pingfederate`] */
+            allowed_strategies?: components["schemas"]["SelfServiceProfileAllowedStrategyEnum"][];
+            /**
+             * Format: user-attribute-profile-id
+             * @description ID of the user-attribute-profile to associate with this self-service profile.
+             */
+            user_attribute_profile_id?: string;
+        };
+        /** @description Provisioning settings for connections created from this profile. */
+        ConnectionProfileProvisioning: {
+            scim?: components["schemas"]["ConnectionProfileProvisioningScim"];
+            google_workspace?: components["schemas"]["ConnectionProfileProvisioningGoogleWorkspace"];
+        };
+        /** @description The list of custom text keys and values. */
+        ListSelfServiceProfileCustomTextResponseContent: {
+            [key: string]: string;
+        };
+        /** @description Strategy-specific overrides for this attribute */
+        ConnectionProfileStrategyOverrides: {
+            pingfederate?: components["schemas"]["ConnectionProfileStrategyOverride"];
+            ad?: components["schemas"]["ConnectionProfileStrategyOverride"];
+            adfs?: components["schemas"]["ConnectionProfileStrategyOverride"];
+            waad?: components["schemas"]["ConnectionProfileStrategyOverride"];
+            "google-apps"?: components["schemas"]["ConnectionProfileStrategyOverride"];
+            okta?: components["schemas"]["ConnectionProfileStrategyOverride"];
+            oidc?: components["schemas"]["ConnectionProfileStrategyOverride"];
+            samlp?: components["schemas"]["ConnectionProfileStrategyOverride"];
+        };
+        /** @description The structure of the template, which can be used as the payload for creating or updating a Connection Profile. */
+        ConnectionProfileTemplate: {
+            name?: components["schemas"]["ConnectionProfileName"];
+            organization?: components["schemas"]["ConnectionProfileOrganization"];
+            connection_name_prefix_template?: components["schemas"]["ConnectionNamePrefixTemplate"];
+            enabled_features?: components["schemas"]["ConnectionProfileEnabledFeatures"];
+            connection_config?: components["schemas"]["ConnectionProfileConfig"];
+            strategy_overrides?: components["schemas"]["ConnectionProfileStrategyOverrides"];
+            provisioning?: components["schemas"]["ConnectionProfileProvisioning"];
+        };
+        /** @enum {string} */
+        SelfServiceProfileAllowedStrategyEnum: "oidc" | "samlp" | "waad" | "google-apps" | "adfs" | "okta" | "auth0-samlp" | "okta-samlp" | "keycloak-samlp" | "pingfederate";
+        /** @description The default SCIM token expiry, in seconds. `null` means the token never expires by default. */
+        ConnectionProfileProvisioningScimTokenDefaultExpiry: number | null;
+        /** @description Connection Profile Strategy Override */
+        ConnectionProfileStrategyOverride: {
+            enabled_features?: components["schemas"]["ConnectionProfileStrategyOverridesEnabledFeatures"];
+            connection_config?: components["schemas"]["ConnectionProfileStrategyOverridesConnectionConfig"];
+            provisioning?: components["schemas"]["ConnectionProfileStrategyOverridesProvisioning"];
+        };
+        UpdateConnectionProfileRequestContent: {
+            name?: components["schemas"]["ConnectionProfileName"];
+            organization?: components["schemas"]["ConnectionProfileOrganization"];
+            connection_name_prefix_template?: components["schemas"]["ConnectionNamePrefixTemplate"];
+            enabled_features?: components["schemas"]["ConnectionProfileEnabledFeatures"];
+            connection_config?: components["schemas"]["ConnectionProfileConfig"];
+            strategy_overrides?: components["schemas"]["ConnectionProfileStrategyOverrides"];
+            provisioning?: components["schemas"]["ConnectionProfileProvisioning"];
+            cross_app_access_resource_app?: components["schemas"]["ConnectionProfileCrossAppAccessResourceApp"];
+        };
+        GetDirectoryProvisioningDefaultMappingResponseContent: {
+            /** @description The mapping between Auth0 and IDP user attributes */
+            mapping?: components["schemas"]["DirectoryProvisioningMappingItem"][];
+        };
+        CreateDirectoryProvisioningRequestContent: {
+            /** @description The mapping between Auth0 and IDP user attributes */
+            mapping?: components["schemas"]["DirectoryProvisioningMappingItem"][];
+            /** @description Whether periodic automatic synchronization is enabled */
+            synchronize_automatically?: boolean;
+            synchronize_groups?: components["schemas"]["SynchronizeGroupsEnum"];
+        } | null;
+        UpdateDirectoryProvisioningRequestContent: {
+            /** @description The mapping between Auth0 and IDP user attributes */
+            mapping?: components["schemas"]["DirectoryProvisioningMappingItem"][];
+            /** @description Whether periodic automatic synchronization is enabled */
+            synchronize_automatically?: boolean;
+            synchronize_groups?: components["schemas"]["SynchronizeGroupsEnum"];
+        } | null;
+        DirectoryProvisioning: {
+            /** @description The connection's identifier */
+            connection_id: string;
+            /** @description The connection's name */
+            connection_name: string;
+            /** @description The connection's strategy */
+            strategy: string;
+            /** @description The mapping between Auth0 and IDP user attributes */
+            mapping: components["schemas"]["DirectoryProvisioningMappingItem"][];
+            /** @description Whether periodic automatic synchronization is enabled */
+            synchronize_automatically: boolean;
+            synchronize_groups?: components["schemas"]["SynchronizeGroupsEnum"];
+            /**
+             * Format: date-time
+             * @description The timestamp at which the directory provisioning configuration was created
+             */
+            created_at: string;
+            /**
+             * Format: date-time
+             * @description The timestamp at which the directory provisioning configuration was last updated
+             */
+            updated_at: string;
+            /**
+             * Format: date-time
+             * @description The timestamp at which the connection was last synchronized
+             */
+            last_synchronization_at?: string;
+            /** @description The status of the last synchronization */
+            last_synchronization_status?: string;
+            /** @description The error message of the last synchronization, if any */
+            last_synchronization_error?: string;
+        };
+        CreateDirectorySynchronizationResponseContent: {
+            /** @description The connection's identifier */
+            connection_id: string;
+            /** @description The synchronization's identifier */
+            synchronization_id: string;
+            /** @description The synchronization status */
+            status: string;
+        };
+        SynchronizedGroupPayload: {
+            /** @description Google Workspace Directory group ID. */
+            id: string;
+            /** @description Google Workspace Directory group name. */
+            name?: string;
+            /**
+             * Format: email
+             * @description Google Workspace Directory group email.
+             */
+            email?: string;
+            /** @description Number of direct members in the Google Workspace Directory group. */
+            direct_members_count?: number;
+        };
+        UpdateDirectoryProvisioningResponseContent: {
+            /** @description The connection's identifier */
+            connection_id: string;
+            /** @description The connection's name */
+            connection_name: string;
+            /** @description The connection's strategy */
+            strategy: string;
+            /** @description The mapping between Auth0 and IDP user attributes */
+            mapping: components["schemas"]["DirectoryProvisioningMappingItem"][];
+            /** @description Whether periodic automatic synchronization is enabled */
+            synchronize_automatically: boolean;
+            synchronize_groups?: components["schemas"]["SynchronizeGroupsEnum"];
+            /**
+             * Format: date-time
+             * @description The timestamp at which the directory provisioning configuration was created
+             */
+            created_at: string;
+            /**
+             * Format: date-time
+             * @description The timestamp at which the directory provisioning configuration was last updated
+             */
+            updated_at: string;
+            /**
+             * Format: date-time
+             * @description The timestamp at which the connection was last synchronized
+             */
+            last_synchronization_at?: string;
+            /** @description The status of the last synchronization */
+            last_synchronization_status?: string;
+            /** @description The error message of the last synchronization, if any */
+            last_synchronization_error?: string;
+        };
+        CreateDirectoryProvisioningResponseContent: {
+            /** @description The connection's identifier */
+            connection_id: string;
+            /** @description The connection's name */
+            connection_name: string;
+            /** @description The connection's strategy */
+            strategy: string;
+            /** @description The mapping between Auth0 and IDP user attributes */
+            mapping: components["schemas"]["DirectoryProvisioningMappingItem"][];
+            /** @description Whether periodic automatic synchronization is enabled */
+            synchronize_automatically: boolean;
+            synchronize_groups?: components["schemas"]["SynchronizeGroupsEnum"];
+            /**
+             * Format: date-time
+             * @description The timestamp at which the directory provisioning configuration was created
+             */
+            created_at: string;
+            /**
+             * Format: date-time
+             * @description The timestamp at which the directory provisioning configuration was last updated
+             */
+            updated_at: string;
+            /**
+             * Format: date-time
+             * @description The timestamp at which the connection was last synchronized
+             */
+            last_synchronization_at?: string;
+            /** @description The status of the last synchronization */
+            last_synchronization_status?: string;
+            /** @description The error message of the last synchronization, if any */
+            last_synchronization_error?: string;
+        };
+        DeleteSynchronizedGroupsRequestContent: {
+            /** @description Array of groups to remove from the selection set. */
+            groups: components["schemas"]["SynchronizedGroupSelectionId"][];
+        };
+        /**
+         * @description Group synchronization configuration
+         * @enum {string}
+         */
+        SynchronizeGroupsEnum: "all" | "off" | "selected";
+        GetDirectoryProvisioningResponseContent: {
+            /** @description The connection's identifier */
+            connection_id: string;
+            /** @description The connection's name */
+            connection_name: string;
+            /** @description The connection's strategy */
+            strategy: string;
+            /** @description The mapping between Auth0 and IDP user attributes */
+            mapping: components["schemas"]["DirectoryProvisioningMappingItem"][];
+            /** @description Whether periodic automatic synchronization is enabled */
+            synchronize_automatically: boolean;
+            synchronize_groups?: components["schemas"]["SynchronizeGroupsEnum"];
+            /**
+             * Format: date-time
+             * @description The timestamp at which the directory provisioning configuration was created
+             */
+            created_at: string;
+            /**
+             * Format: date-time
+             * @description The timestamp at which the directory provisioning configuration was last updated
+             */
+            updated_at: string;
+            /**
+             * Format: date-time
+             * @description The timestamp at which the connection was last synchronized
+             */
+            last_synchronization_at?: string;
+            /** @description The status of the last synchronization */
+            last_synchronization_status?: string;
+            /** @description The error message of the last synchronization, if any */
+            last_synchronization_error?: string;
+        };
+        ReplaceSynchronizedGroupsRequestContent: {
+            /** @description Array of Google Workspace Directory group objects to synchronize. */
+            groups: components["schemas"]["SynchronizedGroupPayload"][];
+        };
+        DirectoryProvisioningMappingItem: {
+            /** @description The field location in the Auth0 schema */
+            auth0: string;
+            /** @description The field location in the IDP schema */
+            idp: string;
+        };
+        SynchronizedGroupSelectionId: {
+            /** @description Google Workspace Directory group ID. */
+            id: string;
+        };
+        ListDirectoryProvisioningsResponseContent: {
+            /** @description List of directory provisioning configurations */
+            directory_provisionings: components["schemas"]["DirectoryProvisioning"][];
+            /** @description The cursor to be used as the "from" query parameter for the next page of results. */
+            next?: string;
+        };
+        AddSynchronizedGroupsRequestContent: {
+            /** @description Array of Google Workspace Directory group objects to synchronize. */
+            groups: components["schemas"]["SynchronizedGroupPayload"][];
+        };
+        ListSynchronizedGroupsResponseContent: {
+            /** @description Array of Google Workspace group ids configured for synchronization. */
+            groups: components["schemas"]["SynchronizedGroupPayload"][];
+            /** @description The cursor to be used as the "from" query parameter for the next page of results. */
+            next?: string;
+        };
+        ScimMappingItem: {
+            /** @description The Auth0 profile field (`email`, `app_metadata.department`, …). */
+            auth0: string;
+            /** @description The SCIM attribute path (`emails[primary eq true].value`, …). */
+            scim: string;
+        };
+        ScimConfiguration: {
+            connection_id: string;
+            connection_name: string;
+            strategy: string;
+            tenant_name: string;
+            user_id_attribute: string;
+            mapping: components["schemas"]["ScimMappingItem"][];
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_on: string;
+        };
+        ScimConfigurationCreate: {
+            user_id_attribute?: string;
+            mapping?: components["schemas"]["ScimMappingItem"][];
+        };
+        ScimConfigurationUpdate: {
+            user_id_attribute: string;
+            mapping: components["schemas"]["ScimMappingItem"][];
+        };
+        ScimConfigurationList: {
+            scim_configurations: components["schemas"]["ScimConfiguration"][];
+            next?: string;
+        };
+        ScimDefaultMapping: {
+            mapping?: components["schemas"]["ScimMappingItem"][];
+        };
+        /** @description SCIM token request. `token_lifetime` in seconds must be greater than 900; null or absent means no expiry. */
+        ScimTokenCreate: {
+            scopes?: ("get:users" | "post:users" | "put:users" | "patch:users" | "delete:users" | "get:groups" | "post:groups" | "put:groups" | "patch:groups" | "delete:groups")[];
+            token_lifetime?: number | null;
+        };
+        ScimToken: {
+            token_id?: string;
+            scopes?: string[];
+            /** Format: date-time */
+            created_at?: string;
+            /** Format: date-time */
+            valid_until?: string;
+            /** Format: date-time */
+            last_used_at?: string;
+        };
+        ScimTokenCreated: {
+            token_id?: string;
+            /** @description Shown once. */
+            token?: string;
+            scopes?: string[];
+            /** Format: date-time */
+            created_at?: string;
+            /** Format: date-time */
+            valid_until?: string;
+        };
         PhoneProviderProtection: {
             /** @enum {string} */
             type: "exponential" | "default";
@@ -4978,6 +6512,56 @@ export interface components {
             };
             /** @description Stored only. */
             non_persistent_attrs?: string[];
+        } & {
+            [key: string]: unknown;
+        };
+        /**
+         * @description Google Workspace connection (`google-apps`, Plan 37c, D-0150
+         *     LR37c-14): OpenID Connect sign-in with Google restricted to one
+         *     Workspace. `domain` is the primary domain; a login succeeds only when
+         *     the verified ID token's `hd` claim equals it and the email is
+         *     verified. `user_id` is `google-apps|{email}`, or
+         *     `google-apps|{Google subject}` with `map_user_id_to_id` (both fixed
+         *     after creation). `client_secret` is write-only. `api_enable_users`
+         *     (default true) and `api_enable_groups` gate directory provisioning;
+         *     the Directory API credentials come from the directory provisioning
+         *     administrator consent, so `admin_access_token`,
+         *     `admin_refresh_token` and `admin_access_token_expiresin` are refused.
+         *     `ext_*` flags are stored only. `allow_setting_login_scopes` and
+         *     `handle_login_from_social` must be false.
+         */
+        ConnectionOptionsGoogleApps: {
+            client_id: string;
+            client_secret?: string;
+            /** @description Primary Google Workspace domain. */
+            domain: string;
+            /** @description Must equal domain when set. */
+            tenant_domain?: string;
+            /** @description Email domains for home realm discovery. */
+            domain_aliases?: string[];
+            /** @default false */
+            map_user_id_to_id?: boolean;
+            /** @default true */
+            api_enable_users?: boolean;
+            /** @default false */
+            api_enable_groups?: boolean;
+            /** @default true */
+            email?: boolean;
+            /** @default true */
+            profile?: boolean;
+            /** @description Must match the email and profile flags. */
+            scope?: string[];
+            ext_agreed_terms?: boolean;
+            ext_groups?: boolean;
+            ext_groups_extended?: boolean;
+            ext_is_admin?: boolean;
+            ext_is_suspended?: boolean;
+            icon_url?: string;
+            /**
+             * @default on_each_login
+             * @enum {string}
+             */
+            set_user_root_attributes?: "on_each_login" | "on_first_login" | "never_on_login";
         } & {
             [key: string]: unknown;
         };
@@ -7288,8 +8872,8 @@ export interface components {
             id: string;
             name: string;
             description: string;
-            /** @description Where the role comes from; only `direct` until groups exist. */
-            sources: "direct"[];
+            /** @description Where the role comes from; `group` when a directory group of the member holds it in the organization (Plan 37c). */
+            sources: ("direct" | "group")[];
         };
         OrganizationEffectiveRoles: {
             roles: components["schemas"]["OrganizationEffectiveRole"][];
@@ -9270,10 +10854,10 @@ export interface components {
             /** @description Letters and digits with single hyphens between them. */
             name: string;
             /**
-             * @description `samlp` follows ConnectionOptionsSAML (Plan 37a). `adfs` follows ConnectionOptionsADFS (Plan 37b). `email` and `sms` are passwordless connections whose name must equal the strategy; options follow ConnectionOptionsEmail and ConnectionOptionsSMS (Plan 34). `apple` follows ConnectionOptionsApple; web/native login is active (D-0170). `github` follows ConnectionOptionsGitHub (Plan 39c).
+             * @description `samlp` follows ConnectionOptionsSAML (Plan 37a). `adfs` follows ConnectionOptionsADFS (Plan 37b). `google-apps` follows ConnectionOptionsGoogleApps (Plan 37c). `email` and `sms` are passwordless connections whose name must equal the strategy; options follow ConnectionOptionsEmail and ConnectionOptionsSMS (Plan 34). `apple` follows ConnectionOptionsApple; web/native login is active (D-0170). `github` follows ConnectionOptionsGitHub (Plan 39c).
              * @enum {string}
              */
-            strategy: "auth0" | "google-oauth2" | "oauth2" | "oidc" | "windowslive" | "waad" | "email" | "sms" | "apple" | "github" | "okta" | "samlp" | "adfs";
+            strategy: "auth0" | "google-oauth2" | "oauth2" | "oidc" | "windowslive" | "waad" | "email" | "sms" | "apple" | "github" | "okta" | "samlp" | "adfs" | "google-apps";
             /** @description Applications to enable on the connection; accepted on create only. */
             enabled_clients?: string[];
         };
@@ -9286,7 +10870,7 @@ export interface components {
          * @description A connection. `options.configuration` values are opaque blobs, never
          *     plaintext. `enabled_clients` is returned by create only. `fields`
          *     can leave out any property but `id` and `is_domain_connection`.
-         *     For `google-oauth2`, `github`, `oauth2`, `oidc`, `windowslive` and `waad` connections
+         *     For `google-oauth2`, `google-apps`, `github`, `oauth2`, `oidc`, `windowslive` and `waad` connections
          *     `options.client_secret` is write-only: it is sealed when written and
          *     never returned.
          *     Microsoft connections require GUID client IDs and request exactly
@@ -17291,6 +18875,74 @@ export interface operations {
             };
         };
     };
+    createDirectoryProvisioningConsent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The tenant's name. */
+                tenant: string;
+                /** @description The google-apps connection ID. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The consent link. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description The consent link. Treat it as a secret until it expires. */
+                        url: string;
+                        redirect_uri: string;
+                        /** Format: date-time */
+                        expires_at: string;
+                    };
+                };
+            };
+            /** @description The connection cannot consent. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Operator authentication failed. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description The operator does not manage the tenant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            404: components["responses"]["NotFound"];
+            /** @description The storage backend does not support directory provisioning. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+        };
+    };
     tryConnectionPasswordless: {
         parameters: {
             query?: never;
@@ -24952,6 +26604,1836 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ManagementError"];
                 };
+            };
+        };
+    };
+    ListConnectionProfiles: {
+        parameters: {
+            query?: {
+                /** @description Optional Id from which to start selection. */
+                from?: string;
+                /** @description Number of results per page. Defaults to 5. */
+                take?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Connection Profiles successfully retrieved. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListConnectionProfilesPaginatedResponseContent"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    CreateConnectionProfile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["CreateConnectionProfileRequestContent"];
+                "application/x-www-form-urlencoded": components["schemas"]["CreateConnectionProfileRequestContent"];
+            };
+        };
+        responses: {
+            /** @description Connection profile successfully created. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CreateConnectionProfileResponseContent"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    ListConnectionProfileTemplates: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Connection Profile Templates successfully retrieved. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListConnectionProfileTemplateResponseContent"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    GetConnectionProfileTemplate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description ID of the connection-profile-template to retrieve. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Connection Profile Template successfully retrieved. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GetConnectionProfileTemplateResponseContent"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            /** @description Connection profile template not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    GetConnectionProfile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description ID of the connection-profile to retrieve. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Record for existing connection profile. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GetConnectionProfileResponseContent"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            /** @description Connection profile not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    DeleteConnectionProfile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description ID of the connection-profile to delete. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Connection profile successfully deleted. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    UpdateConnectionProfile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description ID of the connection profile to update. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["UpdateConnectionProfileRequestContent"];
+                "application/x-www-form-urlencoded": components["schemas"]["UpdateConnectionProfileRequestContent"];
+            };
+        };
+        responses: {
+            /** @description Connection profile successfully updated. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UpdateConnectionProfileResponseContent"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            /** @description Connection profile not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ListSelfServiceProfiles: {
+        parameters: {
+            query?: {
+                /** @description Page index of the results to return. First page is 0. */
+                page?: number;
+                /** @description Number of results per page. Defaults to 50. */
+                per_page?: number;
+                /** @description Return results inside an object that contains the total result count (true) or as a direct array of results (false, default). */
+                include_totals?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description List of existing profiles. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListSelfServiceProfilesResponseContent"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    CreateSelfServiceProfile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["CreateSelfServiceProfileRequestContent"];
+                "application/x-www-form-urlencoded": components["schemas"]["CreateSelfServiceProfileRequestContent"];
+            };
+        };
+        responses: {
+            /** @description Self-service profile successfully created. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CreateSelfServiceProfileResponseContent"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    GetSelfServiceProfile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The id of the self-service profile to retrieve */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Record for existing self-service profile. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GetSelfServiceProfileResponseContent"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            /** @description Self-service profile not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    DeleteSelfServiceProfile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The id of the self-service profile to delete */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Self-service profile successfully deleted. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    UpdateSelfServiceProfile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The id of the self-service profile to update */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["UpdateSelfServiceProfileRequestContent"];
+                "application/x-www-form-urlencoded": components["schemas"]["UpdateSelfServiceProfileRequestContent"];
+            };
+        };
+        responses: {
+            /** @description Self-service profile successfully updated. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UpdateSelfServiceProfileResponseContent"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            /** @description Self-service profile not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    GetSelfServiceProfileCustomText: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The id of the self-service profile. */
+                id: string;
+                /** @description The language of the custom text. */
+                language: components["schemas"]["SelfServiceProfileCustomTextLanguageEnum"];
+                /** @description The page where the custom text is shown. */
+                page: components["schemas"]["SelfServiceProfileCustomTextPageEnum"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Retrieved custom text. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListSelfServiceProfileCustomTextResponseContent"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            /** @description Self-service profile not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    SetSelfServiceProfileCustomText: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The id of the self-service profile. */
+                id: string;
+                /** @description The language of the custom text. */
+                language: components["schemas"]["SelfServiceProfileCustomTextLanguageEnum"];
+                /** @description The page where the custom text is shown. */
+                page: components["schemas"]["SelfServiceProfileCustomTextPageEnum"];
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["SetSelfServiceProfileCustomTextRequestContent"];
+                "application/x-www-form-urlencoded": components["schemas"]["SetSelfServiceProfileCustomTextRequestContent"];
+            };
+        };
+        responses: {
+            /** @description Updated custom text. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SetSelfServiceProfileCustomTextResponseContent"];
+                };
+            };
+            /** @description Invalid custom text. Auth0's OpenAPI lists no 400 here; zeroauthy refuses values over 2000 characters and more than 50 keys with 400 (Plan 37c). */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            /** @description Self-service profile not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    CreateSsoTicket: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Custom domain to be used for this request */
+                "auth0-custom-domain"?: string;
+            };
+            path: {
+                /** @description The id of the self-service profile to retrieve */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["CreateSelfServiceProfileSsoTicketRequestContent"];
+                "application/x-www-form-urlencoded": components["schemas"]["CreateSelfServiceProfileSsoTicketRequestContent"];
+            };
+        };
+        responses: {
+            /** @description Self-Service Enterprise Configuration Access Ticket successfully created. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CreateSelfServiceProfileSsoTicketResponseContent"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    RevokeSsoTicket: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The id of the self-service profile */
+                profileId: string;
+                /** @description The id of the ticket to revoke */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Self-Service Enterprise Configuration Access Ticket revocation request accepted. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    ListDirectoryProvisionings: {
+        parameters: {
+            query?: {
+                /** @description Optional Id from which to start selection. */
+                from?: string;
+                /** @description Number of results per page. Defaults to 50. */
+                take?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The tenant's directory provisioning configuration. See <strong>Response Schemas</strong> for schema. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListDirectoryProvisioningsResponseContent"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    GetDirectoryProvisioning: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The id of the connection to retrieve its directory provisioning configuration */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The connection's directory provisioning configuration. See <strong>Response Schemas</strong> for schema. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GetDirectoryProvisioningResponseContent"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            /** @description The connection does not exist */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    CreateDirectoryProvisioning: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The id of the connection to create its directory provisioning configuration */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["CreateDirectoryProvisioningRequestContent"];
+                "application/x-www-form-urlencoded": components["schemas"]["CreateDirectoryProvisioningRequestContent"];
+            };
+        };
+        responses: {
+            /** @description The connection's directory provisioning configuration was created. See <strong>Response Schemas</strong> for schema. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CreateDirectoryProvisioningResponseContent"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            /** @description The connection does not exist */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            409: components["responses"]["Conflict"];
+        };
+    };
+    DeleteDirectoryProvisioning: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The id of the connection to delete its directory provisioning configuration */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The connection's directory provisioning configuration has been deleted. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            /** @description The connection does not exist */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    UpdateDirectoryProvisioning: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The id of the connection to create its directory provisioning configuration */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["UpdateDirectoryProvisioningRequestContent"];
+                "application/x-www-form-urlencoded": components["schemas"]["UpdateDirectoryProvisioningRequestContent"];
+            };
+        };
+        responses: {
+            /** @description The connection's directory provisioning configuration was updated. See <strong>Response Schemas</strong> for schema. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UpdateDirectoryProvisioningResponseContent"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            /** @description The connection does not exist */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    GetDirectoryProvisioningDefaultMapping: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The id of the connection to retrieve its directory provisioning configuration */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The connection's directory provisioning default mapping. See <strong>Response Schemas</strong> for schema. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GetDirectoryProvisioningDefaultMappingResponseContent"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            /** @description The connection does not exist */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    CreateDirectorySynchronization: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The id of the connection to trigger synchronization for */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The directory synchronization was triggered. See <strong>Response Schemas</strong> for schema. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CreateDirectorySynchronizationResponseContent"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            /** @description The connection does not exist */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            409: components["responses"]["Conflict"];
+        };
+    };
+    ListSynchronizedGroups: {
+        parameters: {
+            query?: {
+                /** @description Optional Id from which to start selection. */
+                from?: string;
+                /** @description Number of results per page. Defaults to 50. */
+                take?: number;
+                /** @description Query in <a target='_new' href ='https://lucene.apache.org/core/2_9_4/queryparsersyntax.html'>Lucene query string syntax</a>. Only prefix search on "name" or "email" fields are allowed, with a single wildcard suffix. Operators, modifiers, and groupings are not allowed. Terms are treated as case-insensitive. Example query: "name:engineering*". */
+                q?: string;
+            };
+            header?: never;
+            path: {
+                /** @description The id of the connection to list synchronized groups for. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The connection's synchronized groups. See <strong>Response Schemas</strong> for schema. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListSynchronizedGroupsResponseContent"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            /** @description The connection does not exist */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ReplaceSynchronizedGroups: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The id of the connection to create or replace synchronized groups for */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["ReplaceSynchronizedGroupsRequestContent"];
+                "application/x-www-form-urlencoded": components["schemas"]["ReplaceSynchronizedGroupsRequestContent"];
+            };
+        };
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            /** @description The connection does not exist */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            409: components["responses"]["Conflict"];
+        };
+    };
+    AddSynchronizedGroups: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The id of the connection to add synchronized groups to */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["AddSynchronizedGroupsRequestContent"];
+                "application/x-www-form-urlencoded": components["schemas"]["AddSynchronizedGroupsRequestContent"];
+            };
+        };
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            /** @description The connection does not exist */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    DeleteSynchronizedGroups: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The id of the connection to delete synchronized group selections for */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["DeleteSynchronizedGroupsRequestContent"];
+                "application/x-www-form-urlencoded": components["schemas"]["DeleteSynchronizedGroupsRequestContent"];
+            };
+        };
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            /** @description The connection does not exist */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    GetScimConfiguration: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Connection ID. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Operation completed */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScimConfiguration"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            /** @description The connection does not exist or has no SCIM configuration */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    CreateScimConfiguration: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Connection ID. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ScimConfigurationCreate"] | null;
+            };
+        };
+        responses: {
+            /** @description Operation completed */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScimConfiguration"];
+                };
+            };
+            /** @description Invalid body, a connection that does not accept SCIM, or a configuration that already exists (Auth0's "already exists" message) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            /** @description The connection does not exist */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    DeleteScimConfiguration: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Connection ID. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Operation completed */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            /** @description The connection does not exist */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    UpdateScimConfiguration: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Connection ID. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ScimConfigurationUpdate"];
+            };
+        };
+        responses: {
+            /** @description Operation completed */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScimConfiguration"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            /** @description The connection does not exist or has no SCIM configuration */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    GetScimDefaultMapping: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Connection ID. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Operation completed */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScimDefaultMapping"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ListScimTokens: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Connection ID. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Operation completed */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScimToken"][];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            /** @description The connection does not exist */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    CreateScimToken: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Connection ID. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ScimTokenCreate"];
+            };
+        };
+        responses: {
+            /** @description Operation completed */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScimTokenCreated"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            /** @description The connection does not exist or has no SCIM configuration */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Maximum of 2 tokens already issued for this connection */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    DeleteScimToken: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Connection ID. */
+                id: string;
+                tokenId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Operation completed */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            /** @description The connection or token does not exist */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ListScimConfigurations: {
+        parameters: {
+            query?: {
+                /** @description Checkpoint cursor (`next` of the previous page). */
+                from?: string;
+                /** @description Number of results, 1 to 100 (default 50). */
+                take?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Operation completed */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScimConfigurationList"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    ListGroups: {
+        parameters: {
+            query?: {
+                connection_id?: string;
+                name?: string;
+                external_id?: string;
+                /** @description Case-insensitive prefix of the group name. */
+                search?: string;
+                fields?: string;
+                include_fields?: boolean;
+                page?: number;
+                per_page?: number;
+                include_totals?: boolean;
+                /** @description Checkpoint cursor (`next` of the previous page). */
+                from?: string;
+                /** @description Number of results, 1 to 100 (default 50). */
+                take?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Operation completed */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Group"][] | components["schemas"]["GroupPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    GetGroup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["schemas"]["GroupID"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Operation completed */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Group"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            /** @description Group not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    DeleteGroup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["schemas"]["GroupID"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Operation completed */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            /** @description Group not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ListGroupMembers: {
+        parameters: {
+            query?: {
+                fields?: string;
+                include_fields?: boolean;
+                /** @description Checkpoint cursor (`next` of the previous page). */
+                from?: string;
+                /** @description Number of results, 1 to 100 (default 50). */
+                take?: number;
+            };
+            header?: never;
+            path: {
+                id: components["schemas"]["GroupID"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Operation completed */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GroupMemberPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            /** @description Group not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ListGroupRoles: {
+        parameters: {
+            query?: {
+                /** @description Checkpoint cursor (`next` of the previous page). */
+                from?: string;
+                /** @description Number of results, 1 to 100 (default 50). */
+                take?: number;
+            };
+            header?: never;
+            path: {
+                id: components["schemas"]["GroupID"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Operation completed */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GroupRolePage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            /** @description Group not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AssignGroupRoles: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["schemas"]["GroupID"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RoleIDList"];
+            };
+        };
+        responses: {
+            /** @description Operation completed */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            /** @description Group or role not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    RemoveGroupRoles: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["schemas"]["GroupID"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RoleIDList"];
+            };
+        };
+        responses: {
+            /** @description Operation completed */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            /** @description Group not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ListRoleGroups: {
+        parameters: {
+            query?: {
+                /** @description Checkpoint cursor (`next` of the previous page). */
+                from?: string;
+                /** @description Number of results, 1 to 100 (default 50). */
+                take?: number;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Operation completed */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GroupCheckpoint"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            /** @description The role does not exist */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AssignRoleGroups: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GroupIDList"];
+            };
+        };
+        responses: {
+            /** @description Operation completed */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            /** @description Role or group not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    RemoveRoleGroups: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GroupIDList"];
+            };
+        };
+        responses: {
+            /** @description Operation completed */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            /** @description The role does not exist */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ListUserGroups: {
+        parameters: {
+            query?: {
+                fields?: string;
+                include_fields?: boolean;
+                page?: number;
+                per_page?: number;
+                include_totals?: boolean;
+                /** @description Checkpoint cursor (`next` of the previous page). */
+                from?: string;
+                /** @description Number of results, 1 to 100 (default 50). */
+                take?: number;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Operation completed */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserGroup"][] | components["schemas"]["UserGroupPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ListUserRoleSourceGroups: {
+        parameters: {
+            query: {
+                role_id: string;
+                /** @description Checkpoint cursor (`next` of the previous page). */
+                from?: string;
+                /** @description Number of results, 1 to 100 (default 50). */
+                take?: number;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Operation completed */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GroupCheckpoint"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            /** @description The role does not exist */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ListOrganizationGroups: {
+        parameters: {
+            query?: {
+                /** @description Checkpoint cursor (`next` of the previous page). */
+                from?: string;
+                /** @description Number of results, 1 to 100 (default 50). */
+                take?: number;
+            };
+            header?: never;
+            path: {
+                /** @description Organization ID, `org_` and 16 letters or digits; another shape is 400 `invalid_uri`. */
+                id: components["parameters"]["organizationId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Operation completed */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GroupCheckpoint"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            /** @description Organization not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ListOrganizationGroupRoles: {
+        parameters: {
+            query?: {
+                /** @description Checkpoint cursor (`next` of the previous page). */
+                from?: string;
+                /** @description Number of results, 1 to 100 (default 50). */
+                take?: number;
+            };
+            header?: never;
+            path: {
+                /** @description Organization ID, `org_` and 16 letters or digits; another shape is 400 `invalid_uri`. */
+                id: components["parameters"]["organizationId"];
+                group_id: components["schemas"]["GroupID"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Operation completed */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GroupRolePage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            /** @description Group not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AssignOrganizationGroupRoles: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Organization ID, `org_` and 16 letters or digits; another shape is 400 `invalid_uri`. */
+                id: components["parameters"]["organizationId"];
+                group_id: components["schemas"]["GroupID"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RoleIDList"];
+            };
+        };
+        responses: {
+            /** @description Operation completed */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            /** @description Group not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description No more roles can be assigned to this organization group */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    RemoveOrganizationGroupRoles: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Organization ID, `org_` and 16 letters or digits; another shape is 400 `invalid_uri`. */
+                id: components["parameters"]["organizationId"];
+                group_id: components["schemas"]["GroupID"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RoleIDList"];
+            };
+        };
+        responses: {
+            /** @description Operation completed */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            /** @description Group not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ListOrganizationMemberRoleSourceGroups: {
+        parameters: {
+            query: {
+                role_id: string;
+                /** @description Checkpoint cursor (`next` of the previous page). */
+                from?: string;
+                /** @description Number of results, 1 to 100 (default 50). */
+                take?: number;
+            };
+            header?: never;
+            path: {
+                /** @description Organization ID, `org_` and 16 letters or digits; another shape is 400 `invalid_uri`. */
+                id: components["parameters"]["organizationId"];
+                /** @description The member's user ID. */
+                user_id: components["parameters"]["memberUserId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Operation completed */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GroupCheckpoint"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            /** @description Organization not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

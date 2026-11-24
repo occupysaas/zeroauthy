@@ -2,9 +2,9 @@ import type { Connection, SystemTenant } from '../../../api/client'
 
 // Classification and route support are distinct: historical social routes
 // must continue opening generic OIDC connections.
-export const federatedStrategies = ['google-oauth2', 'oauth2', 'oidc', 'windowslive', 'waad', 'apple', 'github', 'okta', 'samlp', 'adfs'] as const
+export const federatedStrategies = ['google-oauth2', 'oauth2', 'oidc', 'windowslive', 'waad', 'apple', 'github', 'okta', 'samlp', 'adfs', 'google-apps'] as const
 export const socialStrategies = ['google-oauth2', 'oauth2', 'windowslive', 'apple', 'github'] as const
-export const enterpriseStrategies = ['oidc', 'okta', 'waad', 'samlp', 'adfs'] as const
+export const enterpriseStrategies = ['oidc', 'okta', 'waad', 'samlp', 'adfs', 'google-apps'] as const
 export type FederatedStrategy = (typeof federatedStrategies)[number]
 export type SocialStrategy = (typeof socialStrategies)[number]
 export type EnterpriseStrategy = (typeof enterpriseStrategies)[number]
@@ -60,9 +60,12 @@ export function httpsURL(s: string): boolean {
 
 /** The provider callback URLs to register: the canonical host and every
  * custom domain the tenant answers on, each with /login/callback. */
-export function callbackURLs(t: SystemTenant): string[] {
-  const hosts = [t.host, ...(t.domains ?? [])].filter((h): h is string => !!h)
-  return [...new Set(hosts)].map((h) => `https://${h}/login/callback`)
+export function callbackURLs(t: SystemTenant, strategy?: string): string[] {
+  const hosts = [...new Set([t.host, ...(t.domains ?? [])].filter((h): h is string => !!h))]
+  const out = hosts.map((h) => `https://${h}/login/callback`)
+  // Google Workspace directory provisioning consent (Plan 37c, LR37c-15).
+  if (strategy === 'google-apps') out.push(...hosts.map((h) => `https://${h}/directory-provisioning/callback`))
+  return out
 }
 
 export const defaultScript = `function fetchUserProfile(accessToken, context, callback) {

@@ -863,3 +863,43 @@ Recorded under [D-0140](../compat/decisions.md); observe on a live tenant when o
   claim types (Auth0 uses the claim type's last segment); a scheduled
   refresh of `adfs_server` (and samlp `metadataUrl`) metadata; IdP-initiated
   WS-Fed login; encrypted WS-Fed tokens if Auth0 documents them.
+
+## Plan 37c observation points
+
+Recorded under [D-0150](../compat/decisions.md); observe on a live tenant when one is available.
+
+- **Q1** `google-apps` availability for directory provisioning (Phase C).
+- **Q2** The SSO ticket URL form and the assistant steps (Phase B).
+- **Q3** The SCIM base path (zeroauthy: `/scim/v2/connections/{id}`).
+- **Q4** The user ID of SCIM-provisioned users.
+- **Q5** SCIM bulk (not supported).
+- **Q6** Group events in event streams.
+- **Q7** Strategies accepted in `allowed_strategies`.
+- **Q8** The default SSO ticket TTL.
+- **Q9** Domain verification in the self-service assistant.
+- **Q10** Built-in connection profile templates.
+- **Q11** The automatic directory sync interval; a live Google Workspace
+  check (ruled 2026-11-22: fixture coverage ships first).
+- **Q12** The default SCIM token lifetime (not documented; zeroauthy: no
+  expiry unless `token_lifetime` is given).
+- **Q13** `api.groups.hasGroupMembership(groups)`: whether it matches any or
+  all of the listed groups, and by name or ID (zeroauthy: any, by name or
+  ID). `api.groups.getUserGroups` paging parameters (zeroauthy: `take`/`from`
+  like `api.roles.getUserEffectiveRoles`).
+- **Q14** Whether a tenant-wide group role appears in an organization
+  member's effective roles (zeroauthy: no; only organization group roles,
+  matching direct roles, which are organization-scoped).
+- **Q16** The assistant's test sign-in: Auth0 shows a test result inside
+  the flow; zeroauthy logs in through the ticket's first application
+  (LR37c-13).
+- **Q17** Defaults of `enabled_features` on edit tickets (zeroauthy: sso on,
+  domain verification and provisioning off).
+- **Q18** Directory provisioning against a live Google Workspace (fixture
+  coverage only, maintainer ruling 2026-11-22): Auth0's default mapping,
+  `last_synchronization_status` values, the synchronization ID format,
+  how Auth0 obtains the administrator grant (zeroauthy: LR37c-15) and
+  whether it unblocks reinstated users (zeroauthy: only its own blocks).
+- **Q19** `google-apps` in self-service profiles' `allowed_strategies`:
+  still refused (Q7); the assistant has no Workspace step yet.
+- **Q15** Checkpoint cursors of group lists (zeroauthy: opaque offsets; an
+  insert or delete between pages can shift a later page by one).

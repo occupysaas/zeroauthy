@@ -363,6 +363,15 @@ func (h *Handlers) ListOrganizationMemberEffectiveRoles(w http.ResponseWriter, r
 		h.orgError(w, r, err)
 		return
 	}
+	groupRoles, err := store.UserGroupRoleSources(r.Context(), h.Store, resolved(r).ID, userID, id, true)
+	if err != nil {
+		h.orgError(w, r, err)
+		return
+	}
+	if len(groupRoles) > 0 {
+		h.mergedEffectiveRoles(w, r, id, userID, groupRoles)
+		return
+	}
 	res, err := h.memberRoleList(r, h.Store, id, userID, p)
 	if err != nil {
 		h.orgError(w, r, err)
@@ -374,6 +383,61 @@ func (h *Handlers) ListOrganizationMemberEffectiveRoles(w http.ResponseWriter, r
 		items[i]["sources"] = []string{"direct"}
 	}
 	writeOrgList(w, "roles", items, 0, res.Next, p, true, false)
+}
+
+// mergedEffectiveRoles lists a member's direct and group organization roles
+// (Plan 37c) sorted by name then ID, each with its sources, paged with the
+// group-list cursor.
+func (h *Handlers) mergedEffectiveRoles(w http.ResponseWriter, r *http.Request, org, uid string, groupRoles map[string][]string) {
+	p, err := readGroupPage(r, false)
+	if err != nil {
+		Fail(w, err)
+		return
+	}
+	tid := resolved(r).ID
+	direct := map[string]bool{}
+	for page := 0; page < 1000; page++ {
+		res, err := h.Store.Organizations().MemberRoles(r.Context(), tid, org, uid, store.OrgPage{Page: page, PerPage: 100})
+		if errors.Is(err, store.ErrNotFound) {
+			Fail(w, errOrgNotMember)
+			return
+		}
+		if err != nil {
+			h.orgError(w, r, err)
+			return
+		}
+		for _, id := range res.Items {
+			direct[id] = true
+		}
+		if len(res.Items) < 100 {
+			break
+		}
+	}
+	ids := make([]string, 0, len(direct)+len(groupRoles))
+	for id := range direct {
+		ids = append(ids, id)
+	}
+	for id := range groupRoles {
+		if !direct[id] {
+			ids = append(ids, id)
+		}
+	}
+	items, err := h.roleViews(r, h.Store, ids)
+	if err != nil {
+		h.orgError(w, r, err)
+		return
+	}
+	for _, it := range items {
+		var sources []string
+		if direct[it["id"].(string)] {
+			sources = append(sources, "direct")
+		}
+		if len(groupRoles[it["id"].(string)]) > 0 {
+			sources = append(sources, "group")
+		}
+		it["sources"] = sources
+	}
+	writeGroupList(w, "roles", window(items, p), len(items), p)
 }
 
 // ListOrganizationRoleMembers lists the current members holding a role,

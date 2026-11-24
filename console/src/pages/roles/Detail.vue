@@ -12,6 +12,7 @@ import Field from '../../ui/Field.vue'
 import ConfirmDialog from '../../ui/ConfirmDialog.vue'
 import PermissionsTab from './PermissionsTab.vue'
 import UsersTab from './UsersTab.vue'
+import GroupsTab from './GroupsTab.vue'
 const { t } = useI18n(),
   { api } = useServices(),
   tenant = useTenant(),
@@ -141,7 +142,8 @@ async function remove() {
         ><TabsList class="tabs" :aria-label="role.name"
           ><TabsTrigger class="tab" value="settings">{{ t('rbac.settings') }}</TabsTrigger
           ><TabsTrigger class="tab" value="permissions">{{ t('rbac.permissions') }}</TabsTrigger
-          ><TabsTrigger class="tab" value="users">{{ t('rbac.users') }}</TabsTrigger></TabsList
+          ><TabsTrigger class="tab" value="users">{{ t('rbac.users') }}</TabsTrigger
+          ><TabsTrigger class="tab" value="groups">{{ t('groups.roleGroups') }}</TabsTrigger></TabsList
         ><TabsContent value="settings"
           ><form class="card stack" @submit.prevent="save">
             <Banner v-if="actionError" kind="error"
@@ -160,7 +162,8 @@ async function remove() {
             <Button variant="danger" :disabled="busy" @click="confirmDelete">{{ t('rbac.delete') }}</Button>
           </section></TabsContent
         ><TabsContent value="permissions"><PermissionsTab :tenant="tenant" :role-id="role.id" /></TabsContent
-        ><TabsContent value="users"><UsersTab :tenant="tenant" :role-id="role.id" /></TabsContent></TabsRoot></template
+        ><TabsContent value="users"><UsersTab :tenant="tenant" :role-id="role.id" /></TabsContent
+        ><TabsContent value="groups"><GroupsTab :tenant="tenant" :role-id="role.id" /></TabsContent></TabsRoot></template
     ><ConfirmDialog
       v-model:open="deleteOpen"
       :title="t('rbac.deleteTitle')"

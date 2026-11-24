@@ -345,6 +345,9 @@ func deleteUser(ctx context.Context, tx *Store, tenantID, userID string) error {
 	if err := tx.lockRBAC(ctx, tenantID); err != nil && !errors.Is(err, store.ErrNotFound) {
 		return err
 	}
+	if err := tx.dropDirectoryUser(ctx, tenantID, userID); err != nil {
+		return err
+	}
 	u, e := (users{tx}).Get(ctx, tenantID, userID)
 	if e != nil {
 		return e

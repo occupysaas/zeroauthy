@@ -155,7 +155,7 @@ func (s *FlowService) Begin(ctx context.Context, in BeginInput) (*Begun, error) 
 	var endpoints Endpoints
 	issuer := cfg.Issuer
 	switch cfg.Strategy {
-	case StrategyGoogle:
+	case StrategyGoogle, StrategyGoogleApps:
 		endpoints, issuer = s.Providers.google()
 	case StrategyApple:
 		meta, err := s.Providers.AppleMetadata(ctx, key)
@@ -686,6 +686,8 @@ func ButtonLabel(c *store.Connection) string {
 		return "Microsoft work or school account"
 	case StrategyGoogle:
 		return "Google"
+	case StrategyGoogleApps:
+		return "Google Workspace"
 	case StrategyGitHub:
 		return "GitHub"
 	}

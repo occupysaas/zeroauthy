@@ -8,3 +8,6 @@ var AuthenticationYAML []byte
 
 //go:embed management.yaml
 var ManagementYAML []byte
+
+//go:embed scim.yaml
+var SCIMYAML []byte

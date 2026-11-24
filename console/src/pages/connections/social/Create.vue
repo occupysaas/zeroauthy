@@ -41,6 +41,7 @@ const draft = reactive({
   discoveryURL: '',
   channel: 'back_channel',
   oktaDomain: '',
+  workspaceDomain: '',
   scopes: 'openid profile email',
   microsoftMode: 'single',
   tenantDomain: '',
@@ -59,7 +60,7 @@ const busy = ref(false)
 const clients = ref<Client[]>([])
 const chosen = ref<string[]>([])
 const clientsError = ref('')
-const callbacks = computed(() => (tenant.value ? callbackURLs(tenant.value) : []))
+const callbacks = computed(() => (tenant.value ? callbackURLs(tenant.value, draft.strategy) : []))
 
 onMounted(async () => {
   const tn = tenant.value
@@ -121,6 +122,7 @@ function validate(): boolean {
     if (!httpsURL(draft.discoveryURL.trim())) errors.discoveryURL = t('social.httpsRequired')
     if (!draft.scopes.split(/\s+/).includes('openid')) errors.scopes = t('social.openidRequired')
   }
+  if (draft.strategy === 'google-apps' && (!draft.workspaceDomain.includes('.') || draft.workspaceDomain.length > 253 || !draft.workspaceDomain.toLowerCase().split('.').every(label => /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(label)))) errors.workspaceDomain = 'Enter the primary Google Workspace domain, such as example.com.'
   if (draft.strategy === 'okta' && (!draft.oktaDomain || draft.oktaDomain.length > 253 || !draft.oktaDomain.toLowerCase().split('.').every(label => /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(label)))) errors.oktaDomain = 'Enter a DNS host name without a scheme, port or path.'
   return Object.keys(errors).length === 0
 }
@@ -159,6 +161,9 @@ function body(): ConnectionCreate {
     case 'oidc':
       Object.assign(options, { type: draft.channel, discovery_url: draft.discoveryURL.trim(), scopes: draft.scopes.trim() })
       if (draft.channel === 'front_channel') delete options.client_secret
+      break
+    case 'google-apps':
+      Object.assign(options, { domain: draft.workspaceDomain.toLowerCase(), tenant_domain: draft.workspaceDomain.toLowerCase() })
       break
     case 'okta':
       Object.assign(options, { type: 'back_channel', domain: draft.oktaDomain.toLowerCase(), scope: draft.scopes.trim() })
@@ -264,6 +269,7 @@ function describedBy(id: string, key: string, hint = false): string {
         </Field>
         <ScriptEditor id="social-script" v-model="draft.script" :label="t('social.script')" :error="errors.script" />
       </template>
+      <Field v-if="draft.strategy === 'google-apps'" id="workspace-domain" label="Google Workspace domain" hint="Only accounts of this Workspace can sign in." :error="errors.workspaceDomain"><input id="workspace-domain" v-model="draft.workspaceDomain" maxlength="253" autocomplete="off" spellcheck="false" :aria-invalid="!!errors.workspaceDomain" /></Field>
       <Field v-if="draft.strategy === 'okta'" id="okta-domain" label="Okta domain" :error="errors.oktaDomain"><input id="okta-domain" v-model="draft.oktaDomain" maxlength="253" autocomplete="off" :aria-invalid="!!errors.oktaDomain" /></Field>
       <template v-if="draft.strategy === 'oidc'">
         <Field id="oidc-channel" label="Login channel"><select id="oidc-channel" v-model="draft.channel"><option value="back_channel">Authorization code (back channel)</option><option value="front_channel">ID token form post (front channel)</option></select></Field>

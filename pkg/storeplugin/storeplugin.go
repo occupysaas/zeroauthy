@@ -329,6 +329,33 @@ func (o *opened) PurgeSAMLAssertions(ctx context.Context, before time.Time, limi
 	return 0, store.ErrSAMLUnavailable
 }
 
+// DirectorySupported keeps scim.v1 (Plan 37c) visible through the process
+// wrapper: a wrapped store without it is unavailable.
+func (o *opened) DirectorySupported() bool {
+	if repo, ok := o.Store.(store.DirectorySupporter); ok {
+		return repo.DirectorySupported()
+	}
+	return false
+}
+
+// DirectorySyncSupported keeps scim.v1 version 3 (Plan 37c Phase C) visible
+// through the process wrapper.
+func (o *opened) DirectorySyncSupported() bool {
+	if repo, ok := o.Store.(store.DirectorySyncSupporter); ok {
+		return repo.DirectorySyncSupported()
+	}
+	return false
+}
+
+// SelfServiceSupported keeps scim.v1 version 2 (Plan 37c Phase B) visible
+// through the process wrapper.
+func (o *opened) SelfServiceSupported() bool {
+	if repo, ok := o.Store.(store.SelfServiceSupporter); ok {
+		return repo.SelfServiceSupported()
+	}
+	return false
+}
+
 // CheckWSFedSupport keeps wsfed.v1 (Plan 37b) visible through the process
 // wrapper; without it, CheckWSFedSupport would treat the wrapper as supporting.
 func (o *opened) CheckWSFedSupport(ctx context.Context) error {

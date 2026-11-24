@@ -20,7 +20,8 @@ var ErrImmutable = errors.New("federation: immutable connection setting changed"
 type Config struct {
 	// SAML is set for samlp connections (Plan 37a).
 	SAML                       *rules.SAMLSettings
-	ADFS                       *rules.ADFSSettings // Plan 37b
+	ADFS                       *rules.ADFSSettings       // Plan 37b
+	GoogleApps                 *rules.GoogleAppsSettings // Plan 37c
 	Channel                    string
 	Explicit                   *rules.ExplicitEndpoints
 	PKCE                       string
@@ -95,6 +96,7 @@ func ParseConfig(spec connrules.Spec) (Config, error) {
 	c := Config{
 		SAML:          settings.SAML,
 		ADFS:          settings.ADFS,
+		GoogleApps:    settings.GoogleApps,
 		Channel:       settings.Channel,
 		Explicit:      settings.Explicit,
 		PKCE:          settings.PKCE,
@@ -131,7 +133,7 @@ func ParseConfig(spec connrules.Spec) (Config, error) {
 	switch c.Strategy {
 	case StrategyApple:
 		c.Issuer = rules.AppleIssuer
-	case StrategyGoogle:
+	case StrategyGoogle, StrategyGoogleApps:
 		c.Issuer = rules.GoogleIssuer
 	case StrategyWindowsLive, StrategyWAAD, StrategyOIDC, StrategyOkta:
 		c.Issuer = spec.FederationIssuer
@@ -167,6 +169,9 @@ func ValidateConfigUpdate(prev, next Config) error {
 			return fmt.Errorf("%w: %s; create a new connection instead", ErrImmutable, b.name)
 		}
 	}
+	if prev.GoogleApps != nil && next.GoogleApps != nil && (prev.GoogleApps.Domain != next.GoogleApps.Domain || prev.GoogleApps.MapUserIDToID != next.GoogleApps.MapUserIDToID) {
+		return fmt.Errorf("%w: domain or map_user_id_to_id; create a new connection instead", ErrImmutable)
+	}
 	if prev.MicrosoftAuthority != next.MicrosoftAuthority || prev.MicrosoftMultiTenant != next.MicrosoftMultiTenant {
 		return fmt.Errorf("%w: Microsoft authority; create a new connection instead", ErrImmutable)
 	}
@@ -185,5 +190,6 @@ func EffectiveChange(prev, next Config) bool {
 		prev.AuthorizationURL != next.AuthorizationURL || prev.TokenURL != next.TokenURL ||
 		prev.DiscoveryURL != next.DiscoveryURL || !slices.Equal(prev.Scopes, next.Scopes) ||
 		prev.ProfileSync != next.ProfileSync || prev.Script != next.Script ||
-		prev.Issuer != next.Issuer || prev.AuthenticationActive != next.AuthenticationActive
+		prev.Issuer != next.Issuer || prev.AuthenticationActive != next.AuthenticationActive ||
+		!reflect.DeepEqual(prev.GoogleApps, next.GoogleApps)
 }

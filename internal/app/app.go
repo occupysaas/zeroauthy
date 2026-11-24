@@ -22,6 +22,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/config"
 	"github.com/zeroauthy/zeroauthy/internal/customdb"
 	"github.com/zeroauthy/zeroauthy/internal/customdomain"
+	"github.com/zeroauthy/zeroauthy/internal/dirsync"
 	"github.com/zeroauthy/zeroauthy/internal/email"
 	"github.com/zeroauthy/zeroauthy/internal/email/providers"
 	"github.com/zeroauthy/zeroauthy/internal/emailrules"
@@ -67,6 +68,7 @@ type App struct {
 	actions      *noderunner.Pool      // Actions flow processes
 	profiles     *script.Runner        // nil when profile scripts cannot run
 	actionJobs   *actions.Worker
+	dirSync      *dirsync.Syncer // Plan 37c Phase C directory provisioning
 	jobs         *jobs.Runner
 	logs         *logs.AsyncRecorder
 	mfa          *mfa.Service
@@ -408,6 +410,10 @@ func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.S
 	tenantEmail.Actions = engine
 	engine.InvitationEmail = tenantEmail
 	flows := &federation.FlowService{Service: federation.Service{Wrapper: wrapper}, Store: st, Providers: providers, Log: log}
+	dirSyncer := &dirsync.Syncer{Store: st, Wrapper: wrapper, Providers: providers, Log: log,
+		EndSessions: func(ctx context.Context, tx store.Store, tid, uid string) error {
+			return logoutService.WithStore(tx).EndUserSessions(ctx, tid, uid, logout.SessionRevoked)
+		}}
 	sec := cfg.Security
 	buildsOwned = true
 	eventDeliveryWorker := eventstream.NewWorker(st, wrapper, events.Config{AllowPrivateNetworks: cfg.Events.AllowPrivateNetworks, AllowInsecureHTTP: cfg.Events.AllowInsecureHTTP}, nil, eventstream.NewActionRunner(engine), log)
@@ -424,6 +430,7 @@ func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.S
 		runner:       runner,
 		builds:       builds,
 		actions:      actionsRunner,
+		dirSync:      dirSyncer,
 		actionJobs:   &actions.Worker{Engine: engine, Store: st, Workers: cfg.Actions.JobWorkers, Poll: cfg.Actions.JobPollInterval},
 		jobs:         jobRunner,
 		logs:         recorder,
@@ -845,6 +852,12 @@ func (a *App) Serve(ctx context.Context) error {
 				a.log.Warn("actions: pre-extracting deployed builds failed", "err", err)
 			}
 		}()
+	}
+	if a.dirSync != nil {
+		syncCtx, stopSync := context.WithCancel(ctx)
+		syncDone := make(chan struct{})
+		go func() { defer close(syncDone); a.dirSync.Run(syncCtx) }()
+		defer func() { stopSync(); <-syncDone }()
 	}
 	if a.actionJobs != nil {
 		workerCtx, stopWorker := context.WithCancel(ctx)

@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="same-origin">
+<title>Single sign-on setup</title>
+<style>
+:root { --primary: {{.PrimaryColor}}; }
+body { font-family: system-ui, sans-serif; margin: 0; background: #f6f8fa; color: #1f2328; }
+main { max-width: 44rem; margin: 2rem auto; background: #fff; padding: 2rem; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,.12); }
+h1 { margin-top: 0; font-size: 1.5rem; }
+h2 { font-size: 1.1rem; margin-top: 2rem; }
+label { display: block; margin: .75rem 0 .25rem; font-weight: 600; }
+input[type=text], input[type=url], textarea, select { width: 100%; box-sizing: border-box; padding: .5rem; font: inherit; }
+textarea { min-height: 8rem; font-family: ui-monospace, monospace; font-size: .85rem; }
+button { background: var(--primary); color: #fff; border: 0; padding: .6rem 1.2rem; border-radius: 6px; font: inherit; cursor: pointer; margin-top: 1rem; }
+.notice { background: #dafbe1; padding: .75rem; border-radius: 6px; }
+.error { background: #ffebe9; padding: .75rem; border-radius: 6px; }
+code, .value { font-family: ui-monospace, monospace; font-size: .85rem; word-break: break-all; }
+dt { font-weight: 600; margin-top: .5rem; }
+dd { margin: 0; }
+fieldset { border: 1px solid #d0d7de; border-radius: 6px; margin-top: 1rem; }
+.logo { max-height: 48px; margin-bottom: 1rem; }
+.muted { color: #59636e; }
+</style>
+</head>
+<body>
+<main>
+{{if .S}}{{with .S.PDocLogo}}<img class="logo" src="{{.}}" alt="">{{end}}{{end}}
+<h1>Single sign-on setup</h1>
+{{if .Error}}<p class="error" role="alert">{{.Error}}</p>{{end}}
+{{if .Notice}}<p class="notice" role="status">{{.Notice}}</p>{{end}}
+{{if not .S}}
+{{else if .Done}}
+<p>Setup is complete. You can close this page.</p>
+{{else}}
+{{with .S.Intro}}<div class="intro">{{sanitize .}}</div>{{end}}
+<h2>1. Values for your identity provider</h2>
+<p class="muted">Register these with your identity provider.</p>
+<dl>
+<dt>Callback / redirect URL</dt><dd class="value">{{.Callback}}</dd>
+<dt>SAML assertion consumer service URL</dt><dd class="value">{{.ACS}}</dd>
+<dt>SAML entity ID (audience)</dt><dd class="value">{{.EntityID}}</dd>
+</dl>
+{{with .S.Attributes}}<h2>Attributes to send</h2><ul>{{range .}}<li><code>{{.Name}}</code> — {{.Description}}{{if .IsOptional}} (optional){{end}}</li>{{end}}</ul>{{end}}
+{{if .S.CanSSO}}
+<h2>2. Connect your identity provider</h2>
+{{if .ConnectionExists}}<p>Connection <code>{{.ConnectionName}}</code> ({{.Strategy}}).</p>{{end}}
+<form method="post" action="/self-service/connections-flow">
+<input type="hidden" name="csrf" value="{{.CSRF}}">
+<input type="hidden" name="action" value="configure">
+<label for="strategy">Identity provider</label>
+<select id="strategy" name="strategy">{{$cur := .Strategy}}{{range .Strategies}}<option value="{{.}}"{{if eq . $cur}} selected{{end}}>{{.}}</option>{{end}}</select>
+<fieldset><legend>SAML (samlp)</legend>
+<label for="metadata_url">Metadata URL</label><input type="url" id="metadata_url" name="metadata_url" placeholder="https://idp.example.com/metadata.xml">
+<p class="muted">Or the sign-in URL and signing certificate:</p>
+<label for="sign_in_url">Sign-in URL</label><input type="url" id="sign_in_url" name="sign_in_url">
+<label for="signing_cert">Signing certificate (PEM)</label><textarea id="signing_cert" name="signing_cert"></textarea>
+</fieldset>
+<fieldset><legend>OpenID Connect (oidc), Okta (okta), Microsoft Entra ID (waad)</legend>
+<label for="discovery_url">Discovery URL (OpenID Connect)</label><input type="url" id="discovery_url" name="discovery_url">
+<label for="okta_domain">Okta domain (Okta)</label><input type="text" id="okta_domain" name="okta_domain">
+<label for="tenant_domain">Directory (tenant) domain or ID (Entra ID)</label><input type="text" id="tenant_domain" name="tenant_domain">
+<label for="client_id">Client ID</label><input type="text" id="client_id" name="client_id" autocomplete="off">
+<label for="client_secret">Client secret</label><input type="password" id="client_secret" name="client_secret" autocomplete="off">
+</fieldset>
+<fieldset><legend>ADFS (adfs)</legend>
+<label for="adfs_server">ADFS server</label><input type="text" id="adfs_server" name="adfs_server" placeholder="adfs.corp.example.com">
+<label for="fed_metadata_xml">Or federation metadata XML</label><textarea id="fed_metadata_xml" name="fed_metadata_xml"></textarea>
+</fieldset>
+{{with .Domains}}<fieldset><legend>Email domains that sign in with this connection</legend>{{range .}}<label><input type="checkbox" name="domains" value="{{.}}"> {{.}}</label>{{end}}</fieldset>{{end}}
+<button type="submit">Save</button>
+</form>
+{{end}}
+{{if .ConnectionExists}}
+<h2>3. Test</h2>
+{{if .TestURL}}<p><a href="{{.TestURL}}" rel="noopener">Sign in through the new connection</a> to check it works.</p>{{else}}<p class="muted">No application is enabled for this connection yet, so there is nothing to sign in to.</p>{{end}}
+{{if .S.CanSCIM}}
+<h2>4. Provisioning (SCIM)</h2>
+<p>SCIM endpoint URL: <span class="value">{{.SCIMEndpoint}}</span></p>
+{{if .SCIMToken}}<p>Token: <span class="value" id="scim-token">{{.SCIMToken}}</span></p>{{else}}
+<form method="post" action="/self-service/connections-flow"><input type="hidden" name="csrf" value="{{.CSRF}}"><input type="hidden" name="action" value="scim"><button type="submit">Create a SCIM token</button></form>{{end}}
+{{end}}
+<h2>Finish</h2>
+<form method="post" action="/self-service/connections-flow"><input type="hidden" name="csrf" value="{{.CSRF}}"><input type="hidden" name="action" value="finish"><button type="submit">Finish setup</button></form>
+<p class="muted">Finishing ends this link; it cannot be used again.</p>
+{{end}}
+{{end}}
+</main>
+</body>
+</html>
