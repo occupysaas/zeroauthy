@@ -175,7 +175,7 @@ func (h *Handlers) AuthorizeSAML(w http.ResponseWriter, r *http.Request, req Req
 
 func (h *Handlers) authorizeRequest(w http.ResponseWriter, r *http.Request, res tenant.Resolved, view ui.Tenant, req Request) {
 	ctx := r.Context()
-	client, verr, redirectable := ValidateRequest(ctx, h.Store, res.Tenant, &req)
+	client, verr, redirectable := ValidateRequestOn(ctx, h.Store, res, &req)
 	if verr != nil {
 		if !redirectable {
 			renderPageError(w, view, verr)

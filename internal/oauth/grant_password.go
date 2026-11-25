@@ -208,6 +208,12 @@ func (h *Handlers) resourceOwner(ctx context.Context, res tenant.Resolved, c *st
 	if aud == "" {
 		aud = res.Tenant.DefaultAudience
 	}
+	// Each host has its own My Account audience (LR42a-10).
+	if id, ok := tenant.APIIdentifier(res, aud); ok {
+		aud = id
+	} else {
+		return nil, accessDenied("unknown audience")
+	}
 	if aud != "" && !h.isMFAAudience(ctx, tenantID, aud) {
 		// Like client_credentials: an unknown API is access_denied, not a bad grant.
 		if _, err := h.Store.ResourceServers().GetByIdentifier(ctx, tenantID, aud); errors.Is(err, store.ErrNotFound) {

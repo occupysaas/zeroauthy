@@ -44,6 +44,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/phone"
 	"github.com/zeroauthy/zeroauthy/internal/protection"
 	"github.com/zeroauthy/zeroauthy/internal/ratelimit"
+	"github.com/zeroauthy/zeroauthy/internal/myaccount"
 	"github.com/zeroauthy/zeroauthy/internal/scim"
 	"github.com/zeroauthy/zeroauthy/internal/selfservice"
 	"github.com/zeroauthy/zeroauthy/internal/session"
@@ -428,6 +429,7 @@ func New(d Deps) http.Handler {
 		tr.Post("/u/login/social", lg.SocialStart)
 		tr.Get("/login/callback", lg.SocialCallback)
 		tr.Mount("/scim/v2/connections/{connection_id}", scimHandler.Routes())
+		tr.Mount(myaccount.Path, (&myaccount.Handlers{Store: d.Store, Keys: d.Keys, Log: d.Log}).Routes())
 		// The assistant answers GET and POST only.
 		tr.Get(selfservice.Path, assistant.ServeHTTP)
 		tr.Post(selfservice.Path, assistant.ServeHTTP)

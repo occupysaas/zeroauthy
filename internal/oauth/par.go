@@ -103,7 +103,7 @@ func (h *Handlers) par(w http.ResponseWriter, r *http.Request, res tenant.Resolv
 	}
 	req.IgnoreClaimsParameter = h.Compat.IgnoreClaimsParameter
 	req.OptionalRedirectURI = h.Compat.OptionalRedirectURI
-	if _, verr, _ := authz.ValidateRequest(ctx, h.Store, t, &req); verr != nil {
+	if _, verr, _ := authz.ValidateRequestOn(ctx, h.Store, res, &req); verr != nil {
 		return nil, parError(verr) // P2
 	}
 
