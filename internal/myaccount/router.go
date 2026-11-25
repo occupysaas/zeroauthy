@@ -84,16 +84,12 @@ func (h *Handlers) Routes() http.Handler {
 	r.Get("/authentication-methods", h.with("read:me:authentication_methods", h.listMethods))
 	r.Post("/authentication-methods", h.with("create:me:authentication_methods", h.createMethod))
 	r.Get("/authentication-methods/{id}", h.with("read:me:authentication_methods", h.getMethod))
-	r.Patch("/authentication-methods/{id}", h.with("update:me:authentication_methods", h.notImplemented))
-	r.Delete("/authentication-methods/{id}", h.with("delete:me:authentication_methods", h.notImplemented))
+	r.Patch("/authentication-methods/{id}", h.with("update:me:authentication_methods", h.patchMethod))
+	r.Delete("/authentication-methods/{id}", h.with("delete:me:authentication_methods", h.deleteMethod))
 	r.Post("/authentication-methods/{id}/verify", h.with("create:me:authentication_methods", h.verifyMethod))
 	r.NotFound(func(w http.ResponseWriter, r *http.Request) { writeProblem(w, r, notFound("Not found.")) })
 	r.MethodNotAllowed(func(w http.ResponseWriter, r *http.Request) {
 		writeProblem(w, r, problem(http.StatusMethodNotAllowed, "method_not_allowed", "Method Not Allowed", "Method not allowed."))
 	})
 	return r
-}
-
-func (h *Handlers) notImplemented(w http.ResponseWriter, r *http.Request, _ *Caller) {
-	writeProblem(w, r, problem(http.StatusNotImplemented, "not_implemented", "Not Implemented", "Not implemented yet."))
 }
