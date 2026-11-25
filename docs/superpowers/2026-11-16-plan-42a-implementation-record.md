@@ -55,6 +55,26 @@ Local toolchain: Go `1.27.4-X:nodwarf5`; Node 26.8.1; Chromium.
 |---|---|
 | Focused Go tests per task (ledger) | passed |
 | Mutation checks | dropping the WebAuthn binding's first-origin check fails `TestWebAuthnBindingOrigins`; allowing the last password/passkey to be deleted fails `TestDeleteLastFirstFactor` |
-| Console: Vitest, `vue-tsc`, ESLint | passed (761 tests) |
-| `make e2e-my-account` | see below |
-| Fast tier | see below |
+| Console: Vitest, `vue-tsc`, ESLint | passed (761 tests); `console/dist` built in a clean clone |
+| `make e2e-my-account` | first run: the hosted-login passkey autofill loop above (lane switched to `challenge_ui: button`); then passed: setup, raw requests (401/403 bodies, `x-correlation-id`, client credentials `access_denied`, CORS), Playwright 1 test (spa-js login, factors, TOTP, passkey with a virtual authenticator, rename, delete, the last-method guard), log audit of 11 private values; passed again after the review fix |
+| Fast tier `TMPDIR=/dev/shm/za42a GOTMPDIR=/dev/shm/za42a go test -p 4 ./...` | passed (exit 0, 116 packages ok) before the review fix; the packages the fix touches (`tenant`, `oauth`, `authz`, `server`, `passwordless`, `myaccount`) passed again after it |
+| `make check-sources` | `api/myaccount.yaml` all reachable; two Plan 37c URLs in `api/management.yaml` now answer 404 (`.../get-connections-directory-provisionings`, `.../get-connections-scim-configurations`), already on `main` |
+| Final review | self-review against the code-reviewer checklist (no reviewer subagent was dispatched); found and fixed the custom-domain code flow (`TestMyAccountCodeFlowOnAlias` RED→GREEN) |
+
+## Not verified locally
+
+PostgreSQL and MySQL (plan-branch CI runs them; the plan adds no
+migration: `auth_session` rows use the MFA challenge table), a live Auth0
+tenant (observation points Y1–Y10), and a custom domain in the browser
+lane (covered by Go tests on a second host).
+
+## Deferred minors
+
+- A deployment without the MFA service would refuse passkey and password
+  enrollment too (`createMethod` checks it first); production always wires it.
+- Changing the password of a linked identity answers `404`; a clearer
+  `400` would help.
+- `tenant.APIIdentifier`'s `ok` result is now always true; its callers'
+  refusal branches are dead code.
+- The API detail page's system note still says system APIs cannot be
+  deleted, which is not true of the My Account API.

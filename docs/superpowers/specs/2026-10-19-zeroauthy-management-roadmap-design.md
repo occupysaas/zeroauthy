@@ -36,7 +36,7 @@ per item; items without rulings can start as soon as their track allows.
 | S2 | 39b social providers | [spec](2026-11-16-zeroauthy-social-providers-design.md) | provider order; Tier 2 timing; live checks |
 | A1 | 40 Actions III | [spec](2026-11-16-zeroauthy-actions-iii-design.md) | none |
 | A2 | 38b Forms and Flows | [spec](2026-11-16-zeroauthy-forms-flows-design.md) | console builder scope; vendor order |
-| U1 | 42a My Account API | [spec](2026-11-16-zeroauthy-my-account-api-design.md) | none (seed shorthand optional) |
+| U1 | 42a My Account API (implemented on `plan-42a-my-account`; CI and approval pending) | [spec](2026-11-16-zeroauthy-my-account-api-design.md) | none (seed shorthand optional) |
 | U2 | 42b My Organization API | [spec](2026-11-16-zeroauthy-my-organization-api-design.md) | build while Early Access; Phase B timing |
 | H1 | 44 ACUL | [spec](2026-11-16-zeroauthy-acul-design.md) | Classic Login; security boundary; canonical host; ACUL SDK pin |
 | M1 | 38d Management gaps | [spec](2026-11-16-zeroauthy-management-gaps-design.md) | verifiable-credential templates; `/keys/encryption` owner |
