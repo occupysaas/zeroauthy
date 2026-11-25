@@ -3992,3 +3992,48 @@ real connector):
 | LR38a-12 | Directory passwords change through `PATCH /api/v2/users/{id}` (password alone) and the connector's `change_password` (it needs `ENABLE_WRITE_BACK`); the hosted forgot-password flow is not offered for `ad` connections, whose passwords live in the directory. The sign-in name is kept as identity provider data `ad_username` for it. Final, not a follow-up (maintainer, 2026-11-23): the directory owns the password, and resets outside it are left to the directory's administrators. |
 | LR38a-13 | `groups` and the connector profile's other attributes are identity provider data (`identities[].profileData`), not root attributes (D38-4). |
 | LR38a-14 | A connector socket silent for 30 s is closed (the connector pings every 5 s); session rows are refreshed every 30 s and count as online for 90 s. |
+
+## D-0210: My Account API — authentication methods and factors (Plan 42a)
+
+**Contract frozen 2026-11-25; implementation in progress.** Contract:
+[`api/myaccount.yaml`](../../api/myaccount.yaml). The
+[spec](../superpowers/specs/2026-11-16-zeroauthy-my-account-api-design.md)
+and [plan](../superpowers/plans/2026-11-16-zeroauthy-plan-42a-my-account-api.md)
+reserve D-0210–0219. No live Auth0 tenant was observed by the implementer.
+
+Sources: Auth0's My Account OpenAPI 1.0
+(`https://auth0.com/docs/oas/myaccount/myaccount-api-oas.json`, read
+2026-11-25) and the [My Account API guide](https://auth0.com/docs/manage-users/my-account-api).
+Served: `GET /factors` (Early Access), the five GA
+`/authentication-methods` operations and `POST .../{id}/verify`. Not
+served: connected accounts (Plan 43), consents and consent signing keys
+(Early Access), profile (beta).
+
+What the OpenAPI fixes and zeroauthy follows: server `https://{host}/me/v1`
+on the canonical host or a custom domain; one scope per operation
+(`read:me:factors`, `read|create|update|delete:me:authentication_methods`,
+`verify` under `create:`); `202` with `auth_session` and a `Location`
+header from `POST` (`{type}|new` for passkey and password); `201` from
+`verify`; the per-type method members (`AuthenticationMethod*`) and
+creation responses (`barcode_uri`/`manual_input_code`, `recovery_code`,
+`authn_params_public_key`, the password `policy`); `ErrorResponse`
+(`type`, `status`, `title`, `detail`, `validation_errors[]`) with the
+`x-correlation-id` header; at most 20 listed methods.
+
+**Local rulings:**
+
+| ID | Ruling |
+|---|---|
+| LR42a-1 | `GET /factors` (Early Access) is served: it is read-only and every enrollment UI needs it. |
+| LR42a-2 | `push-notification` enrollment answers `400` (Guardian push is not supported). |
+| LR42a-3 | `auth_session` is opaque, single use, bound to user, application and type, and expires after 5 minutes. |
+| LR42a-4 | Activation is the existence of the system API `https://{canonical host}/me/` (`Auth0 My Account API`, `is_system`, user policy `require_client_grant`, client policy `deny_all`, `allow_offline_access`); the console, `POST /api/v2/resource-servers` with that identifier and the seed create it, deleting it deactivates. |
+| LR42a-5 | Method IDs equal the Management API's; password methods, which the Management API does not list, are `password|{base64url(identity user ID)}`. |
+| LR42a-6 | Method names are at most 100 characters. |
+| LR42a-7 | Seed shorthand `my_account_api: {active: true}` (local extension). |
+| LR42a-8 | `email` enrollment accepts only the user's verified email address: every zeroauthy email challenge requires the method's address to equal it (D-0059). |
+| LR42a-9 | The API is a system API, but tokens for it are ordinary user tokens: client grants and the refresh decision apply, client credentials and token exchange are refused; RBAC is not applied (system APIs carry no permissions) and multi-resource refresh does not cover it. |
+| LR42a-10 | Audience per host: `https://{request host}/me/` names the tenant's one My Account API; a token carries the audience of the host it was issued on, and `/me/v1` accepts only its own host's audience. |
+
+Observation points Y1–Y10 are listed in
+[plan-1-followups.md](../superpowers/plan-1-followups.md#plan-42a-observation-points).

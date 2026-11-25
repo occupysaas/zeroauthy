@@ -1,0 +1,552 @@
+# api/myaccount.yaml
+openapi: 3.1.0
+info:
+  title: zeroauthy My Account API
+  version: 0.1.0
+  summary: A signed-in user's own authentication methods (Plan 42a, D-0210).
+  description: |
+    Each tenant host serves the My Account API at `https://{host}/me/v1` once
+    the tenant has activated it (the system API `https://{canonical
+    host}/me/` exists). Calls carry a user access token whose audience is
+    `https://{host}/me/` for the host being called: a token issued on the
+    canonical host is not accepted on a custom domain, and the reverse.
+    Client credentials tokens are refused. Every operation acts on the
+    token's subject; no path or body field names a user.
+
+    Errors use the `ErrorResponse` body with the `x-correlation-id` header.
+    Every operation lists the public documents it was derived from in
+    `x-source`. zeroauthy is a clean-room implementation; see
+    `CLEAN_ROOM.md`.
+  license:
+    name: Apache-2.0
+    identifier: Apache-2.0
+servers:
+- url: https://{host}/me/v1
+  variables:
+    host:
+      default: tenant.example.com
+      description: The canonical host or a custom domain of the tenant.
+security:
+- myAccountToken: []
+paths:
+  /factors:
+    get:
+      operationId: GetFactors
+      summary: List the factors the tenant offers this user
+      description: Guardian factors the tenant enables, `passkey` when the user's database connection allows passkeys, and `password` for database users. `usage` says whether a factor signs in (`primary`) or is a second factor (`secondary`). Early Access at Auth0; served because every enrollment UI needs it (LR42a-1).
+      x-source:
+      - https://auth0.com/docs/oas/myaccount/myaccount-api-oas.json
+      - https://auth0.com/docs/manage-users/my-account-api
+      security:
+      - myAccountToken: [read:me:factors]
+      parameters:
+      - $ref: '#/components/parameters/CorrelationId'
+      responses:
+        '200':
+          description: The factors.
+          headers:
+            x-correlation-id:
+              $ref: '#/components/headers/CorrelationId'
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [factors]
+                properties:
+                  factors:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Factor'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '429':
+          $ref: '#/components/responses/Problem'
+  /authentication-methods:
+    get:
+      operationId: ListAuthenticationMethods
+      summary: List the user's authentication methods
+      description: Passwords (one per database identity), passkeys, WebAuthn keys and the confirmed TOTP, email, phone and recovery-code methods. IDs equal the Management API's for the same method (LR42a-5).
+      x-source:
+      - https://auth0.com/docs/oas/myaccount/myaccount-api-oas.json
+      - https://auth0.com/docs/manage-users/my-account-api
+      security:
+      - myAccountToken: [read:me:authentication_methods]
+      parameters:
+      - name: type
+        in: query
+        description: Only methods of this type.
+        schema:
+          $ref: '#/components/schemas/FactorType'
+      - $ref: '#/components/parameters/CorrelationId'
+      responses:
+        '200':
+          description: The methods.
+          headers:
+            x-correlation-id:
+              $ref: '#/components/headers/CorrelationId'
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [authentication_methods]
+                properties:
+                  authentication_methods:
+                    type: array
+                    maxItems: 20
+                    items:
+                      $ref: '#/components/schemas/AuthenticationMethod'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '429':
+          $ref: '#/components/responses/Problem'
+    post:
+      operationId: CreateAuthenticationMethod
+      summary: Start enrolling an authentication method
+      description: |
+        Starts an enrollment and returns `auth_session`, an opaque value that
+        finishes it through `POST /authentication-methods/{id}/verify`. It is
+        bound to the user, the application and the method type, works once
+        and expires after five minutes (LR42a-3). The `Location` header names
+        the method (`{type}|new` for `passkey` and `password`, whose IDs exist
+        only once verified). A factor the tenant has not enabled, and
+        `push-notification` (not supported, LR42a-2), answer `400`. `email`
+        must be the user's verified email (LR42a-8).
+      x-source:
+      - https://auth0.com/docs/oas/myaccount/myaccount-api-oas.json
+      - https://auth0.com/docs/manage-users/my-account-api
+      security:
+      - myAccountToken: [create:me:authentication_methods]
+      parameters:
+      - $ref: '#/components/parameters/CorrelationId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateAuthenticationMethod'
+      responses:
+        '202':
+          description: The enrollment started.
+          headers:
+            Location:
+              description: URL of the authentication method.
+              schema:
+                type: string
+                format: uri
+            x-correlation-id:
+              $ref: '#/components/headers/CorrelationId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EnrollmentStarted'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '415':
+          $ref: '#/components/responses/Problem'
+        '429':
+          $ref: '#/components/responses/Problem'
+  /authentication-methods/{authentication_method_id}:
+    parameters:
+    - $ref: '#/components/parameters/MethodID'
+    get:
+      operationId: GetAuthenticationMethod
+      summary: Read one of the user's authentication methods
+      x-source:
+      - https://auth0.com/docs/oas/myaccount/myaccount-api-oas.json
+      security:
+      - myAccountToken: [read:me:authentication_methods]
+      parameters:
+      - $ref: '#/components/parameters/CorrelationId'
+      responses:
+        '200':
+          description: The method.
+          headers:
+            x-correlation-id:
+              $ref: '#/components/headers/CorrelationId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthenticationMethod'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '429':
+          $ref: '#/components/responses/Problem'
+    patch:
+      operationId: UpdateAuthenticationMethod
+      summary: Rename a method or change a phone's delivery preference
+      description: '`name` applies to passkeys, WebAuthn keys, TOTP, email and phone methods (at most 100 characters, LR42a-6); `preferred_authentication_method` to phone methods. Other fields are refused.'
+      x-source:
+      - https://auth0.com/docs/oas/myaccount/myaccount-api-oas.json
+      security:
+      - myAccountToken: [update:me:authentication_methods]
+      parameters:
+      - $ref: '#/components/parameters/CorrelationId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                name:
+                  type: string
+                  maxLength: 100
+                preferred_authentication_method:
+                  $ref: '#/components/schemas/PhoneDelivery'
+      responses:
+        '200':
+          description: The updated method.
+          headers:
+            x-correlation-id:
+              $ref: '#/components/headers/CorrelationId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthenticationMethod'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '415':
+          $ref: '#/components/responses/Problem'
+        '429':
+          $ref: '#/components/responses/Problem'
+    delete:
+      operationId: DeleteAuthenticationMethod
+      summary: Remove one of the user's authentication methods
+      description: Deleting the user's last way to sign in (the password of a database user without a passkey, or the only passkey of a user without a password) answers `409`.
+      x-source:
+      - https://auth0.com/docs/oas/myaccount/myaccount-api-oas.json
+      security:
+      - myAccountToken: [delete:me:authentication_methods]
+      parameters:
+      - $ref: '#/components/parameters/CorrelationId'
+      responses:
+        '204':
+          description: Removed.
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '429':
+          $ref: '#/components/responses/Problem'
+  /authentication-methods/{authentication_method_id}/verify:
+    parameters:
+    - $ref: '#/components/parameters/MethodID'
+    post:
+      operationId: VerifyAuthenticationMethod
+      summary: Finish an enrollment
+      description: |
+        `auth_session` from the enrollment start, plus `otp_code` (TOTP, email,
+        phone), `authn_response` (passkey, WebAuthn) or `new_password`
+        (password). A password change runs the connection's whole password
+        policy, history and breached-password checks, like a reset.
+      x-source:
+      - https://auth0.com/docs/oas/myaccount/myaccount-api-oas.json
+      - https://auth0.com/docs/manage-users/my-account-api
+      security:
+      - myAccountToken: [create:me:authentication_methods]
+      parameters:
+      - $ref: '#/components/parameters/CorrelationId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VerifyAuthenticationMethod'
+      responses:
+        '201':
+          description: The enrolled method.
+          headers:
+            Location:
+              description: URL of the authentication method.
+              schema:
+                type: string
+                format: uri
+            x-correlation-id:
+              $ref: '#/components/headers/CorrelationId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthenticationMethod'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '415':
+          $ref: '#/components/responses/Problem'
+        '429':
+          $ref: '#/components/responses/Problem'
+components:
+  securitySchemes:
+    myAccountToken:
+      type: http
+      scheme: bearer
+      description: A user access token for `https://{host}/me/` issued on the host being called.
+  parameters:
+    CorrelationId:
+      name: x-correlation-id
+      in: header
+      description: Echoed on the response; replaced by zeroauthy's request ID when absent or longer than 64 characters.
+      schema:
+        type: string
+    MethodID:
+      name: authentication_method_id
+      in: path
+      required: true
+      description: The method ID as listed, or `{type}|new` while a passkey or password enrollment is pending.
+      schema:
+        type: string
+        maxLength: 512
+  headers:
+    CorrelationId:
+      description: The request's correlation ID.
+      schema:
+        type: string
+  responses:
+    Problem:
+      description: An error.
+      headers:
+        x-correlation-id:
+          $ref: '#/components/headers/CorrelationId'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+  schemas:
+    FactorType:
+      type: string
+      enum: [password, passkey, webauthn-platform, webauthn-roaming, totp, phone, email, push-notification, recovery-code]
+    Usage:
+      type: array
+      items:
+        type: string
+        enum: [primary, secondary]
+    PhoneDelivery:
+      type: string
+      enum: [sms, voice]
+    Factor:
+      type: object
+      required: [type]
+      properties:
+        type:
+          $ref: '#/components/schemas/FactorType'
+        usage:
+          $ref: '#/components/schemas/Usage'
+    AuthenticationMethod:
+      type: object
+      description: One method. Every method has `id`, `type`, `created_at` and `usage`; second factors have `confirmed`; the other members depend on `type`.
+      required: [id, type, created_at, usage]
+      properties:
+        id: {type: string}
+        type:
+          $ref: '#/components/schemas/FactorType'
+        created_at: {type: string, format: date-time}
+        usage:
+          $ref: '#/components/schemas/Usage'
+        confirmed: {type: boolean}
+        name: {type: string}
+        last_auth_at: {type: string, format: date-time}
+        identity_user_id: {type: string, description: 'password, passkey: the identity the method belongs to.'}
+        last_password_reset: {type: string, format: date-time}
+        email: {type: string}
+        phone_number: {type: string}
+        preferred_authentication_method:
+          $ref: '#/components/schemas/PhoneDelivery'
+        key_id: {type: string}
+        public_key: {type: string}
+        credential_device_type: {type: string, enum: [multi_device, single_device]}
+        credential_backed_up: {type: boolean}
+        transports:
+          type: array
+          items: {type: string}
+        user_agent: {type: string}
+        user_handle: {type: string}
+        aaguid: {type: string}
+        relying_party_id: {type: string}
+    CreateAuthenticationMethod:
+      type: object
+      required: [type]
+      properties:
+        type:
+          $ref: '#/components/schemas/FactorType'
+        email: {type: string, maxLength: 320, description: 'email only.'}
+        phone_number: {type: string, maxLength: 32, description: 'phone only, E.164.'}
+        preferred_authentication_method:
+          $ref: '#/components/schemas/PhoneDelivery'
+        connection:
+          type: string
+          minLength: 1
+          maxLength: 128
+          pattern: '^[a-zA-Z0-9-]+$'
+          description: 'passkey, password: the database connection of the identity (when the user has several).'
+        identity_user_id:
+          type: string
+          minLength: 1
+          maxLength: 255
+          pattern: '^\S+$'
+          description: 'passkey, password: the identity''s user ID.'
+    PublicKeyCreationOptions:
+      type: object
+      description: WebAuthn `PublicKeyCredentialCreationOptions` with binary members base64url-encoded.
+      required: [challenge, pubKeyCredParams, rp, user]
+      properties:
+        challenge: {type: string}
+        timeout: {type: number}
+        rp:
+          type: object
+          required: [name]
+          properties:
+            id: {type: string}
+            name: {type: string}
+        user:
+          type: object
+          required: [id, name, displayName]
+          properties:
+            id: {type: string}
+            name: {type: string}
+            displayName: {type: string}
+        pubKeyCredParams:
+          type: array
+          items:
+            type: object
+            required: [alg, type]
+            properties:
+              alg: {type: number}
+              type: {type: string, enum: [public-key]}
+        authenticatorSelection:
+          type: object
+          properties:
+            authenticatorAttachment: {type: string, enum: [platform, cross-platform]}
+            residentKey: {type: string}
+            userVerification: {type: string, enum: [required, preferred, discouraged]}
+    PasswordPolicy:
+      type: object
+      required: [complexity, profile_data, history, dictionary]
+      properties:
+        complexity:
+          type: object
+          required: [min_length, character_types, character_type_rule, identical_characters, sequential_characters, max_length_exceeded]
+          properties:
+            min_length: {type: integer}
+            character_types:
+              type: array
+              items: {type: string, enum: [uppercase, lowercase, number, special]}
+            character_type_rule: {type: string, enum: [all, three_of_four]}
+            identical_characters: {type: string, enum: [allow, block]}
+            sequential_characters: {type: string, enum: [allow, block]}
+            max_length_exceeded: {type: string, enum: [truncate, error]}
+        profile_data:
+          type: object
+          required: [active, blocked_fields]
+          properties:
+            active: {type: boolean}
+            blocked_fields:
+              type: array
+              items: {type: string}
+        history:
+          type: object
+          required: [active, size]
+          properties:
+            active: {type: boolean}
+            size: {type: integer}
+        dictionary:
+          type: object
+          required: [active, default]
+          properties:
+            active: {type: boolean}
+            default: {type: string, enum: [en_10k, en_100k]}
+    EnrollmentStarted:
+      type: object
+      required: [auth_session]
+      description: '`id` for every type but `passkey`; `barcode_uri` and `manual_input_code` (TOTP); `recovery_code` (shown once); `authn_params_public_key` (passkey, WebAuthn); `policy` (password).'
+      properties:
+        id: {type: string}
+        auth_session: {type: string}
+        barcode_uri: {type: string}
+        manual_input_code: {type: string}
+        recovery_code: {type: string}
+        authn_params_public_key:
+          $ref: '#/components/schemas/PublicKeyCreationOptions'
+        policy:
+          $ref: '#/components/schemas/PasswordPolicy'
+    AttestationResponse:
+      type: object
+      required: [id, rawId, response, type]
+      properties:
+        id: {type: string, maxLength: 1364}
+        rawId: {type: string, maxLength: 1364}
+        type: {type: string, enum: [public-key]}
+        authenticatorAttachment: {type: string, enum: [platform, cross-platform]}
+        clientExtensionResults: {type: object}
+        response:
+          type: object
+          required: [attestationObject, clientDataJSON]
+          properties:
+            attestationObject: {type: string, maxLength: 2000}
+            clientDataJSON: {type: string, maxLength: 1000}
+            transports:
+              type: array
+              items: {type: string, maxLength: 100}
+    VerifyAuthenticationMethod:
+      type: object
+      required: [auth_session]
+      properties:
+        auth_session: {type: string, maxLength: 2048}
+        otp_code: {type: string, maxLength: 64}
+        new_password: {type: string, minLength: 1, maxLength: 256}
+        authn_response:
+          $ref: '#/components/schemas/AttestationResponse'
+    ValidationError:
+      type: object
+      additionalProperties: false
+      required: [detail]
+      properties:
+        detail: {type: string}
+        field: {type: string}
+        pointer: {type: string}
+        source: {type: string}
+    ErrorResponse:
+      type: object
+      additionalProperties: false
+      required: [type, status, title, detail]
+      properties:
+        type: {type: string}
+        status: {type: number}
+        title: {type: string}
+        detail: {type: string}
+        validation_errors:
+          type: array
+          items:
+            $ref: '#/components/schemas/ValidationError'

@@ -925,3 +925,18 @@ Recorded under [D-0160](../compat/decisions.md); observe on a live tenant when o
   console view of `list_groups`; ticket rotation without recreating the
   connection; Kerberos on custom domains (the connector accepts one
   `postTokenUrl`, LR38a-10).
+
+## Plan 42a observation points
+
+Recorded under [D-0210](../compat/decisions.md); observe on a live tenant when one is available.
+
+- **Y1** Status and wording for the WebAuthn limits and the last-factor guard (zeroauthy: `409`).
+- **Y2** The system API's name (zeroauthy: `Auth0 My Account API`).
+- **Y3** Its `allow_offline_access` default (zeroauthy: true).
+- **Y4** Masking of phone numbers and emails in method listings (zeroauthy: shown in full to their owner).
+- **Y5** TOTP and recovery-code `202` members beyond the OpenAPI's.
+- **Y6** The error for a factor the tenant has not enabled (zeroauthy: `400`).
+- **Y7** Log types for My Account enrollments and password changes.
+- **Y8** Deleting the last MFA method under an "always" MFA policy (zeroauthy: allowed).
+- **Y9** `usage` values per factor.
+- **Y10** Whether `email` enrollment accepts an address other than the user's verified email (zeroauthy: no, LR42a-8).
