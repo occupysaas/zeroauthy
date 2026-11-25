@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { TabsContent, TabsList, TabsRoot, TabsTrigger } from 'reka-ui'
-import { ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { ApiError, type ResourceServer } from '../../api/client'
 import { errorMessage, useServices, useTenant } from '../../context'
@@ -13,6 +13,7 @@ import DangerZone from './DangerZone.vue'
 import PermissionsTab from './PermissionsTab.vue'
 import SettingsTab from './SettingsTab.vue'
 import Tag from '../../ui/Tag.vue'
+import { isMyAccount } from './myAccount'
 
 const { t } = useI18n()
 
@@ -20,6 +21,8 @@ const { api } = useServices()
 const tenant = useTenant()
 const route = useRoute()
 const server = ref<ResourceServer | null>(null)
+// System APIs cannot be deleted, except the My Account API: deleting it deactivates it (Plan 42a).
+const deletable = computed(() => !!server.value && (!server.value.is_system || (!!tenant.value && isMyAccount(tenant.value, server.value))))
 const error = ref('')
 const notFound = ref(false)
 const tab = ref('settings')
@@ -59,7 +62,7 @@ watch([tenant, () => route.params.id], load, { immediate: true })
           <TabsTrigger class="tab" value="settings">{{ t('apis.settings') }}</TabsTrigger>
           <TabsTrigger class="tab" value="permissions">{{ t('apis.permissions') }}</TabsTrigger>
           <TabsTrigger class="tab" value="clients">{{ t('apis.machineApps') }}</TabsTrigger>
-          <TabsTrigger v-if="!server.is_system" class="tab" value="danger">{{ t('apis.danger') }}</TabsTrigger>
+          <TabsTrigger v-if="deletable" class="tab" value="danger">{{ t('apis.danger') }}</TabsTrigger>
         </TabsList>
         <TabsContent value="settings">
           <SettingsTab :tenant="tenant" :server="server" @saved="server = $event" />
@@ -70,7 +73,7 @@ watch([tenant, () => route.params.id], load, { immediate: true })
         <TabsContent value="clients">
           <ClientsTab :tenant="tenant" :server="server" />
         </TabsContent>
-        <TabsContent v-if="!server.is_system" value="danger">
+        <TabsContent v-if="deletable" value="danger">
           <DangerZone :tenant="tenant" :server="server" />
         </TabsContent>
       </TabsRoot>

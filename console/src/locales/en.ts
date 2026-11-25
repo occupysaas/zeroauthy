@@ -740,6 +740,11 @@ const en = {
     unnamed: '(no name)',
     identifier: 'Identifier',
     system: 'System',
+    myAccount: {
+      title: 'My Account API',
+      body: 'Lets your applications’ users manage their own passwords, passkeys and second factors through the API at /me/v1. Applications need user access to it, granted on their APIs tab.',
+      activate: 'Activate',
+    },
     systemNote:
       'This API belongs to the tenant and zeroauthy depends on it. Its name and permissions are fixed; only the token lifetimes can change, and it cannot be deleted.',
     back: 'All APIs',
@@ -837,6 +842,12 @@ const en = {
     noneLeft: 'Every API in this tenant is already authorized.',
     revoke: 'Revoke',
     revokeLabel: 'Revoke {audience}',
+    myAccount: {
+      title: 'My Account API',
+      hint: 'Signed-in users of this application may manage their own authentication methods with the permissions chosen here.',
+      allow: 'Allow user access',
+      remove: 'Remove user access',
+    },
   },
 
   appConns: {

@@ -7,6 +7,7 @@ import Banner from '../../ui/Banner.vue'
 import Button from '../../ui/Button.vue'
 import Field from '../../ui/Field.vue'
 import GrantForm from '../apis/GrantForm.vue'
+import { isMyAccount, myAccountIdentifier } from '../apis/myAccount'
 
 const { t } = useI18n()
 
@@ -17,6 +18,8 @@ const { api } = useServices()
 
 const servers = ref<ResourceServer[]>([])
 const grants = ref<ClientGrant[]>([])
+// The application's user grant for the My Account API (Plan 42a).
+const userGrant = ref<ClientGrant | null>(null)
 const loading = ref(true)
 const error = ref('')
 const actionError = ref('')
@@ -30,6 +33,7 @@ async function load() {
     const [s, g] = await Promise.all([api.allResourceServers(props.tenant), api.allClientGrants(props.tenant, { client_id: props.client.client_id })])
     servers.value = s
     grants.value = g.filter((x) => x.subject_type === 'client')
+    userGrant.value = g.find((x) => x.subject_type === 'user' && x.audience === myAccountIdentifier(props.tenant)) ?? null
   } catch (e) {
     error.value = errorMessage(e)
   } finally {
@@ -39,7 +43,35 @@ async function load() {
 onMounted(load)
 
 const rows = computed(() => grants.value.map((g) => ({ grant: g, server: servers.value.find((s) => s.identifier === g.audience) })))
-const unauthorized = computed(() => servers.value.filter((s) => !grants.value.some((g) => g.audience === s.identifier)))
+// The My Account API denies machine-to-machine access.
+const unauthorized = computed(() => servers.value.filter((s) => !isMyAccount(props.tenant, s) && !grants.value.some((g) => g.audience === s.identifier)))
+const myAccount = computed(() => servers.value.find((s) => isMyAccount(props.tenant, s)) ?? null)
+
+async function allowUsers() {
+  const api0 = myAccount.value
+  if (!api0) return
+  busy.value = true
+  actionError.value = ''
+  try {
+    userGrant.value = await api.createClientGrant(props.tenant, { client_id: props.client.client_id, audience: api0.identifier, subject_type: 'user', scope: (api0.scopes ?? []).map((s) => s.value) })
+  } catch (e) {
+    actionError.value = errorMessage(e)
+  } finally {
+    busy.value = false
+  }
+}
+
+async function removeUsers() {
+  const g = userGrant.value
+  if (!g) return
+  actionError.value = ''
+  try {
+    await api.deleteClientGrant(props.tenant, g.id)
+    userGrant.value = null
+  } catch (e) {
+    actionError.value = errorMessage(e)
+  }
+}
 
 function label(s: ResourceServer): string {
   return s.name ? `${s.name} (${s.identifier})` : s.identifier
@@ -101,6 +133,16 @@ function replaced(g: ClientGrant) {
           <GrantForm v-if="r.server" :tenant="tenant" :api="r.server" :grant="r.grant" @saved="replaced" />
         </li>
       </ul>
+
+      <section v-if="myAccount" class="card stack" data-testid="my-account-access">
+        <h2 class="m-0 text-[1.05rem]">{{ t('grants.myAccount.title') }}</h2>
+        <p class="m-0 muted">{{ t('grants.myAccount.hint') }}</p>
+        <template v-if="userGrant">
+          <GrantForm :tenant="tenant" :api="myAccount" :grant="userGrant" @saved="(g) => (userGrant = g)" />
+          <div class="row"><Button variant="danger" @click="removeUsers">{{ t('grants.myAccount.remove') }}</Button></div>
+        </template>
+        <div v-else class="row"><Button variant="primary" :disabled="busy" @click="allowUsers">{{ t('grants.myAccount.allow') }}</Button></div>
+      </section>
 
       <form class="card stack" novalidate @submit.prevent="authorize">
         <h2 class="m-0 text-[1.05rem]">{{ t('grants.authorizeAnother') }}</h2>
