@@ -62,10 +62,10 @@ func (h *Handlers) with(scope string, next handler) http.HandlerFunc {
 // Routes is the router mounted at Path.
 func (h *Handlers) Routes() http.Handler {
 	r := chi.NewRouter()
-	r.Get("/factors", h.with("read:me:factors", h.notImplemented))
-	r.Get("/authentication-methods", h.with("read:me:authentication_methods", h.notImplemented))
+	r.Get("/factors", h.with("read:me:factors", h.listFactors))
+	r.Get("/authentication-methods", h.with("read:me:authentication_methods", h.listMethods))
 	r.Post("/authentication-methods", h.with("create:me:authentication_methods", h.notImplemented))
-	r.Get("/authentication-methods/{id}", h.with("read:me:authentication_methods", h.notImplemented))
+	r.Get("/authentication-methods/{id}", h.with("read:me:authentication_methods", h.getMethod))
 	r.Patch("/authentication-methods/{id}", h.with("update:me:authentication_methods", h.notImplemented))
 	r.Delete("/authentication-methods/{id}", h.with("delete:me:authentication_methods", h.notImplemented))
 	r.Post("/authentication-methods/{id}/verify", h.with("create:me:authentication_methods", h.notImplemented))
