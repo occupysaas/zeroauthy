@@ -244,3 +244,20 @@ func TestProblemShape(t *testing.T) {
 		t.Errorf("inactive API = %d %s", rec.Code, rec.Body)
 	}
 }
+
+// Browser applications call the API cross-origin: origins listed by one of
+// the tenant's applications get CORS, with PATCH and DELETE.
+func TestMyAccountCORS(t *testing.T) {
+	e := newMyAccountEnv(t)
+	pre := e.on(e.canonical, "OPTIONS", "/me/v1/authentication-methods/x", "", nil, http.Header{"Origin": {"https://app.flow.test"}, "Access-Control-Request-Method": {"PATCH"}, "Access-Control-Request-Headers": {"authorization,content-type"}})
+	if pre.Code != 204 || pre.Header().Get("Access-Control-Allow-Origin") != "https://app.flow.test" || !strings.Contains(pre.Header().Get("Access-Control-Allow-Methods"), "PATCH") || !strings.Contains(pre.Header().Get("Access-Control-Allow-Methods"), "DELETE") {
+		t.Fatalf("preflight = %d %v", pre.Code, pre.Header())
+	}
+	if pre := e.on(e.canonical, "OPTIONS", "/me/v1/factors", "", nil, http.Header{"Origin": {"https://evil.test"}, "Access-Control-Request-Method": {"GET"}}); pre.Code != 403 || pre.Header().Get("Access-Control-Allow-Origin") != "" {
+		t.Fatalf("foreign preflight = %d %v", pre.Code, pre.Header())
+	}
+	rec := e.on(e.canonical, "GET", "/me/v1/factors", e.token(t, e.canonical), nil, http.Header{"Origin": {"https://app.flow.test"}})
+	if rec.Code != 200 || rec.Header().Get("Access-Control-Allow-Origin") != "https://app.flow.test" || !strings.Contains(rec.Header().Get("Access-Control-Expose-Headers"), "Location") {
+		t.Fatalf("GET = %d %v", rec.Code, rec.Header())
+	}
+}
