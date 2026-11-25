@@ -30,19 +30,16 @@ func IsMyAccountAPI(t *store.Tenant, rs *store.ResourceServer) bool {
 }
 
 // APIIdentifier maps an audience requested on res's host to the identifier
-// of the API it names. The host's My Account audience names the My Account
-// API (stored under the canonical identifier); the canonical My Account
-// audience requested on any other host names nothing, so ok is false.
-// Other audiences are returned unchanged.
+// of the API it names: the host's My Account audience names the My Account
+// API, stored under the canonical identifier. Other audiences, the
+// canonical identifier included (flows store it and validate it again), are
+// returned unchanged; a token is minted for its host's audience either way
+// (TokenAudience), so it is only accepted on that host. ok is false for
+// no audience the caller may use; it is reserved and currently always true.
 func APIIdentifier(res Resolved, aud string) (id string, ok bool) {
 	canonical := MyAccountIdentifier(res.Tenant)
-	switch {
-	case canonical == "" || !strings.HasSuffix(aud, MyAccountPath):
-		return aud, true
-	case aud == MyAccountAudience(res.Host):
+	if canonical != "" && strings.HasSuffix(aud, MyAccountPath) && aud == MyAccountAudience(res.Host) {
 		return canonical, true
-	case aud == canonical:
-		return "", false
 	}
 	return aud, true
 }

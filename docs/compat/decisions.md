@@ -4035,7 +4035,7 @@ creation responses (`barcode_uri`/`manual_input_code`, `recovery_code`,
 | LR42a-7 | Seed shorthand `my_account_api: {active: true}` (local extension). |
 | LR42a-8 | `email` enrollment accepts only the user's verified email address: every zeroauthy email challenge requires the method's address to equal it (D-0059). |
 | LR42a-9 | The API is a system API, but tokens for it are ordinary user tokens: client grants and the refresh decision apply, client credentials and token exchange are refused; RBAC is not applied (system APIs carry no permissions) and multi-resource refresh does not cover it. |
-| LR42a-10 | Audience per host: `https://{request host}/me/` names the tenant's one My Account API; a token carries the audience of the host it was issued on, and `/me/v1` accepts only its own host's audience. |
+| LR42a-10 | Audience per host: `https://{request host}/me/` names the tenant's one My Account API (the canonical identifier is accepted on every host too); a token carries the audience of the host it was issued on, and `/me/v1` accepts only its own host's audience. |
 | LR42a-11 | Only confirmed methods are listed (passkeys always are); pending enrollments are not methods. Password methods carry the identity's user ID without the provider, like stored passkeys (Plan 33b). |
 | LR42a-12 | An `auth_session` is spent when verify takes it, before the proof is checked: a wrong code ends the enrollment; the MFA proof throttle still counts it. It also binds the method ID, so a verify on another ID does not spend it. |
 | LR42a-13 | `recovery-code` needs only its Guardian factor and replaces any earlier code at verify. My Account enrollments never create a recovery code on the side (hosted and `/mfa` flows still do). |

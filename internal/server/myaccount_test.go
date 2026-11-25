@@ -139,8 +139,11 @@ func TestMyAccountAudiencePerHost(t *testing.T) {
 			problemOf(t, rec)
 		}
 	}
-	// The canonical audience cannot be requested on another host.
-	if rec := e.tokenFor(e.alias, "https://"+e.canonical+"/me/", allMyAccountScopes...); rec.Code == 200 {
+	// The canonical audience requested on another host still yields that
+	// host's token, usable there only.
+	rec := e.tokenFor(e.alias, "https://"+e.canonical+"/me/", allMyAccountScopes...)
+	tok, _ := decodeJSON(rec)["access_token"].(string)
+	if rec.Code != 200 || e.on(e.alias, "GET", "/me/v1/factors", tok, nil, nil).Code != 200 || e.on(e.canonical, "GET", "/me/v1/factors", tok, nil, nil).Code != 401 {
 		t.Fatalf("canonical audience on alias = %d %s", rec.Code, rec.Body)
 	}
 	// Without a client grant the user policy refuses the token.
@@ -261,3 +264,50 @@ func TestMyAccountCORS(t *testing.T) {
 		t.Fatalf("GET = %d %v", rec.Code, rec.Header())
 	}
 }
+
+// The browser flow on a custom domain: /authorize, login and the code
+// exchange on the alias issue a token for the alias's audience only.
+func TestMyAccountCodeFlowOnAlias(t *testing.T) {
+	ctx := context.Background()
+	e := newMyAccountEnv(t)
+	if err := e.st.ClientGrants().Create(ctx, &store.ClientGrant{TenantID: e.tn.ID, ID: "cgr_spa", ClientID: "spa", Audience: e.api.Identifier, SubjectType: store.SubjectTypeUser, Scopes: allMyAccountScopes, CreatedAt: time.Now()}); err != nil {
+		t.Fatal(err)
+	}
+	base := "https://" + e.alias
+	c := e.client(t)
+	c.Transport = handlerTransport{e.srv.Config.Handler}
+	resp, _ := fetch(t, c, authorizeURL(base, "audience", "https://"+e.alias+"/me/", "scope", "openid read:me:factors"))
+	loc, _ := resp.Location()
+	if loc == nil || loc.Path != "/u/login" {
+		t.Fatalf("authorize = %d %v", resp.StatusCode, loc)
+	}
+	_, page := fetch(t, c, base+loc.RequestURI())
+	csrf := csrfRe.FindStringSubmatch(page)
+	if csrf == nil {
+		t.Fatalf("login page: %s", page)
+	}
+	form := url.Values{"hosted_revision": {hostedRevision(page)}, "state": {loc.Query().Get("state")}, "csrf": {csrf[1]}, "username": {"alice@flow.test"}, "password": {"alice password 1"}}
+	req, _ := http.NewRequest("POST", base+"/u/login", strings.NewReader(form.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	resp, body := mustDo(t, c, req)
+	loc, _ = resp.Location()
+	if loc == nil || loc.Query().Get("code") == "" {
+		t.Fatalf("login = %d %v %s", resp.StatusCode, loc, body)
+	}
+	r := httptest.NewRequest("POST", base+"/oauth/token", strings.NewReader(url.Values{"grant_type": {"authorization_code"}, "client_id": {"spa"}, "code": {loc.Query().Get("code")}, "redirect_uri": {"https://app.flow.test/cb"}, "code_verifier": {verifier}}.Encode()))
+	r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	rec := httptest.NewRecorder()
+	e.srv.Config.Handler.ServeHTTP(rec, r)
+	tok := decodeJSON(rec)
+	if rec.Code != 200 {
+		t.Fatalf("exchange = %d %s", rec.Code, rec.Body)
+	}
+	access := tok["access_token"].(string)
+	if got := e.on(e.alias, "GET", "/me/v1/factors", access, nil, nil); got.Code != 200 {
+		t.Fatalf("alias token on alias = %d %s", got.Code, got.Body)
+	}
+	if got := e.on(e.canonical, "GET", "/me/v1/factors", access, nil, nil); got.Code != 401 {
+		t.Fatalf("alias token on canonical = %d", got.Code)
+	}
+}
+
