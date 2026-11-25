@@ -244,6 +244,9 @@ func applyTenant(ctx context.Context, st store.Store, f *File, in Tenant, now ti
 			return fmt.Errorf("management API: %w", err)
 		}
 	}
+	if err := applyMyAccountAPI(ctx, st, tn, in, now, createOnly); err != nil {
+		return fmt.Errorf("my_account_api: %w", err)
+	}
 	for _, rs := range in.ResourceServers {
 		if err := applyResourceServer(ctx, st, tn.ID, rs, now, w, createOnly); err != nil {
 			return fmt.Errorf("resource server %q: %w", rs.Identifier, err)
@@ -747,4 +750,41 @@ func applyUser(ctx context.Context, st store.Store, tenantID string, in User, no
 	}
 	// A password the seed sets counts as the user's newest.
 	return identity.RecordPassword(ctx, st, conn, u.UserID, newHash)
+}
+
+// applyMyAccountAPI activates or removes the My Account API (LR42a-7) and
+// checks that grants to it name the canonical host's audience.
+func applyMyAccountAPI(ctx context.Context, st store.Store, tn *store.Tenant, in Tenant, now time.Time, createOnly bool) error {
+	id := tenant.MyAccountIdentifier(tn)
+	for _, g := range in.ClientGrants {
+		if isMyAccountAudience(g.Audience) && g.Audience != id {
+			return fmt.Errorf("client grant audience %q is not the tenant's My Account API %q", g.Audience, id)
+		}
+	}
+	if in.MyAccountAPI == nil {
+		return nil
+	}
+	if in.MyAccountAPI.Active {
+		if createOnly {
+			if _, err := st.ResourceServers().GetByIdentifier(ctx, tn.ID, id); err == nil {
+				return nil
+			}
+		}
+		_, err := tenantsetup.MyAccountAPI(ctx, st, tn, now)
+		return err
+	}
+	if createOnly {
+		return nil
+	}
+	rs, err := st.ResourceServers().GetByIdentifier(ctx, tn.ID, id)
+	if errors.Is(err, store.ErrNotFound) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	if !rs.IsSystem {
+		return nil
+	}
+	return st.ResourceServers().Delete(ctx, tn.ID, rs.ID)
 }

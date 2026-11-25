@@ -52,6 +52,11 @@ func TestActivateCreatesSystemAPI(t *testing.T) {
 	if rec, _ := e.patch(t, viaSetup.ID, map[string]any{"scopes": []any{}}); rec.Code != 400 {
 		t.Fatalf("patch scopes = %d", rec.Code)
 	}
+	// The fields the Deploy CLI (9.1.0) sends when it updates a system API.
+	if rec, out := e.patch(t, viaSetup.ID, map[string]any{"token_lifetime": 3600, "skip_consent_for_verifiable_first_party_clients": true,
+		"subject_type_authorization": map[string]any{"user": map[string]any{"policy": "require_client_grant"}, "client": map[string]any{"policy": "deny_all"}}}); rec.Code != 200 || out["token_lifetime"] != float64(3600) {
+		t.Fatalf("Deploy CLI update = %d %v", rec.Code, out)
+	}
 	if rec := e.del(t, e.tn, viaSetup.ID); rec.Code != 204 {
 		t.Fatalf("delete = %d %s", rec.Code, rec.Body)
 	}
