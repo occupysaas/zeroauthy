@@ -8,6 +8,7 @@ import (
 	"github.com/go-chi/chi/v5"
 
 	"github.com/zeroauthy/zeroauthy/internal/keys"
+	"github.com/zeroauthy/zeroauthy/internal/mfa"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 )
 
@@ -23,8 +24,10 @@ type Handlers struct {
 	Keys  *keys.Manager
 	// Wrapper seals enrollment sessions (the master-key wrapper).
 	Wrapper keys.Wrapper
-	Now     func() time.Time
-	Log     *slog.Logger
+	// MFA enrolls TOTP, email and phone methods; nil disables them.
+	MFA *mfa.Service
+	Now func() time.Time
+	Log *slog.Logger
 }
 
 func (h *Handlers) now() time.Time {
@@ -66,11 +69,11 @@ func (h *Handlers) Routes() http.Handler {
 	r := chi.NewRouter()
 	r.Get("/factors", h.with("read:me:factors", h.listFactors))
 	r.Get("/authentication-methods", h.with("read:me:authentication_methods", h.listMethods))
-	r.Post("/authentication-methods", h.with("create:me:authentication_methods", h.notImplemented))
+	r.Post("/authentication-methods", h.with("create:me:authentication_methods", h.createMethod))
 	r.Get("/authentication-methods/{id}", h.with("read:me:authentication_methods", h.getMethod))
 	r.Patch("/authentication-methods/{id}", h.with("update:me:authentication_methods", h.notImplemented))
 	r.Delete("/authentication-methods/{id}", h.with("delete:me:authentication_methods", h.notImplemented))
-	r.Post("/authentication-methods/{id}/verify", h.with("create:me:authentication_methods", h.notImplemented))
+	r.Post("/authentication-methods/{id}/verify", h.with("create:me:authentication_methods", h.verifyMethod))
 	r.NotFound(func(w http.ResponseWriter, r *http.Request) { writeProblem(w, r, notFound("Not found.")) })
 	r.MethodNotAllowed(func(w http.ResponseWriter, r *http.Request) {
 		writeProblem(w, r, problem(http.StatusMethodNotAllowed, "method_not_allowed", "Method Not Allowed", "Method not allowed."))

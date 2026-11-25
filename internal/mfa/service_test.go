@@ -716,3 +716,23 @@ func TestEnrollNewFactorConcurrent(t *testing.T) {
 		t.Fatalf("ordinary explicit multiple enrollment %v", err)
 	}
 }
+
+// My Account enrollment (Plan 42a) creates no recovery code on confirmation.
+func TestConfirmWithoutAutomaticRecovery(t *testing.T) {
+	f := newServiceFixture(t)
+	svc := f.svc.WithoutAutomaticRecovery()
+	e, err := svc.BeginEnroll(f.ctx, "tenant", "user", "otp", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	c, err := svc.ConfirmEnroll(f.ctx, "tenant", "user", e, Proof{Code: codeAt(t, e.Secret, f.now)})
+	if err != nil || c.RecoveryCode != "" {
+		t.Fatalf("confirm = %+v %v", c, err)
+	}
+	all, _ := f.st.MFA().ListAuthenticators(f.ctx, "tenant", "user")
+	for _, a := range all {
+		if a.Type == "recovery-code" {
+			t.Fatal("recovery code created")
+		}
+	}
+}

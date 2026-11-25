@@ -64,6 +64,7 @@ type Service struct {
 	webAuthnFirstOnly       bool
 	platformEnrollmentProof bool
 	webAuthnBrowserError    string
+	noAutomaticRecovery     bool
 }
 
 // NewService uses the repository's master-key wrapper and atomic protection
@@ -509,7 +510,7 @@ func (s *Service) check(ctx context.Context, tid, uid string, c *Challenge, proo
 				if e = tx.MFA().ReplaceRecoveryCode(ctx, tid, uid, "", current.CodeHash, s.now()); e != nil {
 					return e
 				}
-			} else if !hasRecovery {
+			} else if !hasRecovery && !s.noAutomaticRecovery {
 				recovery := NewRecoveryCode()
 				ctx = s.operationContext(ctx, recovery)
 				if e = tx.MFA().ReplaceRecoveryCode(ctx, tid, uid, "", secrets.HashToken(recovery), s.now()); e != nil {
@@ -697,6 +698,15 @@ func (s *Service) BeginOTPChallenge(ctx context.Context, tid, uid, code string, 
 func (s *Service) WithNewFactorEnrollment() *Service {
 	local := *s
 	local.newFactorOnly = true
+	return &local
+}
+
+// WithoutAutomaticRecovery returns a request-local view whose enrollment
+// confirmations create no recovery code: the My Account API (Plan 42a)
+// enrolls recovery codes as their own method.
+func (s *Service) WithoutAutomaticRecovery() *Service {
+	local := *s
+	local.noAutomaticRecovery = true
 	return &local
 }
 

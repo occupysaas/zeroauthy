@@ -30,8 +30,8 @@ type authSession struct {
 	Data     json.RawMessage `json:"data,omitempty"`
 }
 
-func sessionFields(c *Caller, typ, id string) []string {
-	return []string{c.TenantID, c.UserID, c.ClientID, typ, id}
+func sessionFields(c *Caller, typ, methodID, id string) []string {
+	return []string{c.TenantID, c.UserID, c.ClientID, typ, methodID, id}
 }
 
 // newAuthSession stores an enrollment of typ for c and returns the opaque
@@ -52,7 +52,7 @@ func (h *Handlers) newAuthSession(ctx context.Context, c *Caller, typ, methodID 
 	}
 	raw := secrets.RandomString(43)
 	id := secrets.HashToken(raw)
-	sealed, err := keys.SealBound(h.Wrapper, authSessionLabel, sessionFields(c, typ, id), plain)
+	sealed, err := keys.SealBound(h.Wrapper, authSessionLabel, sessionFields(c, typ, methodID, id), plain)
 	if err != nil {
 		return "", err
 	}
@@ -63,9 +63,10 @@ func (h *Handlers) newAuthSession(ctx context.Context, c *Caller, typ, methodID 
 	return raw, nil
 }
 
-// takeAuthSession spends raw if it is c's unexpired enrollment of typ. A
-// value bound to anyone or anything else is refused without spending it.
-func (h *Handlers) takeAuthSession(ctx context.Context, c *Caller, raw, typ string) (*authSession, error) {
+// takeAuthSession spends raw if it is c's unexpired enrollment of typ for
+// methodID. A value bound to anyone or anything else is refused without
+// spending it.
+func (h *Handlers) takeAuthSession(ctx context.Context, c *Caller, raw, typ, methodID string) (*authSession, error) {
 	if raw == "" || len(raw) > 128 {
 		return nil, errAuthSession
 	}
@@ -81,12 +82,12 @@ func (h *Handlers) takeAuthSession(ctx context.Context, c *Caller, raw, typ stri
 	if ch.Kind != authSessionKind || ch.UserID != c.UserID || !now.Before(ch.ExpiresAt) {
 		return nil, errAuthSession
 	}
-	plain, err := keys.OpenBound(h.Wrapper, authSessionLabel, sessionFields(c, typ, id), ch.Binding)
+	plain, err := keys.OpenBound(h.Wrapper, authSessionLabel, sessionFields(c, typ, methodID, id), ch.Binding)
 	if err != nil {
 		return nil, errAuthSession
 	}
 	var s authSession
-	if err := json.Unmarshal(plain, &s); err != nil || s.Type != typ {
+	if err := json.Unmarshal(plain, &s); err != nil || s.Type != typ || s.MethodID != methodID {
 		return nil, errAuthSession
 	}
 	if err := h.Store.MFA().ConsumeChallenge(ctx, c.TenantID, id, now); err != nil {
