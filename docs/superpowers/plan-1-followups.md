@@ -940,3 +940,8 @@ Recorded under [D-0210](../compat/decisions.md); observe on a live tenant when o
 - **Y8** Deleting the last MFA method under an "always" MFA policy (zeroauthy: allowed).
 - **Y9** `usage` values per factor.
 - **Y10** Whether `email` enrollment accepts an address other than the user's verified email (zeroauthy: no, LR42a-8).
+- **Plan 42a finding (Plan 33b area):** with passkey `challenge_ui: both`,
+  the hosted login page in headless Chromium without an authenticator
+  POSTed `/u/login/passkey` about every 20 ms (1,555 requests in one
+  E2E run) instead of waiting for the user. The passkey autofill retry
+  needs a stop; the My Account lane uses `challenge_ui: button` meanwhile.

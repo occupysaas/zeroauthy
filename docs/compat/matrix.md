@@ -307,3 +307,16 @@ See [WS-Federation](../ws-federation.md) and the [implementation record](../supe
 | Management | Connector-managed options read-only (ignored on writes); `PATCH /users/{id}` password through the connector; status 200/404. |
 
 See [AD/LDAP](../ad-ldap.md) and the [implementation record](../superpowers/2026-11-16-plan-38a-implementation-record.md).
+
+## Plan 42a My Account API
+
+| Surface | Behavior |
+| --- | --- |
+| Activation | The system API `https://{canonical host}/me/` (`Auth0 My Account API`, user `require_client_grant`, client `deny_all`), from the console, `POST /resource-servers` or the seed shorthand; deleting it deactivates. |
+| Tokens | Audience `https://{host}/me/` per host; authorization code, password and native passkey grants; client credentials and token exchange refused; client grants apply, RBAC and multi-resource refresh do not. |
+| Methods | List, read, enroll (`passkey`, `webauthn-roaming`, `webauthn-platform`, `totp`, `email` (the verified address), `phone`, `recovery-code`, `password`), verify, rename, phone preference, delete with the last-sign-in-method guard; `push-notification` refused. |
+| Factors | `GET /factors` (Early Access at Auth0): password, passkey and the enabled Guardian factors with `usage`. |
+| Errors | `ErrorResponse` with `x-correlation-id`; `auth_session` single use, five minutes. |
+| Not served | Connected accounts (Plan 43), consents, consent signing keys, profile. |
+
+Verified with `@auth0/auth0-spa-js` 2.28.3 in Chromium with a virtual authenticator. See [My Account API](../my-account-api.md), D-0210 and the [implementation record](../superpowers/2026-11-16-plan-42a-implementation-record.md).

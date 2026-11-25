@@ -3995,7 +3995,9 @@ real connector):
 
 ## D-0210: My Account API — authentication methods and factors (Plan 42a)
 
-**Contract frozen 2026-11-25; implementation in progress.** Contract:
+**Contract frozen and implemented 2026-11-25 (local verification;
+plan-branch CI and maintainer approval pending).** Operator guide:
+[My Account API](../my-account-api.md). Contract:
 [`api/myaccount.yaml`](../../api/myaccount.yaml). The
 [spec](../superpowers/specs/2026-11-16-zeroauthy-my-account-api-design.md)
 and [plan](../superpowers/plans/2026-11-16-zeroauthy-plan-42a-my-account-api.md)
@@ -4034,6 +4036,13 @@ creation responses (`barcode_uri`/`manual_input_code`, `recovery_code`,
 | LR42a-8 | `email` enrollment accepts only the user's verified email address: every zeroauthy email challenge requires the method's address to equal it (D-0059). |
 | LR42a-9 | The API is a system API, but tokens for it are ordinary user tokens: client grants and the refresh decision apply, client credentials and token exchange are refused; RBAC is not applied (system APIs carry no permissions) and multi-resource refresh does not cover it. |
 | LR42a-10 | Audience per host: `https://{request host}/me/` names the tenant's one My Account API; a token carries the audience of the host it was issued on, and `/me/v1` accepts only its own host's audience. |
+| LR42a-11 | Only confirmed methods are listed (passkeys always are); pending enrollments are not methods. Password methods carry the identity's user ID without the provider, like stored passkeys (Plan 33b). |
+| LR42a-12 | An `auth_session` is spent when verify takes it, before the proof is checked: a wrong code ends the enrollment; the MFA proof throttle still counts it. It also binds the method ID, so a verify on another ID does not spend it. |
+| LR42a-13 | `recovery-code` needs only its Guardian factor and replaces any earlier code at verify. My Account enrollments never create a recovery code on the side (hosted and `/mfa` flows still do). |
+| LR42a-14 | Passkeys use the native passkey ceremony bound to the application and the identity's connection; WebAuthn keys use the MFA ceremony with an API binding. Both accept the RP origin and the application's `web_origins` under the RP ID. The platform rule (another usable factor first) applies. New WebAuthn keys are named `Security key` or `This device`. |
+| LR42a-15 | Password changes run the reset path (policy, history, breached passwords; sessions, refresh tokens and reset links end; history and post-change-password Actions). Custom-database (non-import) connections answer `400 password_change_not_supported`. The start answers `id: password\|new`. |
+| LR42a-16 | Deleting a password clears the own identity's hash and is allowed only when a passkey or another password remains; a linked identity's password answers `400`. Names (≤ 100 characters, no control characters) may be set on passkeys, WebAuthn, TOTP, email and phone methods. |
+| LR42a-17 | The API's contract is hand-written (no generated types, as for SCIM) and pinned by `TestMyAccountContracts`; `/me/v1` follows the tenant's client-origin CORS with GET, POST, PATCH and DELETE. |
 
 Observation points Y1–Y10 are listed in
 [plan-1-followups.md](../superpowers/plan-1-followups.md#plan-42a-observation-points).

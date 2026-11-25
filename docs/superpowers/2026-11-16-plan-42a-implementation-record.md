@@ -1,0 +1,60 @@
+# Plan 42a implementation record
+
+Status: **implementation and local verification complete**, starting from
+`main` commit `7b506a2a` (PR #88 merged). Branch: `plan-42a-my-account`;
+worktree: `/mnt/nvme2/code/zeroauthy-plan42a`. Plan-branch CI and
+maintainer approval govern integration.
+
+Spec: [My Account API design](specs/2026-11-16-zeroauthy-my-account-api-design.md).
+Plan: [Plan 42a](plans/2026-11-16-zeroauthy-plan-42a-my-account-api.md).
+Decisions: D-0210 (LR42a-1…17, Y1–Y10). Operator guide:
+[My Account API](../my-account-api.md). Contract: `api/myaccount.yaml`,
+from Auth0's My Account OpenAPI 1.0 (read 2026-11-25).
+
+## Progress
+
+1. Task 1: contract (`api/myaccount.yaml`, seven operations, `x-source`),
+   `TestMyAccountContracts`, D-0210, observation points Y1–Y10.
+2. Task 2: activation (system API `https://{canonical host}/me/` through
+   `POST /resource-servers`, tenantsetup, deletable), the per-host
+   audience at every token entry point and `/authorize`, the user-flow
+   decision for its tokens, client credentials and token exchange refused;
+   `internal/myaccount` router, bearer checks and `ErrorResponse`.
+3. Task 3: `internal/authmethods` (the listing both APIs use), list, read,
+   `GET /factors`.
+4. Task 4: `auth_session` in the MFA challenge store, sealed and bound.
+5. Task 5: TOTP, email, phone and recovery-code enrollment;
+   `mfa.WithoutAutomaticRecovery`.
+6. Task 6: passkey (native ceremony), WebAuthn roaming and platform (MFA
+   ceremony with an API binding that keeps application origins), password
+   change through the reset path's checks and effects.
+7. Task 7: `PATCH` (name, phone preference) and `DELETE` with the
+   last-sign-in-method guard.
+8. Task 8: CORS for `/me/v1`; seed `my_account_api` and user grants;
+   console activation card, deactivation and application user access;
+   `make e2e-my-account`; docs.
+
+## Rulings made during implementation
+
+LR42a-8…17 in D-0210. Also:
+
+- `MyAccountIdentifier` uses only the canonical host (every tenant gets
+  one at startup); `authz.ValidateRequestOn` (host-aware) replaces
+  `ValidateRequest` in the four production callers.
+- The Management API's listing is unchanged (authenticators only).
+- The E2E lane uses the passkey `challenge_ui: button`: with `both`, the
+  hosted login page re-navigated to `/u/login/passkey` repeatedly in
+  headless Chromium without an authenticator (follow-up: check Plan 33b's
+  autofill without credentials).
+
+## Verification
+
+Local toolchain: Go `1.27.4-X:nodwarf5`; Node 26.8.1; Chromium.
+
+| Check | Result |
+|---|---|
+| Focused Go tests per task (ledger) | passed |
+| Mutation checks | dropping the WebAuthn binding's first-origin check fails `TestWebAuthnBindingOrigins`; allowing the last password/passkey to be deleted fails `TestDeleteLastFirstFactor` |
+| Console: Vitest, `vue-tsc`, ESLint | passed (761 tests) |
+| `make e2e-my-account` | see below |
+| Fast tier | see below |

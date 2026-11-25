@@ -33,7 +33,8 @@ Auth0 or Okta.
 | Protocol | Implicit and hybrid flows (`response_type=token`, `id_token`) | Plan 41, only where Auth0's behaviour passes the OIDF profiles |
 | Universal Login | Advanced Customizations (ACUL) and the Classic and WebAuthn-first modes; arbitrary page JavaScript | Plan 44 |
 | Actions | Newer triggers (password-hash migration, credential validation), `/userinfo` custom claims, `event.authentication.methods` lists only the MFA step | Plan 40 |
-| Other APIs | My Account API, My Organization API | Plan 42 |
+| My Account API | `/me/v1` authentication methods (passkeys, WebAuthn keys, TOTP, email, phone, recovery code, password) and factors; connected accounts, consents and profile are not | [Guide](my-account-api.md) |
+| Other APIs | My Organization API | Plan 42b |
 | Other APIs | Token Vault and connected accounts | Plan 43 |
 | Other APIs | Forms and Flows, network ACLs, user groups and group roles | Plan 38 |
 | Attack protection | Phone-provider protection `exponential` backoff is stored, not enforced | Plan 45 |
