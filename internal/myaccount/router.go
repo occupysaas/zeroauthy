@@ -21,8 +21,10 @@ const MaxBody = 64 << 10
 type Handlers struct {
 	Store store.Store
 	Keys  *keys.Manager
-	Now   func() time.Time
-	Log   *slog.Logger
+	// Wrapper seals enrollment sessions (the master-key wrapper).
+	Wrapper keys.Wrapper
+	Now     func() time.Time
+	Log     *slog.Logger
 }
 
 func (h *Handlers) now() time.Time {

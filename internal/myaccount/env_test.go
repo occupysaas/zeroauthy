@@ -67,7 +67,7 @@ func newEnv(t *testing.T) *env {
 	u := newUser(t, st, tn.ID, "auth0|alice1", "alice@acme.test", now)
 	logs := &bytes.Buffer{}
 	e := &env{st: st, w: w, km: km, tn: tn, conn: conn, user: u, now: now, logs: logs}
-	e.h = &Handlers{Store: st, Keys: km, Now: func() time.Time { return e.now }, Log: slog.New(slog.NewTextHandler(io.MultiWriter(logs), nil))}
+	e.h = &Handlers{Store: st, Keys: km, Wrapper: w, Now: func() time.Time { return e.now }, Log: slog.New(slog.NewTextHandler(io.MultiWriter(logs), nil))}
 	e.route = e.h.Routes()
 	return e
 }
@@ -100,7 +100,9 @@ func (e *env) tokenFor(t *testing.T, uid string, scopes ...string) string {
 	return raw
 }
 
-func (e *env) token(t *testing.T, scopes ...string) string { return e.tokenFor(t, e.user.UserID, scopes...) }
+func (e *env) token(t *testing.T, scopes ...string) string {
+	return e.tokenFor(t, e.user.UserID, scopes...)
+}
 
 // do serves one request for path (relative to /me/v1) on the tenant host.
 func (e *env) do(t *testing.T, tok, method, path string, body any) (*httptest.ResponseRecorder, map[string]any) {
