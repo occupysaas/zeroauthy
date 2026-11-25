@@ -7,8 +7,12 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
+	"github.com/zeroauthy/zeroauthy/internal/actions"
 	"github.com/zeroauthy/zeroauthy/internal/keys"
+	"github.com/zeroauthy/zeroauthy/internal/logout"
 	"github.com/zeroauthy/zeroauthy/internal/mfa"
+	"github.com/zeroauthy/zeroauthy/internal/passkey"
+	"github.com/zeroauthy/zeroauthy/internal/protection"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 )
 
@@ -24,10 +28,19 @@ type Handlers struct {
 	Keys  *keys.Manager
 	// Wrapper seals enrollment sessions (the master-key wrapper).
 	Wrapper keys.Wrapper
-	// MFA enrolls TOTP, email and phone methods; nil disables them.
+	// MFA enrolls TOTP, email, phone and WebAuthn methods; nil disables them.
 	MFA *mfa.Service
-	Now func() time.Time
-	Log *slog.Logger
+	// Passkeys enrolls passkeys and resolves RP IDs; nil disables WebAuthn.
+	Passkeys *passkey.Service
+	// Protection checks new passwords against breached-password detection.
+	Protection *protection.Service
+	// Logout ends the user's sessions after a password change.
+	Logout *logout.Service
+	// Actions runs post-change-password Actions.
+	Actions           *actions.Engine
+	TrustProxyHeaders bool
+	Now               func() time.Time
+	Log               *slog.Logger
 }
 
 func (h *Handlers) now() time.Time {

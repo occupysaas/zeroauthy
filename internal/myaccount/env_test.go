@@ -138,7 +138,7 @@ func (e *env) addAuthenticator(t *testing.T, a store.Authenticator) store.Authen
 	a.LastStep = -1
 	var err error
 	if a.Type == "passkey" {
-		err = e.st.WebAuthn().CreatePasskey(context.Background(), &a, 20)
+		err = e.st.WebAuthn().CreatePasskey(context.Background(), &a, 1000)
 	} else {
 		err = e.st.MFA().CreateAuthenticator(context.Background(), &a)
 	}

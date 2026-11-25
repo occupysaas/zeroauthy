@@ -124,6 +124,12 @@ func (h *Handlers) createMethod(w http.ResponseWriter, r *http.Request, c *Calle
 		h.startOTP(w, r, c, b)
 	case "recovery-code":
 		h.startRecovery(w, r, c)
+	case "passkey":
+		h.startPasskey(w, r, c, b)
+	case "webauthn-roaming", "webauthn-platform":
+		h.startWebAuthn(w, r, c, b.Type)
+	case "password":
+		h.startPassword(w, r, c, b)
 	case "push-notification":
 		writeProblem(w, r, errFactorDisabled) // LR42a-2
 	case "":
@@ -156,6 +162,12 @@ func (h *Handlers) verifyMethod(w http.ResponseWriter, r *http.Request, c *Calle
 		h.verifyOTP(w, r, c, s, b)
 	case "recovery-code":
 		h.verifyRecovery(w, r, c, s)
+	case "passkey":
+		h.verifyPasskey(w, r, c, s, b)
+	case "webauthn-roaming", "webauthn-platform":
+		h.verifyWebAuthn(w, r, c, s, b)
+	case "password":
+		h.verifyPassword(w, r, c, s, b)
 	default:
 		writeProblem(w, r, errSession())
 	}
