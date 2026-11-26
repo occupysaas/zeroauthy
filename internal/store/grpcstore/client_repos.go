@@ -242,6 +242,11 @@ func (a clientClients) Create(ctx context.Context, v *store.Client) error {
 			return err
 		}
 	}
+	if v != nil && v.AsyncApprovalNotificationChannels != nil {
+		if err := a.c.CheckCIBASupport(ctx); err != nil {
+			return err
+		}
+	}
 	v = a.c.clientCredentialsClient(a.c.webauthnClient(v))
 	return put("ClientsCreate", v, clientToPB, func(pb *storev1.Client) (result, error) {
 		if pb != nil && (pb.RequireProofOfPossession || pb.TokenQuota != nil || pb.GetRefreshToken().GetPolicies() != nil) {
@@ -270,6 +275,11 @@ func (a clientClients) Update(ctx context.Context, v *store.Client) error {
 	}
 	if store.ClientNeedsWSFed(v) {
 		if err := a.c.CheckWSFedSupport(ctx); err != nil {
+			return err
+		}
+	}
+	if v != nil && v.AsyncApprovalNotificationChannels != nil {
+		if err := a.c.CheckCIBASupport(ctx); err != nil {
 			return err
 		}
 	}

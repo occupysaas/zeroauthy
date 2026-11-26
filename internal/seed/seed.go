@@ -204,21 +204,23 @@ type Scope struct {
 
 type Client struct {
 	// MyOrganizationConfiguration is my_organization_configuration (Plan 42b).
-	MyOrganizationConfiguration map[string]any    `yaml:"my_organization_configuration"`
-	OIDCLogout                  map[string]any    `yaml:"oidc_logout"`
-	Addons                      map[string]any    `yaml:"addons"`
-	ClientAliases               []string          `yaml:"client_aliases"`
-	FormTemplate                string            `yaml:"form_template"`
-	OIDCSupport                 map[string]any    `yaml:"oidc_support"`
-	JWTConfiguration            *JWTConfiguration `yaml:"jwt_configuration"`
-	oidcLogout                  *store.OIDCLogout
-	addons                      *store.ClientAddons
-	oidcSupport                 *store.OIDCSupport
-	TokenQuota                  map[string]any `yaml:"token_quota"`
-	RequireProofOfPossession    bool           `yaml:"require_proof_of_possession"`
-	ClientID                    string         `yaml:"client_id"`
-	Name                        string         `yaml:"name"`
-	AppType                     string         `yaml:"app_type"`
+	MyOrganizationConfiguration map[string]any `yaml:"my_organization_configuration"`
+	OIDCLogout                  map[string]any `yaml:"oidc_logout"`
+	Addons                      map[string]any `yaml:"addons"`
+	ClientAliases               []string       `yaml:"client_aliases"`
+	// AsyncApprovalNotificationChannels are the CIBA channels (Plan 41c).
+	AsyncApprovalNotificationChannels []string          `yaml:"async_approval_notification_channels"`
+	FormTemplate                      string            `yaml:"form_template"`
+	OIDCSupport                       map[string]any    `yaml:"oidc_support"`
+	JWTConfiguration                  *JWTConfiguration `yaml:"jwt_configuration"`
+	oidcLogout                        *store.OIDCLogout
+	addons                            *store.ClientAddons
+	oidcSupport                       *store.OIDCSupport
+	TokenQuota                        map[string]any `yaml:"token_quota"`
+	RequireProofOfPossession          bool           `yaml:"require_proof_of_possession"`
+	ClientID                          string         `yaml:"client_id"`
+	Name                              string         `yaml:"name"`
+	AppType                           string         `yaml:"app_type"`
 	// ClientSecret is plaintext in the seed file and sealed under the master
 	// key when applied (D-0038). Protect seed files like any other credential
 	// store. A confidential client may omit it once it exists: its stored
@@ -286,7 +288,7 @@ func (c *Client) spec() clientrules.Spec {
 		method = store.AuthMethodClientSecretPost
 	}
 	return clientrules.Spec{
-		TokenQuota: c.tokenQuota, Addons: c.addons.Clone(), ClientAliases: slices.Clone(c.ClientAliases), FormTemplate: c.FormTemplate, OIDCLogout: c.oidcLogout.Clone(), OIDCSupport: c.oidcSupport.Clone(), IDTokenAlg: alg,
+		TokenQuota: c.tokenQuota, Addons: c.addons.Clone(), ClientAliases: slices.Clone(c.ClientAliases), AsyncApprovalNotificationChannels: slices.Clone(c.AsyncApprovalNotificationChannels), FormTemplate: c.FormTemplate, OIDCLogout: c.oidcLogout.Clone(), OIDCSupport: c.oidcSupport.Clone(), IDTokenAlg: alg,
 		Name: c.Name, AppType: c.AppType, TokenEndpointAuthMethod: method,
 		OrganizationUsage: c.OrganizationUsage, OrganizationRequireBehavior: c.OrganizationRequireBehavior, OrganizationDiscoveryMethods: slices.Clone(c.OrganizationDiscoveryMethods),
 		GrantTypes: c.GrantTypes, Callbacks: c.Callbacks, AllowedLogoutURLs: c.AllowedLogoutURLs,

@@ -18,6 +18,7 @@ func cloneClient(c *store.Client) *store.Client {
 	out.OIDCLogout = c.OIDCLogout.Clone()
 	out.Addons = c.Addons.Clone()
 	out.ClientAliases = slices.Clone(c.ClientAliases)
+	out.AsyncApprovalNotificationChannels = slices.Clone(c.AsyncApprovalNotificationChannels)
 	out.TokenQuota = cloneValue(c.TokenQuota)
 	out.RefreshToken.Policies = store.CloneMRRTPolicies(c.RefreshToken.Policies)
 	out.Secrets = make([]store.ClientSecret, len(c.Secrets))

@@ -146,6 +146,10 @@ service StoreService {
   // store.MyOrgStore method (see internal/store/grpcstore/myorg.go).
   rpc MyOrgCapabilities(PingRequest) returns (EventsCapabilitiesResult);
   rpc MyOrgCall(MyOrgCallRequest) returns (MyOrgCallResult);
+  // ciba.v1 (Plan 41c): backchannel authentication requests. CIBACall
+  // invokes one store.CIBAStore method (see internal/store/grpcstore/ciba.go).
+  rpc CIBACapabilities(PingRequest) returns (EventsCapabilitiesResult);
+  rpc CIBACall(CIBACallRequest) returns (CIBACallResult);
   rpc SAMLSessionParticipant(SAMLParticipantWrite) returns (Result);
   rpc SAMLReplayUse(GlobalRevocationJTIRequest) returns (Result); // connection_id + jti = assertion ID
   rpc SAMLReplayPurge(ClientCredentialsPurgeRequest) returns (CountResult);
@@ -801,6 +805,8 @@ message Client {
   bytes addons = 35; // store.ClientAddons JSON (Plan 37a); writes require saml.v1
   repeated string client_aliases = 36; // Plan 37b, unique per tenant; writes require wsfed.v1
   string form_template = 37; // Plan 37b, stored only; writes require wsfed.v1
+  // Plan 41c; absent = unset (field 38 is Plan 41b's external_metadata); writes require ciba.v1
+  repeated string async_approval_notification_channels = 39;
 }
 
 message Scope { string value = 1; string description = 2; }
@@ -1959,6 +1965,19 @@ message MyOrgCallRequest {
 
 // MyOrgCallResult is a store.MyOrgStore method's outcome.
 message MyOrgCallResult {
+  Error error = 1;
+  bytes result = 2; // JSON of the method's results
+}
+
+// CIBACallRequest invokes a store.CIBAStore method (ciba.v1, Plan 41c).
+message CIBACallRequest {
+  string tx_id = 1;
+  string method = 2;
+  bytes args = 3; // JSON object of the method's parameters
+}
+
+// CIBACallResult is a store.CIBAStore method's outcome.
+message CIBACallResult {
   Error error = 1;
   bytes result = 2; // JSON of the method's results
 }

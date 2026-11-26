@@ -188,6 +188,7 @@ func TestClientRoundTrip(t *testing.T) {
 		OrganizationUsage:                              store.OrgUsageRequire,
 		OrganizationRequireBehavior:                    store.OrgBehaviorPreLoginPrompt,
 		OrganizationDiscoveryMethods:                   []string{store.OrgDiscoveryEmail},
+		AsyncApprovalNotificationChannels:              []string{"email", "guardian-push"},
 	}, clientToPB, clientFromPB)
 	roundTrip(t, "third party", &store.Client{
 		TenantID: "ten", ClientID: "tp", ThirdPartySecurityMode: store.SecurityModePermissive,

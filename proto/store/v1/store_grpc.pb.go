@@ -90,6 +90,8 @@ const (
 	StoreService_ADHubCall_FullMethodName                                     = "/zeroauthy.store.v1.StoreService/ADHubCall"
 	StoreService_MyOrgCapabilities_FullMethodName                             = "/zeroauthy.store.v1.StoreService/MyOrgCapabilities"
 	StoreService_MyOrgCall_FullMethodName                                     = "/zeroauthy.store.v1.StoreService/MyOrgCall"
+	StoreService_CIBACapabilities_FullMethodName                              = "/zeroauthy.store.v1.StoreService/CIBACapabilities"
+	StoreService_CIBACall_FullMethodName                                      = "/zeroauthy.store.v1.StoreService/CIBACall"
 	StoreService_SAMLSessionParticipant_FullMethodName                        = "/zeroauthy.store.v1.StoreService/SAMLSessionParticipant"
 	StoreService_SAMLReplayUse_FullMethodName                                 = "/zeroauthy.store.v1.StoreService/SAMLReplayUse"
 	StoreService_SAMLReplayPurge_FullMethodName                               = "/zeroauthy.store.v1.StoreService/SAMLReplayPurge"
@@ -641,6 +643,10 @@ type StoreServiceClient interface {
 	// store.MyOrgStore method (see internal/store/grpcstore/myorg.go).
 	MyOrgCapabilities(ctx context.Context, in *PingRequest, opts ...grpc.CallOption) (*EventsCapabilitiesResult, error)
 	MyOrgCall(ctx context.Context, in *MyOrgCallRequest, opts ...grpc.CallOption) (*MyOrgCallResult, error)
+	// ciba.v1 (Plan 41c): backchannel authentication requests. CIBACall
+	// invokes one store.CIBAStore method (see internal/store/grpcstore/ciba.go).
+	CIBACapabilities(ctx context.Context, in *PingRequest, opts ...grpc.CallOption) (*EventsCapabilitiesResult, error)
+	CIBACall(ctx context.Context, in *CIBACallRequest, opts ...grpc.CallOption) (*CIBACallResult, error)
 	SAMLSessionParticipant(ctx context.Context, in *SAMLParticipantWrite, opts ...grpc.CallOption) (*Result, error)
 	SAMLReplayUse(ctx context.Context, in *GlobalRevocationJTIRequest, opts ...grpc.CallOption) (*Result, error)
 	SAMLReplayPurge(ctx context.Context, in *ClientCredentialsPurgeRequest, opts ...grpc.CallOption) (*CountResult, error)
@@ -1791,6 +1797,26 @@ func (c *storeServiceClient) MyOrgCall(ctx context.Context, in *MyOrgCallRequest
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(MyOrgCallResult)
 	err := c.cc.Invoke(ctx, StoreService_MyOrgCall_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) CIBACapabilities(ctx context.Context, in *PingRequest, opts ...grpc.CallOption) (*EventsCapabilitiesResult, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(EventsCapabilitiesResult)
+	err := c.cc.Invoke(ctx, StoreService_CIBACapabilities_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) CIBACall(ctx context.Context, in *CIBACallRequest, opts ...grpc.CallOption) (*CIBACallResult, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CIBACallResult)
+	err := c.cc.Invoke(ctx, StoreService_CIBACall_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -5976,6 +6002,10 @@ type StoreServiceServer interface {
 	// store.MyOrgStore method (see internal/store/grpcstore/myorg.go).
 	MyOrgCapabilities(context.Context, *PingRequest) (*EventsCapabilitiesResult, error)
 	MyOrgCall(context.Context, *MyOrgCallRequest) (*MyOrgCallResult, error)
+	// ciba.v1 (Plan 41c): backchannel authentication requests. CIBACall
+	// invokes one store.CIBAStore method (see internal/store/grpcstore/ciba.go).
+	CIBACapabilities(context.Context, *PingRequest) (*EventsCapabilitiesResult, error)
+	CIBACall(context.Context, *CIBACallRequest) (*CIBACallResult, error)
 	SAMLSessionParticipant(context.Context, *SAMLParticipantWrite) (*Result, error)
 	SAMLReplayUse(context.Context, *GlobalRevocationJTIRequest) (*Result, error)
 	SAMLReplayPurge(context.Context, *ClientCredentialsPurgeRequest) (*CountResult, error)
@@ -6634,6 +6664,12 @@ func (UnimplementedStoreServiceServer) MyOrgCapabilities(context.Context, *PingR
 }
 func (UnimplementedStoreServiceServer) MyOrgCall(context.Context, *MyOrgCallRequest) (*MyOrgCallResult, error) {
 	return nil, status.Error(codes.Unimplemented, "method MyOrgCall not implemented")
+}
+func (UnimplementedStoreServiceServer) CIBACapabilities(context.Context, *PingRequest) (*EventsCapabilitiesResult, error) {
+	return nil, status.Error(codes.Unimplemented, "method CIBACapabilities not implemented")
+}
+func (UnimplementedStoreServiceServer) CIBACall(context.Context, *CIBACallRequest) (*CIBACallResult, error) {
+	return nil, status.Error(codes.Unimplemented, "method CIBACall not implemented")
 }
 func (UnimplementedStoreServiceServer) SAMLSessionParticipant(context.Context, *SAMLParticipantWrite) (*Result, error) {
 	return nil, status.Error(codes.Unimplemented, "method SAMLSessionParticipant not implemented")
@@ -9133,6 +9169,42 @@ func _StoreService_MyOrgCall_Handler(srv interface{}, ctx context.Context, dec f
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(StoreServiceServer).MyOrgCall(ctx, req.(*MyOrgCallRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_CIBACapabilities_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PingRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).CIBACapabilities(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_CIBACapabilities_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).CIBACapabilities(ctx, req.(*PingRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_CIBACall_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CIBACallRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).CIBACall(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_CIBACall_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).CIBACall(ctx, req.(*CIBACallRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -16620,6 +16692,14 @@ var StoreService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "MyOrgCall",
 			Handler:    _StoreService_MyOrgCall_Handler,
+		},
+		{
+			MethodName: "CIBACapabilities",
+			Handler:    _StoreService_CIBACapabilities_Handler,
+		},
+		{
+			MethodName: "CIBACall",
+			Handler:    _StoreService_CIBACall_Handler,
 		},
 		{
 			MethodName: "SAMLSessionParticipant",

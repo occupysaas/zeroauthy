@@ -211,6 +211,9 @@ type Client struct {
 	// TokenExchangeTypes are the subject_token_type values for which the
 	// client may use any profile of that type (token_exchange.allow_any_profile_of_type).
 	TokenExchangeTypes []string
+	// AsyncApprovalNotificationChannels are how a user is asked to approve a
+	// CIBA request (Plan 41c); only "email" is delivered. Nil means unset.
+	AsyncApprovalNotificationChannels []string
 }
 
 // SignedRequestObject is a client's signed authorization request (JAR)

@@ -406,6 +406,7 @@ func clientToPB(c *store.Client) (*storev1.Client, error) {
 		return nil, err
 	}
 	pb.ClientAliases, pb.FormTemplate = slices.Clone(c.ClientAliases), c.FormTemplate
+	pb.AsyncApprovalNotificationChannels = slices.Clone(c.AsyncApprovalNotificationChannels)
 	if pb.NativeSocialLogin, err = optJSON(c.NativeSocialLogin, c.NativeSocialLogin == nil); err != nil {
 		return nil, err
 	}
@@ -485,6 +486,9 @@ func clientFromPB(pb *storev1.Client) (*store.Client, error) {
 	}
 	if err := fromOptJSON(pb.Mobile, &c.Mobile); err != nil {
 		return nil, err
+	}
+	if len(pb.AsyncApprovalNotificationChannels) > 0 {
+		c.AsyncApprovalNotificationChannels = slices.Clone(pb.AsyncApprovalNotificationChannels)
 	}
 	if err := clientCredentialFieldsFromPB(pb, c); err != nil {
 		return nil, err

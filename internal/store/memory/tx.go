@@ -165,6 +165,7 @@ func (s *Store) snapshot() *state {
 		adProvisionings:        cloneMap(s.adProvisionings, (*store.ADProvisioning).Clone),
 		adSessions:             cloneMap(s.adSessions, (*store.ADHubSession).Clone),
 		myOrgConfigs:           cloneMap(s.myOrgConfigs, (*store.MyOrgClientConfig).Clone),
+		cibaRequests:           cloneMap(s.cibaRequests, (*store.CIBARequest).Clone),
 		myOrgRoles:             maps.Clone(s.myOrgRoles),
 		myOrgClaims:            maps.Clone(s.myOrgClaims),
 		exchangeProfiles:       cloneMap(s.exchangeProfiles, cloneValue[store.TokenExchangeProfile]),
@@ -214,6 +215,7 @@ func (s *Store) restore(snap *state) {
 	s.samlAssertions = snap.samlAssertions
 	s.adProvisionings, s.adSessions = snap.adProvisionings, snap.adSessions
 	s.myOrgConfigs, s.myOrgRoles, s.myOrgClaims = snap.myOrgConfigs, snap.myOrgRoles, snap.myOrgClaims
+	s.cibaRequests = snap.cibaRequests
 	s.credentials, s.assertionJTIs, s.exchangeProfiles = snap.credentials, snap.assertionJTIs, snap.exchangeProfiles
 }
 
