@@ -452,6 +452,7 @@ them. Each entry: context, sources consulted, decision, rationale.
   - **Permissive clients follow the API's policy** (no grant needed under `allow_all`), as the permissive-mode page says. This could not be observed, because the maintainer's account cannot create permissive clients.
   - **The refresh grant re-checks the policy and the client grant,** so withdrawing a grant takes effect at the next refresh. This is a zeroauthy choice; Auth0's docs are silent.
 - **Rationale:** Observed codes are matched exactly. Unknown stored values fail closed.
+- **Amended by D-0100 (Plan 41c):** the CIBA grant is for first-party, confidential, OIDC-conformant clients only.
 
 ## D-0026: Consent and user grants
 
@@ -3464,6 +3465,49 @@ send returns `204` with an empty body. It replaces the outstanding
 credential as in a regular start.
 
 **Observation gaps (optional, not implementation blockers):** B1 whether upstream emits `limit_wc` once per block or for every denial; B2 upstream clearing of a required identifier with `null` (local: reject); B3 what `verify_phone_number` triggers (local: Plan 34 verification code); B4 the login count seen by post-login Actions (local: preserve their existing position and increment semantics). These remain unobserved; see the follow-ups.
+
+## D-0100: Client-Initiated Backchannel Authentication, email channel (Plan 41c)
+
+**Contract frozen 2026-11-26.** The
+[spec](../superpowers/specs/2026-11-16-zeroauthy-ciba-design.md) and
+[plan](../superpowers/plans/2026-11-16-zeroauthy-plan-41c-ciba.md) reserve
+D-0100–0109. No live Auth0 tenant was observed by the implementer.
+
+Sources read 2026-11-26:
+[CIBA flow](https://auth0.com/docs/get-started/authentication-and-authorization-flow/client-initiated-backchannel-authentication-flow),
+[configure CIBA](https://auth0.com/docs/get-started/applications/configure-client-initiated-backchannel-authentication),
+[email notifications with CIBA](https://auth0.com/docs/get-started/authentication-and-authorization-flow/client-initiated-backchannel-authentication-flow/email-notifications-with-ciba),
+the [Management OpenAPI](https://auth0.com/docs/oas/management/v2/management-api-oas.json)
+(`async_approval_notification_channels`: `guardian-push`, `email`,
+`my-account`), the tenant log schemas `ciba_start_succeeded`,
+`ciba_start_failed`, `ciba_exchange_succeeded`, `ciba_exchange_failed`, and
+[OpenID CIBA Core 1.0](https://openid.net/specs/openid-client-initiated-backchannel-authentication-core-1_0.html).
+
+| Local ruling | Contract |
+|---|---|
+| LR41c-1 | No OIDF CIBA certification profile is run (FAPI-CIBA needs mTLS and PAR combinations). |
+| LR41c-2 | `guardian-push` and `my-account` are stored only. A client whose channels do not include `email` is refused when it is configured with the CIBA grant, and `/bc-authorize` answers `invalid_request` if its channels change later. |
+| LR41c-3 | `authorization_details` (RAR) is `invalid_request`. |
+| LR41c-4 | `binding_message` is required: 1 to 64 characters of letters, digits and `+-_.,:#`, as Auth0 documents; shown escaped. |
+| LR41c-5 | Only the JSON `login_hint` (`format: iss_sub`, `iss` = the request host's issuer); `id_token_hint` and `login_hint_token` are `invalid_request`. |
+| LR41c-6 | Email is used for `requested_expiry` 301–259200 s, as Auth0 documents; without Guardian push a shorter expiry (including the default 300 s) is `invalid_request`. Supersedes the spec's "any expiry". |
+| LR41c-7 | An unknown user, or one without a verified email, gets the same `200` answer; the request is never delivered and ends as `access_denied` at expiry. Auth0 documents that it "rejects" such a request without the error (C41-1); zeroauthy keeps the client from learning which user IDs exist. |
+| LR41c-8 | An expired request is `access_denied`, as Auth0 documents ("denied ... or it has been expired"), not CIBA Core's `expired_token`. |
+| LR41c-9 | The approval link is `https://<request host>/bc-verify?consent=<single-use value>`, Auth0's path. Post-login Actions see `event.transaction.protocol` `oidc-ciba-web-link`. |
+
+Limits: 500 requests per minute and 5000 pending per tenant (an expired
+request counts for 24 hours after it expires), 5 requests per minute per
+user, all per process; `interval` 5 s, +5 s on each `slow_down`.
+
+`auth_req_id` (256-bit) and approval values are stored only as hashes and
+never logged. Only the client that created a request can poll it; another
+client's poll is `invalid_grant` and changes nothing. An approved request
+is redeemed once. No consent grant is stored (Auth0). The approval page
+requires the hinted user: a session of another user must sign in again as
+the hinted user.
+
+Observation points C41-1…8 are in
+[plan 1 follow-ups](../superpowers/plan-1-followups.md#plan-41c-observation-points).
 
 ## D-0120 — Enterprise OIDC and connection keys (Plan 36)
 

@@ -958,3 +958,16 @@ Recorded under [D-0220](../compat/decisions.md); observe on a live tenant when o
 - **MO-6** Which `PATCH /details` members Auth0 accepts in practice.
 - **MO-7** Error `type` values (Auth0: `https://auth0.com/api-errors#A0E-…` URIs; zeroauthy: short type names).
 - **MO-8** Log event payloads for `my_organization_api_*`.
+
+## Plan 41c observation points
+
+CIBA with the email channel (D-0100).
+
+- **C41-1** The `/bc-authorize` answer for an unknown user or one without a verified email (Auth0: "rejects"; zeroauthy: the same `200`, LR41c-7).
+- **C41-2** Resolved 2026-11-26: Auth0 documents the JSON `iss_sub` `login_hint`; other formats untested.
+- **C41-3** Resolved 2026-11-26: `binding_message` is required (Auth0 docs).
+- **C41-4** Resolved 2026-11-26: `requested_expiry` defaults to 300 s.
+- **C41-5** The rate-limit error body (zeroauthy: `429 too_many_requests`).
+- **C41-6** Resolved 2026-11-26: the link goes to `/bc-verify` with `consent`.
+- **C41-7** Resolved 2026-11-26: `event.transaction.protocol` is `oidc-ciba-web-link`.
+- **C41-8** Resolved 2026-11-26: log types `ciba_start_succeeded`, `ciba_start_failed`, `ciba_exchange_succeeded`, `ciba_exchange_failed`.

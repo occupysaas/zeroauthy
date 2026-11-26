@@ -301,6 +301,7 @@ paths:
         | `password` | Resource owner password: exchange `username` and `password` for tokens. When `realm` is given, the user is looked up in that database connection (which must be enabled for the client), as with the password-realm grant. Otherwise the tenant's default directory (`default_directory`) is used, and a tenant without one rejects the request with `invalid_request`. |
         | `http://auth0.com/oauth/grant-type/password-realm` | As `password`, but `realm` names the database connection to use. The connection must be enabled for the client. |
         | `http://auth0.com/oauth/grant-type/passwordless/otp` | Exchange a passwordless code: `realm` (`email` or `sms`), `username` (the email or E.164 number) and `otp`. The client must have the grant enabled. Same MFA decision as password grants. `redirect_uri` is validated when sent (D-0060 P11). |
+        | `urn:openid:params:grant-type:ciba` | Poll for a backchannel authentication request with `auth_req_id` (Plan 41c, D-0100). Until the user decides: `400 authorization_pending`; polling within `interval`: `400 slow_down` with a longer `interval`; denied or expired: `400 access_denied`; already redeemed, unknown or another client's request: `400 invalid_grant`. After approval, tokens once: an ID token for `openid`, an access token for the request's `audience`, a refresh token with `offline_access`. |
         | `urn:ietf:params:oauth:grant-type:token-exchange` | Custom token exchange (RFC 8693): trade `subject_token` of a `subject_token_type` that a token exchange profile binds to a `custom-token-exchange` Action for tokens of the user the Action selects. Optional `audience`, `scope`, `organization`, `actor_token`, `actor_token_type` and `requested_token_type`. The application must be first-party, OIDC-conformant and allow `custom_authentication` in `token_exchange`. An unknown `subject_token_type` is `400 invalid_request`; a blocked source IP is `429 too_many_attempts` (D-0063). |
 
         **Native Apple exchange (D-0170).** The same token-exchange
@@ -550,6 +551,74 @@ paths:
         "413":
           $ref: "#/components/responses/OAuthErrorResponse"
         "501":
+          $ref: "#/components/responses/OAuthErrorResponse"
+        default:
+          $ref: "#/components/responses/ServerError"
+  /bc-authorize:
+    post:
+      operationId: bcAuthorize
+      tags: [Tokens]
+      summary: Start a backchannel authentication request (CIBA)
+      description: |
+        A first-party confidential application asks a user to approve a
+        sign-in on another device (OpenID CIBA Core 1.0, poll mode; Plan
+        41c, D-0100). The application authenticates as at `/oauth/token`
+        (client secret or `private_key_jwt`); a signed `request` object
+        (JAR) may carry the parameters. The client needs the
+        `urn:openid:params:grant-type:ciba` grant and `email` in
+        `async_approval_notification_channels`.
+
+        - `login_hint` is Auth0's JSON form
+          `{"format":"iss_sub","iss":"<this tenant's issuer>","sub":"<user_id>"}`.
+          `id_token_hint` and `login_hint_token` are refused.
+        - `scope` must contain `openid`; `offline_access` adds a refresh
+          token. `audience` names an API.
+        - `binding_message` is required: 1 to 64 characters of letters,
+          digits and `+-_.,:#`.
+        - `requested_expiry` defaults to 300 seconds. The email channel
+          needs 301 to 259200 seconds (72 hours), as on Auth0; zeroauthy has
+          no Guardian push, so a shorter expiry is `400 invalid_request`.
+        - `authorization_details` is refused.
+
+        The user is emailed (template `async_approval`) a link to
+        `/bc-verify`, signs in as the hinted user and approves or denies.
+        The answer is the same for an unknown user or one without a
+        verified email: such a request is never delivered and ends as
+        `access_denied` when it expires. At most 500 requests per minute
+        and 5000 pending (expired ones count for 24 hours) per tenant, and
+        5 per minute per user; beyond them `429 too_many_requests`.
+      x-source:
+        - https://openid.net/specs/openid-client-initiated-backchannel-authentication-core-1_0.html
+        - https://auth0.com/docs/get-started/authentication-and-authorization-flow/client-initiated-backchannel-authentication-flow
+        - https://auth0.com/docs/get-started/applications/configure-client-initiated-backchannel-authentication
+        - https://auth0.com/docs/get-started/authentication-and-authorization-flow/client-initiated-backchannel-authentication-flow/email-notifications-with-ciba
+      security:
+        - clientSecretBasic: []
+        - {}
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: "#/components/schemas/BackchannelAuthenticationRequest"
+      responses:
+        "200":
+          description: The request was accepted.
+          headers:
+            Cache-Control: {schema: {type: string, const: no-store}}
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BackchannelAuthenticationResponse"
+        "400":
+          $ref: "#/components/responses/OAuthErrorResponse"
+        "401":
+          $ref: "#/components/responses/OAuthErrorResponse"
+        "403":
+          $ref: "#/components/responses/OAuthErrorResponse"
+        "404":
+          $ref: "#/components/responses/UnknownTenant"
+        "429":
           $ref: "#/components/responses/OAuthErrorResponse"
         default:
           $ref: "#/components/responses/ServerError"
@@ -1961,6 +2030,27 @@ components:
             $ref: "#/components/schemas/OAuthError"
 
   schemas:
+    BackchannelAuthenticationRequest:
+      type: object
+      additionalProperties: true
+      properties:
+        client_id: {type: string}
+        client_secret: {type: string, writeOnly: true}
+        client_assertion: {type: string, writeOnly: true}
+        client_assertion_type: {type: string}
+        scope: {type: string}
+        login_hint: {type: string, maxLength: 2048}
+        binding_message: {type: string, maxLength: 64}
+        requested_expiry: {type: string, description: "Seconds, 1 to 259200."}
+        audience: {type: string}
+        request: {type: string, writeOnly: true, description: A signed request object (JAR).}
+    BackchannelAuthenticationResponse:
+      type: object
+      required: [auth_req_id, expires_in, interval]
+      properties:
+        auth_req_id: {type: string, description: Opaque; never logged.}
+        expires_in: {type: integer}
+        interval: {type: integer, const: 5}
     MFAAssociateRequest:
       type: object
       additionalProperties: false
@@ -2442,6 +2532,10 @@ components:
           type: string
           writeOnly: true
           description: A signed JWT that authenticates the application (`private_key_jwt`, RFC 7523). At most 2048 bytes; never logged.
+        auth_req_id:
+          type: string
+          writeOnly: true
+          description: The CIBA request to redeem (grant_type=urn:openid:params:grant-type:ciba). Never logged.
         client_assertion_type:
           type: string
           const: "urn:ietf:params:oauth:client-assertion-type:jwt-bearer"
@@ -2556,6 +2650,10 @@ components:
         revocation_endpoint: {type: string, format: uri}
         device_authorization_endpoint: {type: string, format: uri}
         pushed_authorization_request_endpoint: {type: string, description: Present when the tenant allows pushed authorization requests.}
+        backchannel_authentication_endpoint: {type: string, description: "`/bc-authorize` (Plan 41c)."}
+        backchannel_token_delivery_modes_supported: {type: array, items: {type: string, enum: [poll]}}
+        backchannel_user_code_parameter_supported: {type: boolean, enum: [false]}
+        backchannel_authentication_request_signing_alg_values_supported: {type: array, items: {type: string}, description: Present with signed request object support.}
         request_uri_parameter_supported: {type: boolean, description: "Always false: `request_uri` is accepted only from `/oauth/par`."}
         request_parameter_supported: {type: boolean, description: "Present and true when the store supports client credentials (D-0063, lifting D-0035): signed request objects are processed and unsigned ones are refused."}
         request_object_signing_alg_values_supported: {type: array, items: {type: string, enum: [RS256, RS384, PS256]}, description: Algorithms accepted for request objects; present when the store supports client credentials.}

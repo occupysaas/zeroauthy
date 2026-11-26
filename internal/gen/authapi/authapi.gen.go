@@ -13,6 +13,21 @@ import (
 	"github.com/oapi-codegen/runtime"
 )
 
+// Defines values for BackchannelAuthenticationResponseInterval.
+const (
+	BackchannelAuthenticationResponseIntervalN5 BackchannelAuthenticationResponseInterval = 5
+)
+
+// Valid indicates whether the value is a known member of the BackchannelAuthenticationResponseInterval enum.
+func (e BackchannelAuthenticationResponseInterval) Valid() bool {
+	switch e {
+	case BackchannelAuthenticationResponseIntervalN5:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for DeviceCodeResponseExpiresIn.
 const (
 	N900 DeviceCodeResponseExpiresIn = 900
@@ -30,13 +45,13 @@ func (e DeviceCodeResponseExpiresIn) Valid() bool {
 
 // Defines values for DeviceCodeResponseInterval.
 const (
-	N5 DeviceCodeResponseInterval = 5
+	DeviceCodeResponseIntervalN5 DeviceCodeResponseInterval = 5
 )
 
 // Valid indicates whether the value is a known member of the DeviceCodeResponseInterval enum.
 func (e DeviceCodeResponseInterval) Valid() bool {
 	switch e {
-	case N5:
+	case DeviceCodeResponseIntervalN5:
 		return true
 	default:
 		return false
@@ -262,6 +277,36 @@ const (
 func (e MFARequiredError) Valid() bool {
 	switch e {
 	case MfaRequired:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for OpenIDConfigurationBackchannelTokenDeliveryModesSupported.
+const (
+	Poll OpenIDConfigurationBackchannelTokenDeliveryModesSupported = "poll"
+)
+
+// Valid indicates whether the value is a known member of the OpenIDConfigurationBackchannelTokenDeliveryModesSupported enum.
+func (e OpenIDConfigurationBackchannelTokenDeliveryModesSupported) Valid() bool {
+	switch e {
+	case Poll:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for OpenIDConfigurationBackchannelUserCodeParameterSupported.
+const (
+	False OpenIDConfigurationBackchannelUserCodeParameterSupported = false
+)
+
+// Valid indicates whether the value is a known member of the OpenIDConfigurationBackchannelUserCodeParameterSupported enum.
+func (e OpenIDConfigurationBackchannelUserCodeParameterSupported) Valid() bool {
+	switch e {
+	case False:
 		return true
 	default:
 		return false
@@ -607,6 +652,36 @@ type AuthorizeRequest struct {
 	UiLocales           *string `json:"ui_locales,omitempty"`
 }
 
+// BackchannelAuthenticationRequest defines model for BackchannelAuthenticationRequest.
+type BackchannelAuthenticationRequest struct {
+	Audience            *string `json:"audience,omitempty"`
+	BindingMessage      *string `json:"binding_message,omitempty"`
+	ClientAssertion     *string `json:"client_assertion,omitempty"`
+	ClientAssertionType *string `json:"client_assertion_type,omitempty"`
+	ClientId            *string `json:"client_id,omitempty"`
+	ClientSecret        *string `json:"client_secret,omitempty"`
+	LoginHint           *string `json:"login_hint,omitempty"`
+
+	// Request A signed request object (JAR).
+	Request *string `json:"request,omitempty"`
+
+	// RequestedExpiry Seconds, 1 to 259200.
+	RequestedExpiry      *string                `json:"requested_expiry,omitempty"`
+	Scope                *string                `json:"scope,omitempty"`
+	AdditionalProperties map[string]interface{} `json:"-"`
+}
+
+// BackchannelAuthenticationResponse defines model for BackchannelAuthenticationResponse.
+type BackchannelAuthenticationResponse struct {
+	// AuthReqId Opaque; never logged.
+	AuthReqId string                                    `json:"auth_req_id"`
+	ExpiresIn int                                       `json:"expires_in"`
+	Interval  BackchannelAuthenticationResponseInterval `json:"interval"`
+}
+
+// BackchannelAuthenticationResponseInterval defines model for BackchannelAuthenticationResponse.Interval.
+type BackchannelAuthenticationResponseInterval int
+
 // ChangePasswordRequest defines model for ChangePasswordRequest.
 type ChangePasswordRequest struct {
 	ClientId *string `json:"client_id,omitempty"`
@@ -812,12 +887,20 @@ type OidcLogoutRequest struct {
 // OpenIDConfiguration defines model for OpenIDConfiguration.
 type OpenIDConfiguration struct {
 	// AcrValuesSupported Effective supported authentication contexts; defaults to the multi-factor PAPE policy value.
-	AcrValuesSupported                *[]string `json:"acr_values_supported,omitempty"`
-	AuthorizationEndpoint             string    `json:"authorization_endpoint"`
-	BackchannelLogoutSessionSupported *bool     `json:"backchannel_logout_session_supported,omitempty"`
+	AcrValuesSupported    *[]string `json:"acr_values_supported,omitempty"`
+	AuthorizationEndpoint string    `json:"authorization_endpoint"`
+
+	// BackchannelAuthenticationEndpoint `/bc-authorize` (Plan 41c).
+	BackchannelAuthenticationEndpoint *string `json:"backchannel_authentication_endpoint,omitempty"`
+
+	// BackchannelAuthenticationRequestSigningAlgValuesSupported Present with signed request object support.
+	BackchannelAuthenticationRequestSigningAlgValuesSupported *[]string `json:"backchannel_authentication_request_signing_alg_values_supported,omitempty"`
+	BackchannelLogoutSessionSupported                         *bool     `json:"backchannel_logout_session_supported,omitempty"`
 
 	// BackchannelLogoutSupported Advertised when oidc_logout.v1 client settings are available.
-	BackchannelLogoutSupported *bool `json:"backchannel_logout_supported,omitempty"`
+	BackchannelLogoutSupported             *bool                                                        `json:"backchannel_logout_supported,omitempty"`
+	BackchannelTokenDeliveryModesSupported *[]OpenIDConfigurationBackchannelTokenDeliveryModesSupported `json:"backchannel_token_delivery_modes_supported,omitempty"`
+	BackchannelUserCodeParameterSupported  *OpenIDConfigurationBackchannelUserCodeParameterSupported    `json:"backchannel_user_code_parameter_supported,omitempty"`
 
 	// ClaimsParameterSupported Present and true unless the claims-parameter compatibility switch is enabled (D-0080).
 	ClaimsParameterSupported      *bool                                               `json:"claims_parameter_supported,omitempty"`
@@ -858,6 +941,12 @@ type OpenIDConfiguration struct {
 	TokenEndpointAuthSigningAlgValuesSupported *[]OpenIDConfigurationTokenEndpointAuthSigningAlgValuesSupported `json:"token_endpoint_auth_signing_alg_values_supported,omitempty"`
 	UserinfoEndpoint                           *string                                                          `json:"userinfo_endpoint,omitempty"`
 }
+
+// OpenIDConfigurationBackchannelTokenDeliveryModesSupported defines model for OpenIDConfiguration.BackchannelTokenDeliveryModesSupported.
+type OpenIDConfigurationBackchannelTokenDeliveryModesSupported string
+
+// OpenIDConfigurationBackchannelUserCodeParameterSupported defines model for OpenIDConfiguration.BackchannelUserCodeParameterSupported.
+type OpenIDConfigurationBackchannelUserCodeParameterSupported bool
 
 // OpenIDConfigurationDpopSigningAlgValuesSupported defines model for OpenIDConfiguration.DpopSigningAlgValuesSupported.
 type OpenIDConfigurationDpopSigningAlgValuesSupported string
@@ -1090,7 +1179,10 @@ type TokenFormRequest struct {
 	// audience must be allowed by the client's refresh token policies
 	// (D-0070). Other grants use the tenant's default audience when
 	// applicable.
-	Audience      *string                         `json:"audience,omitempty"`
+	Audience *string `json:"audience,omitempty"`
+
+	// AuthReqId The CIBA request to redeem (grant_type=urn:openid:params:grant-type:ciba). Never logged.
+	AuthReqId     *string                         `json:"auth_req_id,omitempty"`
 	AuthSession   *string                         `json:"auth_session,omitempty"`
 	AuthnResponse *TokenFormRequest_AuthnResponse `json:"authn_response,omitempty"`
 	BindingCode   *string                         `json:"binding_code,omitempty"`
@@ -1192,7 +1284,10 @@ type TokenRequest struct {
 	// audience must be allowed by the client's refresh token policies
 	// (D-0070). Other grants use the tenant's default audience when
 	// applicable.
-	Audience      *string                     `json:"audience,omitempty"`
+	Audience *string `json:"audience,omitempty"`
+
+	// AuthReqId The CIBA request to redeem (grant_type=urn:openid:params:grant-type:ciba). Never logged.
+	AuthReqId     *string                     `json:"auth_req_id,omitempty"`
 	AuthSession   *string                     `json:"auth_session,omitempty"`
 	AuthnResponse *TokenRequest_AuthnResponse `json:"authn_response,omitempty"`
 	BindingCode   *string                     `json:"binding_code,omitempty"`
@@ -1297,7 +1392,10 @@ type TokenRequestFields struct {
 	// audience must be allowed by the client's refresh token policies
 	// (D-0070). Other grants use the tenant's default audience when
 	// applicable.
-	Audience      *string                           `json:"audience,omitempty"`
+	Audience *string `json:"audience,omitempty"`
+
+	// AuthReqId The CIBA request to redeem (grant_type=urn:openid:params:grant-type:ciba). Never logged.
+	AuthReqId     *string                           `json:"auth_req_id,omitempty"`
 	AuthSession   *string                           `json:"auth_session,omitempty"`
 	AuthnResponse *TokenRequestFields_AuthnResponse `json:"authn_response,omitempty"`
 	BindingCode   *string                           `json:"binding_code,omitempty"`
@@ -1788,6 +1886,9 @@ type WsfedClientSignInParamsWa string
 // AuthorizePostFormdataRequestBody defines body for AuthorizePost for application/x-www-form-urlencoded ContentType.
 type AuthorizePostFormdataRequestBody = AuthorizeRequest
 
+// BcAuthorizeFormdataRequestBody defines body for BcAuthorize for application/x-www-form-urlencoded ContentType.
+type BcAuthorizeFormdataRequestBody = BackchannelAuthenticationRequest
+
 // DbconnectionsChangePasswordJSONRequestBody defines body for DbconnectionsChangePassword for application/json ContentType.
 type DbconnectionsChangePasswordJSONRequestBody = ChangePasswordRequest
 
@@ -1865,6 +1966,209 @@ type SamlpIdPLogoutPostFormdataRequestBody SamlpIdPLogoutPostFormdataBody
 
 // UserinfoPostFormdataRequestBody defines body for UserinfoPost for application/x-www-form-urlencoded ContentType.
 type UserinfoPostFormdataRequestBody UserinfoPostFormdataBody
+
+// Getter for additional properties for BackchannelAuthenticationRequest. Returns the specified
+// element and whether it was found
+func (a BackchannelAuthenticationRequest) Get(fieldName string) (value interface{}, found bool) {
+	if a.AdditionalProperties != nil {
+		value, found = a.AdditionalProperties[fieldName]
+	}
+	return
+}
+
+// Setter for additional properties for BackchannelAuthenticationRequest
+func (a *BackchannelAuthenticationRequest) Set(fieldName string, value interface{}) {
+	if a.AdditionalProperties == nil {
+		a.AdditionalProperties = make(map[string]interface{})
+	}
+	a.AdditionalProperties[fieldName] = value
+}
+
+// Override default JSON handling for BackchannelAuthenticationRequest to handle AdditionalProperties
+func (a *BackchannelAuthenticationRequest) UnmarshalJSON(b []byte) error {
+	object := make(map[string]json.RawMessage)
+	err := json.Unmarshal(b, &object)
+	if err != nil {
+		return err
+	}
+
+	if raw, found := object["audience"]; found {
+		err = json.Unmarshal(raw, &a.Audience)
+		if err != nil {
+			return fmt.Errorf("error reading 'audience': %w", err)
+		}
+		delete(object, "audience")
+	}
+
+	if raw, found := object["binding_message"]; found {
+		err = json.Unmarshal(raw, &a.BindingMessage)
+		if err != nil {
+			return fmt.Errorf("error reading 'binding_message': %w", err)
+		}
+		delete(object, "binding_message")
+	}
+
+	if raw, found := object["client_assertion"]; found {
+		err = json.Unmarshal(raw, &a.ClientAssertion)
+		if err != nil {
+			return fmt.Errorf("error reading 'client_assertion': %w", err)
+		}
+		delete(object, "client_assertion")
+	}
+
+	if raw, found := object["client_assertion_type"]; found {
+		err = json.Unmarshal(raw, &a.ClientAssertionType)
+		if err != nil {
+			return fmt.Errorf("error reading 'client_assertion_type': %w", err)
+		}
+		delete(object, "client_assertion_type")
+	}
+
+	if raw, found := object["client_id"]; found {
+		err = json.Unmarshal(raw, &a.ClientId)
+		if err != nil {
+			return fmt.Errorf("error reading 'client_id': %w", err)
+		}
+		delete(object, "client_id")
+	}
+
+	if raw, found := object["client_secret"]; found {
+		err = json.Unmarshal(raw, &a.ClientSecret)
+		if err != nil {
+			return fmt.Errorf("error reading 'client_secret': %w", err)
+		}
+		delete(object, "client_secret")
+	}
+
+	if raw, found := object["login_hint"]; found {
+		err = json.Unmarshal(raw, &a.LoginHint)
+		if err != nil {
+			return fmt.Errorf("error reading 'login_hint': %w", err)
+		}
+		delete(object, "login_hint")
+	}
+
+	if raw, found := object["request"]; found {
+		err = json.Unmarshal(raw, &a.Request)
+		if err != nil {
+			return fmt.Errorf("error reading 'request': %w", err)
+		}
+		delete(object, "request")
+	}
+
+	if raw, found := object["requested_expiry"]; found {
+		err = json.Unmarshal(raw, &a.RequestedExpiry)
+		if err != nil {
+			return fmt.Errorf("error reading 'requested_expiry': %w", err)
+		}
+		delete(object, "requested_expiry")
+	}
+
+	if raw, found := object["scope"]; found {
+		err = json.Unmarshal(raw, &a.Scope)
+		if err != nil {
+			return fmt.Errorf("error reading 'scope': %w", err)
+		}
+		delete(object, "scope")
+	}
+
+	if len(object) != 0 {
+		a.AdditionalProperties = make(map[string]interface{})
+		for fieldName, fieldBuf := range object {
+			var fieldVal interface{}
+			err := json.Unmarshal(fieldBuf, &fieldVal)
+			if err != nil {
+				return fmt.Errorf("error unmarshaling field %s: %w", fieldName, err)
+			}
+			a.AdditionalProperties[fieldName] = fieldVal
+		}
+	}
+	return nil
+}
+
+// Override default JSON handling for BackchannelAuthenticationRequest to handle AdditionalProperties
+func (a BackchannelAuthenticationRequest) MarshalJSON() ([]byte, error) {
+	var err error
+	object := make(map[string]json.RawMessage)
+
+	if a.Audience != nil {
+		object["audience"], err = json.Marshal(a.Audience)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'audience': %w", err)
+		}
+	}
+
+	if a.BindingMessage != nil {
+		object["binding_message"], err = json.Marshal(a.BindingMessage)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'binding_message': %w", err)
+		}
+	}
+
+	if a.ClientAssertion != nil {
+		object["client_assertion"], err = json.Marshal(a.ClientAssertion)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'client_assertion': %w", err)
+		}
+	}
+
+	if a.ClientAssertionType != nil {
+		object["client_assertion_type"], err = json.Marshal(a.ClientAssertionType)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'client_assertion_type': %w", err)
+		}
+	}
+
+	if a.ClientId != nil {
+		object["client_id"], err = json.Marshal(a.ClientId)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'client_id': %w", err)
+		}
+	}
+
+	if a.ClientSecret != nil {
+		object["client_secret"], err = json.Marshal(a.ClientSecret)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'client_secret': %w", err)
+		}
+	}
+
+	if a.LoginHint != nil {
+		object["login_hint"], err = json.Marshal(a.LoginHint)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'login_hint': %w", err)
+		}
+	}
+
+	if a.Request != nil {
+		object["request"], err = json.Marshal(a.Request)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'request': %w", err)
+		}
+	}
+
+	if a.RequestedExpiry != nil {
+		object["requested_expiry"], err = json.Marshal(a.RequestedExpiry)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'requested_expiry': %w", err)
+		}
+	}
+
+	if a.Scope != nil {
+		object["scope"], err = json.Marshal(a.Scope)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'scope': %w", err)
+		}
+	}
+
+	for fieldName, field := range a.AdditionalProperties {
+		object[fieldName], err = json.Marshal(field)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling '%s': %w", fieldName, err)
+		}
+	}
+	return json.Marshal(object)
+}
 
 // Getter for additional properties for DeviceCodeRequest. Returns the specified
 // element and whether it was found
@@ -2915,6 +3219,9 @@ type ServerInterface interface {
 	// AuthorizePost Start an authorization (login) flow (form post)
 	// (POST /authorize)
 	AuthorizePost(w http.ResponseWriter, r *http.Request)
+	// BcAuthorize Start a backchannel authentication request (CIBA)
+	// (POST /bc-authorize)
+	BcAuthorize(w http.ResponseWriter, r *http.Request)
 	// DbconnectionsChangePassword Request a password reset email
 	// (POST /dbconnections/change_password)
 	DbconnectionsChangePassword(w http.ResponseWriter, r *http.Request)
@@ -3068,6 +3375,12 @@ func (_ Unimplemented) Authorize(w http.ResponseWriter, r *http.Request, params 
 // AuthorizePost Start an authorization (login) flow (form post)
 // (POST /authorize)
 func (_ Unimplemented) AuthorizePost(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// BcAuthorize Start a backchannel authentication request (CIBA)
+// (POST /bc-authorize)
+func (_ Unimplemented) BcAuthorize(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -3703,6 +4016,20 @@ func (siw *ServerInterfaceWrapper) AuthorizePost(w http.ResponseWriter, r *http.
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.AuthorizePost(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// BcAuthorize operation middleware
+func (siw *ServerInterfaceWrapper) BcAuthorize(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.BcAuthorize(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -5392,6 +5719,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/oauth/par", wrapper.OauthPar)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/bc-authorize", wrapper.BcAuthorize)
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/oauth/device/code", wrapper.OauthDeviceCode)
