@@ -1,7 +1,10 @@
 #!/usr/bin/env bash
-# Plan 42a acceptance: the My Account API on a production SQLite server, a
-# browser application using @auth0/auth0-spa-js 2.28.3 with a virtual
-# passkey authenticator, raw error requests and a log audit.
+# Plan 42b acceptance: the My Organization API on a production SQLite
+# server: organization logins through @auth0/auth0-spa-js 2.28.3 as an
+# administrator, a member and another organization's administrator (Phase
+# A); domains verified against a fixture DNS server, an identity provider
+# with a linked domain, SCIM provisioning and tokens (Phase B); raw error
+# requests and a log audit.
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 export FORCE_COLOR=0
@@ -24,11 +27,14 @@ trap 'exit 143' TERM
 openssl req -x509 -newkey rsa:2048 -nodes -days 1 -subj '/CN=Plan42b local root' -addext 'subjectAltName=DNS:acct.e2e.test,DNS:app.acct.e2e.test,DNS:system.e2e.test,IP:127.0.0.1' -keyout "$root/key.pem" -out "$root/cert.pem" 2>/dev/null
 openssl rand -base64 32 > "$root/master.key"
 export NODE_EXTRA_CA_CERTS="$root/cert.pem" SSL_CERT_FILE="$root/cert.pem"
+export E2E_M42B_SCOPES="$(node --input-type=module -e "import {scopes} from './tests/e2e/m42b-my-org.mjs'; console.log(JSON.stringify(scopes))")"
+echo '{}' > "$root/dns-records.json"
+export E2E_M42B_DNS_RECORDS="$root/dns-records.json"
 export E2E_M42B_CREDENTIALS="$(node -e "const{randomBytes}=require('node:crypto');console.log(JSON.stringify(Object.fromEntries(['admin','password'].map(k=>[k,randomBytes(24).toString('base64url')+'Aa1!']))))")"
 node --input-type=module <<'JS'
 import {writeFile} from 'node:fs/promises';import {dump} from './tests/e2e/node_modules/js-yaml/index.js';
 const s=JSON.parse(process.env.E2E_M42B_CREDENTIALS),origin='https://acct.e2e.test',app='https://app.acct.e2e.test',org=origin+'/my-org/';
-const mo=['read:my_org:configuration','read:my_org:details','update:my_org:details','read:my_org:members','delete:my_org:memberships','read:my_org:member_roles','create:my_org:member_roles','delete:my_org:member_roles','read:my_org:member_invitations','create:my_org:member_invitations','delete:my_org:member_invitations','read:my_org:user_stores'];
+const mo=JSON.parse(process.env.E2E_M42B_SCOPES);
 const db='Username-Password-Authentication',m=(email)=>({email,connection:db});
 const seed={tenants:[{name:'acct',domains:['acct.e2e.test'],default_directory:db,skip_non_verifiable_callback_uri_confirmation_prompt:true,
  my_organization_api:{active:true},
@@ -48,6 +54,8 @@ cat > "$root/config.yaml" <<YAML
 server:
   listen: 127.0.0.1:9543
   system_host: system.e2e.test
+  custom_domains:
+    dns_resolver: 127.0.0.1:8076
   tls_cert_file: $root/cert.pem
   tls_key_file: $root/key.pem
 storage:
@@ -62,6 +70,8 @@ log:
   format: json
 YAML
 go build -o "$root/zeroauthy" ./cmd/zeroauthy
+go build -o "$root/dns" ./tests/e2e/m42b/dns
+start "$root/dns" -addr 127.0.0.1:8076 -records "$root/dns-records.json" >"$root/dns.log" 2>&1
 PROXY_PORT=9198 TARGET_PORT=9543 start node tests/e2e/connect-proxy.mjs >"$root/proxy.log" 2>&1
 start "$root/zeroauthy" serve -c "$root/config.yaml" >"$root/server.log" 2>&1
 server_pid=${pids[-1]}
@@ -73,4 +83,4 @@ node tests/e2e/m42b-my-org.mjs raw
 (cd tests/e2e && E2E_M42B=1 ./node_modules/.bin/playwright test m42b-my-org.spec.mjs --config playwright.config.mjs --output "$root/playwright-results")
 stop
 node tests/e2e/m42b-my-org.mjs audit
-printf '%s\n' 'Plan42b acceptance: organization logins, details, members, roles, invitations, isolation, raw errors and log audit passed'
+printf '%s\n' 'Plan42b acceptance: organization logins, details, members, roles, invitations, domains, identity providers, provisioning, isolation, raw errors and log audit passed'

@@ -2,7 +2,8 @@
 // 2.28.3 in their organization and manage it through /my-org/v1.
 import {test, expect} from '@playwright/test';
 import {fileURLToPath} from 'node:url';
-import {origin, app, ORG, scopes, secrets, secret, orgs} from './m42b-my-org.mjs';
+import {randomBytes} from 'node:crypto';
+import {origin, app, ORG, scopes, secrets, secret, orgs, publishTXT, fixtureFetch} from './m42b-my-org.mjs';
 
 test.skip(!process.env.E2E_M42B_WORK, 'Run make e2e-my-org');
 test.use({trace: 'off'});
@@ -95,6 +96,61 @@ test('an administrator manages the organization; others are kept out', async ({b
       expect(theirs.body.members.map(m => m.email)).toEqual(['carol@other.e2e.local']);
       expect((await other.call('GET', `/members/${encodeURIComponent(bob.user_id)}`)).status).toBe(404);
       expect((await other.call('GET', '/details')).body.id).toBe(ids.other);
+    } finally {
+      await other.ctx.close();
+    }
+  } finally {
+    await admin.ctx.close();
+  }
+});
+
+// Phase B: the administrator verifies a domain through DNS, creates an
+// identity provider, links the domain and provisions users through SCIM.
+test('an administrator verifies a domain, adds an identity provider and provisions it', async ({browser}) => {
+  const ids = await orgs();
+  const admin = await signedIn(browser, 'alice@acme.e2e.local', ids.acme);
+  try {
+    const claimed = await admin.call('POST', '/domains', {domain: 'acme.e2e.test'});
+    expect(claimed.status).toBe(201);
+    expect(claimed.body).toMatchObject({status: 'pending', verification_host: '_zeroauthy-org.acme.e2e.test', identity_provider_association: 'unassociated'});
+    expect((await admin.call('POST', `/domains/${claimed.body.id}/verify`)).body.status).toBe('failed');
+    await publishTXT('_zeroauthy-org.acme.e2e.test', ['unrelated', claimed.body.verification_txt]);
+    const verified = await admin.call('POST', `/domains/${claimed.body.id}/verify`);
+    expect(verified.status).toBe(202);
+    expect(verified.body.status).toBe('verified');
+
+    const cfg = (await admin.call('GET', '/config/identity-providers')).body;
+    expect(cfg.domain_aliases_config.domain_verification).toBe('optional');
+    expect(Object.keys(cfg.strategies)).toEqual(['oidc']);
+
+    const clientSecret = await secret('upstream-' + randomBytes(18).toString('base64url'), 'client_secret');
+    const created = await admin.call('POST', '/identity-providers', {name: 'acme-sso', strategy: 'oidc', display_name: 'Acme SSO',
+      options: {type: 'back_channel', client_id: 'acme-upstream', client_secret: clientSecret, discovery_url: 'https://idp.acme.e2e.test/.well-known/openid-configuration'}});
+    expect(created.status).toBe(201);
+    expect(JSON.stringify(created.body)).not.toContain(clientSecret);
+    const idp = created.body.id;
+    expect(created.body).toMatchObject({access_level: 'full', is_enabled: true, strategy: 'oidc'});
+    expect((await admin.call('POST', `/identity-providers/${idp}/domains`, {domain: 'acme.e2e.test'})).status).toBe(201);
+    expect((await admin.call('GET', `/domains/${claimed.body.id}`)).body.identity_provider_association).toBe('associated');
+    expect((await admin.call('GET', `/domains/${claimed.body.id}/identity-providers`)).body.identity_providers.map(p => p.id)).toEqual([idp]);
+
+    expect((await admin.call('POST', `/identity-providers/${idp}/provisioning`)).status).toBe(201);
+    const minted = await admin.call('POST', `/identity-providers/${idp}/provisioning/scim-tokens`, {token_lifetime: 3600});
+    expect(minted.status).toBe(201);
+    const scimToken = await secret(minted.body.token, 'scim_token');
+    expect(JSON.stringify((await admin.call('GET', `/identity-providers/${idp}/provisioning/scim-tokens`)).body)).not.toContain(scimToken);
+    const scim = (method, path, body) => fixtureFetch(`${origin}/scim/v2/connections/${idp}${path}`, {method, headers: {authorization: 'Bearer ' + scimToken, 'content-type': 'application/scim+json'}, body: body && JSON.stringify(body)});
+    const user = await scim('POST', '/Users', {schemas: ['urn:ietf:params:scim:schemas:core:2.0:User'], externalId: 'dana-acme-1', userName: 'dana@acme.e2e.test', emails: [{value: 'dana@acme.e2e.test', primary: true}], active: true});
+    expect(user.status, await user.clone().text()).toBe(201);
+    expect((await admin.call('DELETE', `/identity-providers/${idp}/provisioning/scim-tokens/${minted.body.token_id}`)).status).toBe(204);
+    expect((await scim('GET', '/Users')).status).toBe(401);
+
+    // Another organization's administrator cannot reach the provider or the domain.
+    const other = await signedIn(browser, 'carol@other.e2e.local', ids.other);
+    try {
+      expect((await other.call('GET', `/identity-providers/${idp}`)).status).toBe(404);
+      expect((await other.call('GET', `/domains/${claimed.body.id}`)).status).toBe(404);
+      expect((await other.call('POST', '/domains', {domain: 'acme.e2e.test'})).status).toBe(409);
     } finally {
       await other.ctx.close();
     }

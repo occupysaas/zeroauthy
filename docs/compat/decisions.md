@@ -4117,8 +4117,10 @@ Observation points MO-1…MO-8 are listed in
 
 ## D-0221: My Organization API — Phase B (Plan 42b)
 
-**Contract frozen 2026-11-26; implementation in progress.** Plan:
-[Plan 42b Phase B](../superpowers/plans/2026-11-26-zeroauthy-plan-42b-phase-b-my-organization-sso.md).
+**Contract frozen and Phase B implemented 2026-11-26 (local verification;
+plan-branch CI and maintainer approval pending).** Record:
+[Phase B record](../superpowers/2026-11-26-plan-42b-phase-b-implementation-record.md).
+Plan: [Plan 42b Phase B](../superpowers/plans/2026-11-26-zeroauthy-plan-42b-phase-b-my-organization-sso.md).
 Contract: [`api/myorg.yaml`](../../api/myorg.yaml). Maintainer request
 (2026-11-26) to plan and build Phase B; spec §8.2 is satisfied (Plans 36,
 37a and 37c have merged). No live Auth0 tenant was observed.

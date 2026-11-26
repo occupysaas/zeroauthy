@@ -1,6 +1,8 @@
 # Plan 42b implementation record
 
-Status: **Phase A implemented and verified locally**, branched from
+Status: **Phase A merged 2026-11-26 (PR #99)**; Phase B:
+[record](2026-11-26-plan-42b-phase-b-implementation-record.md). Originally
+**implemented and verified locally**, branched from
 `plan-42a-my-account` (`e2c0fc07`; Plan 42a, PR #98, not yet merged).
 Branch: `plan-42b-my-organization`; worktree:
 `/mnt/nvme2/code/zeroauthy-plan42b`. Plan-branch CI and maintainer approval

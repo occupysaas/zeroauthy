@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onMounted, reactive, ref } from 'vue'
-import type { Client, ClientGrant, ResourceServer, SystemTenant } from '../../api/client'
+import type { Client, ClientGrant, ConnectionProfile, ResourceServer, SystemTenant } from '../../api/client'
 import { errorMessage, useServices } from '../../context'
 import { useI18n } from 'vue-i18n'
 import Banner from '../../ui/Banner.vue'
@@ -19,9 +19,11 @@ const busy = ref(false)
 const error = ref('')
 const status = ref('')
 const clients = ref<Client[]>([])
+const profiles = ref<ConnectionProfile[]>([])
 const current = props.client.my_organization_configuration
 const form = reactive({
   landing: current?.invitation_landing_client_id ?? '',
+  profile: current?.connection_profile_id ?? '',
   deletion: current?.connection_deletion_behavior ?? 'allow',
   ceiling: current?.enforce_permission_ceiling ?? false,
   selfAssign: current?.enforce_self_assignment_restriction ?? false,
@@ -32,6 +34,10 @@ const configured = ref(!!current)
 onMounted(async () => {
   try {
     clients.value = await services.allClients(props.tenant)
+    // Connection profiles (Plan 37c) shape the identity providers
+    // administrators may create (Plan 42b Phase B); absent with storage
+    // plugins without self-service.
+    profiles.value = (await services.listConnectionProfiles(props.tenant).catch(() => ({ connection_profiles: [] }))).connection_profiles ?? []
   } catch (e) {
     error.value = errorMessage(e)
   }
@@ -70,6 +76,7 @@ async function save(clear: boolean) {
         allowed_strategies: form.strategies as (typeof strategies)[number][],
         connection_deletion_behavior: form.deletion as 'allow' | 'allow_if_empty',
         ...(form.landing ? { invitation_landing_client_id: form.landing } : {}),
+        ...(form.profile ? { connection_profile_id: form.profile } : {}),
         enforce_permission_ceiling: form.ceiling,
         enforce_self_assignment_restriction: form.selfAssign,
       }
@@ -101,6 +108,12 @@ async function save(clear: boolean) {
         <select id="my-org-landing" v-model="form.landing">
           <option value="">{{ t('grants.myOrg.landingNone') }}</option>
           <option v-for="c in clients" :key="c.client_id" :value="c.client_id">{{ c.name }} ({{ c.client_id }})</option>
+        </select>
+      </Field>
+      <Field id="my-org-profile" :label="t('grants.myOrg.profile')" :hint="t('grants.myOrg.profileHint')">
+        <select id="my-org-profile" v-model="form.profile">
+          <option value="">{{ t('grants.myOrg.profileNone') }}</option>
+          <option v-for="p in profiles" :key="p.id" :value="p.id">{{ p.name }}</option>
         </select>
       </Field>
       <Field id="my-org-deletion" :label="t('grants.myOrg.deletion')">
