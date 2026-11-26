@@ -68,12 +68,12 @@ func (h *Handlers) with(scope string, next handler) http.HandlerFunc {
 // Routes is the router mounted at Path.
 func (h *Handlers) Routes() http.Handler {
 	r := chi.NewRouter()
-	r.Get("/config", h.with("read:my_org:configuration", h.notYet))
-	r.Get("/details", h.with("read:my_org:details", h.notYet))
-	r.Patch("/details", h.with("update:my_org:details", h.notYet))
-	r.Get("/members", h.with("read:my_org:members", h.notYet))
-	r.Get("/members/{user_id}", h.with("read:my_org:members", h.notYet))
-	r.Post("/delete-memberships", h.with("delete:my_org:memberships", h.notYet))
+	r.Get("/config", h.with("read:my_org:configuration", h.getConfig))
+	r.Get("/details", h.with("read:my_org:details", h.getDetails))
+	r.Patch("/details", h.with("update:my_org:details", h.patchDetails))
+	r.Get("/members", h.with("read:my_org:members", h.listMembers))
+	r.Get("/members/{user_id}", h.with("read:my_org:members", h.getMember))
+	r.Post("/delete-memberships", h.with("delete:my_org:memberships", h.deleteMemberships))
 	r.Get("/members/{user_id}/roles", h.with("read:my_org:member_roles", h.notYet))
 	r.Post("/members/{user_id}/roles", h.with("create:my_org:member_roles", h.notYet))
 	r.Post("/members/{user_id}/unassign-roles", h.with("delete:my_org:member_roles", h.notYet))
@@ -83,7 +83,7 @@ func (h *Handlers) Routes() http.Handler {
 	r.Get("/member-invitations/{invitation_id}", h.with("read:my_org:member_invitations", h.notYet))
 	r.Get("/member-invitations/{invitation_id}/roles", h.with("read:my_org:member_roles", h.notYet))
 	r.Post("/delete-member-invitations", h.with("delete:my_org:member_invitations", h.notYet))
-	r.Get("/user-stores", h.with("read:my_org:user_stores", h.notYet))
+	r.Get("/user-stores", h.with("read:my_org:user_stores", h.listUserStores))
 	r.NotFound(func(w http.ResponseWriter, r *http.Request) { writeProblem(w, r, notFound("Not found.")) })
 	r.MethodNotAllowed(func(w http.ResponseWriter, r *http.Request) {
 		writeProblem(w, r, problem(http.StatusMethodNotAllowed, "method_not_allowed", "Method Not Allowed", "Method not allowed."))
