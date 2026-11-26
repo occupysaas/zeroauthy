@@ -17,32 +17,32 @@ the plans below, marked "(pre-1.0 review)".
 ### Designed 2026-11-16 (spec and plan merged; implementation status below)
 
 Every remaining parallel-paths item except X1 (maintainer-only) has a spec and
-an implementation plan. S1 / Plan 39a (Apple) is implemented and merged into `main` (2026-11-17, plan-branch CI green at `74752598`). O3 / Plan 45b is [implemented](../2026-11-16-plan-45b-implementation-record.md) (all 14 tasks). Rulings the maintainer still has to give are listed
+an implementation plan. S1 / Plan 39a (Apple) is implemented and merged into `main` (2026-11-17, plan-branch CI green at `74752598`). O3 / Plan 45b is [implemented](../2026-11-16-plan-45b-implementation-record.md) (all 14 tasks). As of 2026-11-26, F1–F5, P2, P3, U1, U2 and S2's GitHub connection are merged too; the rows below say which. Rulings the maintainer still has to give are listed
 per item; items without rulings can start as soon as their track allows.
 
 | Item | Plan | Spec | Rulings needed before (parts of) implementation |
 |---|---|---|---|
-| F1 | 36 enterprise OIDC (implementation branch; verification pending) | [spec](2026-11-16-zeroauthy-enterprise-oidc-design.md) | none |
-| P2 | 48 refresh tokens II | [spec](2026-11-16-zeroauthy-refresh-tokens-ii-design.md) | none |
-| P3 | 41a OIDC extras, logout | [spec](2026-11-16-zeroauthy-oidc-extras-logout-design.md) | none (ruled 2026-11-17: no front-channel logout; spec-compliant defaults; certify logout right after 41a merges) |
+| F1 | 36 enterprise OIDC (**merged** 2026-11-19, PR #70) | [spec](2026-11-16-zeroauthy-enterprise-oidc-design.md) | none |
+| P2 | 48 refresh tokens II (**merged** 2026-11-21, PR #73) | [spec](2026-11-16-zeroauthy-refresh-tokens-ii-design.md) | none |
+| P3 | 41a OIDC extras, logout (**merged** 2026-11-21, PRs #74, #76) | [spec](2026-11-16-zeroauthy-oidc-extras-logout-design.md) | none (ruled 2026-11-17: no front-channel logout; spec-compliant defaults; certify logout right after 41a merges) |
 | P4 | 41b DCR and CIMD | [spec](2026-11-16-zeroauthy-dynamic-client-registration-design.md) | none |
 | P5 | 41c CIBA (email channel) | [spec](2026-11-16-zeroauthy-ciba-design.md) | none |
 | P6 | 43 Token Vault | [spec](2026-11-16-zeroauthy-token-vault-design.md) | which clients may exchange; upstream revocation; vault vs identities |
-| F2 | 37a SAML (in progress on `plan-37a-saml`) | [spec](2026-11-16-zeroauthy-saml-design.md) | none (ruled 2026-11-21: vendor goxmldsig + etree; E2E `@node-saml/node-saml` and `samlify`; SHA-1/RSA-1_5 opt-in only) |
-| F3 | 37b WS-Fed and ADFS | [spec](2026-11-16-zeroauthy-ws-federation-design.md) | none (inherits F2's) |
-| F4 | 37c SCIM, groups, self-service (in progress on `plan-37c-scim`) | [spec](2026-11-16-zeroauthy-scim-self-service-design.md) | none (ruled 2026-11-22: phases A → B → C; Phase C with fixture Directory API coverage, live check later) |
-| F5 | 38a AD/LDAP | [spec](2026-11-16-zeroauthy-ad-ldap-design.md) | none (ruled 2026-11-22, recommended options: Auth0 AD/LDAP Connector protocol, not a native LDAP bind; E2E pins the connector release with its mock LDAP server; replica forwarding over internal HTTPS) |
+| F2 | 37a SAML (**merged** 2026-11-22, PR #81) | [spec](2026-11-16-zeroauthy-saml-design.md) | none (ruled 2026-11-21: vendor goxmldsig + etree; E2E `@node-saml/node-saml` and `samlify`; SHA-1/RSA-1_5 opt-in only) |
+| F3 | 37b WS-Fed and ADFS (**merged** 2026-11-23, PR #85) | [spec](2026-11-16-zeroauthy-ws-federation-design.md) | none (inherits F2's) |
+| F4 | 37c SCIM, groups, self-service (**merged** 2026-11-24, PR #87) | [spec](2026-11-16-zeroauthy-scim-self-service-design.md) | none (ruled 2026-11-22: phases A → B → C; Phase C with fixture Directory API coverage, live check later) |
+| F5 | 38a AD/LDAP (**merged** 2026-11-24, PR #88) | [spec](2026-11-16-zeroauthy-ad-ldap-design.md) | none (ruled 2026-11-22, recommended options: Auth0 AD/LDAP Connector protocol, not a native LDAP bind; E2E pins the connector release with its mock LDAP server; replica forwarding over internal HTTPS) |
 | S1 | 39a Apple | [spec](2026-11-16-zeroauthy-apple-design.md) | **done** (merged 2026-11-17, [record](../2026-11-16-plan-39a-implementation-record.md)) |
-| S2 | 39b social providers | [spec](2026-11-16-zeroauthy-social-providers-design.md) | provider order; Tier 2 timing; live checks |
+| S2 | 39b social providers (GitHub split out as 39c, **merged** 2026-11-19, PR #71; the rest open) | [spec](2026-11-16-zeroauthy-social-providers-design.md) | provider order; Tier 2 timing; live checks |
 | A1 | 40 Actions III | [spec](2026-11-16-zeroauthy-actions-iii-design.md) | none |
 | A2 | 38b Forms and Flows | [spec](2026-11-16-zeroauthy-forms-flows-design.md) | console builder scope; vendor order |
-| U1 | 42a My Account API (implemented on `plan-42a-my-account`; CI and approval pending) | [spec](2026-11-16-zeroauthy-my-account-api-design.md) | none (seed shorthand optional) |
-| U2 | 42b My Organization API (Phase A merged 2026-11-26, PR #99; Phase B implemented on `plan-42b-phase-b`, CI and approval pending) | [spec](2026-11-16-zeroauthy-my-organization-api-design.md) | none (ruled 2026-11-25: build while Early Access; Phase B requested 2026-11-26) |
+| U1 | 42a My Account API (**merged** 2026-11-26, PR #98) | [spec](2026-11-16-zeroauthy-my-account-api-design.md) | none (seed shorthand optional) |
+| U2 | 42b My Organization API (**merged** 2026-11-26: Phase A PR #99, Phase B PR #100) | [spec](2026-11-16-zeroauthy-my-organization-api-design.md) | none (ruled 2026-11-25: build while Early Access; Phase B requested 2026-11-26) |
 | H1 | 44 ACUL | [spec](2026-11-16-zeroauthy-acul-design.md) | Classic Login; security boundary; canonical host; ACUL SDK pin |
 | M1 | 38d Management gaps | [spec](2026-11-16-zeroauthy-management-gaps-design.md) | verifiable-credential templates; `/keys/encryption` owner |
 | O1 | 38c network ACLs | [spec](2026-11-16-zeroauthy-network-acls-design.md) | geo/ASN signals; system-tenant exemption |
 | O2 | 45a security hardening | [spec](2026-11-16-zeroauthy-security-hardening-design.md) | key hierarchy; sandbox failure policy; DB TLS default; external KMS |
-| O3 | 45b flow and API fixes | [spec](2026-11-16-zeroauthy-flow-api-fixes-design.md) | none (in progress: Tasks 1–5 done, 6–14 pending) |
+| O3 | 45b flow and API fixes (**merged** 2026-11-18, PR #64) | [spec](2026-11-16-zeroauthy-flow-api-fixes-design.md) | none |
 | O4 | 45c infrastructure | [spec](2026-11-16-zeroauthy-infrastructure-hardening-design.md) | DNS providers; backoff values; axe-core pin |
 | O5 | 46 leftovers | [spec](2026-11-16-zeroauthy-release-leftovers-design.md) | next languages; French reviewer; TV sample CI |
 
@@ -456,7 +456,7 @@ The Plan 12 follow-ups: the `claims` parameter, `acr_values`, `address`/`phone` 
 
 Auth0's end-user-facing APIs outside `/api/v2`: the My Account API (users manage their own authentication methods, passkeys and connected identities) and the My Organization API (organization administrators manage members, invitations and roles; Early Access since 2026-09, with log events). Both reuse Plans 30 and 33 and need their own audiences, scopes and consent. **Full.**
 
-**Split by the parallel paths:** U1 = 42a My Account, U2 = 42b My Organization. **42a designed 2026-11-16:** [spec](2026-11-16-zeroauthy-my-account-api-design.md), [plan](../plans/2026-11-16-zeroauthy-plan-42a-my-account-api.md) (8 tasks, D-0210), from Auth0's My Account OpenAPI (`/docs/oas/myaccount/myaccount-api-oas.json`): GA authentication methods plus the factors list. Connected accounts belong to Plan 43 (P6); consents, consent signing keys, the profile routes and the Authentication Assurance default policy are pre-GA and tracked only. Auth0 also publishes `/docs/oas/myorganization/myorganization-api-oas.json` for U2. **42b designed 2026-11-16 (U2):** [spec](2026-11-16-zeroauthy-my-organization-api-design.md), [plan](../plans/2026-11-16-zeroauthy-plan-42b-my-organization-api.md) (6 tasks, D-0220). Phase A (config, details, members, invitations, member roles, scoped by the token's `org_id`) is ready to build. The whole API is Early Access on Auth0, so building it now is a maintainer call (proposed: yes, for the self-service use case). Phase B (domains with real DNS verification, organization-owned identity providers, provisioning) waits for Plans 36, 37a and 37c.
+**Split by the parallel paths:** U1 = 42a My Account, U2 = 42b My Organization. **42a designed 2026-11-16:** [spec](2026-11-16-zeroauthy-my-account-api-design.md), [plan](../plans/2026-11-16-zeroauthy-plan-42a-my-account-api.md) (8 tasks, D-0210), from Auth0's My Account OpenAPI (`/docs/oas/myaccount/myaccount-api-oas.json`): GA authentication methods plus the factors list. Connected accounts belong to Plan 43 (P6); consents, consent signing keys, the profile routes and the Authentication Assurance default policy are pre-GA and tracked only. Auth0 also publishes `/docs/oas/myorganization/myorganization-api-oas.json` for U2. **42b designed 2026-11-16 (U2):** [spec](2026-11-16-zeroauthy-my-organization-api-design.md), [plan](../plans/2026-11-16-zeroauthy-plan-42b-my-organization-api.md) (6 tasks, D-0220). Phase A (config, details, members, invitations, member roles, scoped by the token's `org_id`) is ready to build. The whole API is Early Access on Auth0, so building it now is a maintainer call (proposed: yes, for the self-service use case). Phase B (domains with real DNS verification, organization-owned identity providers, provisioning) waited for Plans 36, 37a and 37c. **Both phases merged 2026-11-26:** Phase A (PR #99, [record](../2026-11-16-plan-42b-implementation-record.md)), Phase B (PR #100, [plan](../plans/2026-11-26-zeroauthy-plan-42b-phase-b-my-organization-sso.md), [record](../2026-11-26-plan-42b-phase-b-implementation-record.md), D-0221). 42a merged the same day (PR #98).
 
 ### Plan 43 — Token Vault and connected accounts
 
