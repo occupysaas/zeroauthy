@@ -218,3 +218,17 @@ func TestMyOrgTokens(t *testing.T) {
 		t.Errorf("client credentials = %d %s", rec.Code, rec.Body)
 	}
 }
+
+// The API is mounted on tenant hosts, with client-origin CORS.
+func TestMyOrgMounted(t *testing.T) {
+	e := newMyOrgEnv(t)
+	tok := e.token(t, e.canonical, "acme", "alice@flow.test", "alice password 1")
+	r := httptest.NewRequest("GET", "https://"+e.canonical+"/my-org/v1/details", nil)
+	r.Header.Set("Authorization", "Bearer "+tok)
+	r.Header.Set("Origin", "https://app.flow.test")
+	rec := httptest.NewRecorder()
+	e.srv.Config.Handler.ServeHTTP(rec, r)
+	if rec.Code == 401 || rec.Code == 403 || rec.Code == 404 || rec.Header().Get("Access-Control-Allow-Origin") != "https://app.flow.test" {
+		t.Fatalf("details = %d %v %s", rec.Code, rec.Header(), rec.Body)
+	}
+}

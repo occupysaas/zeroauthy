@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/zeroauthy/zeroauthy/internal/myaccount"
+	"github.com/zeroauthy/zeroauthy/internal/myorg"
 
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/tenant"
@@ -18,7 +19,7 @@ import (
 func cors(st store.Store) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			myAccount := strings.HasPrefix(r.URL.Path, myaccount.Path+"/")
+			myAccount := strings.HasPrefix(r.URL.Path, myaccount.Path+"/") || strings.HasPrefix(r.URL.Path, myorg.Path+"/")
 			switch {
 			case myAccount:
 			case r.URL.Path == "/.well-known/openid-configuration", r.URL.Path == "/.well-known/jwks.json":
