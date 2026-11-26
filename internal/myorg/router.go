@@ -2,6 +2,7 @@ package myorg
 
 import (
 	"context"
+	"github.com/zeroauthy/zeroauthy/internal/mgmt"
 	"log/slog"
 	"net/http"
 	"strings"
@@ -36,8 +37,11 @@ type Handlers struct {
 	// DNS looks up domain verification records (LR42b-16): the deployment's
 	// bounded resolver. Without one, verification answers 503.
 	DNS TXTResolver
-	Now func() time.Time
-	Log *slog.Logger
+	// Writes is the Management API that identity provider and provisioning
+	// writes go through (LR42b-18), so its validation, sealing and logs apply.
+	Writes *mgmt.Handlers
+	Now    func() time.Time
+	Log    *slog.Logger
 }
 
 func (h *Handlers) now() time.Time {

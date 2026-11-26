@@ -255,3 +255,26 @@ func TestMyOrgRefresh(t *testing.T) {
 		t.Fatalf("refreshed claims %v", c)
 	}
 }
+
+// TestMyOrgIdPWritesWired: identity provider writes reach the Management
+// API through the server's wiring (Phase B).
+func TestMyOrgIdPWritesWired(t *testing.T) {
+	e := newMyOrgEnv(t)
+	repo, err := store.MyOrg(context.Background(), e.st)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := repo.PutMyOrgClientConfig(context.Background(), &store.MyOrgClientConfig{TenantID: e.tn.ID, ClientID: "portal", Doc: []byte(`{"allowed_strategies":["oidc"],"connection_deletion_behavior":"allow","invitation_landing_client_id":"portal"}`)}); err != nil {
+		t.Fatal(err)
+	}
+	tok := e.token(t, e.canonical, "acme", "alice@flow.test", "alice password 1")
+	body := `{"name":"acme-sso","strategy":"oidc","options":{"type":"front_channel","client_id":"c","discovery_url":"https://idp.example/.well-known/openid-configuration"}}`
+	r := httptest.NewRequest("POST", "https://"+e.canonical+"/my-org/v1/identity-providers", strings.NewReader(body))
+	r.Header.Set("Authorization", "Bearer "+tok)
+	r.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	e.srv.Config.Handler.ServeHTTP(rec, r)
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("create = %d %s", rec.Code, rec.Body)
+	}
+}
