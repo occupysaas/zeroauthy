@@ -3777,10 +3777,15 @@ CIMD:
   are not both present. `private_key_jwt` needs keys from `jwks` or
   `jwks_uri`; `jwks_uri` follows the same outbound policy.
 - Mapping: `client_name` → `name` (default: the URL's host), `redirect_uris`
-  → `callbacks`, `logo_uri`, `grant_types` ∩ {`authorization_code`,
+  → `callbacks`, `logo_uri` (reported in `mapped_fields`, not stored, with a
+  warning), `grant_types` ∩ {`authorization_code`,
   `refresh_token`}, `token_endpoint_auth_method` (default `none`), `app_type`
-  `spa` for `none` and `regular_web` for `private_key_jwt`; keys become
-  `public_key` credentials (kid from the key or its RFC 7638 thumbprint).
+  `spa` for `none` and `regular_web` for `private_key_jwt`; keys (RSA, 2048
+  to 4096 bits, at most 10, no private members) become `public_key`
+  credentials (kid from the key or its RFC 7638 thumbprint).
+- The URL is `https`, at most 200 characters, with a path other than `/`,
+  and without a fragment, credentials or dot segments. The answer must be
+  `200` with `application/json`.
 - Cache: `Cache-Control: max-age` bounded to 5 minutes–24 hours (5 minutes
   without one). A failed refresh keeps the cached document until 24 hours
   after its last good fetch, then the client is `invalid_client` (R41-7).
