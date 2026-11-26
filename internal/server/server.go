@@ -299,7 +299,7 @@ func New(d Deps) http.Handler {
 	})
 	r.Get("/docs", serveDocs)
 
-	az := &authz.Handlers{Compat: d.Compat, Passkeys: d.Passkeys, MFA: d.MFA, Store: d.Store, Sessions: d.Sessions, Log: d.Log,
+	az := &authz.Handlers{CIMD: cimdRegistrar, Compat: d.Compat, Passkeys: d.Passkeys, MFA: d.MFA, Store: d.Store, Sessions: d.Sessions, Log: d.Log,
 		Actions: d.Actions, Wrapper: d.Wrapper, TrustProxyHeaders: d.TrustProxyHeaders}
 	samlIdP := &samlidp.Handler{Store: d.Store, Keys: d.Keys, Sessions: d.Sessions, Wrapper: d.Wrapper, Authz: az, Log: d.Log}
 	az.SAML = samlIdP
@@ -389,7 +389,7 @@ func New(d Deps) http.Handler {
 			ad:   d.AD,
 			dcr:  dcr.NewHandler(d.Store, d.Wrapper, d.Log),
 			oidc: &oidc.Handlers{UpstreamLogout: lg.UpstreamLogout, Wrapper: d.Wrapper, Compat: d.Compat, DPoP: proofService, Keys: d.Keys, Store: d.Store, Sessions: d.Sessions, Log: d.Log},
-			oauth: &oauth.Handlers{Compat: d.Compat, Logout: d.Logout,
+			oauth: &oauth.Handlers{CIMD: cimdRegistrar, Compat: d.Compat, Logout: d.Logout,
 				DPoP:       proofService,
 				Federation: d.Federation,
 				MFA:        d.MFA,

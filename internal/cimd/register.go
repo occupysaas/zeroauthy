@@ -11,6 +11,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/dcr"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/store"
+	"github.com/zeroauthy/zeroauthy/internal/tenantrules"
 )
 
 var (
@@ -226,4 +227,36 @@ func (r *Registrar) write(ctx context.Context, tn *store.Tenant, c *store.Client
 		// Deleting credentials edits the stored client; write c last.
 		return tx.Clients().Update(ctx, c)
 	})
+}
+
+// Resolve maps a client_id from an authorization request to the client ID
+// to use (LR41b-6). When the tenant accepts Client ID Metadata Documents
+// and clientID is such a URL, it is the internal ID of the client
+// registered with it: refreshed when its cache expired, or created (as
+// created_by client) when the tenant allows dynamic registration. Any
+// other clientID is returned unchanged. An unknown URL without dynamic
+// registration is also returned unchanged, so the lookup that follows
+// fails as for any unknown client.
+func (r *Registrar) Resolve(ctx context.Context, tn *store.Tenant, clientID string) (string, error) {
+	if r == nil || !tenantrules.ClientIDMetadataDocuments(tn) || !IsCandidate(clientID) {
+		return clientID, nil
+	}
+	c, err := Lookup(ctx, r.Store, tn.ID, clientID)
+	if err != nil {
+		return "", err
+	}
+	if c == nil {
+		if !tenantrules.ClientIDMetadataDocumentRegistration(tn) {
+			return clientID, nil
+		}
+		out, err := r.Register(ctx, tn, clientID, store.ExternalCreatedByClient, nil)
+		if err != nil {
+			return "", err
+		}
+		return out.Client.ClientID, nil
+	}
+	if _, err := r.Refresh(ctx, tn, c); err != nil {
+		return "", err
+	}
+	return c.ClientID, nil
 }

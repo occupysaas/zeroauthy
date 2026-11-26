@@ -14,6 +14,7 @@ import (
 
 	jose "github.com/go-jose/go-jose/v4"
 
+	"github.com/zeroauthy/zeroauthy/internal/cimd"
 	"github.com/zeroauthy/zeroauthy/internal/clientcred"
 	"github.com/zeroauthy/zeroauthy/internal/keys"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
@@ -77,6 +78,10 @@ func (h *Handlers) authenticateClient(ctx context.Context, r *http.Request, form
 	if clientID == "" {
 		return nil, invalidClient(authFailed, hasBasic)
 	}
+	clientID, cerr := h.resolveClientID(ctx, tenantID, clientID)
+	if cerr != nil {
+		return nil, cerr
+	}
 
 	c, err := h.Store.Clients().Get(ctx, tenantID, clientID)
 	if errors.Is(err, store.ErrNotFound) {
@@ -138,6 +143,14 @@ func (h *Handlers) authenticateAssertion(ctx context.Context, r *http.Request, f
 	if id := form.Get("client_id"); id != "" && id != clientID {
 		return nil, invalidRequest("client_id does not match the client assertion")
 	}
+	// The assertion names the client as it presents itself (a Client ID
+	// Metadata Document URL for CIMD clients); credentials and replay
+	// records belong to the internal ID.
+	presented := clientID
+	clientID, cerr := h.resolveClientID(ctx, tenantID, clientID)
+	if cerr != nil {
+		return nil, cerr
+	}
 	c, err := h.Store.Clients().Get(ctx, tenantID, clientID)
 	if errors.Is(err, store.ErrNotFound) {
 		return fail("unknown client", "client_id", clientID)
@@ -163,7 +176,7 @@ func (h *Handlers) authenticateAssertion(ctx context.Context, r *http.Request, f
 		}
 	}
 	_, err = clientcred.Verify(clientcred.VerifyInput{
-		Raw: raw, ClientID: clientID, Purpose: clientcred.Assertion, Credentials: creds, Now: h.now(),
+		Raw: raw, ClientID: presented, Purpose: clientcred.Assertion, Credentials: creds, Now: h.now(),
 		// LR35-3: the issuer of the host that received the request, or the
 		// exact URL of the endpoint.
 		Audiences: []string{res.Issuer(), res.Origin() + r.URL.Path},
@@ -239,4 +252,23 @@ func (h *Handlers) secretValid(ctx context.Context, c *store.Client, secret stri
 // https://auth0.com/docs/troubleshoot/customer-support/operational-policies/rate-limit-policy/custom-rate-limit-policies
 func secretVerificationBusy() *Error {
 	return &Error{Status: http.StatusTooManyRequests, Code: "too_many_requests", Description: "Rate limit exceeded."}
+}
+
+// resolveClientID maps a Client ID Metadata Document URL to its client's
+// internal ID (Plan 41b, LR41b-6); other IDs are unchanged. A document
+// that cannot be used is invalid_client.
+func (h *Handlers) resolveClientID(ctx context.Context, tenantID, clientID string) (string, *Error) {
+	if h.CIMD == nil || !cimd.IsCandidate(clientID) {
+		return clientID, nil
+	}
+	res, ok := tenant.FromContext(ctx)
+	if !ok || res.Tenant == nil || res.Tenant.ID != tenantID {
+		return clientID, nil
+	}
+	id, err := h.CIMD.Resolve(ctx, res.Tenant, clientID)
+	if err != nil {
+		h.log().InfoContext(ctx, "client authentication failed: client metadata document unusable", "tenant", tenantID, "client_id", clientID, "err", err)
+		return "", invalidClient(authFailed, false)
+	}
+	return id, nil
 }
