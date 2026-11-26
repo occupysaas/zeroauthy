@@ -369,6 +369,7 @@ func (r organizationsII) DeleteDiscoveryDomain(_ context.Context, tid, org, id s
 		return store.ErrNotFound
 	}
 	delete(r.s.orgDomains, orgIIKey{tid, org, id})
+	delete(r.s.myOrgClaims, orgIIKey{tid, org, id})
 	return nil
 }
 func (r organizationsII) DiscoverOrganizations(_ context.Context, tid, domain string) ([]store.Organization, error) {
@@ -430,6 +431,7 @@ func (s *Store) cleanupOrgII(tid string, match orgIICleanup) {
 	for k := range s.orgDomains {
 		if k.tenant == tid && (all || org != "" && k.org == org) {
 			delete(s.orgDomains, k)
+			delete(s.myOrgClaims, k)
 		}
 	}
 }

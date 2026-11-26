@@ -449,9 +449,10 @@ func (r organizationsII) PutDiscoveryDomain(ctx context.Context, in *store.Organ
 			return err
 		}
 		if !create {
-			if _, err := t.s.exec(ctx, `DELETE FROM organization_discovery_domains WHERE tenant_id=? AND organization_id=? AND id=?`, in.TenantID, in.OrganizationID, in.ID); err != nil {
-				return err
-			}
+			// UPDATE, not DELETE and INSERT: rows referencing the domain
+			// (My Organization claims) must survive.
+			_, err = t.s.exec(ctx, `UPDATE organization_discovery_domains SET domain=?, status=?, use_for_organization_discovery=?, payload=? WHERE tenant_id=? AND organization_id=? AND id=?`, in.Domain, in.Status, in.UseForOrganizationDiscovery, payload, in.TenantID, in.OrganizationID, in.ID)
+			return t.s.conflict(err)
 		}
 		_, err = t.s.exec(ctx, `INSERT INTO organization_discovery_domains (tenant_id,organization_id,id,domain,status,use_for_organization_discovery,payload) VALUES (?,?,?,?,?,?,?)`, in.TenantID, in.OrganizationID, in.ID, in.Domain, in.Status, in.UseForOrganizationDiscovery, payload)
 		return t.s.conflict(err)

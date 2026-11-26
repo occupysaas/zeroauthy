@@ -1,6 +1,7 @@
 package myorg
 
 import (
+	"context"
 	"log/slog"
 	"net/http"
 	"strings"
@@ -19,6 +20,12 @@ const Path = "/my-org/v1"
 // MaxBody bounds request bodies.
 const MaxBody = 64 << 10
 
+// TXTResolver is the part of customdomain.DNSResolver that domain
+// verification uses.
+type TXTResolver interface {
+	LookupTXT(ctx context.Context, name string) ([]string, error)
+}
+
 // Handlers serves the My Organization API.
 type Handlers struct {
 	Store   store.Store
@@ -26,8 +33,11 @@ type Handlers struct {
 	Wrapper keys.Wrapper
 	// Actions delivers invitation emails.
 	Actions *actions.Engine
-	Now     func() time.Time
-	Log     *slog.Logger
+	// DNS looks up domain verification records (LR42b-16): the deployment's
+	// bounded resolver. Without one, verification answers 503.
+	DNS TXTResolver
+	Now func() time.Time
+	Log *slog.Logger
 }
 
 func (h *Handlers) now() time.Time {

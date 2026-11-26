@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	storev1 "github.com/zeroauthy/zeroauthy/proto/store/v1"
@@ -18,13 +19,16 @@ import (
 
 type myOrgArgs struct {
 	TenantID, ClientID, RoleID string `json:",omitempty"`
+	OrgID, DomainID, Domain    string `json:",omitempty"`
 	Visible                    bool
 	Config                     *store.MyOrgClientConfig
+	CreatedAt                  time.Time `json:",omitzero"`
 }
 
 type myOrgResult struct {
 	Config *store.MyOrgClientConfig `json:",omitempty"`
 	Roles  []string                 `json:",omitempty"`
+	Claims map[string]time.Time     `json:",omitempty"`
 }
 
 // CheckMyOrgSupport reports whether the plugin implements my_org.v1. A
@@ -107,6 +111,35 @@ func (c *Client) ListMyOrgVisibleRoles(ctx context.Context, tid string) ([]strin
 	return r.Roles, nil
 }
 
+func (c *Client) PutDomainClaim(ctx context.Context, tid, org, id string, created time.Time) error {
+	_, err := c.myOrgCall(ctx, "PutDomainClaim", myOrgArgs{TenantID: tid, OrgID: org, DomainID: id, CreatedAt: created})
+	return err
+}
+func (c *Client) DomainClaims(ctx context.Context, tid, org string) (map[string]time.Time, error) {
+	r, err := c.myOrgCall(ctx, "DomainClaims", myOrgArgs{TenantID: tid, OrgID: org})
+	if err != nil {
+		return nil, err
+	}
+	if r.Claims == nil {
+		r.Claims = map[string]time.Time{}
+	}
+	return r.Claims, nil
+}
+func (c *Client) VerifiedDomainOrganizations(ctx context.Context, tid, domain string) ([]string, error) {
+	r, err := c.myOrgCall(ctx, "VerifiedDomainOrganizations", myOrgArgs{TenantID: tid, Domain: domain})
+	if err != nil {
+		return nil, err
+	}
+	if r.Roles == nil {
+		r.Roles = []string{}
+	}
+	return r.Roles, nil
+}
+func (c *Client) DeleteDomainClaim(ctx context.Context, tid, org, id string) error {
+	_, err := c.myOrgCall(ctx, "DeleteDomainClaim", myOrgArgs{TenantID: tid, OrgID: org, DomainID: id})
+	return err
+}
+
 // MyOrgCapabilities answers my_org.v1 for the backing store.
 func (s *Server) MyOrgCapabilities(ctx context.Context, _ *storev1.PingRequest) (*storev1.EventsCapabilitiesResult, error) {
 	if _, err := store.MyOrg(ctx, s.st); err != nil {
@@ -144,6 +177,14 @@ func (s *Server) MyOrgCall(ctx context.Context, q *storev1.MyOrgCallRequest) (*s
 			return repo.SetMyOrgRoleVisible(ctx, a.TenantID, a.RoleID, a.Visible)
 		case "ListMyOrgVisibleRoles":
 			r.Roles, err = repo.ListMyOrgVisibleRoles(ctx, a.TenantID)
+		case "PutDomainClaim":
+			return repo.PutDomainClaim(ctx, a.TenantID, a.OrgID, a.DomainID, a.CreatedAt)
+		case "DomainClaims":
+			r.Claims, err = repo.DomainClaims(ctx, a.TenantID, a.OrgID)
+		case "VerifiedDomainOrganizations":
+			r.Roles, err = repo.VerifiedDomainOrganizations(ctx, a.TenantID, a.Domain)
+		case "DeleteDomainClaim":
+			return repo.DeleteDomainClaim(ctx, a.TenantID, a.OrgID, a.DomainID)
 		default:
 			return status.Error(codes.Unimplemented, "MyOrgCall: unknown method")
 		}
