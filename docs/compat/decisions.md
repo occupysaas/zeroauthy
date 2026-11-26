@@ -4046,3 +4046,63 @@ creation responses (`barcode_uri`/`manual_input_code`, `recovery_code`,
 
 Observation points Y1–Y10 are listed in
 [plan-1-followups.md](../superpowers/plan-1-followups.md#plan-42a-observation-points).
+
+## D-0220: My Organization API — Phase A (Plan 42b)
+
+**Contract frozen 2026-11-25; implementation in progress.** Contract:
+[`api/myorg.yaml`](../../api/myorg.yaml). The
+[spec](../superpowers/specs/2026-11-16-zeroauthy-my-organization-api-design.md)
+and [plan](../superpowers/plans/2026-11-16-zeroauthy-plan-42b-my-organization-api.md)
+reserve D-0220–0229. Maintainer ruling (2026-11-25): build Phase A while
+Auth0 marks the API Early Access. No live Auth0 tenant was observed.
+
+Sources (LR42b-1): Auth0's My Organization OpenAPI **1.0.0**
+(`https://auth0.com/docs/oas/myorganization/myorganization-api-oas.json`,
+read 2026-11-25, SHA-256
+`1f5a90535df8c932c98ea7de66b1516a912e5b695bd3aafe1465e8a43d7d0dbe`), the
+[guide](https://auth0.com/docs/manage-users/my-organization-api) and the
+Management OpenAPI's `ClientMyOrganization*Configuration` schemas. Every
+operation is Early Access.
+
+Served (Phase A): `GET /config`, `GET|PATCH /details`, `GET /members`,
+`GET /members/{user_id}`, `POST /delete-memberships`,
+`GET|POST /members/{user_id}/roles`, `POST .../unassign-roles`,
+`GET /roles`, `GET|POST /member-invitations`,
+`GET /member-invitations/{id}`, `GET .../roles`,
+`POST /delete-member-invitations`, `GET /user-stores`. Not yet served
+(Phase B): domains, identity providers, provisioning, SCIM tokens,
+`GET /config/identity-providers`.
+
+What the sources fix and zeroauthy follows: audience and base
+`https://{domain}/my-org/` on the canonical host or a custom domain, used
+consistently; user access `require_client_grant`, machine-to-machine
+`deny-all`; only user-bound tokens; access tokens live 600 s; final
+permissions are the client grant ∩ the user's RBAC permissions ∩ consent;
+the ID token carries `urn:auth0:my_org_current_user_permissions` when the
+audience is requested; each application has a
+`my_organization_configuration` (`allowed_strategies`,
+`connection_deletion_behavior`, `third_party_client_access`,
+`invitation_landing_client_id`, `enforce_permission_ceiling`,
+`enforce_self_assignment_restriction`, profile IDs), without which the API
+refuses its tokens; `roles` on `GET /members` only with
+`read:my_org:member_roles`; invitations take `invitees[]` (≤ 10, each
+`email` and `roles`), `inviter.name`, `user_store_id` or
+`identity_provider_id`, `ttl_sec` (default 7 days, ≤ 30); bulk deletes
+take one member or ≤ 10 invitations; problem-style errors with
+`validation_errors`; the `my_organization_api_*` log events.
+
+**Local rulings:**
+
+| ID | Ruling |
+|---|---|
+| LR42b-1 | The Early Access OpenAPI version is pinned above (version and hash); re-read before Phase B. |
+| LR42b-2 | Roles an administrator may list and assign are those the operator marked visible to the My Organization API (a local role flag, MO-1). The permission ceiling and self-assignment restriction are the application's `enforce_permission_ceiling` and `enforce_self_assignment_restriction`, off by default as at Auth0. |
+| LR42b-3 | (Phase B) Unverified domain claims expire after 7 days. |
+| LR42b-4 | An application without `my_organization_configuration` gets `403` from the API. |
+| LR42b-5 | Administrators' `my_org` permissions come from organization member roles with permissions on the My Organization API (RBAC is allowed on this system API only), intersected with the client grant; tokens need an organization and carry `org_id`. |
+| LR42b-6 | Client credentials are refused (user-bound tokens only); machine-to-machine access is a follow-up. |
+| LR42b-7 | `GET /user-stores` is served in Phase A (invitations need a user store): the organization's enabled database connections. |
+| LR42b-8 | The organization's last member holding a role with `my_org` permissions cannot lose it, through unassignment or membership deletion (`409`, MO-2). |
+
+Observation points MO-1…MO-8 are listed in
+[plan-1-followups.md](../superpowers/plan-1-followups.md#plan-42b-observation-points).

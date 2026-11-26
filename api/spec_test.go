@@ -11,7 +11,7 @@ import (
 	"github.com/getkin/kin-openapi/openapi3"
 )
 
-var specs = map[string][]byte{"authentication.yaml": AuthenticationYAML, "management.yaml": ManagementYAML, "scim.yaml": SCIMYAML, "myaccount.yaml": MyAccountYAML}
+var specs = map[string][]byte{"authentication.yaml": AuthenticationYAML, "management.yaml": ManagementYAML, "scim.yaml": SCIMYAML, "myaccount.yaml": MyAccountYAML, "myorg.yaml": MyOrgYAML}
 
 func TestSpecsAreValid(t *testing.T) {
 	for name, data := range specs {

@@ -14,3 +14,6 @@ var SCIMYAML []byte
 
 //go:embed myaccount.yaml
 var MyAccountYAML []byte
+
+//go:embed myorg.yaml
+var MyOrgYAML []byte

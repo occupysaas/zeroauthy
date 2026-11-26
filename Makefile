@@ -29,6 +29,7 @@ check-sources:
 	./scripts/check-sources.sh api/authentication.yaml
 	./scripts/check-sources.sh api/management.yaml
 	./scripts/check-sources.sh api/myaccount.yaml
+	./scripts/check-sources.sh api/myorg.yaml
 
 e2e:
 	./tests/e2e/run-m3.sh

@@ -945,3 +945,16 @@ Recorded under [D-0210](../compat/decisions.md); observe on a live tenant when o
   POSTed `/u/login/passkey` about every 20 ms (1,555 requests in one
   E2E run) instead of waiting for the user. The passkey autofill retry
   needs a stop; the My Account lane uses `challenge_ui: button` meanwhile.
+
+## Plan 42b observation points
+
+Recorded under [D-0220](../compat/decisions.md); observe on a live tenant when one is available.
+
+- **MO-1** How a tenant administrator makes roles visible to an organization for the My Organization API (zeroauthy: a role flag).
+- **MO-2** Whether Auth0 guards the last administrator (zeroauthy: `409`).
+- **MO-3** The system API's name (zeroauthy: `My Organization API`) and identifier.
+- **MO-4** Token requirements beyond those documented (organization, 600 s).
+- **MO-5** `GET /config` defaults when the application's configuration omits members.
+- **MO-6** Which `PATCH /details` members Auth0 accepts in practice.
+- **MO-7** Error `type` values (Auth0: `https://auth0.com/api-errors#A0E-…` URIs; zeroauthy: short type names).
+- **MO-8** Log event payloads for `my_organization_api_*`.
