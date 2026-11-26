@@ -26937,6 +26937,11 @@ components:
         oidc_logout: {$ref: "#/components/schemas/ClientOIDCLogout"}
         oidc_support: {$ref: "#/components/schemas/ClientOIDCSupport"}
         addons: {$ref: "#/components/schemas/ClientAddons"}
+        my_organization_configuration:
+          description: The My Organization API settings of this application (Plan 42b, Early Access); `null` removes them.
+          anyOf:
+            - $ref: "#/components/schemas/ClientMyOrganizationConfiguration"
+            - {type: "null"}
         client_aliases:
           type: array
           maxItems: 100
@@ -27015,6 +27020,46 @@ components:
             for the organization name until email discovery exists (D-0055).
         is_token_endpoint_ip_header_trusted: {description: Accepted and ignored.}
         allowed_clients: {description: Accepted and ignored.}
+    ClientMyOrganizationConfiguration:
+      type: object
+      description: |
+        An application's My Organization API settings (Plan 42b, D-0220;
+        Early Access at Auth0). The My Organization API refuses tokens of an
+        application without them. `invitation_landing_client_id` is where
+        invitees accept (an application of this tenant);
+        `enforce_permission_ceiling` limits the roles an organization
+        administrator may assign to permissions they hold;
+        `enforce_self_assignment_restriction` stops administrators assigning
+        roles to themselves. `allowed_strategies`,
+        `connection_deletion_behavior`, `third_party_client_access` and the
+        profile IDs are returned by `GET /my-org/v1/config` and used by the
+        identity provider operations (Phase B).
+      x-source:
+        - https://auth0.com/docs/manage-users/my-organization-api
+        - https://auth0.com/docs/oas/management/v2/management-api-oas.json
+      additionalProperties: false
+      required: [allowed_strategies, connection_deletion_behavior]
+      properties:
+        connection_profile_id: {type: string, maxLength: 255}
+        user_attribute_profile_id: {type: string, maxLength: 255}
+        allowed_strategies:
+          type: array
+          uniqueItems: true
+          items: {type: string, enum: [pingfederate, adfs, waad, google-apps, okta, oidc, samlp]}
+        third_party_client_access:
+          type: object
+          additionalProperties: false
+          required: [default_value, allowed_values]
+          properties:
+            default_value: {type: string, enum: [block]}
+            allowed_values:
+              type: array
+              minItems: 1
+              items: {type: string, enum: [allow, block]}
+        connection_deletion_behavior: {type: string, enum: [allow, allow_if_empty], default: allow}
+        invitation_landing_client_id: {type: string, maxLength: 255}
+        enforce_permission_ceiling: {type: boolean, default: false}
+        enforce_self_assignment_restriction: {type: boolean, default: false}
     ClientCreate:
       description: |
         A new application. Unknown fields are refused (`invalid_body`).
@@ -27086,6 +27131,7 @@ components:
         oidc_logout: {$ref: "#/components/schemas/ClientOIDCLogout"}
         oidc_support: {$ref: "#/components/schemas/ClientOIDCSupport"}
         addons: {$ref: "#/components/schemas/ClientAddons"}
+        my_organization_configuration: {$ref: "#/components/schemas/ClientMyOrganizationConfiguration"}
         client_aliases:
           type: array
           maxItems: 100

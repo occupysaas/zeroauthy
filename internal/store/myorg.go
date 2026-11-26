@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"strings"
 )
 
 // ErrMyOrgUnavailable reports a storage plugin without the my_org.v1
@@ -61,4 +62,15 @@ func MyOrg(ctx context.Context, s Store) (MyOrgStore, error) {
 		return nil, ErrMyOrgUnavailable
 	}
 	return repo, nil
+}
+
+// MyOrgAPIPath is the path of the My Organization API audience (Plan 42b).
+const MyOrgAPIPath = "/my-org/"
+
+// RBACRefused reports whether api refuses role and user permissions: system
+// APIs do, except the My Organization API, whose permissions administrators
+// hold through organization roles (LR42b-5). Only zeroauthy creates system
+// APIs, so the identifier's path is decisive.
+func RBACRefused(api *ResourceServer) bool {
+	return api.IsSystem && !strings.HasSuffix(api.Identifier, MyOrgAPIPath)
 }

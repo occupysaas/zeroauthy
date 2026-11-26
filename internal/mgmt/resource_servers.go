@@ -20,6 +20,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/tenant"
+	"github.com/zeroauthy/zeroauthy/internal/tenantsetup"
 )
 
 // resourceServerIDBytes makes IDs of 24 hexadecimal characters, the shape of
@@ -137,7 +138,11 @@ func (h *Handlers) CreateResourceServer(w http.ResponseWriter, r *http.Request) 
 	}
 	tn := resolved(r)
 	if id := tenant.MyAccountIdentifier(tn); id != "" && spec.Identifier == id {
-		h.activateMyAccountAPI(w, r, tn, id)
+		h.activateSystemAPI(w, r, tn, id, tenantsetup.ApplyMyAccountAPI)
+		return
+	}
+	if id := tenant.MyOrgIdentifier(tn); id != "" && spec.Identifier == id {
+		h.activateSystemAPI(w, r, tn, id, tenantsetup.ApplyMyOrgAPI)
 		return
 	}
 	if err := apirules.Reserved(spec.Identifier, tenant.ManagementAPIIdentifier(tn, h.BaseDomain)); err != nil {
@@ -276,7 +281,7 @@ func (h *Handlers) DeleteResourceServer(w http.ResponseWriter, r *http.Request, 
 		if err != nil {
 			return err
 		}
-		if rs.IsSystem && !tenant.IsMyAccountAPI(tn, rs) {
+		if rs.IsSystem && !tenant.IsUserSystemAPI(tn, rs) {
 			return &Error{Status: http.StatusBadRequest, Code: "delete_system_resource_server", Message: "A system resource server cannot be deleted"}
 		}
 		if t, err := tx.Tenants().Get(r.Context(), tn.ID); err == nil && t.DefaultAudience == rs.Identifier {
@@ -363,8 +368,12 @@ func checkSystemUpdate(tn *store.Tenant, rs *store.ResourceServer, spec *apirule
 	if spec.ProofOfPossession != nil {
 		return badBody("proof_of_possession: system APIs remain Bearer-only")
 	}
-	if spec.EnforcePolicies || spec.TokenDialect != "access_token" {
+	// RBAC stays as created: off, except on the My Organization API (LR42b-5).
+	if spec.EnforcePolicies != rs.EnforcePolicies || spec.TokenDialect != "access_token" {
 		return badBody("RBAC settings cannot change for system APIs")
+	}
+	if tenant.IsMyOrgAPI(tn, rs) && (spec.TokenLifetime != rs.TokenLifetime || spec.TokenLifetimeForWeb != rs.TokenLifetimeForWeb) {
+		return badBody("token_lifetime: the My Organization API's tokens live 600 seconds")
 	}
 	if in.name {
 		return badBody("name: a system API cannot be renamed")

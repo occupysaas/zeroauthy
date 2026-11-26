@@ -133,7 +133,7 @@ func (r rbac) permission(ctx context.Context, tenant string, key store.Permissio
 	if err != nil {
 		return nil, err
 	}
-	if api.IsSystem || slices.Contains([]string{"openid", "profile", "email", "offline_access"}, key.PermissionName) || !slices.ContainsFunc(api.Scopes, func(s store.Scope) bool { return s.Value == key.PermissionName }) {
+	if store.RBACRefused(api) || slices.Contains([]string{"openid", "profile", "email", "offline_access"}, key.PermissionName) || !slices.ContainsFunc(api.Scopes, func(s store.Scope) bool { return s.Value == key.PermissionName }) {
 		return nil, store.ErrInvalid
 	}
 	return api, nil
@@ -421,7 +421,7 @@ func (r rbac) grants(ctx context.Context, tenant, id string, role bool) ([]store
 			apis[e.api] = v
 		}
 		i := slices.IndexFunc(api.Scopes, func(s store.Scope) bool { return s.Value == e.name })
-		if api.IsSystem || i < 0 {
+		if store.RBACRefused(api) || i < 0 {
 			continue
 		}
 		key := store.PermissionKey{ResourceServerIdentifier: api.Identifier, PermissionName: e.name}
@@ -498,7 +498,7 @@ func (r rbac) Snapshot(ctx context.Context, tenant, user, audience string) (*sto
 		if e != nil {
 			return e
 		}
-		if api.IsSystem {
+		if store.RBACRefused(api) {
 			return store.ErrInvalid
 		}
 		perms, e := t.grants(ctx, tenant, user, false)

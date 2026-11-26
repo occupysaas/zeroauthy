@@ -72,6 +72,25 @@ func testMyOrg(t *testing.T, factory Factory) {
 	roles, _ = repo.ListMyOrgVisibleRoles(ctx, "ten_a")
 	mustEqual(t, len(roles), 1)
 
+	// Roles may carry permissions on the My Organization system API (the
+	// only system API with RBAC); other system APIs still refuse them.
+	myOrg := newResourceServer("ten_a", "my_org_api", "https://a.example/my-org/")
+	myOrg.IsSystem, myOrg.EnforcePolicies = true, true
+	myOrg.Scopes = []store.Scope{{Value: "read:my_org:members"}}
+	mustNoErr(t, s.ResourceServers().Create(ctx, myOrg))
+	mgmt := newResourceServer("ten_a", "mgmt_api", "https://a.example/api/v2/")
+	mgmt.IsSystem = true
+	mgmt.Scopes = []store.Scope{{Value: "read:users"}}
+	mustNoErr(t, s.ResourceServers().Create(ctx, mgmt))
+	perm := store.PermissionKey{ResourceServerIdentifier: myOrg.Identifier, PermissionName: "read:my_org:members"}
+	mustNoErr(t, s.RBAC().ChangeRolePermissions(ctx, "ten_a", "rol_2", true, []store.PermissionKey{perm}))
+	mustErrIs(t, s.RBAC().ChangeRolePermissions(ctx, "ten_a", "rol_2", true, []store.PermissionKey{{ResourceServerIdentifier: mgmt.Identifier, PermissionName: "read:users"}}), store.ErrInvalid)
+	mustNoErr(t, s.Users().Create(ctx, &store.User{TenantID: "ten_a", UserID: "auth0|admin"}))
+	mustNoErr(t, s.RBAC().ChangeUserRoles(ctx, "ten_a", "auth0|admin", true, []string{"rol_2"}))
+	snap, err := s.RBAC().Snapshot(ctx, "ten_a", "auth0|admin", myOrg.Identifier)
+	mustNoErr(t, err)
+	mustEqual(t, len(snap.Permissions), 1)
+
 	// Cascades.
 	mustNoErr(t, s.Clients().Delete(ctx, "ten_a", "app"))
 	_, err = repo.GetMyOrgClientConfig(ctx, "ten_a", "app")

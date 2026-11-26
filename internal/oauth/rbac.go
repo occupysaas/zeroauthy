@@ -22,7 +22,9 @@ type userAuthorization struct {
 func (h *Handlers) authorizeUserToken(ctx context.Context, tid, orgID string, ut userTokens, frozen *actions.RBACSnapshot) (userAuthorization, *Error) {
 	rs, scopes := ut.rs, ut.scopes
 	out := userAuthorization{API: rs, Scopes: scopes}
-	if rs == nil || rs.IsSystem {
+	// System APIs carry no permissions, except the My Organization API
+	// (LR42b-5).
+	if rs == nil || store.RBACRefused(rs) {
 		return out, nil
 	}
 	crossAudience := ut.mrrt != nil && ut.mrrt.audience != ut.mrrt.family.Audience

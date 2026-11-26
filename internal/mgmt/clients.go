@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/zeroauthy/zeroauthy/internal/customdomain"
+	"github.com/zeroauthy/zeroauthy/internal/myorgrules"
 	"io"
 	"log/slog"
 	"maps"
@@ -323,6 +324,9 @@ func (h *Handlers) CreateClient(w http.ResponseWriter, r *http.Request) {
 		if err := tx.Clients().Create(r.Context(), c); err != nil {
 			return aliasConflict(err)
 		}
+		if err := writeMyOrgConfig(r.Context(), tx, c, in); err != nil {
+			return err
+		}
 		if !in.cred.any() {
 			return nil
 		}
@@ -445,7 +449,10 @@ func (h *Handlers) UpdateClient(w http.ResponseWriter, r *http.Request, id strin
 			return err
 		}
 		out = c
-		return aliasConflict(tx.Clients().Update(r.Context(), c))
+		if err := aliasConflict(tx.Clients().Update(r.Context(), c)); err != nil {
+			return err
+		}
+		return writeMyOrgConfig(r.Context(), tx, c, in)
 	})
 	if err != nil {
 		h.failTx(w, r, "update client", err)
@@ -727,6 +734,7 @@ func (h *Handlers) clientView(ctx context.Context, tn *store.Tenant, c *store.Cl
 			v.ClientSecret = &s
 		}
 	}
+	v.MyOrganizationConfiguration = myOrgConfigView(ctx, h.Store, c)
 	return v
 }
 
@@ -800,6 +808,9 @@ type clientBody struct {
 	orgUsageSet bool
 	// cred holds the private_key_jwt, JAR and token exchange settings.
 	cred credentialSettings
+	// myOrg is my_organization_configuration when myOrgSet (nil: remove).
+	myOrg    json.RawMessage
+	myOrgSet bool
 }
 
 // readClientBody applies body's fields to s, in name order so that the
@@ -901,6 +912,12 @@ func readClientBody(body map[string]json.RawMessage, s *clientrules.Spec) (clien
 			s.OIDCLogout, err = clientrules.ParseOIDCLogout(raw)
 		case "addons":
 			s.Addons, err = clientrules.ParseAddons(raw)
+		case "my_organization_configuration":
+			out.myOrgSet = true
+			if !isNull(raw) {
+				_, err = myorgrules.Parse(raw)
+				out.myOrg = raw
+			}
 		case "client_aliases":
 			s.ClientAliases, err = clientrules.ParseClientAliases(raw)
 		case "form_template":
