@@ -538,6 +538,29 @@ func TestOldPluginWSFedUnavailable(t *testing.T) {
 	}
 }
 
+// A plugin without cimd.v1 (Plan 41b) cannot store client external
+// metadata or default grants, and cannot filter by default_for: such calls
+// fail before reaching it.
+func TestOldPluginCIMDUnavailable(t *testing.T) {
+	c := serveOldPlugin(t)
+	defer c.Close()
+	ctx := context.Background()
+	if err := c.CheckCIMDSupport(ctx); !errors.Is(err, store.ErrCIMDUnavailable) {
+		t.Fatalf("capability: %v", err)
+	}
+	ext := &store.Client{TenantID: "t", ClientID: "c", External: &store.ClientExternalMetadata{Type: store.ExternalMetadataDCR, CreatedBy: store.ExternalCreatedByClient}}
+	grant := &store.ClientGrant{TenantID: "t", ID: "g", Audience: "https://api/", DefaultFor: store.GrantDefaultForThirdParty}
+	_, _, listErr := c.ClientGrants().List(ctx, "t", store.ClientGrantFilter{DefaultFor: store.GrantDefaultForThirdParty}, store.Page{})
+	for name, err := range map[string]error{
+		"create client": c.Clients().Create(ctx, ext), "update client": c.Clients().Update(ctx, ext),
+		"create grant": c.ClientGrants().Create(ctx, grant), "list default grants": listErr,
+	} {
+		if !errors.Is(err, store.ErrCIMDUnavailable) {
+			t.Errorf("%s: %v", name, err)
+		}
+	}
+}
+
 // A plugin without ad_hub.v1 (Plan 38a) has no AD/LDAP store: store.ADHub
 // fails closed and the methods never reach it.
 func TestOldPluginADHubUnavailable(t *testing.T) {

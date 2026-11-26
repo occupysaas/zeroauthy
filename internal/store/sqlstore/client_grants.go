@@ -15,7 +15,7 @@ type clientGrants struct{ s *Store }
 
 func (s *Store) ClientGrants() store.ClientGrants { return clientGrants{s} }
 
-const clientGrantCols = `tenant_id, id, client_id, audience, scopes, created_at, subject_type, origin, allow_all_scopes, organization_usage, allow_any_organization`
+const clientGrantCols = `tenant_id, id, client_id, audience, scopes, created_at, subject_type, origin, allow_all_scopes, organization_usage, allow_any_organization, default_for`
 
 func (r clientGrants) Create(ctx context.Context, g *store.ClientGrant) error {
 	g = g.WithDefaults()
@@ -24,8 +24,8 @@ func (r clientGrants) Create(ctx context.Context, g *store.ClientGrant) error {
 		return err
 	}
 	return r.s.policyWrite(ctx, g.TenantID, func(tx *Store) error {
-		_, err := tx.exec(ctx, `INSERT INTO client_grants (`+clientGrantCols+`) VALUES (?,?,?,?,?,?,?,?,?,?,?)`,
-			g.TenantID, g.ID, g.ClientID, g.Audience, scopes, micros(g.CreatedAt), g.SubjectType, g.Origin, g.AllowAllScopes, g.OrganizationUsage, g.AllowAnyOrganization)
+		_, err := tx.exec(ctx, `INSERT INTO client_grants (`+clientGrantCols+`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`,
+			g.TenantID, g.ID, g.ClientID, g.Audience, scopes, micros(g.CreatedAt), g.SubjectType, g.Origin, g.AllowAllScopes, g.OrganizationUsage, g.AllowAnyOrganization, g.DefaultFor)
 		return tx.conflict(err)
 	})
 }
@@ -46,7 +46,7 @@ func scanClientGrant(row scanner) (*store.ClientGrant, error) {
 	var g store.ClientGrant
 	var scopes string
 	var created int64
-	if err := row.Scan(&g.TenantID, &g.ID, &g.ClientID, &g.Audience, &scopes, &created, &g.SubjectType, &g.Origin, &g.AllowAllScopes, &g.OrganizationUsage, &g.AllowAnyOrganization); err != nil {
+	if err := row.Scan(&g.TenantID, &g.ID, &g.ClientID, &g.Audience, &scopes, &created, &g.SubjectType, &g.Origin, &g.AllowAllScopes, &g.OrganizationUsage, &g.AllowAnyOrganization, &g.DefaultFor); err != nil {
 		return nil, err
 	}
 	if err := fromJSON(scopes, &g.Scopes); err != nil {
@@ -93,7 +93,7 @@ func (r clientGrants) Delete(ctx context.Context, tenantID, id string) error {
 
 func (r clientGrants) List(ctx context.Context, tenantID string, f store.ClientGrantFilter, p store.Page) ([]*store.ClientGrant, int, error) {
 	where, args := []string{"tenant_id = ?"}, []any{tenantID}
-	for _, c := range []struct{ col, val string }{{"client_id", f.ClientID}, {"audience", f.Audience}, {"subject_type", f.SubjectType}, {"id", f.ID}} {
+	for _, c := range []struct{ col, val string }{{"client_id", f.ClientID}, {"audience", f.Audience}, {"subject_type", f.SubjectType}, {"id", f.ID}, {"default_for", f.DefaultFor}} {
 		if c.val != "" {
 			where = append(where, c.col+" = ?")
 			args = append(args, c.val)
