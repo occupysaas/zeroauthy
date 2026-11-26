@@ -4049,7 +4049,9 @@ Observation points Y1–Y10 are listed in
 
 ## D-0220: My Organization API — Phase A (Plan 42b)
 
-**Contract frozen 2026-11-25; implementation in progress.** Contract:
+**Contract frozen and Phase A implemented 2026-11-25 (local verification;
+plan-branch CI and maintainer approval pending).** Operator guide:
+[My Organization API](../my-organization-api.md). Contract:
 [`api/myorg.yaml`](../../api/myorg.yaml). The
 [spec](../superpowers/specs/2026-11-16-zeroauthy-my-organization-api-design.md)
 and [plan](../superpowers/plans/2026-11-16-zeroauthy-plan-42b-my-organization-api.md)
@@ -4103,6 +4105,12 @@ take one member or ≤ 10 invitations; problem-style errors with
 | LR42b-6 | Client credentials are refused (user-bound tokens only); machine-to-machine access is a follow-up. |
 | LR42b-7 | `GET /user-stores` is served in Phase A (invitations need a user store): the organization's enabled database connections. |
 | LR42b-8 | The organization's last member holding a role with `my_org` permissions cannot lose it, through unassignment or membership deletion (`409`, MO-2). |
+| LR42b-9 | Storage is the `my_org.v1` capability (tables `my_org_client_configs`, `my_org_visible_roles`; migration 0050, renumbered at merge); deleting a client, role or tenant deletes its rows. |
+| LR42b-10 | The My Organization API keeps RBAC on and its 600-second lifetime: `PATCH /resource-servers` may not change either (the Deploy CLI's system-API update, which sends the stored values, is accepted). Only system APIs whose identifier ends `/my-org/` accept role permissions. Name `My Organization API`; `allow_offline_access` true. |
+| LR42b-11 | Role visibility is the local field `my_organization_visible`, written by `PATCH /roles/{id}` and shown by `GET /roles/{id}` only; unassignment also needs visible roles; the ceiling applies to invitation roles. |
+| LR42b-12 | `delete-memberships` keeps the member's role assignments (as the Management API's member removal, D-0055). `roles` on members needs the scope and a `fields` filter that keeps `roles`. |
+| LR42b-13 | Invitations are always emailed (through the `user_invitation` template, as the Management API's); the landing application must exist; list and get show unexpired invitations with `invitation_url` and `ticket_id`. Invitation issuance is shared with the Management API (`internal/orginvite`). |
+| LR42b-14 | User stores are the organization's enabled database connections; `access_level` defaults to `none`; the list filters are accepted and not applied. An organization that does not exist is `404`; a non-member, a token without `org_id` or an application without a configuration is `403`. |
 
 Observation points MO-1…MO-8 are listed in
 [plan-1-followups.md](../superpowers/plan-1-followups.md#plan-42b-observation-points).

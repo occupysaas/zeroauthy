@@ -9,6 +9,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
+	"github.com/zeroauthy/zeroauthy/internal/actions"
 	"github.com/zeroauthy/zeroauthy/internal/identity"
 	"github.com/zeroauthy/zeroauthy/internal/orginvite"
 	"github.com/zeroauthy/zeroauthy/internal/orglogin"
@@ -155,8 +156,11 @@ func (h *Handlers) createInvitations(w http.ResponseWriter, r *http.Request, c *
 	})
 	if err != nil {
 		h.event(r, c, "my_organization_api_invitation_failed")
-		if errors.Is(err, store.ErrNotFound) {
+		switch {
+		case errors.Is(err, store.ErrNotFound):
 			err = badRequest("invalid_body", "The landing application or a role does not exist.")
+		case errors.Is(err, actions.ErrInvitationProviderConfiguration), errors.Is(err, actions.ErrEmailUnbound):
+			err = problem(http.StatusServiceUnavailable, "email_provider_unavailable", "Service Unavailable", "The invitation email provider is unavailable.")
 		}
 		h.fail(w, r, "create invitations", err)
 		return
