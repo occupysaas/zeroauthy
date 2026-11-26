@@ -3,8 +3,10 @@ package seed
 import (
 	"context"
 	"crypto/subtle"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/zeroauthy/zeroauthy/internal/myorgrules"
 	"log/slog"
 	"maps"
 	"reflect"
@@ -247,6 +249,9 @@ func applyTenant(ctx context.Context, st store.Store, f *File, in Tenant, now ti
 	if err := applyMyAccountAPI(ctx, st, tn, in, now, createOnly); err != nil {
 		return fmt.Errorf("my_account_api: %w", err)
 	}
+	if err := applyMyOrgAPI(ctx, st, tn, in, now, createOnly); err != nil {
+		return fmt.Errorf("my_organization_api: %w", err)
+	}
 	for _, rs := range in.ResourceServers {
 		if err := applyResourceServer(ctx, st, tn.ID, rs, now, w, createOnly); err != nil {
 			return fmt.Errorf("resource server %q: %w", rs.Identifier, err)
@@ -264,6 +269,9 @@ func applyTenant(ctx context.Context, st store.Store, f *File, in Tenant, now ti
 		if err := applyClient(ctx, st, tn.ID, c, now, w, createOnly); err != nil {
 			return fmt.Errorf("client %q: %w", c.ClientID, err)
 		}
+	}
+	if err := applyMyOrgClientConfigs(ctx, st, tn.ID, in, createOnly); err != nil {
+		return err
 	}
 	for _, g := range in.ClientGrants {
 		if err := applyClientGrant(ctx, st, tn.ID, g, now, createOnly); err != nil {
@@ -787,4 +795,82 @@ func applyMyAccountAPI(ctx context.Context, st store.Store, tn *store.Tenant, in
 		return nil
 	}
 	return st.ResourceServers().Delete(ctx, tn.ID, rs.ID)
+}
+
+// applyMyOrgAPI activates or removes the My Organization API (Plan 42b)
+// and checks that grants and role permissions name the canonical host's
+// audience.
+func applyMyOrgAPI(ctx context.Context, st store.Store, tn *store.Tenant, in Tenant, now time.Time, createOnly bool) error {
+	id := tenant.MyOrgIdentifier(tn)
+	for _, g := range in.ClientGrants {
+		if isMyOrgAudience(g.Audience) && g.Audience != id {
+			return fmt.Errorf("client grant audience %q is not the tenant's My Organization API %q", g.Audience, id)
+		}
+	}
+	for _, r := range in.Roles {
+		for _, p := range r.Permissions {
+			if isMyOrgAudience(p.ResourceServerIdentifier) && p.ResourceServerIdentifier != id {
+				return fmt.Errorf("role %q: %q is not the tenant's My Organization API %q", r.Name, p.ResourceServerIdentifier, id)
+			}
+		}
+	}
+	if in.MyOrganizationAPI == nil {
+		return nil
+	}
+	if in.MyOrganizationAPI.Active {
+		if createOnly {
+			if _, err := st.ResourceServers().GetByIdentifier(ctx, tn.ID, id); err == nil {
+				return nil
+			}
+		}
+		_, err := tenantsetup.MyOrgAPI(ctx, st, tn, now)
+		return err
+	}
+	if createOnly {
+		return nil
+	}
+	rs, err := st.ResourceServers().GetByIdentifier(ctx, tn.ID, id)
+	if errors.Is(err, store.ErrNotFound) {
+		return nil
+	}
+	if err != nil || !rs.IsSystem {
+		return err
+	}
+	return st.ResourceServers().Delete(ctx, tn.ID, rs.ID)
+}
+
+// applyMyOrgClientConfigs stores the clients' my_organization_configuration.
+func applyMyOrgClientConfigs(ctx context.Context, st store.Store, tid string, in Tenant, createOnly bool) error {
+	for _, c := range in.Clients {
+		if c.MyOrganizationConfiguration == nil {
+			continue
+		}
+		raw, err := json.Marshal(c.MyOrganizationConfiguration)
+		if err != nil {
+			return fmt.Errorf("client %q: %w", c.ClientID, err)
+		}
+		cfg, err := myorgrules.Parse(raw)
+		if err != nil {
+			return fmt.Errorf("client %q: %w", c.ClientID, err)
+		}
+		if id := cfg.InvitationLandingClientID; id != "" {
+			if _, err := st.Clients().Get(ctx, tid, id); err != nil {
+				return fmt.Errorf("client %q: invitation_landing_client_id %q: %w", c.ClientID, id, err)
+			}
+		}
+		repo, err := store.MyOrg(ctx, st)
+		if err != nil {
+			return fmt.Errorf("client %q: %w", c.ClientID, err)
+		}
+		if createOnly {
+			if _, err := repo.GetMyOrgClientConfig(ctx, tid, c.ClientID); err == nil {
+				continue
+			}
+		}
+		doc, _ := json.Marshal(cfg)
+		if err := repo.PutMyOrgClientConfig(ctx, &store.MyOrgClientConfig{TenantID: tid, ClientID: c.ClientID, Doc: doc}); err != nil {
+			return fmt.Errorf("client %q: %w", c.ClientID, err)
+		}
+	}
+	return nil
 }
