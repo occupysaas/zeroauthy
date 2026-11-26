@@ -6,7 +6,7 @@
 # it pointed at on 2026-10-12. Dependabot (docker, /.clusterfuzzlite) proposes
 # the new digest when v1 moves; to check by hand, run
 #   docker buildx imagetools inspect gcr.io/oss-fuzz-base/base-builder-go:v1
-FROM gcr.io/oss-fuzz-base/base-builder-go:v1@sha256:1dbadefbb28c6bfd796c64d9c2115977deb8f19494533cc5a3b724c3441df23d
+FROM gcr.io/oss-fuzz-base/base-builder-go:v1@sha256:752250ed44cd0d770d1c71dc12925c50dff454db2ea7bc019f43782cbd610de2
 
 # The image ships Go 1.27.1, which the default GOTOOLCHAIN=auto would build
 # with because it is newer than the go line in go.mod. Build with the Go
