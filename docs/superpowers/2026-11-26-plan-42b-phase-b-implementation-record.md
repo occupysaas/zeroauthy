@@ -1,6 +1,6 @@
 # Plan 42b Phase B implementation record
 
-Status: **implemented and verified locally**, on `plan-42b-phase-b`
+Status: **merged** 2026-11-26 (PR #100), from `plan-42b-phase-b`
 (worktree `/mnt/nvme2/code/zeroauthy-42bB`), based on `main` after Plan 42b
 Phase A merged (PR #99). Plan-branch CI and maintainer approval govern
 integration.
