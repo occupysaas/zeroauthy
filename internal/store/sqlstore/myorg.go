@@ -127,7 +127,7 @@ func (s *Store) DeleteDomainClaim(ctx context.Context, tid, org, id string) erro
 }
 
 func (s *Store) VerifiedDomainOrganizations(ctx context.Context, tid, domain string) ([]string, error) {
-	rows, err := s.query(ctx, `SELECT DISTINCT organization_id FROM organization_discovery_domains WHERE tenant_id=? AND domain=? AND status='verified' ORDER BY organization_id`+s.d.byteOrder, tid, domain)
+	rows, err := s.query(ctx, `SELECT organization_id FROM organization_discovery_domains WHERE tenant_id=? AND domain=? AND status='verified' GROUP BY organization_id ORDER BY organization_id`+s.d.byteOrder, tid, domain)
 	if err != nil {
 		return nil, err
 	}
