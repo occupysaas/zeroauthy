@@ -73,8 +73,10 @@ Local toolchain: Go `1.27.4-X:nodwarf5`; Node 26.8.1; Chromium.
 | Mutation checks | the memory URL uniqueness check, DCR grant filtering, the CIMD identity binding, the 64 KiB cap, the concurrent-register retry, the assertion's presented client ID and the default-grant fallback each fail a test |
 | `-race -count=5` on the CIMD Management tests | passed (after giving the concurrency test a fixed clock) |
 | Console: Vitest, `vue-tsc`, ESLint | passed |
-| `make e2e-dcr` | first run: the spa-js token request failed CORS (LR41b-10 fix); then passed |
-| Fast tier `TMPDIR=/dev/shm/za41b GOTMPDIR=/dev/shm/za41b go test -p 4 ./...` | see the pull request |
+| `make e2e-dcr` | first run: the spa-js token request failed CORS (LR41b-10 fix); then passed, and passed again after the review fix and the dist rebuild |
+| `console/dist` | built in a clean clone |
+| `./scripts/check-sources.sh api/authentication.yaml` | passed |
+| Fast tier `TMPDIR=/dev/shm/za41b GOTMPDIR=/dev/shm/za41b go test -p 4 ./...` | 116 packages ok; 5 failed because `/dev/shm` ran out of space (SQLite `disk I/O error`, linker `disk quota exceeded`); after clearing old plan scratch directories the 5 (sqlstore, storeplugin, three E2E harness packages) reran green with `internal/cimd` and `internal/server` |
 | Final review | self-review (no reviewer subagent dispatched) |
 
 ## Deferred minors
