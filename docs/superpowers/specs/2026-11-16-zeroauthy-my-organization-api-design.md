@@ -1,6 +1,6 @@
 # Plan 42b — My Organization API (organization self-service)
 
-**Date:** 2026-11-16. **Status:** design; not implemented.
+**Date:** 2026-11-16. **Status:** Phase A implemented 2026-11-25 on `plan-42b-my-organization` ([record](../2026-11-16-plan-42b-implementation-record.md)); Phase B not started.
 
 **Roadmap entry:** [management roadmap, Plan 42](2026-10-19-zeroauthy-management-roadmap-design.md)
 ("My Organization API (organization administrators manage members,

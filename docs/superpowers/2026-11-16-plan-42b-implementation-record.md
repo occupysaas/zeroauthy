@@ -44,4 +44,30 @@ follows Auth0 (LR42b-2, LR42b-4…7).
 
 ## Verification
 
-See the table below; final results are filled in at the end of Task 6.
+Local toolchain: Go `1.27.4-X:nodwarf5`; Node 26.8.1; Chromium.
+
+| Check | Result |
+|---|---|
+| Focused tests per task (ledger) | passed |
+| `MyOrg` conformance on memory, SQLite, gRPC (memory, SQLite) and the plugin process | passed |
+| Mutation checks | dropping the client configuration write fails `TestClientMyOrgConfiguration`; ignoring the scope for member roles fails `TestMembersRolesScope`; skipping the permission ceiling fails `TestMyOrgRoleEscalation`; skipping the last-admin guard fails `TestMyOrgLastAdmin`; not storing role visibility fails `TestRoleMyOrganizationVisible` |
+| Console: Vitest 764 tests, `vue-tsc`, ESLint | passed; `console/dist` built in a clean clone |
+| `make e2e-my-org` | first run: the seed refused `initiate_login_uri` (moved to setup through the Management API); then passed: setup, raw requests, Playwright 1 test (admin, member, other organization), log audit of 8 private values |
+| Fast tier `TMPDIR=/dev/shm/za42b GOTMPDIR=/dev/shm/za42b go test -p 4 ./...` | passed (exit 0, 118 packages ok) |
+| `api/myorg.yaml` source check | every x-source reachable |
+| Final review | self-review (no reviewer subagent dispatched); added `TestMyOrgRefresh` (passed) |
+
+## Not verified locally
+
+PostgreSQL and MySQL (plan-branch CI), a live Auth0 tenant (MO-1…8),
+invitation email delivery (the lane disables the template), and a custom
+domain in the browser lane (per-host audience logic shared with Plan 42a
+and covered there).
+
+## Deferred minors
+
+- `GET /user-stores` accepts but does not apply its filters.
+- The invitation landing application is not checked for association with
+  the organization.
+- Member and admin-role lookups walk all roles per guarded request
+  (fine for typical tenants; an index would help large ones).
