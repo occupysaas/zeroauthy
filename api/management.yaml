@@ -3964,8 +3964,8 @@ paths:
         validated and mapped; its `jwks` or `jwks_uri` keys become the
         client's `private_key_jwt` credentials, replaced to match the
         document. Only `none` and `private_key_jwt` are accepted (no shared
-        secrets). A client created through `/oidc/register` with that URL is
-        `409`. An invalid document is `400` with the violations. Created
+        secrets). A client a user's authorization request created from that
+        URL (`external_metadata_created_by: client`) is `409`. An invalid document is `400` with the violations. Created
         clients are third party (D-0025) with `external_metadata_type: cimd`
         and `external_metadata_created_by: admin`.
       x-source:

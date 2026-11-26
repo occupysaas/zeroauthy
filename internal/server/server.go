@@ -17,6 +17,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/console"
 	"github.com/zeroauthy/zeroauthy/internal/actions"
 	"github.com/zeroauthy/zeroauthy/internal/authz"
+	"github.com/zeroauthy/zeroauthy/internal/cimd"
 	"github.com/zeroauthy/zeroauthy/internal/compat"
 	"github.com/zeroauthy/zeroauthy/internal/customdb"
 	"github.com/zeroauthy/zeroauthy/internal/customdomain"
@@ -123,6 +124,9 @@ type Deps struct {
 	Federation *federation.FlowService
 	// AD serves ad connections (Plan 38a); nil leaves them unavailable.
 	AD *adhub.Service
+	// CIMD fetches and registers Client ID Metadata Document clients (Plan
+	// 41b); nil uses the production outbound policy.
+	CIMD *cimd.Registrar
 
 	// Actions runs post-login and credentials-exchange flows (Plan 27);
 	// nil runs none. Its effects are sealed with Wrapper.
@@ -235,6 +239,10 @@ func (a authAPI) OidcLogoutPost(w http.ResponseWriter, r *http.Request) { a.oidc
 var _ authapi.ServerInterface = authAPI{}
 
 func New(d Deps) http.Handler {
+	cimdRegistrar := d.CIMD
+	if cimdRegistrar == nil {
+		cimdRegistrar = &cimd.Registrar{Store: d.Store, Fetcher: cimd.NewFetcher(federation.NetworkPolicy{})}
+	}
 	if d.Recorder == nil {
 		d.Recorder = logs.Nop
 	}
@@ -496,6 +504,7 @@ func New(d Deps) http.Handler {
 		samlMetadata = d.Federation.Providers.FetchSAMLMetadata
 	}
 	mh := &mgmt.Handlers{
+		CIMD:           cimdRegistrar,
 		Logout:         d.Logout,
 		AD:             adConnections(d.AD),
 		SAMLMetadata:   samlMetadata,

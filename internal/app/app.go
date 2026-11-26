@@ -20,6 +20,7 @@ import (
 	actionsbuild "github.com/zeroauthy/zeroauthy/internal/actions/build"
 	"github.com/zeroauthy/zeroauthy/internal/authz"
 	"github.com/zeroauthy/zeroauthy/internal/certificates"
+	"github.com/zeroauthy/zeroauthy/internal/cimd"
 	"github.com/zeroauthy/zeroauthy/internal/config"
 	"github.com/zeroauthy/zeroauthy/internal/customdb"
 	"github.com/zeroauthy/zeroauthy/internal/customdomain"
@@ -475,6 +476,7 @@ func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.S
 			Scripts:        &customdb.Client{Exec: runner, Wrapper: wrapper},
 			Federation:     flows,
 			AD:             adService,
+			CIMD:           &cimd.Registrar{Store: st, Fetcher: cimd.NewFetcher(providers.Policy())},
 			Actions:        engine,
 			Phone:          phoneDispatcher,
 

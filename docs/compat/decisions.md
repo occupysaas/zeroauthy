@@ -3362,7 +3362,7 @@ copied to `docs/superpowers/plan-1-followups.md`:
   is listed in expected-skips.
 
 
-- **Amended by D-0090 (Plan 41b):** a CIMD client's `private_key_jwt` credentials come from its document's `jwks` or `jwks_uri` and are replaced to match the document at each register or refetch; the Management credential routes do not edit them (LR41b-6).
+- **Amended by D-0090 (Plan 41b):** a CIMD client's `private_key_jwt` credentials come from its document's `jwks` or `jwks_uri` (at most 10) and are replaced to match the document at each register or refetch (LR41b-6).
 
 ## D-0170 — Plan 39a Sign in with Apple (2026-11-16)
 
@@ -3789,9 +3789,14 @@ CIMD:
 - Cache: `Cache-Control: max-age` bounded to 5 minutes–24 hours (5 minutes
   without one). A failed refresh keeps the cached document until 24 hours
   after its last good fetch, then the client is `invalid_client` (R41-7).
-- `/clients/cimd/register` on a URL a DCR client holds is `409`; a client a
-  user's flow created (`external_metadata_created_by: client`) becomes
-  `admin` on register.
+- `/clients/cimd/register` on a URL whose client a user's flow created
+  (`external_metadata_created_by: client`, a "dynamically registered client"
+  in Auth0's words) is `409`. Two concurrent registrations of one URL make
+  one client: the losing create updates it. An unreachable or invalid
+  document is `400` with the cause or the violations, and changes nothing.
+- A CIMD client holds at most 10 credentials (the JWKS limit), not the
+  Management API's 2; a register or refetch replaces them, so edits through
+  the credential routes last only until then.
 
 Observation points R41-1…8 are listed in
 [plan 1 follow-ups](../superpowers/plan-1-followups.md#plan-41b-observation-points).

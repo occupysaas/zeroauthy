@@ -82,6 +82,25 @@ func (a mgmtAPI) GetClients(w http.ResponseWriter, r *http.Request, p mgmtapi.Ge
 	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.GetClients(w, r, p) }, "read:clients")
 }
 
+// The CIMD routes need a fetcher; without one they stay 501.
+func (a mgmtAPI) PreviewCimdMetadata(w http.ResponseWriter, r *http.Request) {
+	if a.h.CIMD == nil {
+		a.Unimplemented.PreviewCimdMetadata(w, r)
+		return
+	}
+	scoped(w, r, a.h.PreviewCimdMetadata, "read:clients")
+}
+
+// RegisterCimdClient admits either scope; the handler checks the one its
+// outcome needs (create:clients to create, update:clients to update).
+func (a mgmtAPI) RegisterCimdClient(w http.ResponseWriter, r *http.Request) {
+	if a.h.CIMD == nil {
+		a.Unimplemented.RegisterCimdClient(w, r)
+		return
+	}
+	scoped(w, r, a.h.RegisterCimdClient, "create:clients", "update:clients")
+}
+
 func (a mgmtAPI) CreateClient(w http.ResponseWriter, r *http.Request) {
 	scoped(w, r, a.h.CreateClient, "create:clients")
 }
