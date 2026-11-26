@@ -12,58 +12,6 @@ func notImplemented(w http.ResponseWriter, r *http.Request, _ *Caller) {
 	writeProblem(w, r, problem(http.StatusNotImplemented, "not_implemented", "Not Implemented", "This operation is not available yet."))
 }
 
-func (h *Handlers) domainIdPs(w http.ResponseWriter, r *http.Request, c *Caller) {
-	notImplemented(w, r, c)
-}
-
-func (h *Handlers) updateIdP(w http.ResponseWriter, r *http.Request, c *Caller) {
-	if _, _, err := h.idp(r, c, chi.URLParam(r, "idp_id")); err != nil {
-		h.idpFail(w, r, c, "updateIdP", err)
-		return
-	}
-	notImplemented(w, r, c)
-}
-
-func (h *Handlers) deleteIdP(w http.ResponseWriter, r *http.Request, c *Caller) {
-	if _, _, err := h.idp(r, c, chi.URLParam(r, "idp_id")); err != nil {
-		h.idpFail(w, r, c, "deleteIdP", err)
-		return
-	}
-	notImplemented(w, r, c)
-}
-
-func (h *Handlers) refreshIdPAttributes(w http.ResponseWriter, r *http.Request, c *Caller) {
-	if _, _, err := h.idp(r, c, chi.URLParam(r, "idp_id")); err != nil {
-		h.idpFail(w, r, c, "refreshIdPAttributes", err)
-		return
-	}
-	notImplemented(w, r, c)
-}
-
-func (h *Handlers) detachIdP(w http.ResponseWriter, r *http.Request, c *Caller) {
-	if _, _, err := h.idp(r, c, chi.URLParam(r, "idp_id")); err != nil {
-		h.idpFail(w, r, c, "detachIdP", err)
-		return
-	}
-	notImplemented(w, r, c)
-}
-
-func (h *Handlers) addIdPDomain(w http.ResponseWriter, r *http.Request, c *Caller) {
-	if _, _, err := h.idp(r, c, chi.URLParam(r, "idp_id")); err != nil {
-		h.idpFail(w, r, c, "addIdPDomain", err)
-		return
-	}
-	notImplemented(w, r, c)
-}
-
-func (h *Handlers) removeIdPDomain(w http.ResponseWriter, r *http.Request, c *Caller) {
-	if _, _, err := h.idp(r, c, chi.URLParam(r, "idp_id")); err != nil {
-		h.idpFail(w, r, c, "removeIdPDomain", err)
-		return
-	}
-	notImplemented(w, r, c)
-}
-
 func (h *Handlers) getProvisioning(w http.ResponseWriter, r *http.Request, c *Caller) {
 	if _, _, err := h.idp(r, c, chi.URLParam(r, "idp_id")); err != nil {
 		h.idpFail(w, r, c, "getProvisioning", err)

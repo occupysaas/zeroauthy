@@ -95,9 +95,18 @@ func (h *Handlers) domain(r *http.Request, c *Caller) (*store.OrganizationDiscov
 }
 
 // associated reports which domain names the organization's identity
-// providers have (Task 4 fills it in).
+// providers have. Without the Management API there are no providers to
+// read, so none.
 func (h *Handlers) associated(ctx context.Context, c *Caller) (map[string]bool, error) {
-	return map[string]bool{}, nil
+	out := map[string]bool{}
+	if h.Writes == nil {
+		return out, nil
+	}
+	held, err := h.linkedDomains(ctx, c)
+	for d := range held {
+		out[d] = true
+	}
+	return out, err
 }
 
 func (h *Handlers) domainFail(w http.ResponseWriter, r *http.Request, c *Caller, what string, err error) {
@@ -208,6 +217,10 @@ func (h *Handlers) getDomain(w http.ResponseWriter, r *http.Request, c *Caller) 
 
 func (h *Handlers) deleteDomain(w http.ResponseWriter, r *http.Request, c *Caller) {
 	d, err := h.domain(r, c)
+	if err == nil && h.Writes != nil {
+		// The organization's identity providers lose the domain (LR42b-19).
+		err = h.unlinkDomain(r.Context(), c, d.Domain)
+	}
 	if err == nil {
 		err = h.Store.OrganizationsII().DeleteDiscoveryDomain(r.Context(), c.TenantID, c.Org.ID, d.ID)
 	}

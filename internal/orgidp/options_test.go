@@ -94,3 +94,17 @@ func TestFromConnectionNoSecrets(t *testing.T) {
 		t.Errorf("waad %v", o)
 	}
 }
+
+// TestForUpdate: an update may omit the secret (the stored one is kept)
+// but not other required members.
+func TestForUpdate(t *testing.T) {
+	if _, err := ForUpdate("okta", map[string]any{"domain": "acme.okta.com", "client_id": "c"}); err != nil {
+		t.Fatalf("okta without secret: %v", err)
+	}
+	if _, err := ForUpdate("okta", map[string]any{"client_id": "c"}); err == nil || !strings.Contains(err.Error(), "domain") {
+		t.Fatalf("okta without domain: %v", err)
+	}
+	if _, err := ToConnection("okta", map[string]any{"domain": "acme.okta.com", "client_id": "c"}); err == nil {
+		t.Fatal("create without secret accepted")
+	}
+}

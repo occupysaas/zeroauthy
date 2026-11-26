@@ -93,8 +93,18 @@ var defaults = map[string]map[string]any{
 }
 
 // ToConnection validates opts against strategy's request schema and
-// returns the connection options to create or replace with.
+// returns the connection options to create with.
 func ToConnection(strategy string, opts map[string]any) (map[string]any, error) {
+	return toConnection(strategy, opts, false)
+}
+
+// ForUpdate is ToConnection for an update: the Secrets may be omitted, and
+// the connection keeps its stored ones.
+func ForUpdate(strategy string, opts map[string]any) (map[string]any, error) {
+	return toConnection(strategy, opts, true)
+}
+
+func toConnection(strategy string, opts map[string]any, update bool) (map[string]any, error) {
 	if strategy == "pingfederate" {
 		return nil, fmt.Errorf("the pingfederate strategy is not supported by this server")
 	}
@@ -118,7 +128,7 @@ func ToConnection(strategy string, opts map[string]any) (map[string]any, error) 
 		}
 		v = picked[0]
 	}
-	out, err := v.apply(opts)
+	out, err := v.apply(opts, update)
 	if err != nil {
 		return nil, err
 	}
@@ -130,7 +140,7 @@ func ToConnection(strategy string, opts map[string]any) (map[string]any, error) 
 	return out, nil
 }
 
-func (v variant) apply(opts map[string]any) (map[string]any, error) {
+func (v variant) apply(opts map[string]any, update bool) (map[string]any, error) {
 	keys := slices.Sorted(maps.Keys(opts))
 	out := map[string]any{}
 	for _, k := range keys {
@@ -164,7 +174,7 @@ func (v variant) apply(opts map[string]any) (map[string]any, error) {
 		out[name] = val
 	}
 	for _, k := range v.required {
-		if _, ok := opts[k]; !ok {
+		if _, ok := opts[k]; !ok && !(update && slices.Contains(Secrets, k)) {
 			return nil, fmt.Errorf("options.%s is required", k)
 		}
 	}
