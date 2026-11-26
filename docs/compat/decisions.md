@@ -4114,3 +4114,49 @@ take one member or ≤ 10 invitations; problem-style errors with
 
 Observation points MO-1…MO-8 are listed in
 [plan-1-followups.md](../superpowers/plan-1-followups.md#plan-42b-observation-points).
+
+## D-0221: My Organization API — Phase B (Plan 42b)
+
+**Contract frozen 2026-11-26; implementation in progress.** Plan:
+[Plan 42b Phase B](../superpowers/plans/2026-11-26-zeroauthy-plan-42b-phase-b-my-organization-sso.md).
+Contract: [`api/myorg.yaml`](../../api/myorg.yaml). Maintainer request
+(2026-11-26) to plan and build Phase B; spec §8.2 is satisfied (Plans 36,
+37a and 37c have merged). No live Auth0 tenant was observed.
+
+Sources: the same pinned My Organization OpenAPI **1.0.0** as D-0220
+(re-read 2026-11-26, SHA-256
+`1f5a90535df8c932c98ea7de66b1516a912e5b695bd3aafe1465e8a43d7d0dbe`,
+unchanged), the [guide](https://auth0.com/docs/manage-users/my-organization-api)
+(its log event table) and Plan 37c's connection profiles and SCIM.
+
+Served (Phase B, 24 operations): `GET /config/identity-providers`;
+`GET|POST /domains`, `GET|DELETE /domains/{domain_id}`,
+`POST /domains/{domain_id}/verify`, `GET /domains/{domain_id}/identity-providers`;
+`GET|POST /identity-providers`, `GET|PATCH|DELETE /identity-providers/{idp_id}`,
+`PUT …/update-attributes`, `POST …/detach`, `POST …/domains`,
+`DELETE …/domains/{domain}`; `GET|POST|DELETE …/provisioning`,
+`PUT …/provisioning/update-attributes`, `GET|POST …/provisioning/scim-tokens`,
+`GET|DELETE …/scim-tokens/{idp_scim_token_id}`. The system API gains the
+18 scopes of these operations (30 in all); APIs activated before Phase B
+gain them at startup. Not served: the OpenAPI's scopes without operations
+in 1.0.0 (identity provider tests, clients, client grants, groups,
+organization deletion) and `cross_app_access_resource_app`.
+
+| ID | Ruling |
+|---|---|
+| LR42b-15 | My Organization domains are the organization's discovery domains (one list, Plan 30 rows): Management API changes show here and the reverse. New ones get `ord_` + 22 characters; `dd_` IDs from the Management API stay valid in paths. `verification_host` stays `_zeroauthy-org.{domain}`; the Management API's `PATCH … status: verified` attestation stays available to operators. |
+| LR42b-16 | `verify` looks up TXT records at `verification_host` through the deployment's bounded resolver (the custom-domain resolver, five-second deadline): a matching value sets `verified`; no match or `NXDOMAIN` sets `failed`; a resolver error or limit leaves the status and answers `503`. It answers `202` with the domain after the lookup. |
+| LR42b-17 | A pending or failed domain created through this API expires 7 days after creation (LR42b-3) and is deleted when next read. `POST /domains` answers `409` when the organization has the domain or another organization of the tenant has it verified; `verify` sets `failed` when another organization verified it first. |
+| LR42b-18 | Identity providers are enterprise connections of the seven OpenAPI strategies enabled on the organization with `organization_access_level` other than `none`; any other ID is `404`. Created ones get `organization_access_level: full`, are enabled for the token's application and the invitation landing application, and are named by the request `name` (`409` when taken in the tenant). The strategy must be in the application's `allowed_strategies`. `PATCH` fields need the access levels the OpenAPI states (`403` otherwise); `DELETE` needs `full`. |
+| LR42b-19 | An identity provider's `domains` are its connection's `domain_aliases`; each must be a verified domain of the organization. The connection profile's `domain_verification` applies (`none`: linking is `400`; `required`: creating needs a verified domain, enabling needs one, and an enabled provider's last verified domain cannot be removed through either route, `400`). Deleting an organization domain removes it from the organization's providers. A domain already on another provider of the organization is `409`. |
+| LR42b-20 | zeroauthy has no User Attribute Profiles: identity provider `attributes` is `[]` and its `update-attributes` returns it unchanged; provisioning `attributes` is the SCIM mapping (`user_attribute` the Auth0 field, `provisioning_field` the SCIM path, flags false) and its `update-attributes` returns it unchanged. |
+| LR42b-21 | Provisioning is allowed when the connection profile enables `provisioning` for the strategy, or, without a profile, when the strategy supports SCIM (Plan 37c). Token limits are the Management API's (2 active; beyond is `400`). `token_lifetime` defaults to the profile's `default_expiry`, else its `max_allowed_expiry`, else no expiry; `null` is refused when the profile sets a maximum; scopes must be within the profile's (default all five). |
+| LR42b-22 | `GET /config/identity-providers` reads the application's `connection_profile_id`. Without one: `can_set_*` false, one entry per allowed strategy with empty `enabled_features` and `provisioning_methods`, `domain_verification: optional`. A profile value `optional` for `show_as_button` or `assign_membership_on_login` gives `can_set_* = true`; `none` or `required` fixes the value. |
+| LR42b-23 | With `connection_deletion_behavior: allow_if_empty`, deleting a provider whose connection has users is `400`. `detach` removes only the organization connection, at any access level but `none`. |
+| LR42b-24 | Log events are Auth0's (the guide's table): `my_organization_api_domain_{succeeded,failed}` for domains and `my_organization_api_idp_{succeeded,failed}` for identity providers, their domains, provisioning and SCIM tokens; `my_organization_api_config_failed` for configuration failures. Details carry the operation, IDs and reason, never options, secrets or tokens. The in-process Management API calls also log, as client `my-organization-api`. |
+
+Observe later: **MO-9** Auth0's verification host and TXT format; **MO-10**
+whether domains share the Management discovery-domain IDs; **MO-11** the
+access level of providers an administrator creates; **MO-12** attribute
+refresh with User Attribute Profiles; **MO-13** the SCIM token limit's
+status.

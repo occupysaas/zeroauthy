@@ -3,7 +3,7 @@ openapi: 3.1.0
 info:
   title: zeroauthy My Organization API
   version: 0.1.0
-  summary: Organization administrators manage their own organization (Plan 42b Phase A, D-0220).
+  summary: Organization administrators manage their own organization (Plan 42b, D-0220 and D-0221).
   description: |
     Each tenant host serves the My Organization API at `https://{host}/my-org/v1`
     once the tenant has activated it (the system API `https://{canonical
@@ -15,9 +15,10 @@ info:
     grant. The application needs a `my_organization_configuration`.
 
     Phase A: configuration, details, members, memberships, member roles,
-    roles, invitations and user stores. Phase B (domains, identity
-    providers, provisioning) is not served yet. Auth0 marks the whole API
-    Early Access; this contract follows its OpenAPI 1.0.0 (D-0220).
+    roles, invitations and user stores (D-0220). Phase B: domains with DNS
+    verification, the organization's enterprise identity providers, their
+    domains and SCIM provisioning (D-0221). Auth0 marks the whole API
+    Early Access; this contract follows its OpenAPI 1.0.0.
     zeroauthy is a clean-room implementation; see `CLEAN_ROOM.md`.
   license:
     name: Apache-2.0
@@ -440,6 +441,527 @@ paths:
         '401': {$ref: '#/components/responses/Problem'}
         '403': {$ref: '#/components/responses/Problem'}
         '404': {$ref: '#/components/responses/Problem'}
+  /config/identity-providers:
+    get:
+      operationId: GetMyOrgIdentityProviderConfiguration
+      summary: What administrators may configure for identity providers (the application's connection profile)
+      x-source: *src
+      security:
+      - myOrgToken: [read:my_org:configuration]
+      responses:
+        '200':
+          description: Identity provider configuration.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/IdentityProvidersConfig'}
+        '401': {$ref: '#/components/responses/Problem'}
+        '403': {$ref: '#/components/responses/Problem'}
+        '404': {$ref: '#/components/responses/Problem'}
+  /domains:
+    get:
+      operationId: ListMyOrgDomains
+      summary: The organization's pending, failed and verified domains
+      x-source: *src
+      security:
+      - myOrgToken: [read:my_org:domains]
+      parameters:
+      - {$ref: '#/components/parameters/From'}
+      - name: take
+        in: query
+        schema: {type: integer, minimum: 1, maximum: 100, default: 50}
+      responses:
+        '200':
+          description: Domains.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [organization_domains]
+                properties:
+                  organization_domains:
+                    type: array
+                    items: {$ref: '#/components/schemas/OrgDomain'}
+                  next: {type: string}
+        '400': {$ref: '#/components/responses/Problem'}
+        '401': {$ref: '#/components/responses/Problem'}
+        '403': {$ref: '#/components/responses/Problem'}
+        '404': {$ref: '#/components/responses/Problem'}
+    post:
+      operationId: CreateMyOrgDomain
+      summary: Claim a domain (pending until verified through DNS)
+      x-source: *src
+      security:
+      - myOrgToken: [create:my_org:domains]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [domain]
+              properties:
+                domain: {$ref: '#/components/schemas/OrgDomainName'}
+      responses:
+        '201':
+          description: The claimed domain.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/OrgDomain'}
+        '400': {$ref: '#/components/responses/Problem'}
+        '401': {$ref: '#/components/responses/Problem'}
+        '403': {$ref: '#/components/responses/Problem'}
+        '404': {$ref: '#/components/responses/Problem'}
+        '409': {$ref: '#/components/responses/Problem'}
+  /domains/{domain_id}:
+    parameters:
+    - {$ref: '#/components/parameters/DomainID'}
+    get:
+      operationId: GetMyOrgDomain
+      summary: One domain
+      x-source: *src
+      security:
+      - myOrgToken: [read:my_org:domains]
+      responses:
+        '200':
+          description: The domain.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/OrgDomain'}
+        '400': {$ref: '#/components/responses/Problem'}
+        '401': {$ref: '#/components/responses/Problem'}
+        '403': {$ref: '#/components/responses/Problem'}
+        '404': {$ref: '#/components/responses/Problem'}
+    delete:
+      operationId: DeleteMyOrgDomain
+      summary: Delete a domain and remove it from the organization's identity providers
+      x-source: *src
+      security:
+      - myOrgToken: [delete:my_org:domains]
+      responses:
+        '204': {description: Deleted.}
+        '400': {$ref: '#/components/responses/Problem'}
+        '401': {$ref: '#/components/responses/Problem'}
+        '403': {$ref: '#/components/responses/Problem'}
+        '404': {$ref: '#/components/responses/Problem'}
+  /domains/{domain_id}/verify:
+    parameters:
+    - {$ref: '#/components/parameters/DomainID'}
+    post:
+      operationId: VerifyMyOrgDomain
+      summary: Look up the verification TXT record (D-0221 LR42b-16)
+      x-source: *src
+      security:
+      - myOrgToken: [update:my_org:domains]
+      responses:
+        '202':
+          description: The domain after the lookup.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/OrgDomain'}
+        '400': {$ref: '#/components/responses/Problem'}
+        '401': {$ref: '#/components/responses/Problem'}
+        '403': {$ref: '#/components/responses/Problem'}
+        '404': {$ref: '#/components/responses/Problem'}
+        '503': {$ref: '#/components/responses/Problem'}
+  /domains/{domain_id}/identity-providers:
+    parameters:
+    - {$ref: '#/components/parameters/DomainID'}
+    get:
+      operationId: ListMyOrgDomainIdentityProviders
+      summary: The organization's identity providers that have the domain
+      x-source: *src
+      security:
+      - myOrgToken: [read:my_org:domains, read:my_org:identity_providers]
+      responses:
+        '200':
+          description: Identity providers.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  identity_providers:
+                    type: array
+                    items:
+                      type: object
+                      required: [id, name]
+                      properties:
+                        id: {$ref: '#/components/schemas/IdpID'}
+                        name: {type: string}
+                        display_name: {type: string}
+        '400': {$ref: '#/components/responses/Problem'}
+        '401': {$ref: '#/components/responses/Problem'}
+        '403': {$ref: '#/components/responses/Problem'}
+        '404': {$ref: '#/components/responses/Problem'}
+  /identity-providers:
+    get:
+      operationId: ListMyOrgIdentityProviders
+      summary: The organization's enterprise identity providers
+      x-source: *src
+      security:
+      - myOrgToken: [read:my_org:identity_providers]
+      parameters:
+      - name: member_access_level
+        in: query
+        style: form
+        explode: true
+        schema:
+          type: array
+          minItems: 1
+          items: {$ref: '#/components/schemas/AccessLevel'}
+      - name: is_enabled
+        in: query
+        schema: {type: boolean}
+      responses:
+        '200':
+          description: Identity providers.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  identity_providers:
+                    type: array
+                    items: {$ref: '#/components/schemas/IdentityProvider'}
+        '400': {$ref: '#/components/responses/Problem'}
+        '401': {$ref: '#/components/responses/Problem'}
+        '403': {$ref: '#/components/responses/Problem'}
+        '404': {$ref: '#/components/responses/Problem'}
+    post:
+      operationId: CreateMyOrgIdentityProvider
+      summary: Create an enterprise connection enabled only on this organization
+      x-source: *src
+      security:
+      - myOrgToken: [create:my_org:identity_providers]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/IdentityProviderCreate'}
+      responses:
+        '201':
+          description: The identity provider.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/IdentityProvider'}
+        '400': {$ref: '#/components/responses/Problem'}
+        '401': {$ref: '#/components/responses/Problem'}
+        '403': {$ref: '#/components/responses/Problem'}
+        '404': {$ref: '#/components/responses/Problem'}
+        '409': {$ref: '#/components/responses/Problem'}
+  /identity-providers/{idp_id}:
+    parameters:
+    - {$ref: '#/components/parameters/IdpID'}
+    get:
+      operationId: GetMyOrgIdentityProvider
+      summary: One identity provider
+      x-source: *src
+      security:
+      - myOrgToken: [read:my_org:identity_providers]
+      responses:
+        '200':
+          description: The identity provider.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/IdentityProvider'}
+        '400': {$ref: '#/components/responses/Problem'}
+        '401': {$ref: '#/components/responses/Problem'}
+        '403': {$ref: '#/components/responses/Problem'}
+        '404': {$ref: '#/components/responses/Problem'}
+    patch:
+      operationId: UpdateMyOrgIdentityProvider
+      summary: Update an identity provider (fields gated by its access level)
+      x-source: *src
+      security:
+      - myOrgToken: [update:my_org:identity_providers]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/IdentityProviderUpdate'}
+      responses:
+        '200':
+          description: The identity provider.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/IdentityProvider'}
+        '400': {$ref: '#/components/responses/Problem'}
+        '401': {$ref: '#/components/responses/Problem'}
+        '403': {$ref: '#/components/responses/Problem'}
+        '404': {$ref: '#/components/responses/Problem'}
+    delete:
+      operationId: DeleteMyOrgIdentityProvider
+      summary: Delete the identity provider's connection (access level full)
+      x-source: *src
+      security:
+      - myOrgToken: [delete:my_org:identity_providers]
+      responses:
+        '204': {description: Deleted.}
+        '400': {$ref: '#/components/responses/Problem'}
+        '401': {$ref: '#/components/responses/Problem'}
+        '403': {$ref: '#/components/responses/Problem'}
+        '404': {$ref: '#/components/responses/Problem'}
+  /identity-providers/{idp_id}/update-attributes:
+    parameters:
+    - {$ref: '#/components/parameters/IdpID'}
+    put:
+      operationId: RefreshMyOrgIdentityProviderAttributes
+      summary: Refresh attribute mappings (unchanged without User Attribute Profiles, LR42b-20)
+      x-source: *src
+      security:
+      - myOrgToken: [update:my_org:identity_providers]
+      requestBody:
+        content:
+          application/json:
+            schema: {type: object, additionalProperties: false}
+      responses:
+        '200':
+          description: The identity provider.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/IdentityProvider'}
+        '400': {$ref: '#/components/responses/Problem'}
+        '401': {$ref: '#/components/responses/Problem'}
+        '403': {$ref: '#/components/responses/Problem'}
+        '404': {$ref: '#/components/responses/Problem'}
+  /identity-providers/{idp_id}/detach:
+    parameters:
+    - {$ref: '#/components/parameters/IdpID'}
+    post:
+      operationId: DetachMyOrgIdentityProvider
+      summary: Remove the identity provider from the organization; the connection stays
+      x-source: *src
+      security:
+      - myOrgToken: [update:my_org:identity_providers_detach]
+      responses:
+        '204': {description: Detached.}
+        '400': {$ref: '#/components/responses/Problem'}
+        '401': {$ref: '#/components/responses/Problem'}
+        '403': {$ref: '#/components/responses/Problem'}
+        '404': {$ref: '#/components/responses/Problem'}
+  /identity-providers/{idp_id}/domains:
+    parameters:
+    - {$ref: '#/components/parameters/IdpID'}
+    post:
+      operationId: AddMyOrgIdentityProviderDomain
+      summary: Link a verified organization domain for home realm discovery
+      x-source: *src
+      security:
+      - myOrgToken: [create:my_org:identity_providers_domains]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [domain]
+              properties:
+                domain: {$ref: '#/components/schemas/OrgDomainName'}
+      responses:
+        '201':
+          description: The linked domain.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [domain]
+                properties:
+                  domain: {$ref: '#/components/schemas/OrgDomainName'}
+        '400': {$ref: '#/components/responses/Problem'}
+        '401': {$ref: '#/components/responses/Problem'}
+        '403': {$ref: '#/components/responses/Problem'}
+        '404': {$ref: '#/components/responses/Problem'}
+        '409': {$ref: '#/components/responses/Problem'}
+  /identity-providers/{idp_id}/domains/{domain}:
+    parameters:
+    - {$ref: '#/components/parameters/IdpID'}
+    - name: domain
+      in: path
+      required: true
+      schema: {$ref: '#/components/schemas/OrgDomainName'}
+    delete:
+      operationId: RemoveMyOrgIdentityProviderDomain
+      summary: Unlink a domain
+      x-source: *src
+      security:
+      - myOrgToken: [delete:my_org:identity_providers_domains]
+      responses:
+        '204': {description: Unlinked.}
+        '400': {$ref: '#/components/responses/Problem'}
+        '401': {$ref: '#/components/responses/Problem'}
+        '403': {$ref: '#/components/responses/Problem'}
+        '404': {$ref: '#/components/responses/Problem'}
+  /identity-providers/{idp_id}/provisioning:
+    parameters:
+    - {$ref: '#/components/parameters/IdpID'}
+    get:
+      operationId: GetMyOrgProvisioning
+      summary: The identity provider's SCIM provisioning configuration
+      x-source: *src
+      security:
+      - myOrgToken: [read:my_org:identity_providers_provisioning]
+      responses:
+        '200':
+          description: Provisioning configuration.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/ProvisioningConfig'}
+        '400': {$ref: '#/components/responses/Problem'}
+        '401': {$ref: '#/components/responses/Problem'}
+        '403': {$ref: '#/components/responses/Problem'}
+        '404': {$ref: '#/components/responses/Problem'}
+    post:
+      operationId: CreateMyOrgProvisioning
+      summary: Enable SCIM provisioning
+      x-source: *src
+      security:
+      - myOrgToken: [create:my_org:identity_providers_provisioning]
+      responses:
+        '201':
+          description: Provisioning configuration.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/ProvisioningConfig'}
+        '400': {$ref: '#/components/responses/Problem'}
+        '401': {$ref: '#/components/responses/Problem'}
+        '403': {$ref: '#/components/responses/Problem'}
+        '404': {$ref: '#/components/responses/Problem'}
+    delete:
+      operationId: DeleteMyOrgProvisioning
+      summary: Disable SCIM provisioning and revoke its tokens
+      x-source: *src
+      security:
+      - myOrgToken: [delete:my_org:identity_providers_provisioning]
+      responses:
+        '204': {description: Deleted.}
+        '400': {$ref: '#/components/responses/Problem'}
+        '401': {$ref: '#/components/responses/Problem'}
+        '403': {$ref: '#/components/responses/Problem'}
+        '404': {$ref: '#/components/responses/Problem'}
+  /identity-providers/{idp_id}/provisioning/update-attributes:
+    parameters:
+    - {$ref: '#/components/parameters/IdpID'}
+    put:
+      operationId: RefreshMyOrgProvisioningAttributes
+      summary: Refresh provisioning attribute mappings (unchanged, LR42b-20)
+      x-source: *src
+      security:
+      - myOrgToken: [update:my_org:identity_providers_provisioning]
+      requestBody:
+        content:
+          application/json:
+            schema: {type: object, additionalProperties: false}
+      responses:
+        '200':
+          description: Provisioning configuration.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/ProvisioningConfig'}
+        '400': {$ref: '#/components/responses/Problem'}
+        '401': {$ref: '#/components/responses/Problem'}
+        '403': {$ref: '#/components/responses/Problem'}
+        '404': {$ref: '#/components/responses/Problem'}
+  /identity-providers/{idp_id}/provisioning/scim-tokens:
+    parameters:
+    - {$ref: '#/components/parameters/IdpID'}
+    get:
+      operationId: ListMyOrgSCIMTokens
+      summary: SCIM tokens (values are never returned)
+      x-source: *src
+      security:
+      - myOrgToken: [read:my_org:identity_providers_scim_tokens]
+      responses:
+        '200':
+          description: Tokens.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  scim_tokens:
+                    type: array
+                    items: {$ref: '#/components/schemas/SCIMToken'}
+        '400': {$ref: '#/components/responses/Problem'}
+        '401': {$ref: '#/components/responses/Problem'}
+        '403': {$ref: '#/components/responses/Problem'}
+        '404': {$ref: '#/components/responses/Problem'}
+    post:
+      operationId: CreateMyOrgSCIMToken
+      summary: Create a SCIM token; its value is returned only here
+      x-source: *src
+      security:
+      - myOrgToken: [create:my_org:identity_providers_scim_tokens]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                token_lifetime: {type: [integer, 'null'], exclusiveMinimum: 900}
+                scopes:
+                  type: array
+                  minItems: 1
+                  uniqueItems: true
+                  items: {$ref: '#/components/schemas/SCIMTokenScope'}
+      responses:
+        '201':
+          description: The token, with its value.
+          content:
+            application/json:
+              schema:
+                allOf:
+                - {$ref: '#/components/schemas/SCIMToken'}
+                - type: object
+                  required: [token]
+                  properties:
+                    token: {type: string}
+        '400': {$ref: '#/components/responses/Problem'}
+        '401': {$ref: '#/components/responses/Problem'}
+        '403': {$ref: '#/components/responses/Problem'}
+        '404': {$ref: '#/components/responses/Problem'}
+  /identity-providers/{idp_id}/provisioning/scim-tokens/{idp_scim_token_id}:
+    parameters:
+    - {$ref: '#/components/parameters/IdpID'}
+    - name: idp_scim_token_id
+      in: path
+      required: true
+      schema: {type: string, minLength: 1, maxLength: 255}
+    get:
+      operationId: GetMyOrgSCIMToken
+      summary: A SCIM token's metadata
+      x-source: *src
+      security:
+      - myOrgToken: [read:my_org:identity_providers_scim_tokens]
+      responses:
+        '200':
+          description: Token metadata.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/SCIMToken'}
+        '400': {$ref: '#/components/responses/Problem'}
+        '401': {$ref: '#/components/responses/Problem'}
+        '403': {$ref: '#/components/responses/Problem'}
+        '404': {$ref: '#/components/responses/Problem'}
+    delete:
+      operationId: DeleteMyOrgSCIMToken
+      summary: Revoke a SCIM token
+      x-source: *src
+      security:
+      - myOrgToken: [delete:my_org:identity_providers_scim_tokens]
+      responses:
+        '204': {description: Revoked.}
+        '400': {$ref: '#/components/responses/Problem'}
+        '401': {$ref: '#/components/responses/Problem'}
+        '403': {$ref: '#/components/responses/Problem'}
+        '404': {$ref: '#/components/responses/Problem'}
 components:
   securitySchemes:
     myOrgToken:
@@ -479,6 +1001,17 @@ components:
       in: path
       required: true
       schema: {type: string, maxLength: 100}
+    DomainID:
+      name: domain_id
+      in: path
+      required: true
+      description: An `ord_` ID, or a `dd_` ID of a domain created through the Management API (LR42b-15).
+      schema: {type: string, pattern: '^(ord_[A-Za-z0-9]{22}|dd_[A-Za-z0-9]{24})$'}
+    IdpID:
+      name: idp_id
+      in: path
+      required: true
+      schema: {$ref: '#/components/schemas/IdpID'}
   requestBodies:
     RoleChange:
       required: true
@@ -628,3 +1161,181 @@ components:
         validation_errors:
           type: array
           items: {$ref: '#/components/schemas/ValidationError'}
+    OrgDomainName:
+      type: string
+      maxLength: 253
+      pattern: '^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9])\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9-]*[A-Za-z0-9])$'
+    OrgDomain:
+      type: object
+      additionalProperties: false
+      required: [id, org_id, domain, status, verification_txt, verification_host]
+      properties:
+        id: {type: string}
+        org_id: {type: string}
+        domain: {$ref: '#/components/schemas/OrgDomainName'}
+        status: {type: string, enum: [failed, pending, verified]}
+        verification_txt: {type: string}
+        verification_host: {type: string}
+        identity_provider_association: {type: string, enum: [associated, unassociated], readOnly: true}
+    IdpID:
+      type: string
+      pattern: '^con_[A-Za-z0-9]{16}$'
+    AccessLevel:
+      type: string
+      enum: [none, readonly, limited, full]
+    IdpStrategy:
+      type: string
+      enum: [adfs, google-apps, oidc, okta, pingfederate, samlp, waad]
+    IdpOptions:
+      type: object
+      description: |
+        Strategy-specific options, validated per strategy as Auth0's
+        `Idp<Strategy>OptionsRequest` schemas describe: `oidc` (`type`,
+        `client_id`, `discovery_url`; `client_secret`), `okta` and
+        `google-apps` (`domain`, `client_id`, `client_secret`; `icon_url`),
+        `waad` (`tenant_domain`, `client_id`, `client_secret`; `icon_url`),
+        `adfs` (`adfs_server` or `fedMetadataXml`), `samlp` (`metadataUrl`
+        and `signSAMLRequest`, or `signInEndpoint`, `signingCert` and
+        `signSAMLRequest`; signing, binding, `idpInitiated`, `icon_url`),
+        `pingfederate` (`pingFederateBaseUrl`, `signingCert`,
+        `signatureAlgorithm`, `digestAlgorithm`, `signSAMLRequest`).
+        Responses never contain `client_secret` or `signingCert`.
+      additionalProperties: true
+    UserAttributeMap:
+      type: object
+      required: [is_required, is_extra, is_missing]
+      properties:
+        user_attribute: {type: string}
+        description: {type: string}
+        label: {type: string}
+        is_required: {type: boolean}
+        is_extra: {type: boolean}
+        is_missing: {type: boolean}
+        sso_field:
+          type: array
+          items: {type: string}
+        provisioning_field: {type: string}
+    IdentityProvider:
+      type: object
+      required: [strategy]
+      properties:
+        id: {$ref: '#/components/schemas/IdpID'}
+        name: {type: [string, 'null'], maxLength: 128}
+        strategy: {$ref: '#/components/schemas/IdpStrategy'}
+        domains:
+          type: array
+          items: {type: string}
+        display_name: {type: string}
+        show_as_button: {type: boolean}
+        assign_membership_on_login: {type: boolean}
+        is_enabled: {type: boolean}
+        access_level: {$ref: '#/components/schemas/AccessLevel'}
+        member_access_level: {$ref: '#/components/schemas/AccessLevel'}
+        use_for_third_party_client_access: {type: boolean}
+        options: {$ref: '#/components/schemas/IdpOptions'}
+        attributes:
+          type: array
+          items: {$ref: '#/components/schemas/UserAttributeMap'}
+    IdentityProviderCreate:
+      type: object
+      additionalProperties: false
+      required: [name, strategy]
+      properties:
+        name: {type: string, minLength: 1, maxLength: 128}
+        strategy: {$ref: '#/components/schemas/IdpStrategy'}
+        domains:
+          type: array
+          items: {$ref: '#/components/schemas/OrgDomainName'}
+        display_name: {type: string, minLength: 1, maxLength: 128}
+        show_as_button: {type: boolean}
+        assign_membership_on_login: {type: boolean}
+        is_enabled: {type: boolean}
+        use_for_third_party_client_access: {type: boolean}
+        options: {$ref: '#/components/schemas/IdpOptions'}
+    IdentityProviderUpdate:
+      type: object
+      additionalProperties: false
+      description: |
+        `display_name`, `options` and `use_for_third_party_client_access`
+        need access level `full`; `show_as_button`,
+        `assign_membership_on_login` and `is_enabled` need `full` or
+        `limited` (LR42b-18).
+      properties:
+        display_name: {type: string, minLength: 1, maxLength: 128}
+        show_as_button: {type: boolean}
+        assign_membership_on_login: {type: boolean}
+        is_enabled: {type: boolean}
+        use_for_third_party_client_access: {type: boolean}
+        options: {$ref: '#/components/schemas/IdpOptions'}
+    IdentityProvidersConfig:
+      type: object
+      additionalProperties: false
+      required: [organization, strategies, domain_aliases_config]
+      properties:
+        organization:
+          type: object
+          additionalProperties: false
+          required: [can_set_show_as_button, can_set_assign_membership_on_login]
+          properties:
+            can_set_show_as_button: {type: boolean}
+            can_set_assign_membership_on_login: {type: boolean}
+        strategies:
+          type: object
+          description: One entry per strategy the administrator may use (`googleapps` for `google-apps`).
+          additionalProperties:
+            type: object
+            required: [enabled_features, provisioning_methods]
+            properties:
+              enabled_features:
+                type: array
+                uniqueItems: true
+                items: {type: string, enum: [provisioning, universal_logout]}
+              provisioning_methods:
+                type: array
+                items: {type: string, enum: [scim, google_workspace]}
+              provisioning:
+                type: [object, 'null']
+                properties:
+                  on_login: {type: string, enum: [never_on_login, on_first_login, on_each_login]}
+                  scim:
+                    type: [object, 'null']
+                    properties:
+                      tokens:
+                        type: object
+                        properties:
+                          scopes:
+                            type: array
+                            items: {$ref: '#/components/schemas/SCIMTokenScope'}
+                          default_expiry: {type: [integer, 'null'], minimum: 900}
+                          max_allowed_expiry: {type: [integer, 'null'], minimum: 900}
+        domain_aliases_config:
+          type: object
+          additionalProperties: false
+          required: [domain_verification]
+          properties:
+            domain_verification: {type: string, enum: [none, optional, required]}
+    ProvisioningConfig:
+      type: object
+      required: [identity_provider_id, identity_provider_name, strategy, method, attributes, user_id_attribute]
+      properties:
+        identity_provider_id: {$ref: '#/components/schemas/IdpID'}
+        identity_provider_name: {type: string}
+        strategy: {$ref: '#/components/schemas/IdpStrategy'}
+        method: {type: string, enum: [none, scim]}
+        attributes:
+          type: array
+          items: {$ref: '#/components/schemas/UserAttributeMap'}
+        user_id_attribute: {type: string}
+    SCIMTokenScope:
+      type: string
+      enum: ['get:users', 'post:users', 'patch:users', 'delete:users', 'put:users']
+    SCIMToken:
+      type: object
+      required: [token_id, created_at]
+      properties:
+        token_id: {type: string}
+        scopes:
+          type: array
+          items: {type: string}
+        created_at: {type: string, format: date-time}
+        valid_until: {type: string, format: date-time}

@@ -294,6 +294,9 @@ func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.S
 		if err := tenantsetup.UpgradeManagementAPIScopes(ctx, st, tn, cfg.Server.BaseDomain); err != nil {
 			return nil, fmt.Errorf("app: upgrade Management API scopes for tenant %q: %w", tn.Name, err)
 		}
+		if err := tenantsetup.UpgradeMyOrgAPIScopes(ctx, st, tn); err != nil {
+			return nil, fmt.Errorf("app: upgrade My Organization API scopes for tenant %q: %w", tn.Name, err)
+		}
 		if err := km.Ensure(ctx, tn.ID); err != nil {
 			return nil, fmt.Errorf("app: signing keys for tenant %q: %w", tn.Name, err)
 		}
