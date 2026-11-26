@@ -232,3 +232,26 @@ func TestMyOrgMounted(t *testing.T) {
 		t.Fatalf("details = %d %v %s", rec.Code, rec.Header(), rec.Body)
 	}
 }
+
+// Refreshing keeps the organization and the my_org scopes.
+func TestMyOrgRefresh(t *testing.T) {
+	e := newMyOrgEnv(t)
+	out := e.tokenResponse(t, e.canonical, "alice@flow.test", "alice password 1", "organization", e.orgs["acme"].ID, "scope", myOrgScopes+" offline_access")
+	rt, _ := out["refresh_token"].(string)
+	if rt == "" {
+		t.Fatalf("no refresh token: %v", out)
+	}
+	r := httptest.NewRequest("POST", "https://"+e.canonical+"/oauth/token", strings.NewReader(url.Values{"grant_type": {"refresh_token"}, "client_id": {"portal"}, "refresh_token": {rt}}.Encode()))
+	r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	rec := httptest.NewRecorder()
+	e.srv.Config.Handler.ServeHTTP(rec, r)
+	got := decodeJSON(rec)
+	access, _ := got["access_token"].(string)
+	if access == "" {
+		t.Fatalf("refresh = %d %s", rec.Code, rec.Body)
+	}
+	c := jwtClaims(t, access)
+	if c["org_id"] != e.orgs["acme"].ID || !strings.Contains(c["scope"].(string), "read:my_org:members") {
+		t.Fatalf("refreshed claims %v", c)
+	}
+}
