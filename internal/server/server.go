@@ -201,6 +201,14 @@ func (a authAPI) OauthRevoke(w http.ResponseWriter, r *http.Request) { a.oauth.O
 func (a authAPI) OauthPar(w http.ResponseWriter, r *http.Request, _ authapi.OauthParParams) {
 	a.oauth.OauthPar(w, r)
 }
+
+// OidcRegister is Dynamic Client Registration (Plan 41b); until Task 2 it
+// answers as when the tenant has it off.
+func (a authAPI) OidcRegister(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusNotFound)
+	_, _ = w.Write([]byte(`{"error":"not_found","error_description":"Not Found"}`))
+}
 func (a authAPI) OauthDeviceCode(w http.ResponseWriter, r *http.Request) {
 	a.oauth.OauthDeviceCode(w, r)
 }

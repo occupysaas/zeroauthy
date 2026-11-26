@@ -13,6 +13,90 @@ import (
 	"github.com/oapi-codegen/runtime"
 )
 
+// Defines values for ClientRegistrationRequestResponseTypes.
+const (
+	ClientRegistrationRequestResponseTypesCode ClientRegistrationRequestResponseTypes = "code"
+)
+
+// Valid indicates whether the value is a known member of the ClientRegistrationRequestResponseTypes enum.
+func (e ClientRegistrationRequestResponseTypes) Valid() bool {
+	switch e {
+	case ClientRegistrationRequestResponseTypesCode:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ClientRegistrationRequestTokenEndpointAuthMethod.
+const (
+	ClientRegistrationRequestTokenEndpointAuthMethodClientSecretPost ClientRegistrationRequestTokenEndpointAuthMethod = "client_secret_post"
+	ClientRegistrationRequestTokenEndpointAuthMethodNone             ClientRegistrationRequestTokenEndpointAuthMethod = "none"
+)
+
+// Valid indicates whether the value is a known member of the ClientRegistrationRequestTokenEndpointAuthMethod enum.
+func (e ClientRegistrationRequestTokenEndpointAuthMethod) Valid() bool {
+	switch e {
+	case ClientRegistrationRequestTokenEndpointAuthMethodClientSecretPost:
+		return true
+	case ClientRegistrationRequestTokenEndpointAuthMethodNone:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ClientRegistrationResponseClientSecretExpiresAt.
+const (
+	N0 ClientRegistrationResponseClientSecretExpiresAt = 0
+)
+
+// Valid indicates whether the value is a known member of the ClientRegistrationResponseClientSecretExpiresAt enum.
+func (e ClientRegistrationResponseClientSecretExpiresAt) Valid() bool {
+	switch e {
+	case N0:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ClientRegistrationResponseGrantTypes.
+const (
+	AuthorizationCode ClientRegistrationResponseGrantTypes = "authorization_code"
+	RefreshToken      ClientRegistrationResponseGrantTypes = "refresh_token"
+)
+
+// Valid indicates whether the value is a known member of the ClientRegistrationResponseGrantTypes enum.
+func (e ClientRegistrationResponseGrantTypes) Valid() bool {
+	switch e {
+	case AuthorizationCode:
+		return true
+	case RefreshToken:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ClientRegistrationResponseTokenEndpointAuthMethod.
+const (
+	ClientRegistrationResponseTokenEndpointAuthMethodClientSecretPost ClientRegistrationResponseTokenEndpointAuthMethod = "client_secret_post"
+	ClientRegistrationResponseTokenEndpointAuthMethodNone             ClientRegistrationResponseTokenEndpointAuthMethod = "none"
+)
+
+// Valid indicates whether the value is a known member of the ClientRegistrationResponseTokenEndpointAuthMethod enum.
+func (e ClientRegistrationResponseTokenEndpointAuthMethod) Valid() bool {
+	switch e {
+	case ClientRegistrationResponseTokenEndpointAuthMethodClientSecretPost:
+		return true
+	case ClientRegistrationResponseTokenEndpointAuthMethodNone:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for DeviceCodeResponseExpiresIn.
 const (
 	N900 DeviceCodeResponseExpiresIn = 900
@@ -378,16 +462,16 @@ func (e PasswordlessStartRequestConnection) Valid() bool {
 
 // Defines values for PasswordlessStartRequestSend.
 const (
-	Code PasswordlessStartRequestSend = "code"
-	Link PasswordlessStartRequestSend = "link"
+	PasswordlessStartRequestSendCode PasswordlessStartRequestSend = "code"
+	PasswordlessStartRequestSendLink PasswordlessStartRequestSend = "link"
 )
 
 // Valid indicates whether the value is a known member of the PasswordlessStartRequestSend enum.
 func (e PasswordlessStartRequestSend) Valid() bool {
 	switch e {
-	case Code:
+	case PasswordlessStartRequestSendCode:
 		return true
-	case Link:
+	case PasswordlessStartRequestSendLink:
 		return true
 	default:
 		return false
@@ -619,6 +703,47 @@ type ChangePasswordRequest struct {
 	Organization *string `json:"organization,omitempty"`
 }
 
+// ClientRegistrationRequest defines model for ClientRegistrationRequest.
+type ClientRegistrationRequest struct {
+	ClientName              *string                                           `json:"client_name,omitempty"`
+	GrantTypes              *[]string                                         `json:"grant_types,omitempty"`
+	LogoUri                 *string                                           `json:"logo_uri,omitempty"`
+	RedirectUris            []string                                          `json:"redirect_uris"`
+	ResponseTypes           *[]ClientRegistrationRequestResponseTypes         `json:"response_types,omitempty"`
+	TokenEndpointAuthMethod *ClientRegistrationRequestTokenEndpointAuthMethod `json:"token_endpoint_auth_method,omitempty"`
+	AdditionalProperties    map[string]interface{}                            `json:"-"`
+}
+
+// ClientRegistrationRequestResponseTypes defines model for ClientRegistrationRequest.ResponseTypes.
+type ClientRegistrationRequestResponseTypes string
+
+// ClientRegistrationRequestTokenEndpointAuthMethod defines model for ClientRegistrationRequest.TokenEndpointAuthMethod.
+type ClientRegistrationRequestTokenEndpointAuthMethod string
+
+// ClientRegistrationResponse defines model for ClientRegistrationResponse.
+type ClientRegistrationResponse struct {
+	ClientId   string `json:"client_id"`
+	ClientName string `json:"client_name"`
+
+	// ClientSecret Absent when `token_endpoint_auth_method` is `none`.
+	ClientSecret            *string                                           `json:"client_secret,omitempty"`
+	ClientSecretExpiresAt   ClientRegistrationResponseClientSecretExpiresAt   `json:"client_secret_expires_at"`
+	GrantTypes              []ClientRegistrationResponseGrantTypes            `json:"grant_types"`
+	LogoUri                 *string                                           `json:"logo_uri,omitempty"`
+	RedirectUris            []string                                          `json:"redirect_uris"`
+	ResponseTypes           *[]string                                         `json:"response_types,omitempty"`
+	TokenEndpointAuthMethod ClientRegistrationResponseTokenEndpointAuthMethod `json:"token_endpoint_auth_method"`
+}
+
+// ClientRegistrationResponseClientSecretExpiresAt defines model for ClientRegistrationResponse.ClientSecretExpiresAt.
+type ClientRegistrationResponseClientSecretExpiresAt int
+
+// ClientRegistrationResponseGrantTypes defines model for ClientRegistrationResponse.GrantTypes.
+type ClientRegistrationResponseGrantTypes string
+
+// ClientRegistrationResponseTokenEndpointAuthMethod defines model for ClientRegistrationResponse.TokenEndpointAuthMethod.
+type ClientRegistrationResponseTokenEndpointAuthMethod string
+
 // DeviceCodeRequest defines model for DeviceCodeRequest.
 type DeviceCodeRequest struct {
 	// Audience The API identifier; empty selects the tenant default audience.
@@ -820,11 +945,14 @@ type OpenIDConfiguration struct {
 	BackchannelLogoutSupported *bool `json:"backchannel_logout_supported,omitempty"`
 
 	// ClaimsParameterSupported Present and true unless the claims-parameter compatibility switch is enabled (D-0080).
-	ClaimsParameterSupported      *bool                                               `json:"claims_parameter_supported,omitempty"`
-	ClaimsSupported               *[]string                                           `json:"claims_supported,omitempty"`
-	CodeChallengeMethodsSupported *[]string                                           `json:"code_challenge_methods_supported,omitempty"`
-	DeviceAuthorizationEndpoint   *string                                             `json:"device_authorization_endpoint,omitempty"`
-	DpopSigningAlgValuesSupported *[]OpenIDConfigurationDpopSigningAlgValuesSupported `json:"dpop_signing_alg_values_supported,omitempty"`
+	ClaimsParameterSupported *bool     `json:"claims_parameter_supported,omitempty"`
+	ClaimsSupported          *[]string `json:"claims_supported,omitempty"`
+
+	// ClientIdMetadataDocumentSupported True when the tenant accepts Client ID Metadata Document URLs as `client_id` (Plan 41b).
+	ClientIdMetadataDocumentSupported *bool                                               `json:"client_id_metadata_document_supported,omitempty"`
+	CodeChallengeMethodsSupported     *[]string                                           `json:"code_challenge_methods_supported,omitempty"`
+	DeviceAuthorizationEndpoint       *string                                             `json:"device_authorization_endpoint,omitempty"`
+	DpopSigningAlgValuesSupported     *[]OpenIDConfigurationDpopSigningAlgValuesSupported `json:"dpop_signing_alg_values_supported,omitempty"`
 
 	// EndSessionEndpoint Omitted when the tenant disables RP logout discovery; the endpoint remains available.
 	EndSessionEndpoint               *string   `json:"end_session_endpoint,omitempty"`
@@ -835,6 +963,9 @@ type OpenIDConfiguration struct {
 
 	// PushedAuthorizationRequestEndpoint Present when the tenant allows pushed authorization requests.
 	PushedAuthorizationRequestEndpoint *string `json:"pushed_authorization_request_endpoint,omitempty"`
+
+	// RegistrationEndpoint `/oidc/register`; present when the tenant enables Dynamic Client Registration (Plan 41b).
+	RegistrationEndpoint *string `json:"registration_endpoint,omitempty"`
 
 	// RequestObjectSigningAlgValuesSupported Algorithms accepted for request objects; present when the store supports client credentials.
 	RequestObjectSigningAlgValuesSupported *[]OpenIDConfigurationRequestObjectSigningAlgValuesSupported `json:"request_object_signing_alg_values_supported,omitempty"`
@@ -1833,6 +1964,9 @@ type OauthTokenFormdataRequestBody = TokenFormRequest
 // OidcLogoutPostFormdataRequestBody defines body for OidcLogoutPost for application/x-www-form-urlencoded ContentType.
 type OidcLogoutPostFormdataRequestBody = OidcLogoutRequest
 
+// OidcRegisterJSONRequestBody defines body for OidcRegister for application/json ContentType.
+type OidcRegisterJSONRequestBody = ClientRegistrationRequest
+
 // AdTicketConfigureJSONRequestBody defines body for AdTicketConfigure for application/json ContentType.
 type AdTicketConfigureJSONRequestBody AdTicketConfigureJSONBody
 
@@ -1865,6 +1999,149 @@ type SamlpIdPLogoutPostFormdataRequestBody SamlpIdPLogoutPostFormdataBody
 
 // UserinfoPostFormdataRequestBody defines body for UserinfoPost for application/x-www-form-urlencoded ContentType.
 type UserinfoPostFormdataRequestBody UserinfoPostFormdataBody
+
+// Getter for additional properties for ClientRegistrationRequest. Returns the specified
+// element and whether it was found
+func (a ClientRegistrationRequest) Get(fieldName string) (value interface{}, found bool) {
+	if a.AdditionalProperties != nil {
+		value, found = a.AdditionalProperties[fieldName]
+	}
+	return
+}
+
+// Setter for additional properties for ClientRegistrationRequest
+func (a *ClientRegistrationRequest) Set(fieldName string, value interface{}) {
+	if a.AdditionalProperties == nil {
+		a.AdditionalProperties = make(map[string]interface{})
+	}
+	a.AdditionalProperties[fieldName] = value
+}
+
+// Override default JSON handling for ClientRegistrationRequest to handle AdditionalProperties
+func (a *ClientRegistrationRequest) UnmarshalJSON(b []byte) error {
+	object := make(map[string]json.RawMessage)
+	err := json.Unmarshal(b, &object)
+	if err != nil {
+		return err
+	}
+
+	if raw, found := object["client_name"]; found {
+		err = json.Unmarshal(raw, &a.ClientName)
+		if err != nil {
+			return fmt.Errorf("error reading 'client_name': %w", err)
+		}
+		delete(object, "client_name")
+	}
+
+	if raw, found := object["grant_types"]; found {
+		err = json.Unmarshal(raw, &a.GrantTypes)
+		if err != nil {
+			return fmt.Errorf("error reading 'grant_types': %w", err)
+		}
+		delete(object, "grant_types")
+	}
+
+	if raw, found := object["logo_uri"]; found {
+		err = json.Unmarshal(raw, &a.LogoUri)
+		if err != nil {
+			return fmt.Errorf("error reading 'logo_uri': %w", err)
+		}
+		delete(object, "logo_uri")
+	}
+
+	if raw, found := object["redirect_uris"]; found {
+		err = json.Unmarshal(raw, &a.RedirectUris)
+		if err != nil {
+			return fmt.Errorf("error reading 'redirect_uris': %w", err)
+		}
+		delete(object, "redirect_uris")
+	}
+
+	if raw, found := object["response_types"]; found {
+		err = json.Unmarshal(raw, &a.ResponseTypes)
+		if err != nil {
+			return fmt.Errorf("error reading 'response_types': %w", err)
+		}
+		delete(object, "response_types")
+	}
+
+	if raw, found := object["token_endpoint_auth_method"]; found {
+		err = json.Unmarshal(raw, &a.TokenEndpointAuthMethod)
+		if err != nil {
+			return fmt.Errorf("error reading 'token_endpoint_auth_method': %w", err)
+		}
+		delete(object, "token_endpoint_auth_method")
+	}
+
+	if len(object) != 0 {
+		a.AdditionalProperties = make(map[string]interface{})
+		for fieldName, fieldBuf := range object {
+			var fieldVal interface{}
+			err := json.Unmarshal(fieldBuf, &fieldVal)
+			if err != nil {
+				return fmt.Errorf("error unmarshaling field %s: %w", fieldName, err)
+			}
+			a.AdditionalProperties[fieldName] = fieldVal
+		}
+	}
+	return nil
+}
+
+// Override default JSON handling for ClientRegistrationRequest to handle AdditionalProperties
+func (a ClientRegistrationRequest) MarshalJSON() ([]byte, error) {
+	var err error
+	object := make(map[string]json.RawMessage)
+
+	if a.ClientName != nil {
+		object["client_name"], err = json.Marshal(a.ClientName)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'client_name': %w", err)
+		}
+	}
+
+	if a.GrantTypes != nil {
+		object["grant_types"], err = json.Marshal(a.GrantTypes)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'grant_types': %w", err)
+		}
+	}
+
+	if a.LogoUri != nil {
+		object["logo_uri"], err = json.Marshal(a.LogoUri)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'logo_uri': %w", err)
+		}
+	}
+
+	if a.RedirectUris != nil {
+		object["redirect_uris"], err = json.Marshal(a.RedirectUris)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'redirect_uris': %w", err)
+		}
+	}
+
+	if a.ResponseTypes != nil {
+		object["response_types"], err = json.Marshal(a.ResponseTypes)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'response_types': %w", err)
+		}
+	}
+
+	if a.TokenEndpointAuthMethod != nil {
+		object["token_endpoint_auth_method"], err = json.Marshal(a.TokenEndpointAuthMethod)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'token_endpoint_auth_method': %w", err)
+		}
+	}
+
+	for fieldName, field := range a.AdditionalProperties {
+		object[fieldName], err = json.Marshal(field)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling '%s': %w", fieldName, err)
+		}
+	}
+	return json.Marshal(object)
+}
 
 // Getter for additional properties for DeviceCodeRequest. Returns the specified
 // element and whether it was found
@@ -2954,6 +3231,9 @@ type ServerInterface interface {
 	// OidcLogoutPost Log the user out (form post)
 	// (POST /oidc/logout)
 	OidcLogoutPost(w http.ResponseWriter, r *http.Request)
+	// OidcRegister Register an application (Dynamic Client Registration)
+	// (POST /oidc/register)
+	OidcRegister(w http.ResponseWriter, r *http.Request)
 	// AdTicketConfigure Register an AD/LDAP Connector
 	// (POST /p/ad/{ticket})
 	AdTicketConfigure(w http.ResponseWriter, r *http.Request, ticket string)
@@ -3146,6 +3426,12 @@ func (_ Unimplemented) OidcLogout(w http.ResponseWriter, r *http.Request, params
 // OidcLogoutPost Log the user out (form post)
 // (POST /oidc/logout)
 func (_ Unimplemented) OidcLogoutPost(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// OidcRegister Register an application (Dynamic Client Registration)
+// (POST /oidc/register)
+func (_ Unimplemented) OidcRegister(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -4047,6 +4333,20 @@ func (siw *ServerInterfaceWrapper) OidcLogoutPost(w http.ResponseWriter, r *http
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.OidcLogoutPost(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// OidcRegister operation middleware
+func (siw *ServerInterfaceWrapper) OidcRegister(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.OidcRegister(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -5452,6 +5752,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/wsfed/{client_id}/FederationMetadata/2007-06/FederationMetadata.xml", wrapper.WsfedClientMetadata)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/oidc/register", wrapper.OidcRegister)
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/oidc/logout", wrapper.OidcLogout)

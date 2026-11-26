@@ -487,8 +487,12 @@ func (h *Handlers) DeleteClientGrant(w http.ResponseWriter, r *http.Request, id 
 // (A8).
 func clientGrantView(g *store.ClientGrant) mgmtapi.ClientGrant {
 	v := mgmtapi.ClientGrant{
-		Id: g.ID, ClientId: g.ClientID, Audience: g.Audience,
+		Id: g.ID, Audience: g.Audience,
 		SubjectType: mgmtapi.ClientGrantSubjectType(cmp.Or(g.SubjectType, store.SubjectTypeClient)),
+	}
+	if g.ClientID != "" {
+		id := g.ClientID
+		v.ClientId = &id
 	}
 	usage := mgmtapi.ClientGrantOrganizationUsage(cmp.Or(g.OrganizationUsage, store.OrgUsageDeny))
 	anyOrg := g.AllowAnyOrganization

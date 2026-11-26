@@ -452,6 +452,7 @@ them. Each entry: context, sources consulted, decision, rationale.
   - **Permissive clients follow the API's policy** (no grant needed under `allow_all`), as the permissive-mode page says. This could not be observed, because the maintainer's account cannot create permissive clients.
   - **The refresh grant re-checks the policy and the client grant,** so withdrawing a grant takes effect at the next refresh. This is a zeroauthy choice; Auth0's docs are silent.
 - **Rationale:** Observed codes are matched exactly. Unknown stored values fail closed.
+- **Amended by D-0090 (Plan 41b):** a `default_for: third_party_clients` client grant counts as the grant of every third-party client that has none of its own for that API and subject type (LR41b-4). Clients created through `/oidc/register` or from a Client ID Metadata Document are third party under every rule above (LR41b-8).
 
 ## D-0026: Consent and user grants
 
@@ -3361,6 +3362,8 @@ copied to `docs/superpowers/plan-1-followups.md`:
   is listed in expected-skips.
 
 
+- **Amended by D-0090 (Plan 41b):** a CIMD client's `private_key_jwt` credentials come from its document's `jwks` or `jwks_uri` and are replaced to match the document at each register or refetch; the Management credential routes do not edit them (LR41b-6).
+
 ## D-0170 — Plan 39a Sign in with Apple (2026-11-16)
 
 **Status:** implemented on `plan-39a-apple`; local acceptance, final review and CI are tracked separately.
@@ -3715,6 +3718,76 @@ keeps each `jti` only until `exp`. `aud` may also be a one-element array
 because such a token is also valid at another recipient. The Management API
 refuses changing email and password in one update (as Auth0 does), so each
 credential change notifies with exactly one initiator.
+
+## D-0090: Dynamic Client Registration and Client ID Metadata Documents (Plan 41b)
+
+**Contract frozen 2026-11-26.** The
+[spec](../superpowers/specs/2026-11-16-zeroauthy-dynamic-client-registration-design.md)
+and [plan](../superpowers/plans/2026-11-16-zeroauthy-plan-41b-dynamic-client-registration.md)
+reserve D-0090–0099. No live Auth0 tenant was observed by the implementer.
+
+Sources read 2026-11-26:
+[Dynamic Client Registration](https://auth0.com/docs/get-started/applications/dynamic-client-registration),
+[client grants, default permissions for third-party applications](https://auth0.com/docs/get-started/applications/application-access-to-apis-client-grants),
+[configure third-party applications](https://auth0.com/docs/get-started/applications/third-party-applications/configure-third-party-applications),
+[permissive mode](https://auth0.com/docs/get-started/applications/third-party-applications/permissive-mode),
+[Management OpenAPI](https://auth0.com/docs/oas/management/v2/management-api-oas.json)
+(SHA-256 `59b333c466a71ab769a67791d946a3618bb07e8be7dbdf51f4b26ba566f0bffe`:
+`post_clients_cimd_preview`, `post_clients_cimd_register`, the client
+`external_*` fields, `default_for` on client grants, the tenant settings),
+[RFC 7591](https://www.rfc-editor.org/rfc/rfc7591) and
+[draft-ietf-oauth-client-id-metadata-document](https://datatracker.ietf.org/doc/draft-ietf-oauth-client-id-metadata-document/).
+
+| Local ruling | Contract |
+|---|---|
+| LR41b-1 | `external_metadata_status` (Early Access) is returned read-only: `available` after a good fetch, `unavailable` after a failed refresh; always `available` for clients an administrator registered, as the OpenAPI says. |
+| LR41b-2 | Open registration only: no initial access tokens, software statements or RFC 7592 configuration endpoints. |
+| LR41b-3 | CIMD fetches use the federation outbound policy: HTTPS only, public addresses checked at every dial, no proxy, 10 s, at most 64 KiB, and no redirects at all (stricter than the spec's same-origin redirects: the federation transport refuses every redirect, and the draft lets a server refuse them). |
+| LR41b-4 | Default third-party permissions are Auth0's client grants with `default_for: third_party_clients` (R41-8, documented since the spec was written), not the spec's proposed tenant setting. Such a grant has no `client_id`, applies to every third-party client without its own grant for the same API and subject type, and is refused for system APIs. Per-client grants take precedence. |
+| LR41b-5 | `external_client_id` is at most 200 characters, as the OpenAPI now says (the spec read 120). |
+| LR41b-6 | A CIMD client also has an internal `client_id` (`tpc_` and 22 letters and digits, as DCR clients). Flows accept the URL wherever a `client_id` is read (`/authorize`, `/oauth/par`, `/oauth/token`, `/oauth/revoke`); the ID token's `aud` is the URL the client presented. Access tokens, refresh tokens, grants and logs name the internal ID. |
+| LR41b-7 | `client_id_metadata_document_dynamic_registration_supported` is stored as given but has effect only with `client_id_metadata_document_supported`, as the OpenAPI describes it ("requires"). |
+| LR41b-8 | DCR and CIMD clients are third party with every D-0025 rule. DCR clients take the tenant's `dynamic_client_registration_security_mode` (`strict` when unset); CIMD clients are always `strict`. |
+| LR41b-9 | A registration writes a server log line with the new client ID (never the secret); no tenant log event is emitted, because Auth0 documents none (R41-6). |
+
+`/oidc/register`:
+
+- Off: `404` (R41-2). Rate limit: 5 requests per second per tenant, `429`.
+- `client_name` 1–255, default `My App` (R41-3). `redirect_uris` 1–20,
+  absolute; HTTPS, or `http` on a loopback host, or a private-use scheme;
+  otherwise `400 invalid_redirect_uri`. `response_types` other than `code`,
+  `token_endpoint_auth_method` other than `none` and `client_secret_post`, and
+  malformed members are `400 invalid_client_metadata`. Requested grant types
+  outside `authorization_code` and `refresh_token` are dropped from the
+  answer; none requested means both.
+- `logo_uri` is kept; `client_uri`, `policy_uri`, `tos_uri`, `contacts` and
+  other metadata are accepted and ignored (R41-4).
+- `app_type` is `spa` for `none` and `regular_web` for `client_secret_post`
+  (R41-5). `external_metadata_type: dcr`, `external_metadata_created_by: client`.
+  The answer has `client_secret_expires_at: 0` and `Cache-Control: no-store`.
+
+CIMD:
+
+- A document is valid when its `client_id` equals its URL exactly, it is a
+  JSON object, `redirect_uris` is a non-empty list of valid callbacks,
+  `token_endpoint_auth_method` is absent, `none` or `private_key_jwt`, it has
+  no `client_secret` or `client_secret_expires_at`, and `jwks` and `jwks_uri`
+  are not both present. `private_key_jwt` needs keys from `jwks` or
+  `jwks_uri`; `jwks_uri` follows the same outbound policy.
+- Mapping: `client_name` → `name` (default: the URL's host), `redirect_uris`
+  → `callbacks`, `logo_uri`, `grant_types` ∩ {`authorization_code`,
+  `refresh_token`}, `token_endpoint_auth_method` (default `none`), `app_type`
+  `spa` for `none` and `regular_web` for `private_key_jwt`; keys become
+  `public_key` credentials (kid from the key or its RFC 7638 thumbprint).
+- Cache: `Cache-Control: max-age` bounded to 5 minutes–24 hours (5 minutes
+  without one). A failed refresh keeps the cached document until 24 hours
+  after its last good fetch, then the client is `invalid_client` (R41-7).
+- `/clients/cimd/register` on a URL a DCR client holds is `409`; a client a
+  user's flow created (`external_metadata_created_by: client`) becomes
+  `admin` on register.
+
+Observation points R41-1…8 are listed in
+[plan 1 follow-ups](../superpowers/plan-1-followups.md#plan-41b-observation-points).
 
 ## D-0130: SAML 2.0 identity provider and service provider (Plan 37a)
 
