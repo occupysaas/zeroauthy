@@ -28,3 +28,19 @@ func ClientNeedsCIMD(c *Client) bool { return c != nil && c.External != nil }
 
 // GrantNeedsCIMD reports whether writing g needs cimd.v1.
 func GrantNeedsCIMD(g *ClientGrant) bool { return g != nil && g.DefaultFor != "" }
+
+// FindEffectiveClientGrant returns c's own grant for audience and
+// subjectType or, for a third-party client without one, the tenant's
+// default grant for third-party clients (Plan 41b, LR41b-4: per-client
+// grants take precedence). ErrNotFound when neither exists.
+func FindEffectiveClientGrant(ctx context.Context, st Store, c *Client, audience, subjectType string) (*ClientGrant, error) {
+	g, err := st.ClientGrants().Find(ctx, c.TenantID, c.ClientID, audience, subjectType)
+	if err == nil || !errors.Is(err, ErrNotFound) || c.IsFirstParty {
+		return g, err
+	}
+	g, err = st.ClientGrants().Find(ctx, c.TenantID, "", audience, subjectType)
+	if err == nil && g.DefaultFor != GrantDefaultForThirdParty {
+		return nil, ErrNotFound
+	}
+	return g, err
+}

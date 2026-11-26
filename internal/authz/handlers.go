@@ -577,7 +577,7 @@ func (h *Handlers) accessInput(ctx context.Context, res tenant.Resolved, client 
 			return in, "", err
 		}
 		in.API, audienceKey = rs, rs.Identifier
-		g, err := h.Store.ClientGrants().Find(ctx, res.Tenant.ID, client.ClientID, rs.Identifier, store.SubjectTypeUser)
+		g, err := store.FindEffectiveClientGrant(ctx, h.Store, client, rs.Identifier, store.SubjectTypeUser)
 		switch {
 		case err == nil:
 			in.ClientGrant = g

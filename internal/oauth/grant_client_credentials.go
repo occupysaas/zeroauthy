@@ -72,7 +72,7 @@ func (h *Handlers) clientCredentials(ctx context.Context, res tenant.Resolved, c
 		h.log().ErrorContext(ctx, "load resource server", "tenant", tenantID, "audience", aud, "err", err)
 		return nil, serverError()
 	}
-	grant, err := h.Store.ClientGrants().Find(ctx, tenantID, c.ClientID, aud, store.SubjectTypeClient)
+	grant, err := store.FindEffectiveClientGrant(ctx, h.Store, c, aud, store.SubjectTypeClient)
 	if errors.Is(err, store.ErrNotFound) {
 		grant, err = nil, nil
 	}
@@ -132,7 +132,7 @@ func (h *Handlers) clientCredentials(ctx context.Context, res tenant.Resolved, c
 		if err != nil {
 			return err
 		}
-		currentGrant, err := tx.ClientGrants().Find(ctx, tenantID, c.ClientID, aud, store.SubjectTypeClient)
+		currentGrant, err := store.FindEffectiveClientGrant(ctx, tx, c, aud, store.SubjectTypeClient)
 		if err != nil {
 			return err
 		}
