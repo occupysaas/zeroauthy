@@ -330,6 +330,21 @@ Verified with `@auth0/auth0-spa-js` 2.28.3 in Chromium with a virtual authentica
 | Applications | `my_organization_configuration` on clients (Management API, console, seed); without it the API answers 403. |
 | Roles | `my_organization_visible` on `PATCH/GET /roles/{id}` (local extension) selects the roles administrators may list and assign; permission ceiling and self-assignment restriction from the application's configuration; last-admin guard (409). |
 | Operations | Config, details, members (checkpoint paging, totals capped at 1000, roles gated by scope), member detail, membership removal, member roles, roles, invitations (≤ 10, user store or identity provider, revoke earlier), user stores. |
-| Not served | Domains, identity providers, provisioning, SCIM tokens (Phase B). |
+| Not served | Nothing of the OpenAPI 1.0.0 since Phase B (below). |
 
 Verified with `@auth0/auth0-spa-js` 2.28.3 organization logins in Chromium. See [My Organization API](../my-organization-api.md), D-0220 and the [implementation record](../superpowers/2026-11-16-plan-42b-implementation-record.md).
+
+## Plan 42b My Organization API (Phase B)
+
+| Surface | Behavior |
+| --- | --- |
+| Domains | The organization's discovery domains (`ord_` IDs); claim, list (checkpoint), get, delete; `verify` looks up the TXT record at `_zeroauthy-org.{domain}` through `server.custom_domains.dns_resolver` (verified, failed, or `503`); unverified claims expire after 7 days; a domain verified by another organization cannot be claimed or verified. |
+| Identity providers | Enterprise connections enabled on the organization at an access level other than `none`; create (`oidc`, `okta`, `waad`, `google-apps`, `adfs`, `samlp` within `allowed_strategies`) through the Management API at access `full`; update by access level and connection profile; delete (`allow_if_empty`), detach, `update-attributes` (unchanged); options allowlisted, secrets write-only. |
+| Domain links | A verified organization domain on one provider (`domain_aliases`), listed per domain, `identity_provider_association`; unlinked when the domain is deleted; `domain_verification` is always `optional`. |
+| Provisioning | SCIM configuration and tokens (profile scopes and lifetimes, two active, value returned once) for providers the profile provisions; `attributes` from the SCIM mapping. |
+| Configuration | `GET /config/identity-providers` from the application's connection profile. |
+| Logs | `my_organization_api_domain_*`, `my_organization_api_idp_*`, `my_organization_api_config_failed`. |
+
+Verified in `make e2e-my-org` against a fixture DNS server and the
+production binary (SCIM user created with an issued token, then revoked).
+See D-0221 and the [Phase B record](../superpowers/2026-11-26-plan-42b-phase-b-implementation-record.md).

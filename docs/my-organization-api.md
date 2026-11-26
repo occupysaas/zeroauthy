@@ -2,7 +2,9 @@
 
 The My Organization API lets an organization's administrators manage their
 own organization from your application: its details and branding, its
-members and their roles, and invitations (Plan 42b Phase A, D-0220). It
+members and their roles, and invitations (Plan 42b Phase A, D-0220); its
+domains, its own enterprise identity providers and their SCIM
+provisioning (Phase B, D-0221). It
 follows Auth0's My Organization API (OpenAPI 1.0.0, Early Access at Auth0)
 at `https://{host}/my-org/v1`; zeroauthy's contract is
 [`api/myorg.yaml`](../api/myorg.yaml). This fits the self-service use case:
@@ -13,9 +15,11 @@ Served: `GET /config`, `GET|PATCH /details`, `GET /members`,
 `GET|POST /members/{user_id}/roles`, `POST /members/{user_id}/unassign-roles`,
 `GET /roles`, `GET|POST /member-invitations`,
 `GET /member-invitations/{id}`, `GET /member-invitations/{id}/roles`,
-`POST /delete-member-invitations`, `GET /user-stores`. Not yet served
-(Phase B): domains, the organization's own identity providers, their
-provisioning and SCIM tokens.
+`POST /delete-member-invitations`, `GET /user-stores`; Phase B:
+`GET /config/identity-providers`, `/domains` (list, claim, get, delete,
+`verify`, `identity-providers`), `/identity-providers` (list, create, get,
+update, delete, `update-attributes`, `detach`, domains) and their
+`provisioning` with SCIM tokens: every operation of the OpenAPI 1.0.0.
 
 ## Set it up
 
@@ -104,9 +108,88 @@ organization. The user must still be a member when calling.
 - **Details:** `name`, `display_name`, `branding` (logo URL, colors) and
   `third_party_client_access`.
 
+## Domains (Phase B)
+
+An organization's domains are its discovery domains (the Management API's
+`/organizations/{id}/discovery-domains` shows the same list).
+
+1. `POST /domains` `{"domain": "acme.example"}` claims a domain:
+   `status: pending`, with `verification_host`
+   (`_zeroauthy-org.acme.example`) and `verification_txt`. A domain another
+   organization of the tenant has verified cannot be claimed (`409`).
+2. The administrator publishes a TXT record with `verification_txt` at
+   `verification_host`.
+3. `POST /domains/{id}/verify` looks the record up and answers `202` with
+   `verified` or `failed`. A DNS failure leaves the status and answers
+   `503`.
+
+Unverified domains claimed here are deleted 7 days after the claim.
+Domains created here do not take part in organization discovery; enable
+that with the Management API if wanted.
+
+The lookup uses the deployment's resolver:
+`server.custom_domains.dns_resolver` (`host:port`), else the system
+resolver. Without one, verification answers `503`.
+
+## Identity providers (Phase B)
+
+Administrators create enterprise connections for their organization:
+`oidc`, `okta`, `waad`, `google-apps`, `adfs` and `samlp`, as the
+application's `allowed_strategies` permit (`pingfederate` is listed but
+cannot be created). `options` take the OpenAPI's per-strategy members, for
+example:
+
+```json
+{"name": "acme-sso", "strategy": "oidc", "display_name": "Acme",
+ "options": {"type": "back_channel", "client_id": "…", "client_secret": "…",
+             "discovery_url": "https://idp.acme.example/.well-known/openid-configuration"}}
+```
+
+- A created provider is a connection enabled only on the organization, at
+  access level `full`, for the calling application and the invitation
+  landing application. Responses never contain `client_secret`; updates
+  that omit it keep it.
+- `GET /identity-providers` lists the organization's providers at access
+  levels `readonly`, `limited` and `full`; connections you enabled at
+  `none` (the default) stay hidden. Set the organization connection's
+  `organization_access_level` to share one of yours.
+- Updates: `display_name` and `options` need `full`; `show_as_button`,
+  `assign_membership_on_login` and `is_enabled` need `full` or `limited`
+  and, for the first two, a connection profile that marks them `optional`.
+  `DELETE` (`full`) deletes the connection (`allow_if_empty` refuses one
+  with users); `detach` only removes it from the organization.
+- A connection you share with several organizations stays yours: its
+  deletion, display name, options, domains and provisioning cannot be
+  changed through this API (`403`), whatever the access level; each
+  organization still controls its own `is_enabled`, `show_as_button` and
+  `assign_membership_on_login`, and can detach it.
+- Domains: `POST …/domains` links a verified organization domain for home
+  realm discovery (the connection's `domain_aliases`); a domain belongs to
+  one provider of the organization. Deleting the organization domain
+  unlinks it.
+- `GET /config/identity-providers` describes what administrators may do,
+  from the application's `connection_profile_id` (console: the
+  application's My Organization configuration).
+
+## Provisioning (Phase B)
+
+`POST /identity-providers/{id}/provisioning` enables SCIM for an `oidc`,
+`okta`, `waad` or `samlp` provider whose strategy the connection profile
+provisions (any of these without a profile). `POST …/scim-tokens` returns a
+token once; the profile's scopes, default and maximum lifetime apply; two
+tokens may be active. SCIM clients call
+`https://{host}/scim/v2/connections/{id}`. Provisioning writes need access
+level `full`.
+
+zeroauthy has no User Attribute Profiles: `attributes` of a provider is
+empty, provisioning `attributes` is the SCIM mapping, and both
+`update-attributes` operations return them unchanged.
+
 ## Errors and logs
 
 Errors carry `type`, `status`, `title`, `detail` and, for invalid fields,
 `validation_errors`, with the `x-correlation-id` header. Operations record
-the `my_organization_api_*` log events (member, invitation, details, role
-failures). Invitation tickets are never logged.
+the `my_organization_api_*` log events (member, invitation, details, role,
+domain and `idp` events). Invitation tickets, client secrets and SCIM
+tokens are never logged; the Management API writes behind identity
+providers log as client `my-organization-api`.

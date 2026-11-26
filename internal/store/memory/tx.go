@@ -166,6 +166,7 @@ func (s *Store) snapshot() *state {
 		adSessions:             cloneMap(s.adSessions, (*store.ADHubSession).Clone),
 		myOrgConfigs:           cloneMap(s.myOrgConfigs, (*store.MyOrgClientConfig).Clone),
 		myOrgRoles:             maps.Clone(s.myOrgRoles),
+		myOrgClaims:            maps.Clone(s.myOrgClaims),
 		exchangeProfiles:       cloneMap(s.exchangeProfiles, cloneValue[store.TokenExchangeProfile]),
 	}
 }
@@ -212,7 +213,7 @@ func (s *Store) restore(snap *state) {
 	s.globalRevocationJTIs = snap.globalRevocationJTIs
 	s.samlAssertions = snap.samlAssertions
 	s.adProvisionings, s.adSessions = snap.adProvisionings, snap.adSessions
-	s.myOrgConfigs, s.myOrgRoles = snap.myOrgConfigs, snap.myOrgRoles
+	s.myOrgConfigs, s.myOrgRoles, s.myOrgClaims = snap.myOrgConfigs, snap.myOrgRoles, snap.myOrgClaims
 	s.credentials, s.assertionJTIs, s.exchangeProfiles = snap.credentials, snap.assertionJTIs, snap.exchangeProfiles
 }
 

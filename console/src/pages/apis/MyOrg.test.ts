@@ -45,6 +45,7 @@ describe('My Organization API (Plan 42b)', () => {
       if (u.pathname === '/api/v2/clients/m1') return { status: 200, body: app }
       if (u.pathname === '/api/v2/clients') return { status: 200, body: { clients: [app], start: 0, limit: 100, total: 1 } }
       if (u.pathname === '/api/v2/resource-servers') return { status: 200, body: { resource_servers: [myOrg()], start: 0, limit: 100, total: 1 } }
+      if (u.pathname === '/api/v2/connection-profiles') return { status: 200, body: { connection_profiles: [{ id: 'cop_1', name: 'SSO with SCIM' }] } }
       if (u.pathname === '/api/v2/client-grants' && c.method === 'GET') return { status: 200, body: { client_grants: grants, start: 0, limit: 100, total: grants.length } }
       if (u.pathname === '/api/v2/client-grants' && c.method === 'POST') {
         const g = { ...(c.body as object), id: 'cgr_o' } as ClientGrant
@@ -66,13 +67,17 @@ describe('My Organization API (Plan 42b)', () => {
     const landing = form.querySelector<HTMLSelectElement>('#my-org-landing')!
     landing.value = 'm1'
     landing.dispatchEvent(new Event('change'))
+    const profile = form.querySelector<HTMLSelectElement>('#my-org-profile')!
+    expect(profile.textContent).toContain('SSO with SCIM')
+    profile.value = 'cop_1'
+    profile.dispatchEvent(new Event('change'))
     const ceiling = form.querySelector<HTMLInputElement>('#my-org-ceiling')!
     ceiling.checked = true
     ceiling.dispatchEvent(new Event('change'))
     form.dispatchEvent(new Event('submit'))
     await flushPromises()
     const patch = calls.find((c) => c.method === 'PATCH' && c.url.endsWith('/clients/m1'))!
-    expect(patch.body).toEqual({ my_organization_configuration: { allowed_strategies: [], connection_deletion_behavior: 'allow', invitation_landing_client_id: 'm1', enforce_permission_ceiling: true, enforce_self_assignment_restriction: false } })
+    expect(patch.body).toEqual({ my_organization_configuration: { allowed_strategies: [], connection_deletion_behavior: 'allow', invitation_landing_client_id: 'm1', connection_profile_id: 'cop_1', enforce_permission_ceiling: true, enforce_self_assignment_restriction: false } })
     wrapper.unmount()
   })
 

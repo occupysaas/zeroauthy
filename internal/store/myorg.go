@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"strings"
+	"time"
 )
 
 // ErrMyOrgUnavailable reports a storage plugin without the my_org.v1
@@ -44,6 +45,20 @@ type MyOrgStore interface {
 	SetMyOrgRoleVisible(ctx context.Context, tenantID, roleID string, visible bool) error
 	// ListMyOrgVisibleRoles returns the visible role IDs, sorted.
 	ListMyOrgVisibleRoles(ctx context.Context, tenantID string) ([]string, error)
+	// PutDomainClaim records when the organization's discovery domain
+	// domainID was claimed through the My Organization API (Phase B,
+	// LR42b-17); ErrNotFound when the domain does not exist. Claims go
+	// with the domain and the organization.
+	PutDomainClaim(ctx context.Context, tenantID, orgID, domainID string, createdAt time.Time) error
+	// DomainClaims maps the organization's claimed domain IDs to their
+	// creation times.
+	DomainClaims(ctx context.Context, tenantID, orgID string) (map[string]time.Time, error)
+	// VerifiedDomainOrganizations lists the organizations of the tenant
+	// whose discovery domain named domain is verified, whatever its
+	// discovery flag (LR42b-17).
+	VerifiedDomainOrganizations(ctx context.Context, tenantID, domain string) ([]string, error)
+	// DeleteDomainClaim is idempotent.
+	DeleteDomainClaim(ctx context.Context, tenantID, orgID, domainID string) error
 }
 
 // MyOrgSupporter is implemented by stores that can tell whether they store

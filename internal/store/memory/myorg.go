@@ -3,6 +3,7 @@ package memory
 import (
 	"context"
 	"slices"
+	"time"
 
 	"github.com/zeroauthy/zeroauthy/internal/store"
 )
@@ -60,6 +61,48 @@ func (s *Store) ListMyOrgVisibleRoles(_ context.Context, tid string) ([]string, 
 	for k := range s.myOrgRoles {
 		if k.tenant == tid {
 			out = append(out, k.id)
+		}
+	}
+	slices.Sort(out)
+	return out, nil
+}
+
+func (s *Store) PutDomainClaim(_ context.Context, tid, org, id string, created time.Time) error {
+	s.lock()
+	defer s.unlock()
+	if s.orgDomains[orgIIKey{tid, org, id}] == nil {
+		return store.ErrNotFound
+	}
+	s.myOrgClaims[orgIIKey{tid, org, id}] = created.UTC()
+	return nil
+}
+
+func (s *Store) DomainClaims(_ context.Context, tid, org string) (map[string]time.Time, error) {
+	s.readLock()
+	defer s.readUnlock()
+	out := map[string]time.Time{}
+	for k, v := range s.myOrgClaims {
+		if k.tenant == tid && k.org == org {
+			out[k.id] = v
+		}
+	}
+	return out, nil
+}
+
+func (s *Store) DeleteDomainClaim(_ context.Context, tid, org, id string) error {
+	s.lock()
+	defer s.unlock()
+	delete(s.myOrgClaims, orgIIKey{tid, org, id})
+	return nil
+}
+
+func (s *Store) VerifiedDomainOrganizations(_ context.Context, tid, domain string) ([]string, error) {
+	s.readLock()
+	defer s.readUnlock()
+	out := []string{}
+	for k, v := range s.orgDomains {
+		if k.tenant == tid && v.Domain == domain && v.Status == "verified" && !slices.Contains(out, k.org) {
+			out = append(out, k.org)
 		}
 	}
 	slices.Sort(out)

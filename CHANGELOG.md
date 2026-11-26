@@ -17,6 +17,14 @@ All notable changes to zeroauthy are recorded here. The format follows
   `my_organization_visible`. Migration 0050 adds its storage (storage
   plugins need `my_org.v1`). See
   [My Organization API](docs/my-organization-api.md).
+- My Organization API Phase B: organization administrators claim domains
+  and verify them through DNS, create and manage their organization's
+  enterprise identity providers (connections linked to the organization),
+  link verified domains for home realm discovery, and set up SCIM
+  provisioning with tokens. The system API gains 18 scopes (added at
+  startup to activated APIs). Migration 0051 adds domain claims. Domain
+  verification uses `server.custom_domains.dns_resolver`. See
+  [My Organization API](docs/my-organization-api.md).
 - My Account API: `/me/v1` lets signed-in users list, enroll, verify,
   rename and delete their own passkeys, WebAuthn keys, TOTP, email and phone
   factors, recovery codes and passwords, and list the factors the tenant

@@ -7,7 +7,17 @@ import {appendFile, readFile, writeFile} from 'node:fs/promises';
 
 export const work = process.env.E2E_M42B_WORK;
 export const origin = 'https://acct.e2e.test', app = 'https://app.acct.e2e.test', ORG = origin + '/my-org/';
-export const scopes = ['read:my_org:configuration', 'read:my_org:details', 'update:my_org:details', 'read:my_org:members', 'delete:my_org:memberships', 'read:my_org:member_roles', 'create:my_org:member_roles', 'delete:my_org:member_roles', 'read:my_org:member_invitations', 'create:my_org:member_invitations', 'delete:my_org:member_invitations', 'read:my_org:user_stores'];
+export const scopes = ['read:my_org:configuration', 'read:my_org:details', 'update:my_org:details', 'read:my_org:members', 'delete:my_org:memberships', 'read:my_org:member_roles', 'create:my_org:member_roles', 'delete:my_org:member_roles', 'read:my_org:member_invitations', 'create:my_org:member_invitations', 'delete:my_org:member_invitations', 'read:my_org:user_stores',
+  // Phase B (D-0221).
+  'read:my_org:domains', 'create:my_org:domains', 'update:my_org:domains', 'delete:my_org:domains', 'read:my_org:identity_providers', 'create:my_org:identity_providers', 'update:my_org:identity_providers', 'delete:my_org:identity_providers', 'update:my_org:identity_providers_detach', 'create:my_org:identity_providers_domains', 'delete:my_org:identity_providers_domains', 'read:my_org:identity_providers_provisioning', 'create:my_org:identity_providers_provisioning', 'update:my_org:identity_providers_provisioning', 'delete:my_org:identity_providers_provisioning', 'read:my_org:identity_providers_scim_tokens', 'create:my_org:identity_providers_scim_tokens', 'delete:my_org:identity_providers_scim_tokens'];
+
+// publishTXT makes the fixture DNS server answer name with values.
+export async function publishTXT(name, values) {
+  const file = process.env.E2E_M42B_DNS_RECORDS;
+  const records = JSON.parse(await readFile(file, 'utf8'));
+  records[name] = values;
+  await writeFile(file, JSON.stringify(records), {mode: 0o600});
+}
 export const secrets = () => JSON.parse(process.env.E2E_M42B_CREDENTIALS);
 export const orgs = async () => JSON.parse(await readFile(`${work}/orgs.json`, 'utf8'));
 
@@ -77,7 +87,7 @@ async function raw() {
 async function audit() {
   const log = await readFile(`${work}/server.log`, 'utf8');
   const values = (await readFile(`${work}/private-values.jsonl`, 'utf8')).trim().split('\n').map(l => JSON.parse(l));
-  assert.ok(values.some(v => v.kind === 'invitation_url') && values.some(v => v.kind === 'access_token'), 'the browser lane recorded its secrets');
+  for (const kind of ['invitation_url', 'access_token', 'scim_token', 'client_secret']) assert.ok(values.some(v => v.kind === kind), `the browser lane recorded a ${kind}`);
   for (const {kind, value} of values) assert.ok(!log.includes(value), `${kind} found in the server log`);
   console.log(`Plan42b log audit: ${values.length} private values absent from the server log`);
 }

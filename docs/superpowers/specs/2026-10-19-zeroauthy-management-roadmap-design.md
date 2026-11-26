@@ -37,7 +37,7 @@ per item; items without rulings can start as soon as their track allows.
 | A1 | 40 Actions III | [spec](2026-11-16-zeroauthy-actions-iii-design.md) | none |
 | A2 | 38b Forms and Flows | [spec](2026-11-16-zeroauthy-forms-flows-design.md) | console builder scope; vendor order |
 | U1 | 42a My Account API (implemented on `plan-42a-my-account`; CI and approval pending) | [spec](2026-11-16-zeroauthy-my-account-api-design.md) | none (seed shorthand optional) |
-| U2 | 42b My Organization API (Phase A implemented on `plan-42b-my-organization`; CI and approval pending) | [spec](2026-11-16-zeroauthy-my-organization-api-design.md) | none for Phase A (ruled 2026-11-25: build while Early Access); Phase B unblocked |
+| U2 | 42b My Organization API (Phase A merged 2026-11-26, PR #99; Phase B implemented on `plan-42b-phase-b`, CI and approval pending) | [spec](2026-11-16-zeroauthy-my-organization-api-design.md) | none (ruled 2026-11-25: build while Early Access; Phase B requested 2026-11-26) |
 | H1 | 44 ACUL | [spec](2026-11-16-zeroauthy-acul-design.md) | Classic Login; security boundary; canonical host; ACUL SDK pin |
 | M1 | 38d Management gaps | [spec](2026-11-16-zeroauthy-management-gaps-design.md) | verifiable-credential templates; `/keys/encryption` owner |
 | O1 | 38c network ACLs | [spec](2026-11-16-zeroauthy-network-acls-design.md) | geo/ASN signals; system-tenant exemption |

@@ -97,6 +97,10 @@ type Deps struct {
 	// serves no custom domains.
 	Domains *customdomain.Service
 
+	// OrgDomainDNS verifies My Organization domains (Plan 42b Phase B,
+	// LR42b-16); nil answers 503 to verification.
+	OrgDomainDNS myorg.TXTResolver
+
 	// BaseDomain is server.base_domain, and SystemHost the system tenant's
 	// canonical host (tenant.SystemHost). They name the tenants'
 	// Management API identifiers, the operator-token issuer and the only
@@ -348,6 +352,8 @@ func New(d Deps) http.Handler {
 	// The self-service SSO assistant (Plan 37c Phase B) writes through the
 	// Management API's handlers, wired once mh exists.
 	assistant := &selfservice.Handler{Store: d.Store, Log: d.Log}
+	// Writes is set once the Management API handlers exist (below).
+	myOrg := &myorg.Handlers{Store: d.Store, Keys: d.Keys, Wrapper: d.Wrapper, Actions: d.Actions, DNS: d.OrgDomainDNS, Log: d.Log}
 
 	// Authentication API: every route is tenant-scoped.
 	r.Group(func(tr chi.Router) {
@@ -431,7 +437,7 @@ func New(d Deps) http.Handler {
 		tr.Get("/login/callback", lg.SocialCallback)
 		tr.Mount("/scim/v2/connections/{connection_id}", scimHandler.Routes())
 		tr.Mount(myaccount.Path, (&myaccount.Handlers{Store: d.Store, Keys: d.Keys, Wrapper: d.Wrapper, MFA: d.MFA, Passkeys: d.Passkeys, Protection: sharedProtection, Logout: d.Logout, Actions: d.Actions, TrustProxyHeaders: d.TrustProxyHeaders, Log: d.Log}).Routes())
-		tr.Mount(myorg.Path, (&myorg.Handlers{Store: d.Store, Keys: d.Keys, Wrapper: d.Wrapper, Actions: d.Actions, Log: d.Log}).Routes())
+		tr.Mount(myorg.Path, myOrg.Routes())
 		// The assistant answers GET and POST only.
 		tr.Get(selfservice.Path, assistant.ServeHTTP)
 		tr.Post(selfservice.Path, assistant.ServeHTTP)
@@ -504,6 +510,7 @@ func New(d Deps) http.Handler {
 	}
 	scimDelete = mh.SCIMDeleteUser
 	assistant.Writes = mh
+	myOrg.Writes = mh
 	mr.Use(d.Resolver.Middleware, systemOnly, mgmtCORS(systemOrigin), auth, mh.LogMiddleware, operatorOnly)
 	if len(d.ExportKey) > 0 {
 		mh.Export = &mgmt.ExportLink{Key: d.ExportKey}

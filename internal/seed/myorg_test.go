@@ -83,7 +83,7 @@ func TestSeedMyOrganizationAPIRefusals(t *testing.T) {
 		"inactive":        strings.Replace(myOrgSeed, "my_organization_api: {active: true}", "my_organization_api: {active: false}", 1),
 		"bad config":      strings.Replace(myOrgSeed, "connection_deletion_behavior: allow,", "connection_deletion_behavior: never,", 1),
 		"unknown landing": strings.Replace(myOrgSeed, "invitation_landing_client_id: portal", "invitation_landing_client_id: nope", 1),
-		"unknown scope":   strings.Replace(myOrgSeed, `permission_name: "read:my_org:members"`, `permission_name: "read:my_org:domains"`, 1),
+		"unknown scope":   strings.Replace(myOrgSeed, `permission_name: "read:my_org:members"`, `permission_name: "read:my_org:groups"`, 1), // an OpenAPI scope without operations (D-0221)
 		"client grant":    strings.Replace(myOrgSeed, "subject_type: user", "subject_type: client", 1),
 	} {
 		f, err := Parse([]byte(text))

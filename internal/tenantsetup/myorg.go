@@ -15,8 +15,9 @@ const MyOrgAPIName = "My Organization API"
 // MyOrgTokenLifetime is the fixed access-token lifetime (the guide: 600 s).
 const MyOrgTokenLifetime = 600
 
-// MyOrgAPIScopes are the scopes of the Phase A operations zeroauthy serves
-// (api/myorg.yaml), with Auth0's descriptions.
+// MyOrgAPIScopes are the scopes of the operations zeroauthy serves
+// (api/myorg.yaml: Phase A, D-0220; Phase B, D-0221), with Auth0's
+// descriptions.
 var MyOrgAPIScopes = []store.Scope{
 	{Value: "read:my_org:configuration", Description: "Read organization configuration"},
 	{Value: "read:my_org:details", Description: "Read organization details"},
@@ -30,6 +31,24 @@ var MyOrgAPIScopes = []store.Scope{
 	{Value: "create:my_org:member_invitations", Description: "Create member invitations for organization"},
 	{Value: "delete:my_org:member_invitations", Description: "Delete member invitations for organization"},
 	{Value: "read:my_org:user_stores", Description: "Read user stores for an organization"},
+	{Value: "read:my_org:domains", Description: "Read domains for organization"},
+	{Value: "create:my_org:domains", Description: "Create domain for organization"},
+	{Value: "update:my_org:domains", Description: "Update domain for organization"},
+	{Value: "delete:my_org:domains", Description: "Delete domain for organization"},
+	{Value: "read:my_org:identity_providers", Description: "Read identity providers for organization"},
+	{Value: "create:my_org:identity_providers", Description: "Create identity provider for organization"},
+	{Value: "update:my_org:identity_providers", Description: "Update identity provider for organization"},
+	{Value: "delete:my_org:identity_providers", Description: "Delete identity provider for organization"},
+	{Value: "update:my_org:identity_providers_detach", Description: "Detach identity provider from organization"},
+	{Value: "create:my_org:identity_providers_domains", Description: "Associate organization domain with identity provider"},
+	{Value: "delete:my_org:identity_providers_domains", Description: "Remove organization domain from identity provider"},
+	{Value: "read:my_org:identity_providers_provisioning", Description: "Read provisioning configuration for identity provider"},
+	{Value: "create:my_org:identity_providers_provisioning", Description: "Create provisioning configuration for identity provider"},
+	{Value: "update:my_org:identity_providers_provisioning", Description: "Update provisioning configuration for identity provider"},
+	{Value: "delete:my_org:identity_providers_provisioning", Description: "Delete provisioning configuration for identity provider"},
+	{Value: "read:my_org:identity_providers_scim_tokens", Description: "List the provisioning SCIM tokens for this identity provider"},
+	{Value: "create:my_org:identity_providers_scim_tokens", Description: "Create a provisioning SCIM token for this identity provider"},
+	{Value: "delete:my_org:identity_providers_scim_tokens", Description: "Delete a provisioning SCIM configuration for an identity provider"},
 }
 
 // ApplyMyOrgAPI gives rs the My Organization API's fixed settings: user
@@ -59,4 +78,40 @@ func MyOrgAPI(ctx context.Context, st store.Store, t *store.Tenant, now time.Tim
 		return nil, err
 	}
 	return st.ResourceServers().GetByIdentifier(ctx, t.ID, id)
+}
+
+// UpgradeMyOrgAPIScopes adds newly served scopes (Phase B, D-0221) to an
+// activated My Organization API, keeping its other settings. Tenants that
+// have not activated it are untouched.
+func UpgradeMyOrgAPIScopes(ctx context.Context, st store.Store, t *store.Tenant) error {
+	if t == nil || t.Reserved {
+		return nil
+	}
+	id := tenant.MyOrgIdentifier(t)
+	if id == "" {
+		return nil
+	}
+	return st.WithTx(ctx, func(tx store.Store) error {
+		api, err := tx.ResourceServers().GetByIdentifier(ctx, t.ID, id)
+		if errors.Is(err, store.ErrNotFound) {
+			return nil
+		}
+		if err != nil || !api.IsSystem {
+			return err
+		}
+		seen := make(map[string]bool, len(api.Scopes))
+		for _, s := range api.Scopes {
+			seen[s.Value] = true
+		}
+		changed := false
+		for _, s := range MyOrgAPIScopes {
+			if !seen[s.Value] {
+				api.Scopes, seen[s.Value], changed = append(api.Scopes, s), true, true
+			}
+		}
+		if !changed {
+			return nil
+		}
+		return tx.ResourceServers().Update(ctx, api)
+	})
 }

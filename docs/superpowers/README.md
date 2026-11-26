@@ -59,7 +59,8 @@ track order in the [parallel paths design](specs/2026-11-13-zeroauthy-parallel-p
 | P4 | 41b Dynamic Client Registration, CIMD | [spec](specs/2026-11-16-zeroauthy-dynamic-client-registration-design.md) | [plan](plans/2026-11-16-zeroauthy-plan-41b-dynamic-client-registration.md) |
 | P5 | 41c CIBA | [spec](specs/2026-11-16-zeroauthy-ciba-design.md) | [plan](plans/2026-11-16-zeroauthy-plan-41c-ciba.md) |
 | U1 | 42a My Account API ([implementation and local verification complete](2026-11-16-plan-42a-implementation-record.md)) | [spec](specs/2026-11-16-zeroauthy-my-account-api-design.md) | [plan](plans/2026-11-16-zeroauthy-plan-42a-my-account-api.md) |
-| U2 | 42b My Organization API ([Phase A implemented and verified locally](2026-11-16-plan-42b-implementation-record.md)) | [spec](specs/2026-11-16-zeroauthy-my-organization-api-design.md) | [plan](plans/2026-11-16-zeroauthy-plan-42b-my-organization-api.md) |
+| U2 | 42b My Organization API ([Phase A merged 2026-11-26](2026-11-16-plan-42b-implementation-record.md), PR #99) | [spec](specs/2026-11-16-zeroauthy-my-organization-api-design.md) | [plan](plans/2026-11-16-zeroauthy-plan-42b-my-organization-api.md) |
+| U2b | 42b Phase B My Organization API: domains, identity providers, provisioning ([implemented and verified locally](2026-11-26-plan-42b-phase-b-implementation-record.md)) | [spec §5](specs/2026-11-16-zeroauthy-my-organization-api-design.md) | [plan](plans/2026-11-26-zeroauthy-plan-42b-phase-b-my-organization-sso.md) |
 | P6 | 43 Token Vault | [spec](specs/2026-11-16-zeroauthy-token-vault-design.md) | [plan](plans/2026-11-16-zeroauthy-plan-43-token-vault.md) |
 | H1 | 44 ACUL and Universal Login modes | [spec](specs/2026-11-16-zeroauthy-acul-design.md) | [plan](plans/2026-11-16-zeroauthy-plan-44-acul.md) |
 | O2 | 45a Security hardening | [spec](specs/2026-11-16-zeroauthy-security-hardening-design.md) | [plan](plans/2026-11-16-zeroauthy-plan-45a-security-hardening.md) |

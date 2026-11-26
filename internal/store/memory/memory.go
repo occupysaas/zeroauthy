@@ -130,6 +130,7 @@ type state struct {
 	adSessions             map[key]*store.ADHubSession         // by (tenant, connection\x00session)
 	myOrgConfigs           map[key]*store.MyOrgClientConfig    // by (tenant, client)
 	myOrgRoles             map[key]bool                        // visible roles by (tenant, role)
+	myOrgClaims            map[orgIIKey]time.Time              // domain claim times by (tenant, organization, domain)
 	assertionJTIs          map[key]time.Time                   // by (tenant, client\x00sha256(jti)); expiry
 	exchangeProfiles       map[key]*store.TokenExchangeProfile // by (tenant, ID)
 }
@@ -187,6 +188,7 @@ func New() *Store {
 		samlAssertions:         map[key]time.Time{},
 		adProvisionings:        map[key]*store.ADProvisioning{},
 		adSessions:             map[key]*store.ADHubSession{},
+		myOrgClaims:            map[orgIIKey]time.Time{},
 		myOrgConfigs:           map[key]*store.MyOrgClientConfig{},
 		myOrgRoles:             map[key]bool{},
 		exchangeProfiles:       map[key]*store.TokenExchangeProfile{},

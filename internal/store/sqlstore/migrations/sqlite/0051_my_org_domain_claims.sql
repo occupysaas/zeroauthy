@@ -1,0 +1,1 @@
+CREATE TABLE my_org_domain_claims (tenant_id TEXT NOT NULL, organization_id TEXT NOT NULL, domain_id TEXT NOT NULL, created_at BIGINT NOT NULL, PRIMARY KEY (tenant_id,organization_id,domain_id), FOREIGN KEY (tenant_id,organization_id,domain_id) REFERENCES organization_discovery_domains(tenant_id,organization_id,id) ON DELETE CASCADE);

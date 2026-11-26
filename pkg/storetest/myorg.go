@@ -3,6 +3,7 @@ package storetest
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/zeroauthy/zeroauthy/internal/store"
 )
@@ -90,6 +91,45 @@ func testMyOrg(t *testing.T, factory Factory) {
 	snap, err := s.RBAC().Snapshot(ctx, "ten_a", "auth0|admin", myOrg.Identifier)
 	mustNoErr(t, err)
 	mustEqual(t, len(snap.Permissions), 1)
+
+	// Domain claims (Phase B, LR42b-17): one creation time per domain,
+	// gone with the domain or the organization.
+	now := time.Now().UTC().Truncate(time.Second)
+	org := newOrg("ten_a", "claims", now)
+	mustNoErr(t, s.Organizations().Create(ctx, org, nil))
+	org2 := newOrg("ten_a", "claims2", now)
+	mustNoErr(t, s.Organizations().Create(ctx, org2, nil))
+	for _, d := range []struct{ org, id, name string }{{org.ID, "ord_1", "one.test"}, {org.ID, "ord_2", "two.test"}, {org2.ID, "ord_3", "three.test"}} {
+		mustNoErr(t, s.OrganizationsII().PutDiscoveryDomain(ctx, &store.OrganizationDiscoveryDomain{TenantID: "ten_a", OrganizationID: d.org, ID: d.id, Domain: d.name, Status: "pending"}, true))
+	}
+	mustNoErr(t, repo.PutDomainClaim(ctx, "ten_a", org.ID, "ord_1", now))
+	mustNoErr(t, repo.PutDomainClaim(ctx, "ten_a", org.ID, "ord_2", now.Add(-time.Hour)))
+	mustNoErr(t, repo.PutDomainClaim(ctx, "ten_a", org2.ID, "ord_3", now))
+	mustErrIs(t, repo.PutDomainClaim(ctx, "ten_a", org.ID, "ord_missing", now), store.ErrNotFound)
+	// Organizations that verified a domain, whatever its discovery flag.
+	mustNoErr(t, s.OrganizationsII().PutDiscoveryDomain(ctx, &store.OrganizationDiscoveryDomain{TenantID: "ten_a", OrganizationID: org2.ID, ID: "ord_4", Domain: "two.test", Status: "verified"}, true))
+	owners, err := repo.VerifiedDomainOrganizations(ctx, "ten_a", "two.test")
+	mustNoErr(t, err)
+	mustEqual(t, len(owners), 1)
+	mustEqual(t, owners[0], org2.ID)
+	owners, _ = repo.VerifiedDomainOrganizations(ctx, "ten_b", "two.test")
+	mustEqual(t, len(owners), 0)
+	mustNoErr(t, s.OrganizationsII().DeleteDiscoveryDomain(ctx, "ten_a", org2.ID, "ord_4"))
+
+	// Updating the domain (verification) keeps its claim.
+	mustNoErr(t, s.OrganizationsII().PutDiscoveryDomain(ctx, &store.OrganizationDiscoveryDomain{TenantID: "ten_a", OrganizationID: org.ID, ID: "ord_2", Domain: "two.test", Status: "failed"}, false))
+	claims, err := repo.DomainClaims(ctx, "ten_a", org.ID)
+	mustNoErr(t, err)
+	mustEqual(t, len(claims), 2)
+	mustEqual(t, claims["ord_2"].Equal(now.Add(-time.Hour)), true)
+	mustNoErr(t, repo.DeleteDomainClaim(ctx, "ten_a", org.ID, "ord_1"))
+	mustNoErr(t, repo.DeleteDomainClaim(ctx, "ten_a", org.ID, "ord_1"))
+	mustNoErr(t, s.OrganizationsII().DeleteDiscoveryDomain(ctx, "ten_a", org.ID, "ord_2"))
+	claims, _ = repo.DomainClaims(ctx, "ten_a", org.ID)
+	mustEqual(t, len(claims), 0)
+	mustNoErr(t, s.Organizations().Delete(ctx, "ten_a", org2.ID))
+	claims, _ = repo.DomainClaims(ctx, "ten_a", org2.ID)
+	mustEqual(t, len(claims), 0)
 
 	// Cascades.
 	mustNoErr(t, s.Clients().Delete(ctx, "ten_a", "app"))

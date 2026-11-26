@@ -41,6 +41,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/logstream"
 	"github.com/zeroauthy/zeroauthy/internal/mfa"
 	"github.com/zeroauthy/zeroauthy/internal/mgmt"
+	"github.com/zeroauthy/zeroauthy/internal/myorg"
 	"github.com/zeroauthy/zeroauthy/internal/noderunner"
 	"github.com/zeroauthy/zeroauthy/internal/passkey"
 	"github.com/zeroauthy/zeroauthy/internal/phone"
@@ -294,6 +295,9 @@ func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.S
 		if err := tenantsetup.UpgradeManagementAPIScopes(ctx, st, tn, cfg.Server.BaseDomain); err != nil {
 			return nil, fmt.Errorf("app: upgrade Management API scopes for tenant %q: %w", tn.Name, err)
 		}
+		if err := tenantsetup.UpgradeMyOrgAPIScopes(ctx, st, tn); err != nil {
+			return nil, fmt.Errorf("app: upgrade My Organization API scopes for tenant %q: %w", tn.Name, err)
+		}
 		if err := km.Ensure(ctx, tn.ID); err != nil {
 			return nil, fmt.Errorf("app: signing keys for tenant %q: %w", tn.Name, err)
 		}
@@ -480,6 +484,7 @@ func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.S
 			SystemHost:          systemHost,
 			RestrictSharedRPIDs: cfg.Security.WebAuthn.RestrictSharedRPIDs,
 			Domains:             domains,
+			OrgDomainDNS:        orgDomainResolver(cfg, log),
 
 			RateLimit:         rateLimit(sec.RateLimit),
 			LegacySecretSlots: ratelimit.NewSecretVerifications(sec.RateLimit.MaxConcurrentSecretVerifications),
@@ -658,6 +663,21 @@ func knownTenantHost(ctx context.Context, tenants store.Tenants, host string) (b
 		}
 	}
 	return false, nil
+}
+
+// orgDomainResolver is the bounded resolver My Organization domain
+// verification uses (LR42b-16): server.custom_domains.dns_resolver, else
+// the system resolver; nil when neither is usable.
+func orgDomainResolver(cfg *config.Config, log *slog.Logger) myorg.TXTResolver {
+	resolver := cfg.Server.CustomDomains.DNSResolver
+	if resolver == "" {
+		var err error
+		if resolver, err = customdomain.SystemResolver(); err != nil {
+			log.Warn("My Organization domain verification is unavailable: no DNS resolver; set server.custom_domains.dns_resolver", "err", err)
+			return nil
+		}
+	}
+	return &customdomain.BoundedResolver{Server: resolver}
 }
 
 // domainService builds the custom domain service: API operations, proxy

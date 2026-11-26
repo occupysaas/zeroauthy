@@ -34,7 +34,7 @@ Auth0 or Okta.
 | Universal Login | Advanced Customizations (ACUL) and the Classic and WebAuthn-first modes; arbitrary page JavaScript | Plan 44 |
 | Actions | Newer triggers (password-hash migration, credential validation), `/userinfo` custom claims, `event.authentication.methods` lists only the MFA step | Plan 40 |
 | My Account API | `/me/v1` authentication methods (passkeys, WebAuthn keys, TOTP, email, phone, recovery code, password) and factors; connected accounts, consents and profile are not | [Guide](my-account-api.md) |
-| My Organization API | Phase A: `/my-org/v1` details, members, member roles, roles, invitations and user stores for organization administrators; domains, identity providers and provisioning (Phase B) are not | [Guide](my-organization-api.md) |
+| My Organization API | `/my-org/v1`, every operation of the OpenAPI 1.0.0: details, members, member roles, roles, invitations, user stores (Phase A); domains with DNS verification, the organization's enterprise identity providers, their domains and SCIM provisioning (Phase B). No User Attribute Profiles; `pingfederate` providers cannot be created | [Guide](my-organization-api.md) |
 | Other APIs | Token Vault and connected accounts | Plan 43 |
 | Other APIs | Forms and Flows, network ACLs, user groups and group roles | Plan 38 |
 | Attack protection | Phone-provider protection `exponential` backoff is stored, not enforced | Plan 45 |

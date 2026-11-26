@@ -341,5 +341,8 @@ are recorded in the Organizations II implementation record.
 ## My Organization API
 
 Organization administrators can manage their own organization's details,
-members, roles and invitations from your application through the
-[My Organization API](my-organization-api.md) (`/my-org/v1`, Plan 42b).
+members, roles and invitations, claim and verify its domains, and add its
+own enterprise identity providers with SCIM provisioning, from your
+application through the [My Organization API](my-organization-api.md)
+(`/my-org/v1`, Plan 42b). Domains verified there are the organization's
+discovery domains.
