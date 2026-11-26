@@ -310,4 +310,3 @@ func TestMyAccountCodeFlowOnAlias(t *testing.T) {
 		t.Fatalf("alias token on canonical = %d", got.Code)
 	}
 }
-
