@@ -4,8 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -138,5 +140,30 @@ func TestResolveRefreshAndHardExpiry(t *testing.T) {
 	c, _ = f.st.Clients().Get(context.Background(), "ten", id)
 	if c.External.Status != store.ExternalStatusAvailable {
 		t.Fatalf("recovered status %q", c.External.Status)
+	}
+}
+
+// Final review: dynamic registration at /authorize is limited like
+// /oidc/register, so unknown URLs cannot create clients or trigger fetches
+// without bound.
+func TestResolveDynamicRegistrationRateLimit(t *testing.T) {
+	f := newResolveFixture(t, map[string]any{"client_id_metadata_document_supported": true, "client_id_metadata_document_dynamic_registration_supported": true})
+	base := strings.TrimSuffix(f.url, "/client.json")
+	limited := 0
+	for i := range 8 {
+		_, err := f.reg.Resolve(context.Background(), f.tn, fmt.Sprintf("%s/unknown-%d.json", base, i))
+		if errors.Is(err, ErrRateLimited) {
+			limited++
+		}
+	}
+	if limited != 3 {
+		t.Fatalf("%d of 8 unknown URLs limited, want 3 (burst 5)", limited)
+	}
+	// A known client is never limited.
+	if _, err := f.reg.Register(context.Background(), f.tn, f.url, store.ExternalCreatedByAdmin, nil); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := f.reg.Resolve(context.Background(), f.tn, f.url); err != nil {
+		t.Fatalf("known client limited: %v", err)
 	}
 }

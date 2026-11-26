@@ -3788,6 +3788,9 @@ CIMD:
 - The URL is `https`, at most 200 characters, with a path other than `/`,
   and without a fragment, credentials or dot segments. The answer must be
   `200` with `application/json`.
+- Dynamic registration from an unknown URL at the authorization server is
+  limited like `/oidc/register`: 5 per second per tenant, beyond which the
+  request is `invalid_client`.
 - Cache: `Cache-Control: max-age` bounded to 5 minutes–24 hours (5 minutes
   without one). A failed refresh keeps the cached document until 24 hours
   after its last good fetch, then the client is `invalid_client` (R41-7).

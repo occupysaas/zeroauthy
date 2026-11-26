@@ -5,10 +5,12 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/zeroauthy/zeroauthy/internal/clientrules"
 	"github.com/zeroauthy/zeroauthy/internal/dcr"
+	"github.com/zeroauthy/zeroauthy/internal/ratelimit"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/tenantrules"
@@ -24,6 +26,9 @@ var (
 	// ErrUnavailable reports a client whose document could not be
 	// refreshed past its hard expiry (R41-7).
 	ErrUnavailable = errors.New("cimd: the metadata document is unavailable")
+	// ErrRateLimited reports an unknown URL beyond the tenant's dynamic
+	// registration rate.
+	ErrRateLimited = errors.New("cimd: too many dynamic registrations")
 )
 
 // maxCredentials bounds the keys a CIMD client holds (the JWKS limit).
@@ -34,6 +39,16 @@ type Registrar struct {
 	Store   store.Store
 	Fetcher *Fetcher
 	Now     func() time.Time
+
+	limitOnce sync.Once
+	limiter   *ratelimit.Limiter
+}
+
+// limiterFor is the per-tenant limit on dynamic registrations at the
+// authorization server: dcr.Rate, as /oidc/register.
+func (r *Registrar) limiterFor() *ratelimit.Limiter {
+	r.limitOnce.Do(func() { r.limiter = ratelimit.NewLimiter(dcr.Rate, 10000).WithClock(r.now) })
+	return r.limiter
 }
 
 func (r *Registrar) now() time.Time {
@@ -248,6 +263,9 @@ func (r *Registrar) Resolve(ctx context.Context, tn *store.Tenant, clientID stri
 	if c == nil {
 		if !tenantrules.ClientIDMetadataDocumentRegistration(tn) {
 			return clientID, nil
+		}
+		if !r.limiterFor().Allow(tn.ID).Allowed {
+			return "", ErrRateLimited
 		}
 		out, err := r.Register(ctx, tn, clientID, store.ExternalCreatedByClient, nil)
 		if err != nil {

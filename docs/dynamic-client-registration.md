@@ -117,6 +117,9 @@ application keeps working on the cached document, marked
 `external_metadata_status: unavailable`, until 24 hours after the last good
 fetch; then its requests are `invalid_client`.
 
+Creating applications from unknown URLs is limited like `/oidc/register`, to
+5 per second per tenant.
+
 At `/oauth/token`, a `private_key_jwt` assertion carries the document URL as
 `iss` and `sub`. Applications created from documents are always `strict`
 third-party applications, so they get no ID token (D-0025).
