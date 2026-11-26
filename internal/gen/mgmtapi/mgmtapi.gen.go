@@ -15185,7 +15185,10 @@ type RoamingUVSettingsUserVerification string
 type Role struct {
 	Description string `json:"description"`
 	Id          string `json:"id"`
-	Name        string `json:"name"`
+
+	// MyOrganizationVisible Local extension (Plan 42b, LR42b-2), on GET and PATCH /roles/{id} only, when the My Organization API's storage is available. Organization administrators may list and assign the role through the My Organization API.
+	MyOrganizationVisible *bool  `json:"my_organization_visible,omitempty"`
+	Name                  string `json:"name"`
 }
 
 // RoleCreate defines model for RoleCreate.
@@ -15214,7 +15217,10 @@ type RolePage struct {
 // RoleUpdate defines model for RoleUpdate.
 type RoleUpdate struct {
 	Description *string `json:"description,omitempty"`
-	Name        *string `json:"name,omitempty"`
+
+	// MyOrganizationVisible Local extension (Plan 42b, LR42b-2). Lets organization administrators list and assign the role through the My Organization API.
+	MyOrganizationVisible *bool   `json:"my_organization_visible,omitempty"`
+	Name                  *string `json:"name,omitempty"`
 }
 
 // RoleUser defines model for RoleUser.

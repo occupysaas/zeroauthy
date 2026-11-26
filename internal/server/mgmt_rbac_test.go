@@ -346,3 +346,32 @@ func TestRBACCheckpointAndScopeCleanup(t *testing.T) {
 		}
 	}
 }
+
+// Roles can be made visible to the My Organization API (Plan 42b local
+// extension, LR42b-2): PATCH sets it, GET /roles/{id} shows it.
+func TestRoleMyOrganizationVisible(t *testing.T) {
+	h, st, token := newRBACManagement(t)
+	base := "https://acme.example.test/api/v2"
+	rec, role := sendJSON(h, "POST", base+"/roles", token, map[string]any{"name": "Org Admin"})
+	if rec.Code != 200 {
+		t.Fatalf("create = %d %s", rec.Code, rec.Body)
+	}
+	id := role["id"].(string)
+	if rec, out := sendJSON(h, "GET", base+"/roles/"+id, token, nil); rec.Code != 200 || out["my_organization_visible"] != false {
+		t.Fatalf("get = %d %v", rec.Code, out)
+	}
+	if rec, out := sendJSON(h, "PATCH", base+"/roles/"+id, token, map[string]any{"my_organization_visible": true}); rec.Code != 200 || out["my_organization_visible"] != true || out["name"] != "Org Admin" {
+		t.Fatalf("patch = %d %v", rec.Code, out)
+	}
+	tn, _ := st.Tenants().GetByName(context.Background(), "acme")
+	repo, _ := store.MyOrg(context.Background(), st)
+	if ids, _ := repo.ListMyOrgVisibleRoles(context.Background(), tn.ID); len(ids) != 1 || ids[0] != id {
+		t.Fatalf("visible %v", ids)
+	}
+	if rec, _ := sendJSON(h, "POST", base+"/roles", token, map[string]any{"name": "x", "my_organization_visible": true}); rec.Code != 400 {
+		t.Fatalf("create with flag = %d", rec.Code)
+	}
+	if rec, _ := sendJSON(h, "PATCH", base+"/roles/"+id, token, map[string]any{"my_organization_visible": "yes"}); rec.Code != 400 {
+		t.Fatalf("non-boolean = %d", rec.Code)
+	}
+}

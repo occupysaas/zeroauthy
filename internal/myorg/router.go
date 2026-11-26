@@ -74,23 +74,19 @@ func (h *Handlers) Routes() http.Handler {
 	r.Get("/members", h.with("read:my_org:members", h.listMembers))
 	r.Get("/members/{user_id}", h.with("read:my_org:members", h.getMember))
 	r.Post("/delete-memberships", h.with("delete:my_org:memberships", h.deleteMemberships))
-	r.Get("/members/{user_id}/roles", h.with("read:my_org:member_roles", h.notYet))
-	r.Post("/members/{user_id}/roles", h.with("create:my_org:member_roles", h.notYet))
-	r.Post("/members/{user_id}/unassign-roles", h.with("delete:my_org:member_roles", h.notYet))
-	r.Get("/roles", h.with("read:my_org:member_roles", h.notYet))
-	r.Get("/member-invitations", h.with("read:my_org:member_invitations", h.notYet))
-	r.Post("/member-invitations", h.with("create:my_org:member_invitations", h.notYet))
-	r.Get("/member-invitations/{invitation_id}", h.with("read:my_org:member_invitations", h.notYet))
-	r.Get("/member-invitations/{invitation_id}/roles", h.with("read:my_org:member_roles", h.notYet))
-	r.Post("/delete-member-invitations", h.with("delete:my_org:member_invitations", h.notYet))
+	r.Get("/members/{user_id}/roles", h.with("read:my_org:member_roles", h.listMemberRoles))
+	r.Post("/members/{user_id}/roles", h.with("create:my_org:member_roles", h.assignRoles))
+	r.Post("/members/{user_id}/unassign-roles", h.with("delete:my_org:member_roles", h.unassignRoles))
+	r.Get("/roles", h.with("read:my_org:member_roles", h.listRoles))
+	r.Get("/member-invitations", h.with("read:my_org:member_invitations", h.listInvitations))
+	r.Post("/member-invitations", h.with("create:my_org:member_invitations", h.createInvitations))
+	r.Get("/member-invitations/{invitation_id}", h.with("read:my_org:member_invitations", h.getInvitation))
+	r.Get("/member-invitations/{invitation_id}/roles", h.with("read:my_org:member_roles", h.invitationRoles))
+	r.Post("/delete-member-invitations", h.with("delete:my_org:member_invitations", h.deleteInvitations))
 	r.Get("/user-stores", h.with("read:my_org:user_stores", h.listUserStores))
 	r.NotFound(func(w http.ResponseWriter, r *http.Request) { writeProblem(w, r, notFound("Not found.")) })
 	r.MethodNotAllowed(func(w http.ResponseWriter, r *http.Request) {
 		writeProblem(w, r, problem(http.StatusMethodNotAllowed, "method_not_allowed", "Method Not Allowed", "Method not allowed."))
 	})
 	return r
-}
-
-func (h *Handlers) notYet(w http.ResponseWriter, r *http.Request, _ *Caller) {
-	writeProblem(w, r, problem(http.StatusNotImplemented, "not_implemented", "Not Implemented", "Not implemented yet."))
 }

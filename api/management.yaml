@@ -24546,6 +24546,9 @@ components:
           type: string
         name: *id001
         description: *id001
+        my_organization_visible:
+          type: boolean
+          description: Local extension (Plan 42b, LR42b-2), on GET and PATCH /roles/{id} only, when the My Organization API's storage is available. Organization administrators may list and assign the role through the My Organization API.
       required:
       - id
       - name
@@ -24578,6 +24581,9 @@ components:
         description:
           type: string
           maxLength: 255
+        my_organization_visible:
+          type: boolean
+          description: Local extension (Plan 42b, LR42b-2). Lets organization administrators list and assign the role through the My Organization API.
     RBACPermissionKey:
       type: object
       additionalProperties: false

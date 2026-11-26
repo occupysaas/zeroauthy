@@ -54,7 +54,7 @@ func newEnv(t *testing.T) *env {
 	st := memory.New()
 	w, _ := keys.NewLocalWrapper(bytes.Repeat([]byte{7}, 32))
 	km := keys.NewManager(st.SigningKeys(), w)
-	now := time.Date(2026, 11, 25, 12, 0, 0, 0, time.UTC)
+	now := time.Now().UTC().Truncate(time.Second)
 	tn, err := tenantsetup.UpsertTenant(ctx, st, "acme", now, func(t *store.Tenant) error {
 		t.Domains, t.CanonicalHost = []string{host}, host
 		return nil
@@ -180,4 +180,11 @@ func (e *env) do(t *testing.T, tok, method, path string, body any) (*httptest.Re
 	var out map[string]any
 	_ = json.Unmarshal(rec.Body.Bytes(), &out)
 	return rec, out
+}
+
+func mustJSON(t *testing.T, b []byte, dst any) {
+	t.Helper()
+	if err := json.Unmarshal(b, dst); err != nil {
+		t.Fatalf("%v: %s", err, b)
+	}
 }
