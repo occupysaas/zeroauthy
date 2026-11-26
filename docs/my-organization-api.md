@@ -158,6 +158,11 @@ example:
   and, for the first two, a connection profile that marks them `optional`.
   `DELETE` (`full`) deletes the connection (`allow_if_empty` refuses one
   with users); `detach` only removes it from the organization.
+- A connection you share with several organizations stays yours: its
+  deletion, display name, options, domains and provisioning cannot be
+  changed through this API (`403`), whatever the access level; each
+  organization still controls its own `is_enabled`, `show_as_button` and
+  `assign_membership_on_login`, and can detach it.
 - Domains: `POST …/domains` links a verified organization domain for home
   realm discovery (the connection's `domain_aliases`); a domain belongs to
   one provider of the organization. Deleting the organization domain

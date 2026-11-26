@@ -57,6 +57,9 @@ func (h *Handlers) provisioned(r *http.Request, c *Caller, write bool) (*store.C
 		if p := needAccess(oc, "Changing provisioning", "full"); p != nil {
 			return nil, nil, p
 		}
+		if err := h.notShared(r.Context(), c, conn.ID); err != nil {
+			return nil, nil, err
+		}
 	}
 	cfg, err := h.scimConfig(r, c, conn)
 	return conn, cfg, err
@@ -97,6 +100,9 @@ func (h *Handlers) createProvisioning(w http.ResponseWriter, r *http.Request, c 
 		}
 	}
 	ctx := r.Context()
+	if err == nil {
+		err = h.notShared(ctx, c, conn.ID)
+	}
 	if err == nil {
 		var prof *profileDoc
 		if prof, err = h.profile(ctx, c); err == nil {

@@ -28,6 +28,23 @@ func needAccess(oc *store.OrganizationConnection, what string, levels ...string)
 	return nil
 }
 
+// notShared refuses a change to connection-level settings (options,
+// display name, domains, provisioning, deletion) when the connection is
+// also enabled on another organization: it is not this organization's
+// alone, whatever its access level (D-0221).
+func (h *Handlers) notShared(ctx context.Context, c *Caller, connID string) error {
+	ocs, err := h.Store.Organizations().ConnectionsByConnection(ctx, c.TenantID, connID)
+	if err != nil {
+		return err
+	}
+	for _, oc := range ocs {
+		if oc.OrganizationID != c.Org.ID {
+			return insufficientAccess("The identity provider is shared with other organizations; only its organization settings can be changed here.")
+		}
+	}
+	return nil
+}
+
 func joinOr(v []string) string {
 	if len(v) == 1 {
 		return v[0]
@@ -59,6 +76,10 @@ func (h *Handlers) updateIdP(w http.ResponseWriter, r *http.Request, c *Caller) 
 	if full {
 		if p := needAccess(oc, "Updating display_name, options or use_for_third_party_client_access", "full"); p != nil {
 			h.idpFail(w, r, c, "update identity provider", p)
+			return
+		}
+		if err := h.notShared(r.Context(), c, conn.ID); err != nil {
+			h.idpFail(w, r, c, "update identity provider", err)
 			return
 		}
 	}
@@ -195,6 +216,9 @@ func (h *Handlers) deleteIdP(w http.ResponseWriter, r *http.Request, c *Caller) 
 		}
 	}
 	ctx := r.Context()
+	if err == nil {
+		err = h.notShared(ctx, c, conn.ID)
+	}
 	if err == nil && c.Config.ConnectionDeletionBehavior == "allow_if_empty" {
 		q := &store.UserQuery{Op: store.QueryTerm, Field: "identities.connection", Kind: store.KindString, Value: conn.Name}
 		_, n, lerr := h.Store.Users().List(ctx, c.TenantID, q, store.UserSort{}, store.Page{Limit: 1})
@@ -282,6 +306,9 @@ func (h *Handlers) addIdPDomain(w http.ResponseWriter, r *http.Request, c *Calle
 			err = p
 		}
 	}
+	if err == nil {
+		err = h.notShared(r.Context(), c, conn.ID)
+	}
 	var in struct {
 		Domain string `json:"domain"`
 	}
@@ -318,6 +345,9 @@ func (h *Handlers) removeIdPDomain(w http.ResponseWriter, r *http.Request, c *Ca
 		if p := needAccess(oc, "Changing an identity provider's domains", "full"); p != nil {
 			err = p
 		}
+	}
+	if err == nil {
+		err = h.notShared(r.Context(), c, conn.ID)
 	}
 	ctx := r.Context()
 	var current []string

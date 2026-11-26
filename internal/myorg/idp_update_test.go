@@ -210,3 +210,39 @@ func TestIdPUpdateAttributes(t *testing.T) {
 	_ = strings.Contains
 	_ = http.StatusOK
 }
+
+// TestIdPSharedConnection: a connection also enabled on another
+// organization is not one organization's to delete or reconfigure, whatever
+// its access level; per-organization settings and detach still work.
+func TestIdPSharedConnection(t *testing.T) {
+	e := newEnv(t)
+	e.withWrites(t)
+	tok := e.adminToken(t)
+	ctx := context.Background()
+	id := e.createIdP(t, tok, oidcIdP("shared-sso"))["id"].(string)
+	must(t, e.st.Organizations().PutConnection(ctx, store.OrganizationConnection{TenantID: e.tn.ID, OrganizationID: e.orgB.ID, ConnectionID: id, OrganizationAccessLevel: "full", IsEnabled: true, IsEnabledSet: true}, true))
+	e.verifiedDomain(t, e.orgA, "ord_aaaaaaaaaaaaaaaaaaaaaa", "acme.example")
+	for _, c := range []struct {
+		method, path string
+		body         any
+	}{
+		{"DELETE", "", nil},
+		{"PATCH", "", map[string]any{"display_name": "Mine"}},
+		{"PATCH", "", map[string]any{"options": map[string]any{"type": "back_channel", "client_id": "acme-client", "discovery_url": "https://idp.acme.example/.well-known/openid-configuration"}}},
+		{"POST", "/domains", map[string]any{"domain": "acme.example"}},
+		{"POST", "/provisioning", nil},
+	} {
+		if rec, _ := e.do(t, tok, c.method, "/identity-providers/"+id+c.path, c.body); rec.Code != 403 {
+			t.Errorf("%s %s on a shared connection = %d %s", c.method, c.path, rec.Code, rec.Body)
+		}
+	}
+	if rec, _ := e.do(t, tok, "PATCH", "/identity-providers/"+id, map[string]any{"is_enabled": false}); rec.Code != 200 {
+		t.Fatalf("per-organization flag = %d", rec.Code)
+	}
+	if rec, _ := e.do(t, tok, "POST", "/identity-providers/"+id+"/detach", nil); rec.Code != 204 {
+		t.Fatalf("detach = %d", rec.Code)
+	}
+	if _, err := e.st.Connections().Get(ctx, e.tn.ID, id); err != nil {
+		t.Fatal("shared connection deleted")
+	}
+}
