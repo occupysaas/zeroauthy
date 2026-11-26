@@ -21,6 +21,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/customdb"
 	"github.com/zeroauthy/zeroauthy/internal/customdomain"
 	"github.com/zeroauthy/zeroauthy/internal/dbconn"
+	"github.com/zeroauthy/zeroauthy/internal/dcr"
 	"github.com/zeroauthy/zeroauthy/internal/dirsync"
 	"github.com/zeroauthy/zeroauthy/internal/dpop"
 	"github.com/zeroauthy/zeroauthy/internal/email"
@@ -173,6 +174,7 @@ type authAPI struct {
 
 	passwordless *passwordless.Handlers
 	ad           *adhub.Service
+	dcr          *dcr.Handler
 }
 
 func (a authAPI) Discovery(w http.ResponseWriter, r *http.Request) { a.oidc.Discovery(w, r) }
@@ -202,13 +204,8 @@ func (a authAPI) OauthPar(w http.ResponseWriter, r *http.Request, _ authapi.Oaut
 	a.oauth.OauthPar(w, r)
 }
 
-// OidcRegister is Dynamic Client Registration (Plan 41b); until Task 2 it
-// answers as when the tenant has it off.
-func (a authAPI) OidcRegister(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusNotFound)
-	_, _ = w.Write([]byte(`{"error":"not_found","error_description":"Not Found"}`))
-}
+// OidcRegister is Dynamic Client Registration (Plan 41b).
+func (a authAPI) OidcRegister(w http.ResponseWriter, r *http.Request) { a.dcr.ServeHTTP(w, r) }
 func (a authAPI) OauthDeviceCode(w http.ResponseWriter, r *http.Request) {
 	a.oauth.OauthDeviceCode(w, r)
 }
@@ -382,6 +379,7 @@ func New(d Deps) http.Handler {
 		proofService := &dpop.Service{Store: d.Store, Wrapper: d.Wrapper}
 		authapi.HandlerWithOptions(authAPI{
 			ad:   d.AD,
+			dcr:  dcr.NewHandler(d.Store, d.Wrapper, d.Log),
 			oidc: &oidc.Handlers{UpstreamLogout: lg.UpstreamLogout, Wrapper: d.Wrapper, Compat: d.Compat, DPoP: proofService, Keys: d.Keys, Store: d.Store, Sessions: d.Sessions, Log: d.Log},
 			oauth: &oauth.Handlers{Compat: d.Compat, Logout: d.Logout,
 				DPoP:       proofService,

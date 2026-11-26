@@ -729,7 +729,6 @@ type ClientRegistrationResponse struct {
 	ClientSecret            *string                                           `json:"client_secret,omitempty"`
 	ClientSecretExpiresAt   ClientRegistrationResponseClientSecretExpiresAt   `json:"client_secret_expires_at"`
 	GrantTypes              []ClientRegistrationResponseGrantTypes            `json:"grant_types"`
-	LogoUri                 *string                                           `json:"logo_uri,omitempty"`
 	RedirectUris            []string                                          `json:"redirect_uris"`
 	ResponseTypes           *[]string                                         `json:"response_types,omitempty"`
 	TokenEndpointAuthMethod ClientRegistrationResponseTokenEndpointAuthMethod `json:"token_endpoint_auth_method"`

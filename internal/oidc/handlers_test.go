@@ -232,6 +232,43 @@ func TestDiscoveryAdvertisesPAROnlyWhenEnabled(t *testing.T) {
 	}
 }
 
+// TestDiscoveryDynamicRegistration: registration_endpoint and the CIMD flag
+// appear only when the tenant enables them (Plan 41b).
+func TestDiscoveryDynamicRegistration(t *testing.T) {
+	ctx := context.Background()
+	st := memory.New()
+	for _, tn := range []*store.Tenant{
+		{ID: "ten_off", Name: "off", CanonicalHost: "off.example.test", Domains: []string{"off.example.test"}},
+		{ID: "ten_on", Name: "on", CanonicalHost: "on.example.test", Domains: []string{"on.example.test"}, SettingsExtra: map[string]any{
+			"flags": map[string]any{"enable_dynamic_client_registration": true}, "client_id_metadata_document_supported": true}},
+	} {
+		if err := st.Tenants().Create(ctx, tn); err != nil {
+			t.Fatal(err)
+		}
+	}
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /.well-known/openid-configuration", (&Handlers{}).Discovery)
+	h := contract.Wrap(t, tenant.NewResolver(st.Tenants(), "", false).Middleware(mux))
+	read := func(host string) map[string]any {
+		var out map[string]any
+		if err := json.Unmarshal(get(h, "https://"+host+"/.well-known/openid-configuration").Body.Bytes(), &out); err != nil {
+			t.Fatal(err)
+		}
+		return out
+	}
+	off := read("off.example.test")
+	if _, ok := off["registration_endpoint"]; ok {
+		t.Fatalf("registration_endpoint without DCR: %v", off["registration_endpoint"])
+	}
+	if _, ok := off["client_id_metadata_document_supported"]; ok {
+		t.Fatal("CIMD flag without CIMD")
+	}
+	on := read("on.example.test")
+	if on["registration_endpoint"] != "https://on.example.test/oidc/register" || on["client_id_metadata_document_supported"] != true {
+		t.Fatalf("discovery: %v %v", on["registration_endpoint"], on["client_id_metadata_document_supported"])
+	}
+}
+
 // TestDiscoveryRequestObject: JAR support and its algorithms, advertised only
 // when the store has client_credentials.v1 (spec §4, §7).
 func TestDiscoveryRequestObject(t *testing.T) {

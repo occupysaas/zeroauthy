@@ -1256,8 +1256,9 @@ paths:
         public SPA) or `client_secret_post` (the default, a regular web
         application). `redirect_uris` (1 to 20) are required: HTTPS, or
         loopback HTTP, or a private-use scheme. `client_name` is 1 to 255
-        characters, "My App" when absent; `logo_uri` is kept; other RFC 7591
-        metadata is accepted and ignored. The secret is returned once. At
+        characters, "My App" when absent; other RFC 7591 metadata
+        (`logo_uri`, `client_uri`, `contacts`, ...) is accepted and ignored,
+        as `logo_uri` is on `POST /api/v2/clients`. The secret is returned once. At
         most 5 requests per second per tenant (`429`). The tenant's network
         ACL scope `dynamic_client_registration` applies. Errors follow RFC
         7591 §3.2.2 (D-0090).
@@ -1296,6 +1297,12 @@ paths:
                 $ref: "#/components/schemas/OAuthError"
         "429":
           $ref: "#/components/responses/OAuthErrorResponse"
+        "503":
+          description: The storage plugin cannot hold dynamically registered clients (no `cimd.v1`).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OAuthError"
         default:
           $ref: "#/components/responses/ServerError"
   /oidc/logout:
@@ -2047,7 +2054,6 @@ components:
         response_types: {type: array, items: {type: string}}
         token_endpoint_auth_method: {type: string, enum: [none, client_secret_post]}
         client_secret_expires_at: {type: integer, const: 0}
-        logo_uri: {type: string}
     MFAAssociateRequest:
       type: object
       additionalProperties: false

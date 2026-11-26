@@ -3760,8 +3760,10 @@ Sources read 2026-11-26:
   malformed members are `400 invalid_client_metadata`. Requested grant types
   outside `authorization_code` and `refresh_token` are dropped from the
   answer; none requested means both.
-- `logo_uri` is kept; `client_uri`, `policy_uri`, `tos_uri`, `contacts` and
-  other metadata are accepted and ignored (R41-4).
+- `logo_uri`, `client_uri`, `policy_uri`, `tos_uri`, `contacts` and other
+  metadata are accepted and ignored (R41-4), as `logo_uri` already is on
+  `POST /api/v2/clients`. Requested grant types with none allowed left give
+  `authorization_code`. Redirect URIs never contain a wildcard.
 - `app_type` is `spa` for `none` and `regular_web` for `client_secret_post`
   (R41-5). `external_metadata_type: dcr`, `external_metadata_created_by: client`.
   The answer has `client_secret_expires_at: 0` and `Cache-Control: no-store`.

@@ -966,7 +966,7 @@ Dynamic Client Registration and Client ID Metadata Documents (D-0090).
 - **R41-1** The CIMD draft version Auth0 follows (zeroauthy: the draft current on 2026-11-26).
 - **R41-2** The answer of `/oidc/register` when DCR is off (zeroauthy: `404`).
 - **R41-3** The default `client_name` (zeroauthy: `My App`).
-- **R41-4** Which RFC 7591 metadata Auth0 keeps (zeroauthy: `logo_uri` only).
+- **R41-4** Which RFC 7591 metadata Auth0 keeps (zeroauthy: none; clients have no `logo_uri`).
 - **R41-5** The `app_type` of DCR clients (zeroauthy: `spa` for `none`, `regular_web` otherwise).
 - **R41-6** The tenant log event type of a registration (zeroauthy: none, LR41b-9).
 - **R41-7** Behaviour when a CIMD document becomes unreachable (zeroauthy: cached until 24 hours after the last good fetch).
