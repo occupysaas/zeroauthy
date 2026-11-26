@@ -136,6 +136,10 @@ func (h *Handlers) CreateResourceServer(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	tn := resolved(r)
+	if id := tenant.MyAccountIdentifier(tn); id != "" && spec.Identifier == id {
+		h.activateMyAccountAPI(w, r, tn, id)
+		return
+	}
 	if err := apirules.Reserved(spec.Identifier, tenant.ManagementAPIIdentifier(tn, h.BaseDomain)); err != nil {
 		Fail(w, &Error{Status: http.StatusBadRequest, Code: "reserved_identifier", Message: err.Error()})
 		return
@@ -272,7 +276,7 @@ func (h *Handlers) DeleteResourceServer(w http.ResponseWriter, r *http.Request, 
 		if err != nil {
 			return err
 		}
-		if rs.IsSystem {
+		if rs.IsSystem && !tenant.IsMyAccountAPI(tn, rs) {
 			return &Error{Status: http.StatusBadRequest, Code: "delete_system_resource_server", Message: "A system resource server cannot be deleted"}
 		}
 		if t, err := tx.Tenants().Get(r.Context(), tn.ID); err == nil && t.DefaultAudience == rs.Identifier {

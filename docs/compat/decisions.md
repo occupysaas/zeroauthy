@@ -3992,3 +3992,57 @@ real connector):
 | LR38a-12 | Directory passwords change through `PATCH /api/v2/users/{id}` (password alone) and the connector's `change_password` (it needs `ENABLE_WRITE_BACK`); the hosted forgot-password flow is not offered for `ad` connections, whose passwords live in the directory. The sign-in name is kept as identity provider data `ad_username` for it. Final, not a follow-up (maintainer, 2026-11-23): the directory owns the password, and resets outside it are left to the directory's administrators. |
 | LR38a-13 | `groups` and the connector profile's other attributes are identity provider data (`identities[].profileData`), not root attributes (D38-4). |
 | LR38a-14 | A connector socket silent for 30 s is closed (the connector pings every 5 s); session rows are refreshed every 30 s and count as online for 90 s. |
+
+## D-0210: My Account API — authentication methods and factors (Plan 42a)
+
+**Contract frozen and implemented 2026-11-25 (local verification;
+plan-branch CI and maintainer approval pending).** Operator guide:
+[My Account API](../my-account-api.md). Contract:
+[`api/myaccount.yaml`](../../api/myaccount.yaml). The
+[spec](../superpowers/specs/2026-11-16-zeroauthy-my-account-api-design.md)
+and [plan](../superpowers/plans/2026-11-16-zeroauthy-plan-42a-my-account-api.md)
+reserve D-0210–0219. No live Auth0 tenant was observed by the implementer.
+
+Sources: Auth0's My Account OpenAPI 1.0
+(`https://auth0.com/docs/oas/myaccount/myaccount-api-oas.json`, read
+2026-11-25) and the [My Account API guide](https://auth0.com/docs/manage-users/my-account-api).
+Served: `GET /factors` (Early Access), the five GA
+`/authentication-methods` operations and `POST .../{id}/verify`. Not
+served: connected accounts (Plan 43), consents and consent signing keys
+(Early Access), profile (beta).
+
+What the OpenAPI fixes and zeroauthy follows: server `https://{host}/me/v1`
+on the canonical host or a custom domain; one scope per operation
+(`read:me:factors`, `read|create|update|delete:me:authentication_methods`,
+`verify` under `create:`); `202` with `auth_session` and a `Location`
+header from `POST` (`{type}|new` for passkey and password); `201` from
+`verify`; the per-type method members (`AuthenticationMethod*`) and
+creation responses (`barcode_uri`/`manual_input_code`, `recovery_code`,
+`authn_params_public_key`, the password `policy`); `ErrorResponse`
+(`type`, `status`, `title`, `detail`, `validation_errors[]`) with the
+`x-correlation-id` header; at most 20 listed methods.
+
+**Local rulings:**
+
+| ID | Ruling |
+|---|---|
+| LR42a-1 | `GET /factors` (Early Access) is served: it is read-only and every enrollment UI needs it. |
+| LR42a-2 | `push-notification` enrollment answers `400` (Guardian push is not supported). |
+| LR42a-3 | `auth_session` is opaque, single use, bound to user, application and type, and expires after 5 minutes. |
+| LR42a-4 | Activation is the existence of the system API `https://{canonical host}/me/` (`Auth0 My Account API`, `is_system`, user policy `require_client_grant`, client policy `deny_all`, `allow_offline_access`); the console, `POST /api/v2/resource-servers` with that identifier and the seed create it, deleting it deactivates. |
+| LR42a-5 | Method IDs equal the Management API's; password methods, which the Management API does not list, are `password|{base64url(identity user ID)}`. |
+| LR42a-6 | Method names are at most 100 characters. |
+| LR42a-7 | Seed shorthand `my_account_api: {active: true}` (local extension). |
+| LR42a-8 | `email` enrollment accepts only the user's verified email address: every zeroauthy email challenge requires the method's address to equal it (D-0059). |
+| LR42a-9 | The API is a system API, but tokens for it are ordinary user tokens: client grants and the refresh decision apply, client credentials and token exchange are refused; RBAC is not applied (system APIs carry no permissions) and multi-resource refresh does not cover it. |
+| LR42a-10 | Audience per host: `https://{request host}/me/` names the tenant's one My Account API (the canonical identifier is accepted on every host too); a token carries the audience of the host it was issued on, and `/me/v1` accepts only its own host's audience. |
+| LR42a-11 | Only confirmed methods are listed (passkeys always are); pending enrollments are not methods. Password methods carry the identity's user ID without the provider, like stored passkeys (Plan 33b). |
+| LR42a-12 | An `auth_session` is spent when verify takes it, before the proof is checked: a wrong code ends the enrollment; the MFA proof throttle still counts it. It also binds the method ID, so a verify on another ID does not spend it. |
+| LR42a-13 | `recovery-code` needs only its Guardian factor and replaces any earlier code at verify. My Account enrollments never create a recovery code on the side (hosted and `/mfa` flows still do). |
+| LR42a-14 | Passkeys use the native passkey ceremony bound to the application and the identity's connection; WebAuthn keys use the MFA ceremony with an API binding. Both accept the RP origin and the application's `web_origins` under the RP ID. The platform rule (another usable factor first) applies. New WebAuthn keys are named `Security key` or `This device`. |
+| LR42a-15 | Password changes run the reset path (policy, history, breached passwords; sessions, refresh tokens and reset links end; history and post-change-password Actions). Custom-database (non-import) connections answer `400 password_change_not_supported`. The start answers `id: password\|new`. |
+| LR42a-16 | Deleting a password clears the own identity's hash and is allowed only when a passkey or another password remains; a linked identity's password answers `400`. Names (≤ 100 characters, no control characters) may be set on passkeys, WebAuthn, TOTP, email and phone methods. |
+| LR42a-17 | The API's contract is hand-written (no generated types, as for SCIM) and pinned by `TestMyAccountContracts`; `/me/v1` follows the tenant's client-origin CORS with GET, POST, PATCH and DELETE. |
+
+Observation points Y1–Y10 are listed in
+[plan-1-followups.md](../superpowers/plan-1-followups.md#plan-42a-observation-points).

@@ -1,6 +1,6 @@
 # Plan 42a — My Account API (authentication methods and factors)
 
-**Date:** 2026-11-16. **Status:** design; not implemented.
+**Date:** 2026-11-16. **Status:** implemented 2026-11-25 on `plan-42a-my-account` ([record](../2026-11-16-plan-42a-implementation-record.md)); plan-branch CI and maintainer approval pending.
 
 **Roadmap entry:** [management roadmap, Plan 42](2026-10-19-zeroauthy-management-roadmap-design.md)
 (full; split by the [parallel paths](2026-11-13-zeroauthy-parallel-paths-design.md)

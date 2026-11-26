@@ -93,6 +93,12 @@ func (h *Handlers) deviceCode(w http.ResponseWriter, r *http.Request, res tenant
 	if aud == "" {
 		aud = t.DefaultAudience
 	}
+	// Each host has its own My Account audience (LR42a-10).
+	if id, ok := tenant.APIIdentifier(res, aud); ok {
+		aud = id
+	} else {
+		return nil, invalidRequest("unknown audience")
+	}
 	var rs *store.ResourceServer
 	if aud != "" {
 		if h.isMFAAudience(ctx, t.ID, aud) {

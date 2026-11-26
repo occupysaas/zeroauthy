@@ -52,8 +52,9 @@ func ValidateManagementAPIIdentity(ctx context.Context, st store.Store, t *store
 		return err
 	}
 	expected := tenant.ManagementAPIIdentifier(t, baseDomain)
+	myAccount := tenant.MyAccountIdentifier(t)
 	for _, rs := range rows {
-		if rs.IsSystem && rs.Identifier != expected {
+		if rs.IsSystem && rs.Identifier != expected && rs.Identifier != myAccount {
 			return fmt.Errorf("tenant %q managed Management API audience %q differs from canonical %q; explicit identity migration required", t.Name, rs.Identifier, expected)
 		}
 	}

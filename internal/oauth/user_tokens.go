@@ -191,7 +191,9 @@ func (h *Handlers) mintUserTokens(ctx context.Context, res tenant.Resolved, c *s
 		return nil, false, authErr
 	}
 	ut.rs, ut.scopes = auth.API, slices.DeleteFunc(slices.Clone(auth.Scopes), func(scope string) bool { return !access.OIDCScopeAllowed(c, scope) })
-	if ut.rs != nil && !ut.rs.IsSystem {
+	// The My Account API is a system API whose user tokens follow the
+	// ordinary user-flow decision (LR42a-9).
+	if ut.rs != nil && (!ut.rs.IsSystem || tenant.IsMyAccountAPI(res.Tenant, ut.rs)) {
 		decision, e := h.decide(ctx, tenantID, access.Refresh, c, ut.rs, ut.scopes)
 		if e != nil {
 			return nil, false, e
@@ -211,9 +213,9 @@ func (h *Handlers) mintUserTokens(ctx context.Context, res tenant.Resolved, c *s
 	var audiences []string
 	switch {
 	case ut.rs != nil && openid:
-		audiences = []string{ut.rs.Identifier, userinfo}
+		audiences = []string{tenant.TokenAudience(res, ut.rs), userinfo}
 	case ut.rs != nil:
-		audiences = []string{ut.rs.Identifier}
+		audiences = []string{tenant.TokenAudience(res, ut.rs)}
 	default:
 		audiences = []string{userinfo}
 	}

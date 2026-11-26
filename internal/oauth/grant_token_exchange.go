@@ -98,6 +98,15 @@ func (h *Handlers) tokenExchange(ctx context.Context, res tenant.Resolved, c *st
 	if aud == "" {
 		aud = res.Tenant.DefaultAudience
 	}
+	// Each host has its own My Account audience (LR42a-10).
+	if id, ok := tenant.APIIdentifier(res, aud); ok {
+		aud = id
+	} else {
+		return nil, accessDenied("unknown audience")
+	}
+	if id := tenant.MyAccountIdentifier(res.Tenant); id != "" && aud == id {
+		return nil, accessDenied("custom token exchange cannot issue tokens for the My Account API")
+	}
 	var rs *store.ResourceServer
 	lifetime := DefaultAccessTokenLifetime
 	if aud != "" {

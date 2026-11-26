@@ -363,3 +363,7 @@ a refreshed ID token omits it if the original MFA session is gone. The
 `acr_values_supported` tenant setting is intersected with the implemented
 context. Absent/null uses the default multi-factor context; `[]` disables
 it. Unsupported configured strings are not advertised.
+
+## My Account API
+
+Signed-in users can enroll, rename and delete their own second factors from your application through the [My Account API](my-account-api.md) (`/me/v1`, Plan 42a).

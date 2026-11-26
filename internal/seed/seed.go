@@ -52,10 +52,12 @@ type Tenant struct {
 	PhoneProvider  *SeedPhoneProvider  `yaml:"phone_provider"`
 	PhoneTemplates []SeedPhoneTemplate `yaml:"phone_templates"`
 	Guardian       *Guardian           `yaml:"guardian"`
-	EventStreams   []map[string]any    `yaml:"event_streams"`
-	LogStreams     []map[string]any    `yaml:"log_streams"`
-	Modules        []ActionModule      `yaml:"modules"`
-	Actions        []Action            `yaml:"actions"`
+	// MyAccountAPI activates the My Account API (Plan 42a, LR42a-7).
+	MyAccountAPI *MyAccountAPI    `yaml:"my_account_api"`
+	EventStreams []map[string]any `yaml:"event_streams"`
+	LogStreams   []map[string]any `yaml:"log_streams"`
+	Modules      []ActionModule   `yaml:"modules"`
+	Actions      []Action         `yaml:"actions"`
 	// TokenExchangeProfiles bind a subject_token_type to a custom token
 	// exchange Action by name. They are applied after the Actions, so they
 	// need ApplyWithActions.
@@ -543,4 +545,10 @@ func cloneYAMLValue(v any) any {
 		return float64(x)
 	}
 	return v
+}
+
+// MyAccountAPI is the seed shorthand for the tenant's My Account API: active
+// creates the system API https://{canonical host}/me/, false removes it.
+type MyAccountAPI struct {
+	Active bool `yaml:"active"`
 }

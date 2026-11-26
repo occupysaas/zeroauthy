@@ -79,6 +79,12 @@ func (h *Handlers) nativeAppleExchange(ctx context.Context, res tenant.Resolved,
 	if aud == "" {
 		aud = res.Tenant.DefaultAudience
 	}
+	// Each host has its own My Account audience (LR42a-10).
+	if id, ok := tenant.APIIdentifier(res, aud); ok {
+		aud = id
+	} else {
+		return nil, accessDenied("unknown audience")
+	}
 	if h.isMFAAudience(ctx, tid, aud) {
 		return nil, accessDenied("native social login cannot issue tokens for the MFA API")
 	}

@@ -6,6 +6,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
+	"github.com/zeroauthy/zeroauthy/internal/authmethods"
 	"github.com/zeroauthy/zeroauthy/internal/mfa"
 	"github.com/zeroauthy/zeroauthy/internal/mfarules"
 	"github.com/zeroauthy/zeroauthy/internal/phone"
@@ -137,7 +138,7 @@ func (h *Handlers) userMFA(w http.ResponseWriter, r *http.Request, route mfarule
 	tid := resolved(r).ID
 	switch route.Operation {
 	case "GetAuthenticationMethods", "GetUserEnrollments":
-		all, e := h.Store.MFA().ListAuthenticators(r.Context(), tid, uid)
+		all, e := authmethods.Authenticators(r.Context(), h.Store, tid, uid)
 		if e != nil {
 			h.mfaFail(w, r, e)
 			return

@@ -586,3 +586,30 @@ func TestWebAuthnImportedKeyHandleAndBackupEligibility(t *testing.T) {
 		})
 	}
 }
+
+// The binding's first origin must be the RP origin; further origins (the
+// My Account API's application origins, Plan 42a) are kept and enforced.
+func TestWebAuthnBindingOrigins(t *testing.T) {
+	f, _, rp := roamingFixture(t)
+	bind := func(origins ...string) *Service {
+		return f.svc.WithWebAuthnBinding(passkey.Binding{TxnID: "transaction", CookieHash: "browser", RPID: "example.test", Origins: origins})
+	}
+	for _, origins := range [][]string{nil, {"https://app.example.test"}, {"https://app.example.test", "https://example.test"}} {
+		if _, _, err := bind(origins...).BeginWebAuthnEnroll(f.ctx, "tenant", "user", "webauthn-roaming", rp, passkey.UserDisplay{}); !errors.Is(err, ErrInvalidCode) {
+			t.Errorf("origins %v: %v", origins, err)
+		}
+	}
+	svc := bind("https://example.test", "https://app.example.test")
+	e, o, err := svc.BeginWebAuthnEnroll(f.ctx, "tenant", "user", "webauthn-roaming", rp, passkey.UserDisplay{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	a := webauthntest.New(webauthntest.Options{})
+	if err := svc.StageWebAuthnEnroll(f.ctx, "tenant", "user", e, a.Create(o, "https://evil.example.test"), "ua"); err == nil {
+		t.Fatal("an origin outside the binding was accepted")
+	}
+	e, o, _ = svc.BeginWebAuthnEnroll(f.ctx, "tenant", "user", "webauthn-roaming", rp, passkey.UserDisplay{})
+	if err := svc.StageWebAuthnEnroll(f.ctx, "tenant", "user", e, a.Create(o, "https://app.example.test"), "ua"); err != nil {
+		t.Fatalf("bound application origin: %v", err)
+	}
+}

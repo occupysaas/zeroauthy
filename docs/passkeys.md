@@ -265,3 +265,7 @@ in D-0062, and the spec's ruling table states its cost.
 Points not yet observed against a live Auth0 tenant (exact method IDs, error
 bodies, snooze details and log details) are listed as W1–W12 in
 [the follow-ups](superpowers/plan-1-followups.md).
+
+## My Account API
+
+Signed-in users can enroll, rename and delete their own passkeys from your application through the [My Account API](my-account-api.md) (`/me/v1`, Plan 42a).

@@ -8,6 +8,7 @@ import Banner from '../../ui/Banner.vue'
 import { onModalClosed } from '../../ui/routeModal'
 import Button from '../../ui/Button.vue'
 import Tag from '../../ui/Tag.vue'
+import { myAccountIdentifier } from './myAccount'
 
 const { t } = useI18n()
 
@@ -41,6 +42,39 @@ async function load() {
 }
 watch([tenant, page], load, { immediate: true })
 
+// The My Account API is activated by creating its system API (LR42a-4).
+const myAccountActive = ref<boolean | null>(null)
+const activating = ref(false)
+const activateError = ref('')
+async function checkMyAccount() {
+  const tn = tenant.value
+  myAccountActive.value = null
+  const id = tn ? myAccountIdentifier(tn) : ''
+  if (!tn || !id || tn.reserved) return
+  try {
+    const all = await api.allResourceServers(tn)
+    if (tenant.value?.name === tn.name) myAccountActive.value = all.some((s) => s.identifier === id)
+  } catch {
+    myAccountActive.value = null
+  }
+}
+watch(tenant, checkMyAccount, { immediate: true })
+async function activateMyAccount() {
+  const tn = tenant.value
+  if (!tn || activating.value) return
+  activating.value = true
+  activateError.value = ''
+  try {
+    await api.createResourceServer(tn, { identifier: myAccountIdentifier(tn), name: 'Auth0 My Account API' })
+    myAccountActive.value = true
+    await load()
+  } catch (e) {
+    activateError.value = errorMessage(e)
+  } finally {
+    activating.value = false
+  }
+}
+
 function goto(p: number) {
   void router.push({ query: p ? { page: String(p) } : {} })
 }
@@ -57,6 +91,12 @@ onModalClosed(load)
       <RouterLink class="create rounded border border-accent bg-accent px-3.5 py-1.5 font-bold text-accent-text no-underline hover:border-accent-hover hover:bg-accent-hover hover:text-accent-text" :to="{ name: 'api-new', params: { tenant: tenant.name } }">{{ t('apis.create') }}</RouterLink>
     </div>
 
+    <div v-if="myAccountActive === false && !tenant.seeded" class="card stack mb-4" data-testid="my-account-card">
+      <h2 class="m-0 text-[1.05rem]">{{ t('apis.myAccount.title') }}</h2>
+      <p class="m-0 muted">{{ t('apis.myAccount.body') }}</p>
+      <Banner v-if="activateError" kind="error">{{ activateError }}</Banner>
+      <div class="row"><Button variant="primary" :disabled="activating" @click="activateMyAccount">{{ t('apis.myAccount.activate') }}</Button></div>
+    </div>
     <Banner v-if="error" kind="error">
       {{ error }}
       <Button variant="ghost" @click="load">{{ t('retry') }}</Button>

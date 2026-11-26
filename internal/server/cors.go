@@ -3,24 +3,29 @@ package server
 import (
 	"net/http"
 	"slices"
+	"strings"
+
+	"github.com/zeroauthy/zeroauthy/internal/myaccount"
 
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/tenant"
 )
 
 // cors applies CORS. Public metadata is readable from any origin. The
-// token, device code, revoke, userinfo, dbconnections and passwordless start endpoints accept an origin only if one of the
-// tenant's clients lists it in allowed_origins or web_origins. Runs after
-// tenant resolution.
+// token, device code, revoke, userinfo, dbconnections and passwordless start endpoints, and the My Account API (Plan 42a),
+// accept an origin only if one of the tenant's clients lists it in
+// allowed_origins or web_origins. Runs after tenant resolution.
 func cors(st store.Store) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			switch r.URL.Path {
-			case "/.well-known/openid-configuration", "/.well-known/jwks.json":
+			myAccount := strings.HasPrefix(r.URL.Path, myaccount.Path+"/")
+			switch {
+			case myAccount:
+			case r.URL.Path == "/.well-known/openid-configuration", r.URL.Path == "/.well-known/jwks.json":
 				w.Header().Set("Access-Control-Allow-Origin", "*")
 				next.ServeHTTP(w, r)
 				return
-			case "/oauth/token", "/oauth/device/code", "/oauth/revoke", "/userinfo", "/dbconnections/signup", "/dbconnections/change_password", "/passwordless/start", "/passkey/register", "/passkey/challenge":
+			case slices.Contains(corsPaths, r.URL.Path):
 			default:
 				next.ServeHTTP(w, r)
 				return
@@ -41,9 +46,15 @@ func cors(st store.Store) func(http.Handler) http.Handler {
 				return
 			}
 			w.Header().Set("Access-Control-Allow-Origin", origin)
-			w.Header().Set("Access-Control-Expose-Headers", "DPoP-Nonce")
+			methods := "GET, POST"
+			if myAccount {
+				methods = "GET, POST, PATCH, DELETE"
+				w.Header().Set("Access-Control-Expose-Headers", "Location, x-correlation-id")
+			} else {
+				w.Header().Set("Access-Control-Expose-Headers", "DPoP-Nonce")
+			}
 			if r.Method == http.MethodOptions {
-				w.Header().Set("Access-Control-Allow-Methods", "GET, POST")
+				w.Header().Set("Access-Control-Allow-Methods", methods)
 				if h := r.Header.Get("Access-Control-Request-Headers"); h != "" {
 					w.Header().Set("Access-Control-Allow-Headers", h)
 				}
@@ -55,6 +66,9 @@ func cors(st store.Store) func(http.Handler) http.Handler {
 		})
 	}
 }
+
+// corsPaths are the Authentication API endpoints with client-origin CORS.
+var corsPaths = []string{"/oauth/token", "/oauth/device/code", "/oauth/revoke", "/userinfo", "/dbconnections/signup", "/dbconnections/change_password", "/passwordless/start", "/passkey/register", "/passkey/challenge"}
 
 func originAllowed(r *http.Request, st store.Store, tenantID, origin string) bool {
 	clients, _, err := st.Clients().List(r.Context(), tenantID, store.ClientFilter{}, store.Page{})

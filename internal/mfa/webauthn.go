@@ -86,13 +86,15 @@ func (s *Service) WithFirstWebAuthnEnrollment() *Service {
 }
 func (s *Service) webBinding(uid string, p passkey.Purpose, rp rpid.Result) (passkey.Binding, error) {
 	b := s.webAuthnBinding
-	if !rp.Valid || rp.RPID == "" || rp.Origin == "" || b.TxnID == "" || b.CookieHash == "" || b.RPID != rp.RPID || !slices.Equal(b.Origins, []string{rp.Origin}) {
+	// The RP origin comes first; the My Account API (Plan 42a) adds the
+	// calling application's origins under the RP ID (rpid.NativeOrigins).
+	if !rp.Valid || rp.RPID == "" || rp.Origin == "" || b.TxnID == "" || b.CookieHash == "" || b.RPID != rp.RPID || len(b.Origins) == 0 || b.Origins[0] != rp.Origin {
 		return b, ErrInvalidCode
 	}
 	b.Purpose = p
 	b.UserID = uid
 	b.RPID = rp.RPID
-	b.Origins = []string{rp.Origin}
+	b.Origins = slices.Clone(b.Origins)
 	return b, nil
 }
 func (s *Service) passkeys() *passkey.Service { return passkey.NewService(s.st, rpid.Policy{}, s.now) }
@@ -432,7 +434,7 @@ func (s *Service) ConfirmWebAuthnEnroll(ctx context.Context, tid, uid string, e 
 		if x = tx.MFA().CreateAuthenticator(ctx, &a); x != nil {
 			return x
 		}
-		if !hasRecovery {
+		if !hasRecovery && !s.noAutomaticRecovery {
 			code := NewRecoveryCode()
 			ctx = s.operationContext(ctx, code)
 			if x = tx.MFA().ReplaceRecoveryCode(ctx, tid, uid, "", secrets.HashToken(code), s.now()); x != nil {

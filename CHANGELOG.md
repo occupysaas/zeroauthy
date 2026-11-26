@@ -8,6 +8,13 @@ All notable changes to zeroauthy are recorded here. The format follows
 
 ### Added
 
+- My Account API: `/me/v1` lets signed-in users list, enroll, verify,
+  rename and delete their own passkeys, WebAuthn keys, TOTP, email and phone
+  factors, recovery codes and passwords, and list the factors the tenant
+  offers. Activation creates the system API `https://{canonical host}/me/`
+  (console, Management API or seed `my_account_api`); applications get
+  access through user client grants; each host has its own audience. See
+  [My Account API](docs/my-account-api.md).
 - WS-Federation: the WS-Fed Web App add-on (`addons.wsfed`, with realms in
   the new `client_aliases`) makes zeroauthy a WS-Fed identity provider with
   signed SAML 1.1 tokens, federation metadata and sign-out, and `adfs`

@@ -263,6 +263,12 @@ func (h *Handlers) passkeyGrant(ctx context.Context, res tenant.Resolved, c *sto
 	if aud == "" {
 		aud = res.Tenant.DefaultAudience
 	}
+	// Each host has its own My Account audience (LR42a-10).
+	if id, ok := tenant.APIIdentifier(res, aud); ok {
+		aud = id
+	} else {
+		return nil, accessDenied("unknown audience")
+	}
 	rs, lifetime, oerr := h.audienceFor(ctx, tid, aud)
 	if oerr != nil {
 		return nil, oerr

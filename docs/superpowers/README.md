@@ -58,7 +58,7 @@ track order in the [parallel paths design](specs/2026-11-13-zeroauthy-parallel-p
 | P3 | 41a OIDC extras and logout ([implementation and local verification complete](2026-11-16-plan-41a-implementation-record.md)) | [spec](specs/2026-11-16-zeroauthy-oidc-extras-logout-design.md) | [plan](plans/2026-11-16-zeroauthy-plan-41a-oidc-extras-logout.md) |
 | P4 | 41b Dynamic Client Registration, CIMD | [spec](specs/2026-11-16-zeroauthy-dynamic-client-registration-design.md) | [plan](plans/2026-11-16-zeroauthy-plan-41b-dynamic-client-registration.md) |
 | P5 | 41c CIBA | [spec](specs/2026-11-16-zeroauthy-ciba-design.md) | [plan](plans/2026-11-16-zeroauthy-plan-41c-ciba.md) |
-| U1 | 42a My Account API | [spec](specs/2026-11-16-zeroauthy-my-account-api-design.md) | [plan](plans/2026-11-16-zeroauthy-plan-42a-my-account-api.md) |
+| U1 | 42a My Account API ([implementation and local verification complete](2026-11-16-plan-42a-implementation-record.md)) | [spec](specs/2026-11-16-zeroauthy-my-account-api-design.md) | [plan](plans/2026-11-16-zeroauthy-plan-42a-my-account-api.md) |
 | U2 | 42b My Organization API | [spec](specs/2026-11-16-zeroauthy-my-organization-api-design.md) | [plan](plans/2026-11-16-zeroauthy-plan-42b-my-organization-api.md) |
 | P6 | 43 Token Vault | [spec](specs/2026-11-16-zeroauthy-token-vault-design.md) | [plan](plans/2026-11-16-zeroauthy-plan-43-token-vault.md) |
 | H1 | 44 ACUL and Universal Login modes | [spec](specs/2026-11-16-zeroauthy-acul-design.md) | [plan](plans/2026-11-16-zeroauthy-plan-44-acul.md) |

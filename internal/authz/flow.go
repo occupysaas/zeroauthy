@@ -77,7 +77,7 @@ var errCodeNotPending = errInvalidRequest("the device code is no longer pending"
 // redirectable.
 func (h *Handlers) validateFlow(ctx context.Context, res tenant.Resolved, fr *flowReq) (*store.Client, *Error, bool) {
 	if !fr.device() {
-		return ValidateRequest(ctx, h.Store, res.Tenant, &fr.Request)
+		return ValidateRequestOn(ctx, h.Store, res, &fr.Request)
 	}
 	client, err := h.Store.Clients().Get(ctx, res.Tenant.ID, fr.ClientID)
 	switch {

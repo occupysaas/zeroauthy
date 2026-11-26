@@ -85,7 +85,7 @@ func (h *Handlers) request(r *http.Request) RequestInfo {
 // ok false means the response was written (error page).
 func (h *Handlers) validate(w http.ResponseWriter, r *http.Request, res tenant.Resolved, params url.Values) (*store.Client, authz.Request, bool) {
 	req := authz.ParseRequest(params)
-	client, verr, redirectable := authz.ValidateRequest(r.Context(), h.Service.Store, res.Tenant, &req)
+	client, verr, redirectable := authz.ValidateRequestOn(r.Context(), h.Service.Store, res, &req)
 	if verr != nil {
 		if redirectable {
 			h.Authz.Deny(w, r, res, client, req, verr.Code, verr.Description)

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"errors"
+	"github.com/zeroauthy/zeroauthy/internal/tenant"
 	"net/url"
 	"regexp"
 	"slices"
@@ -29,6 +30,24 @@ var (
 // Errors with redirectable=false must be shown on an error page: the
 // client or redirect URI cannot be trusted.
 func ValidateRequest(ctx context.Context, st store.Store, t *store.Tenant, req *Request) (*store.Client, *Error, bool) {
+	return validateRequest(ctx, st, t, req, false)
+}
+
+// ValidateRequestOn is ValidateRequest for a request served on res's host:
+// the host's My Account audience names the tenant's My Account API, and the
+// canonical one is unknown on other hosts (LR42a-10).
+func ValidateRequestOn(ctx context.Context, st store.Store, res tenant.Resolved, req *Request) (*store.Client, *Error, bool) {
+	if req.Audience == "" {
+		req.Audience = res.Tenant.DefaultAudience
+	}
+	id, ok := tenant.APIIdentifier(res, req.Audience)
+	if ok {
+		req.Audience = id
+	}
+	return validateRequest(ctx, st, res.Tenant, req, !ok)
+}
+
+func validateRequest(ctx context.Context, st store.Store, t *store.Tenant, req *Request, wrongHostAudience bool) (*store.Client, *Error, bool) {
 	if req.ClientID == "" {
 		return nil, errInvalidRequest("client_id is required"), false
 	}
@@ -208,6 +227,9 @@ func ValidateRequest(ctx context.Context, st store.Store, t *store.Tenant, req *
 
 	if req.Audience == "" {
 		req.Audience = t.DefaultAudience
+	}
+	if wrongHostAudience {
+		return client, errAccessDenied("unknown audience"), true
 	}
 	if req.Audience != "" && !mfa.APIAudience(ctx, st, t.ID, req.Audience) {
 		if _, err := st.ResourceServers().GetByIdentifier(ctx, t.ID, req.Audience); errors.Is(err, store.ErrNotFound) {

@@ -22,6 +22,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/rpid"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/tenant"
+	"github.com/zeroauthy/zeroauthy/internal/tenantsetup"
 )
 
 var hexColor = regexp.MustCompile(`^#[0-9a-fA-F]{6}$`)
@@ -326,6 +327,22 @@ func (t *Tenant) validate() []error {
 			fail("client grant references unknown client %q", g.ClientID)
 		}
 		rs := apis[g.Audience]
+		if rs == nil && isMyAccountAudience(g.Audience) {
+			// The My Account API comes from my_account_api; apply checks
+			// that the audience is the canonical host's.
+			if t.MyAccountAPI == nil || !t.MyAccountAPI.Active {
+				fail("client grant to %q needs my_account_api.active", g.Audience)
+			}
+			if g.SubjectType != store.SubjectTypeUser {
+				fail("the My Account API accepts user grants only")
+			}
+			for _, s := range g.Scopes {
+				if !slices.ContainsFunc(tenantsetup.MyAccountAPIScopes, func(d store.Scope) bool { return d.Value == s }) {
+					fail("scope %q is not a My Account API scope", s)
+				}
+			}
+			continue
+		}
 		mgmt := rs == nil && apirules.IsManagementAPIIdentifier(g.Audience)
 		if rs == nil && !mgmt {
 			fail("client grant references unknown audience %q", g.Audience)
@@ -468,4 +485,11 @@ func (t *Tenant) suppliedClients() []map[string]any {
 		}
 	}
 	return out
+}
+
+// isMyAccountAudience reports whether aud has the form of a My Account API
+// audience: an https URL whose path is /me/.
+func isMyAccountAudience(aud string) bool {
+	u, err := url.Parse(aud)
+	return err == nil && u.Scheme == "https" && u.Host != "" && u.Path == "/me/" && u.RawQuery == "" && u.Fragment == "" && u.User == nil
 }
