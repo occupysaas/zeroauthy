@@ -168,3 +168,22 @@ func loopback(host string) bool {
 	ip := net.ParseIP(host)
 	return ip != nil && ip.IsLoopback()
 }
+
+// CallbackOrigins are the origins of the http and https redirect URIs, in
+// order and without duplicates: a dynamically registered client's
+// allowed_origins (LR41b-10), as Auth0 allows an application's callback
+// URLs for CORS by default.
+func CallbackOrigins(uris []string) []string {
+	var out []string
+	for _, raw := range uris {
+		u, err := url.Parse(raw)
+		if err != nil || (u.Scheme != "https" && u.Scheme != "http") || u.Host == "" {
+			continue
+		}
+		origin := u.Scheme + "://" + u.Host
+		if !slices.Contains(out, origin) {
+			out = append(out, origin)
+		}
+	}
+	return out
+}

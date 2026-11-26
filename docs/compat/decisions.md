@@ -3749,6 +3749,8 @@ Sources read 2026-11-26:
 | LR41b-7 | `client_id_metadata_document_dynamic_registration_supported` is stored as given but has effect only with `client_id_metadata_document_supported`, as the OpenAPI describes it ("requires"). |
 | LR41b-8 | DCR and CIMD clients are third party with every D-0025 rule. DCR clients take the tenant's `dynamic_client_registration_security_mode` (`strict` when unset); CIMD clients are always `strict`. |
 | LR41b-9 | A registration writes a server log line with the new client ID (never the secret); no tenant log event is emitted, because Auth0 documents none (R41-6). |
+| LR41b-10 | The origins of a DCR or CIMD client's `http`/`https` redirect URIs become its `allowed_origins`, so a browser application can call `/oauth/token`: Auth0 allows an application's callback URLs for CORS by default. Other clients are unchanged. |
+| LR41b-11 | The OIDF Dynamic OP profile is not run: it registers clients with `private_key_jwt` and needs `request_uri` and sector identifiers, which Auth0's open registration does not offer. |
 
 `/oidc/register`:
 

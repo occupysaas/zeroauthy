@@ -115,7 +115,8 @@ func TestRegisterPublicPermissive(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if c.AppType != store.AppTypeSPA || c.TokenEndpointAuthMethod != store.AuthMethodNone || len(c.Secrets) != 0 || c.ThirdPartySecurityMode != store.SecurityModePermissive {
+	if c.AppType != store.AppTypeSPA || c.TokenEndpointAuthMethod != store.AuthMethodNone || len(c.Secrets) != 0 || c.ThirdPartySecurityMode != store.SecurityModePermissive ||
+		len(c.AllowedOrigins) != 1 || c.AllowedOrigins[0] != "http://localhost:3000" {
 		t.Fatalf("stored %+v", c)
 	}
 }

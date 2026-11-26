@@ -129,7 +129,7 @@ func (h *Handler) newClient(tn *store.Tenant, req Request) (*store.Client, strin
 	firstParty := false
 	spec := clientrules.Spec{
 		Name: req.Name, AppType: appType, TokenEndpointAuthMethod: req.AuthMethod,
-		GrantTypes: req.GrantTypes, Callbacks: req.RedirectURIs,
+		GrantTypes: req.GrantTypes, Callbacks: req.RedirectURIs, AllowedOrigins: CallbackOrigins(req.RedirectURIs),
 		IsFirstParty: &firstParty, ThirdPartySecurityMode: tenantrules.DynamicClientRegistrationMode(tn),
 	}
 	if errs := clientrules.Normalize(&spec, tn.PushedAuthorizationRequestsSupported); len(errs) > 0 {

@@ -84,3 +84,11 @@ func TestCheckRedirectURI(t *testing.T) {
 		}
 	}
 }
+
+func TestCallbackOrigins(t *testing.T) {
+	got := CallbackOrigins([]string{"https://app.example/cb", "https://app.example/other", "http://localhost:3000/cb", "com.example.app:/cb", "https://b.example:8443/x"})
+	want := []string{"https://app.example", "http://localhost:3000", "https://b.example:8443"}
+	if !slices.Equal(got, want) {
+		t.Fatalf("origins %v, want %v", got, want)
+	}
+}

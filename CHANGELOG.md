@@ -8,6 +8,14 @@ All notable changes to zeroauthy are recorded here. The format follows
 
 ### Added
 
+- Dynamic Client Registration and Client ID Metadata Documents (Plan 41b):
+  open RFC 7591 registration at `/oidc/register` creates third-party `tpc_`
+  applications; an HTTPS metadata document URL can be a `client_id`, with
+  `POST /api/v2/clients/cimd/preview` and `/register` for administrators
+  and the seed's `cimd_clients`; client grants accept `default_for:
+  third_party_clients`. Migration 0052 adds the client fields and the
+  external client ID index (storage plugins need `cimd.v1`). See
+  [Dynamic Client Registration](docs/dynamic-client-registration.md).
 - My Organization API (Phase A): `/my-org/v1` lets organization
   administrators manage their organization's details, members, member
   roles and invitations, scoped by the token's organization. Activation

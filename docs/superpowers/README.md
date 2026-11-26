@@ -56,7 +56,7 @@ track order in the [parallel paths design](specs/2026-11-13-zeroauthy-parallel-p
 | S2 | 39c GitHub social connection (split out of 39b; merged 2026-11-19, PR #71) | [spec](specs/2026-11-16-zeroauthy-github-connection-design.md) | [plan](plans/2026-11-18-zeroauthy-plan-39c-github.md) |
 | A1 | 40 Actions III | [spec](specs/2026-11-16-zeroauthy-actions-iii-design.md) | [plan](plans/2026-11-16-zeroauthy-plan-40-actions-iii.md) |
 | P3 | 41a OIDC extras and logout ([merged 2026-11-21](2026-11-16-plan-41a-implementation-record.md), PRs #74, #76) | [spec](specs/2026-11-16-zeroauthy-oidc-extras-logout-design.md) | [plan](plans/2026-11-16-zeroauthy-plan-41a-oidc-extras-logout.md) |
-| P4 | 41b Dynamic Client Registration, CIMD | [spec](specs/2026-11-16-zeroauthy-dynamic-client-registration-design.md) | [plan](plans/2026-11-16-zeroauthy-plan-41b-dynamic-client-registration.md) |
+| P4 | 41b Dynamic Client Registration, CIMD ([implemented and verified locally](2026-11-16-plan-41b-implementation-record.md)) | [spec](specs/2026-11-16-zeroauthy-dynamic-client-registration-design.md) | [plan](plans/2026-11-16-zeroauthy-plan-41b-dynamic-client-registration.md) |
 | P5 | 41c CIBA | [spec](specs/2026-11-16-zeroauthy-ciba-design.md) | [plan](plans/2026-11-16-zeroauthy-plan-41c-ciba.md) |
 | U1 | 42a My Account API ([merged 2026-11-26](2026-11-16-plan-42a-implementation-record.md), PR #98) | [spec](specs/2026-11-16-zeroauthy-my-account-api-design.md) | [plan](plans/2026-11-16-zeroauthy-plan-42a-my-account-api.md) |
 | U2 | 42b My Organization API ([Phase A merged 2026-11-26](2026-11-16-plan-42b-implementation-record.md), PR #99) | [spec](specs/2026-11-16-zeroauthy-my-organization-api-design.md) | [plan](plans/2026-11-16-zeroauthy-plan-42b-my-organization-api.md) |
@@ -69,7 +69,7 @@ track order in the [parallel paths design](specs/2026-11-13-zeroauthy-parallel-p
 | O5 | 46 Release leftovers | [spec](specs/2026-11-16-zeroauthy-release-leftovers-design.md) | [plan](plans/2026-11-16-zeroauthy-plan-46-release-leftovers.md) |
 | P2 | 48 Refresh tokens II (merged 2026-11-21, PR #73) | [spec](specs/2026-11-16-zeroauthy-refresh-tokens-ii-design.md) | [plan](plans/2026-11-16-zeroauthy-plan-48-refresh-tokens-ii.md) |
 
-P1 (Plan 35) and S1 (Plan 39a) are implemented and merged, and so are the items marked merged above. Still open: P4, P5, P6, S2 (39b), A1, A2, H1, M1, O1, O2, O4, O5 and X1 (maintainer-only).
+P1 (Plan 35) and S1 (Plan 39a) are implemented and merged, and so are the items marked merged above. Still open: P4 (implemented, pending merge), P5, P6, S2 (39b), A1, A2, H1, M1, O1, O2, O4, O5 and X1 (maintainer-only).
 
 ## Before implementing an item
 

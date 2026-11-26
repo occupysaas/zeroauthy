@@ -179,7 +179,7 @@ func (r *Registrar) write(ctx context.Context, tn *store.Tenant, c *store.Client
 	}
 	spec := clientrules.Spec{
 		Name: m.Name, AppType: m.AppType, TokenEndpointAuthMethod: method,
-		GrantTypes: m.GrantTypes, Callbacks: m.Callbacks,
+		GrantTypes: m.GrantTypes, Callbacks: m.Callbacks, AllowedOrigins: dcr.CallbackOrigins(m.Callbacks),
 		IsFirstParty: &firstParty, ThirdPartySecurityMode: store.SecurityModeStrict, // LR41b-8
 	}
 	if errs := clientrules.Normalize(&spec, tn.PushedAuthorizationRequestsSupported); len(errs) > 0 {
