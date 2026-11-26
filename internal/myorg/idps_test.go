@@ -16,7 +16,7 @@ const testSecret = "oidc-client-secret-value-1"
 // withWrites gives the env the in-process Management API (Phase B writes).
 func (e *env) withWrites(t *testing.T) {
 	t.Helper()
-	e.h.Writes = &mgmt.Handlers{Store: e.st, Wrapper: e.w, Keys: e.km, Now: func() time.Time { return e.now }}
+	e.h.Writes = &mgmt.Handlers{Store: e.st, Wrapper: e.w, Keys: e.km, Now: func() time.Time { return e.now }, Log: e.h.Log}
 	e.route = e.h.Routes()
 }
 
