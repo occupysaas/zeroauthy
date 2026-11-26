@@ -8,7 +8,7 @@ import Banner from '../../ui/Banner.vue'
 import { onModalClosed } from '../../ui/routeModal'
 import Button from '../../ui/Button.vue'
 import Tag from '../../ui/Tag.vue'
-import { myAccountIdentifier } from './myAccount'
+import { myAccountIdentifier, myOrgIdentifier } from './myAccount'
 
 const { t } = useI18n()
 
@@ -43,30 +43,40 @@ async function load() {
 watch([tenant, page], load, { immediate: true })
 
 // The My Account API is activated by creating its system API (LR42a-4).
+// The My Account (Plan 42a) and My Organization (Plan 42b) APIs are
+// activated by creating their system APIs.
 const myAccountActive = ref<boolean | null>(null)
+const myOrgActive = ref<boolean | null>(null)
 const activating = ref(false)
 const activateError = ref('')
 async function checkMyAccount() {
   const tn = tenant.value
   myAccountActive.value = null
-  const id = tn ? myAccountIdentifier(tn) : ''
-  if (!tn || !id || tn.reserved) return
+  myOrgActive.value = null
+  if (!tn || tn.reserved || !myAccountIdentifier(tn)) return
   try {
     const all = await api.allResourceServers(tn)
-    if (tenant.value?.name === tn.name) myAccountActive.value = all.some((s) => s.identifier === id)
+    if (tenant.value?.name !== tn.name) return
+    myAccountActive.value = all.some((s) => s.identifier === myAccountIdentifier(tn))
+    myOrgActive.value = all.some((s) => s.identifier === myOrgIdentifier(tn))
   } catch {
     myAccountActive.value = null
   }
 }
 watch(tenant, checkMyAccount, { immediate: true })
-async function activateMyAccount() {
+async function activate(kind: 'account' | 'org') {
   const tn = tenant.value
   if (!tn || activating.value) return
   activating.value = true
   activateError.value = ''
   try {
-    await api.createResourceServer(tn, { identifier: myAccountIdentifier(tn), name: 'Auth0 My Account API' })
-    myAccountActive.value = true
+    if (kind === 'account') {
+      await api.createResourceServer(tn, { identifier: myAccountIdentifier(tn), name: 'Auth0 My Account API' })
+      myAccountActive.value = true
+    } else {
+      await api.createResourceServer(tn, { identifier: myOrgIdentifier(tn), name: 'My Organization API' })
+      myOrgActive.value = true
+    }
     await load()
   } catch (e) {
     activateError.value = errorMessage(e)
@@ -95,7 +105,12 @@ onModalClosed(load)
       <h2 class="m-0 text-[1.05rem]">{{ t('apis.myAccount.title') }}</h2>
       <p class="m-0 muted">{{ t('apis.myAccount.body') }}</p>
       <Banner v-if="activateError" kind="error">{{ activateError }}</Banner>
-      <div class="row"><Button variant="primary" :disabled="activating" @click="activateMyAccount">{{ t('apis.myAccount.activate') }}</Button></div>
+      <div class="row"><Button variant="primary" :disabled="activating" @click="activate('account')">{{ t('apis.myAccount.activate') }}</Button></div>
+    </div>
+    <div v-if="myOrgActive === false && !tenant.seeded" class="card stack mb-4" data-testid="my-org-card">
+      <h2 class="m-0 text-[1.05rem]">{{ t('apis.myOrg.title') }}</h2>
+      <p class="m-0 muted">{{ t('apis.myOrg.body') }}</p>
+      <div class="row"><Button variant="primary" :disabled="activating" @click="activate('org')">{{ t('apis.myAccount.activate') }}</Button></div>
     </div>
     <Banner v-if="error" kind="error">
       {{ error }}
