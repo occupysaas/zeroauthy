@@ -131,16 +131,24 @@ func (h *Handlers) GetRolesById(w http.ResponseWriter, r *http.Request, id strin
 		h.rbacError(w, r, err)
 		return
 	}
-	writeJSON(w, 200, roleView(*v))
+	writeJSON(w, 200, h.roleDetail(r, *v))
 }
 func readRole(r *http.Request, role *store.Role, create bool) error {
+	_, err := readRoleBody(r, role, create)
+	return err
+}
+
+// readRoleBody is readRole that also returns my_organization_visible (a
+// local extension on PATCH, LR42b-2), nil when absent.
+func readRoleBody(r *http.Request, role *store.Role, create bool) (*bool, error) {
+	var visible *bool
 	body, err := decodeObject(r)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if create {
 		if _, ok := body["name"]; !ok {
-			return badBody("name is required")
+			return nil, badBody("name is required")
 		}
 	}
 	for k, raw := range body {
@@ -149,23 +157,33 @@ func readRole(r *http.Request, role *store.Role, create bool) error {
 			err = decodeString(raw, &role.Name)
 		case "description":
 			err = decodeString(raw, &role.Description)
+		case "my_organization_visible":
+			if create {
+				return nil, badBody("unknown property %q", k)
+			}
+			var v bool
+			if e := decodeStrict(raw, &v); e != nil {
+				return nil, badBody("my_organization_visible must be a boolean")
+			}
+			visible = &v
+			continue
 		case "type":
 			var v string
 			err = decodeString(raw, &v)
 			if !create || v != "tenant" {
-				return badBody("only tenant roles are supported")
+				return nil, badBody("only tenant roles are supported")
 			}
 		default:
-			return badBody("unknown property %q", k)
+			return nil, badBody("unknown property %q", k)
 		}
 		if err != nil {
-			return badBody("%s must be a string", k)
+			return nil, badBody("%s must be a string", k)
 		}
 	}
 	if errs := rbacrules.NormalizeRole(role); len(errs) > 0 {
-		return badBody("%v", errors.Join(errs...))
+		return nil, badBody("%v", errors.Join(errs...))
 	}
-	return nil
+	return visible, nil
 }
 func (h *Handlers) PostRoles(w http.ResponseWriter, r *http.Request) {
 	role := &store.Role{TenantID: resolved(r).ID, ID: "rol_" + secrets.RandomString(18)}
@@ -187,11 +205,24 @@ func (h *Handlers) PatchRolesById(w http.ResponseWriter, r *http.Request, id str
 		if err != nil {
 			return err
 		}
-		if err := readRole(r, role, false); err != nil {
+		visible, err := readRoleBody(r, role, false)
+		if err != nil {
 			return err
 		}
 		if err := tx.RBAC().UpdateRole(r.Context(), role); err != nil {
 			return err
+		}
+		if visible != nil {
+			repo, err := store.MyOrg(r.Context(), tx)
+			if errors.Is(err, store.ErrMyOrgUnavailable) {
+				return errMyOrgUnavailable
+			}
+			if err != nil {
+				return err
+			}
+			if err := repo.SetMyOrgRoleVisible(r.Context(), role.TenantID, role.ID, *visible); err != nil {
+				return err
+			}
 		}
 		out = role
 		return nil
@@ -201,7 +232,7 @@ func (h *Handlers) PatchRolesById(w http.ResponseWriter, r *http.Request, id str
 		return
 	}
 	logDetails(r, "update role", "id", id)
-	writeJSON(w, 200, roleView(*out))
+	writeJSON(w, 200, h.roleDetail(r, *out))
 }
 func (h *Handlers) DeleteRolesById(w http.ResponseWriter, r *http.Request, id string) {
 	if err := h.Store.RBAC().DeleteRole(r.Context(), resolved(r).ID, id); err != nil {
@@ -322,4 +353,20 @@ func (h *Handlers) PostRoleUsers(w http.ResponseWriter, r *http.Request, id stri
 	}
 	logDetails(r, "assign role users", "id", id)
 	w.WriteHeader(200)
+}
+
+// roleDetail is roleView with my_organization_visible (LR42b-2) when the
+// store keeps My Organization settings.
+func (h *Handlers) roleDetail(r *http.Request, v store.Role) map[string]any {
+	out := roleView(v)
+	repo, err := store.MyOrg(r.Context(), h.Store)
+	if err != nil {
+		return out
+	}
+	ids, err := repo.ListMyOrgVisibleRoles(r.Context(), v.TenantID)
+	if err != nil {
+		return out
+	}
+	out["my_organization_visible"] = slices.Contains(ids, v.ID)
+	return out
 }

@@ -13,6 +13,7 @@ export default defineConfig({
     ...(process.env.E2E_M37B === '1' ? [] : ['m37b-wsfed.spec.mjs']),
     ...(process.env.E2E_M38A === '1' ? [] : ['m38a-ad.spec.mjs']),
     ...(process.env.E2E_M42A === '1' ? [] : ['m42a-my-account.spec.mjs']),
+    ...(process.env.E2E_M42B === '1' ? [] : ['m42b-my-org.spec.mjs']),
     ...(process.env.E2E_M39A === '1' ? [] : ['m39a-apple.spec.mjs']),
     ...(process.env.E2E_M39C === '1' ? [] : ['m39c-github.spec.mjs']),
   ],

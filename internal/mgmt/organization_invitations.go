@@ -3,14 +3,13 @@ package mgmt
 import (
 	"encoding/json"
 	"errors"
+	"github.com/zeroauthy/zeroauthy/internal/orginvite"
 	"net/http"
-	"net/url"
 	"slices"
 	"strings"
 	"unicode/utf8"
 
 	"github.com/zeroauthy/zeroauthy/internal/actions"
-	"github.com/zeroauthy/zeroauthy/internal/customdomain"
 	"github.com/zeroauthy/zeroauthy/internal/identity"
 	"github.com/zeroauthy/zeroauthy/internal/orglogin"
 	"github.com/zeroauthy/zeroauthy/internal/orgrules"
@@ -151,73 +150,16 @@ func (h *Handlers) CreateOrganizationInvitation(w http.ResponseWriter, r *http.R
 	in.ExpiresAt = in.CreatedAt.Add(lifetime)
 	var ticket orglogin.InvitationTicket
 	err = h.Store.WithTx(r.Context(), func(tx store.Store) error {
-		org, err := invitationOrg(r, tx, id)
-		if err != nil {
+		if _, err := invitationOrg(r, tx, id); err != nil {
 			return err
 		}
-		client, err := tx.Clients().Get(r.Context(), in.TenantID, in.ClientID)
-		if err != nil {
-			return err
+		var err error
+		ticket, err = orginvite.Issuer{Wrapper: h.Wrapper, Actions: h.Actions}.Issue(r.Context(), tx, in, r.Header.Get(CustomDomainHeader))
+		var ie *orginvite.Error
+		if errors.As(err, &ie) {
+			return &Error{Status: ie.Status, Code: ie.Code, Message: ie.Message}
 		}
-		if in.ConnectionID != "" {
-			if _, err = tx.Connections().Get(r.Context(), in.TenantID, in.ConnectionID); err != nil {
-				return err
-			}
-		}
-		for _, role := range in.Roles {
-			if _, err = tx.RBAC().GetRole(r.Context(), in.TenantID, role); err != nil {
-				return err
-			}
-		}
-		tn, err := tx.Tenants().Get(r.Context(), in.TenantID)
-		if err != nil {
-			return err
-		}
-		uri := client.InitiateLoginURI
-		if uri == "" {
-			uri, _ = tn.SettingsExtra["default_redirection_uri"].(string)
-		}
-		// A custom-domain header is always validated against this tenant; the app
-		// login route itself remains the configured application URL.
-		notificationHost, err := customdomain.SelectNotificationOrigin(r.Context(), tx, in.TenantID, r.Header.Get(CustomDomainHeader))
-		if err != nil {
-			return &Error{Status: 503, Code: "custom_domain_unavailable", Message: "The selected custom domain is unavailable"}
-		}
-		if u, e := url.Parse(uri); e == nil && u.Host != "" {
-			if d, e := tx.CustomDomains().GetHost(r.Context(), u.Hostname()); e == nil {
-				if d.TenantID != in.TenantID {
-					return badBody("login URI belongs to another tenant")
-				}
-				if _, e = customdomain.SelectNotificationOrigin(r.Context(), tx, in.TenantID, u.Host); e != nil {
-					return badBody("login URI custom domain is unavailable")
-				}
-			} else if !errors.Is(e, store.ErrNotFound) {
-				return e
-			}
-		}
-		ticket, err = orglogin.IssueInvitationTicket(h.Wrapper, in, uri, org.Name)
-		if err != nil {
-			return badBody("a valid HTTPS application or tenant login URI is required")
-		}
-		send := in.SendInvitationEmail
-		tmpl, err := tx.EmailTemplates().Get(r.Context(), in.TenantID, "user_invitation")
-		if err == nil {
-			if enabled, ok := tmpl.Fields["enabled"].(bool); ok && !enabled {
-				send = false
-			}
-		} else if !errors.Is(err, store.ErrNotFound) {
-			return err
-		}
-		if err = tx.OrganizationsII().CreateInvitation(r.Context(), in); err != nil {
-			return err
-		}
-		if send {
-			if h.Actions == nil {
-				return &Error{Status: 503, Code: "email_service_unavailable", Message: "Invitation delivery is unavailable"}
-			}
-			return h.Actions.EnqueueInvitation(r.Context(), tx, actions.InvitationDelivery{TenantID: in.TenantID, OrganizationID: id, InvitationID: in.ID, ClientID: in.ClientID, OrganizationName: org.Name, OrganizationDisplayName: org.DisplayName, ApplicationName: client.Name, InviterName: in.InviterName, NotificationHost: notificationHost, Language: invitationLanguage(tn), TenantName: tn.Name, TenantFriendlyName: tn.FriendlyName, TenantSupportEmail: tn.SupportEmail, TenantSupportURL: tn.SupportURL, OrganizationBranding: org.Branding, OrganizationMetadata: org.Metadata})
-		}
-		return nil
+		return err
 	})
 	if err != nil {
 		h.orgIIError(w, r, err)
@@ -370,13 +312,6 @@ func (h *Handlers) ListOrganizationInvitations(w http.ResponseWriter, r *http.Re
 		return
 	}
 	writeJSON(w, 200, items)
-}
-
-func invitationLanguage(tn *store.Tenant) string {
-	if len(tn.EnabledLocales) > 0 {
-		return tn.EnabledLocales[0]
-	}
-	return "en"
 }
 
 var invitationFields = []string{"id", "organization_id", "inviter", "invitee", "created_at", "expires_at", "client_id", "connection_id", "roles", "ticket_id", "invitation_url", "user_metadata", "app_metadata"}

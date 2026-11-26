@@ -497,7 +497,7 @@ export class Api {
   createRole(t: SystemTenant, body: { name: string; description: string }): Promise<Role> {
     return this.tenantRequest(t, 'POST', '/api/v2/roles', { body })
   }
-  updateRole(t: SystemTenant, id: string, body: { name?: string; description?: string }): Promise<Role> {
+  updateRole(t: SystemTenant, id: string, body: { name?: string; description?: string; my_organization_visible?: boolean }): Promise<Role> {
     return this.tenantRequest(t, 'PATCH', '/api/v2/roles/' + encodeURIComponent(id), { body })
   }
   deleteRole(t: SystemTenant, id: string): Promise<void> {
@@ -968,6 +968,10 @@ export class Api {
   // pick from, and the grants for one API or application.
   async allResourceServers(t: SystemTenant): Promise<ResourceServer[]> {
     return collect((page) => this.listResourceServers(t, { page, per_page: ALL_PER_PAGE }).then((r) => ({ items: r.resource_servers, total: r.total })))
+  }
+
+  async allClients(t: SystemTenant): Promise<Client[]> {
+    return collect((page) => this.listClients(t, { page, per_page: ALL_PER_PAGE }).then((r) => ({ items: r.clients, total: r.total })))
   }
 
   async allMachineClients(t: SystemTenant): Promise<Client[]> {

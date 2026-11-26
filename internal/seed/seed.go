@@ -53,11 +53,13 @@ type Tenant struct {
 	PhoneTemplates []SeedPhoneTemplate `yaml:"phone_templates"`
 	Guardian       *Guardian           `yaml:"guardian"`
 	// MyAccountAPI activates the My Account API (Plan 42a, LR42a-7).
-	MyAccountAPI *MyAccountAPI    `yaml:"my_account_api"`
-	EventStreams []map[string]any `yaml:"event_streams"`
-	LogStreams   []map[string]any `yaml:"log_streams"`
-	Modules      []ActionModule   `yaml:"modules"`
-	Actions      []Action         `yaml:"actions"`
+	MyAccountAPI *MyAccountAPI `yaml:"my_account_api"`
+	// MyOrganizationAPI activates the My Organization API (Plan 42b).
+	MyOrganizationAPI *MyAccountAPI    `yaml:"my_organization_api"`
+	EventStreams      []map[string]any `yaml:"event_streams"`
+	LogStreams        []map[string]any `yaml:"log_streams"`
+	Modules           []ActionModule   `yaml:"modules"`
+	Actions           []Action         `yaml:"actions"`
 	// TokenExchangeProfiles bind a subject_token_type to a custom token
 	// exchange Action by name. They are applied after the Actions, so they
 	// need ApplyWithActions.
@@ -134,6 +136,9 @@ type Role struct {
 	Name        string           `yaml:"name"`
 	Description string           `yaml:"description"`
 	Permissions []RolePermission `yaml:"permissions"`
+	// MyOrganizationVisible lets organization administrators assign the
+	// role through the My Organization API (Plan 42b, LR42b-2).
+	MyOrganizationVisible bool `yaml:"my_organization_visible"`
 }
 type RolePermission struct {
 	ResourceServerIdentifier string `yaml:"resource_server_identifier"`
@@ -198,20 +203,22 @@ type Scope struct {
 }
 
 type Client struct {
-	OIDCLogout               map[string]any    `yaml:"oidc_logout"`
-	Addons                   map[string]any    `yaml:"addons"`
-	ClientAliases            []string          `yaml:"client_aliases"`
-	FormTemplate             string            `yaml:"form_template"`
-	OIDCSupport              map[string]any    `yaml:"oidc_support"`
-	JWTConfiguration         *JWTConfiguration `yaml:"jwt_configuration"`
-	oidcLogout               *store.OIDCLogout
-	addons                   *store.ClientAddons
-	oidcSupport              *store.OIDCSupport
-	TokenQuota               map[string]any `yaml:"token_quota"`
-	RequireProofOfPossession bool           `yaml:"require_proof_of_possession"`
-	ClientID                 string         `yaml:"client_id"`
-	Name                     string         `yaml:"name"`
-	AppType                  string         `yaml:"app_type"`
+	// MyOrganizationConfiguration is my_organization_configuration (Plan 42b).
+	MyOrganizationConfiguration map[string]any    `yaml:"my_organization_configuration"`
+	OIDCLogout                  map[string]any    `yaml:"oidc_logout"`
+	Addons                      map[string]any    `yaml:"addons"`
+	ClientAliases               []string          `yaml:"client_aliases"`
+	FormTemplate                string            `yaml:"form_template"`
+	OIDCSupport                 map[string]any    `yaml:"oidc_support"`
+	JWTConfiguration            *JWTConfiguration `yaml:"jwt_configuration"`
+	oidcLogout                  *store.OIDCLogout
+	addons                      *store.ClientAddons
+	oidcSupport                 *store.OIDCSupport
+	TokenQuota                  map[string]any `yaml:"token_quota"`
+	RequireProofOfPossession    bool           `yaml:"require_proof_of_possession"`
+	ClientID                    string         `yaml:"client_id"`
+	Name                        string         `yaml:"name"`
+	AppType                     string         `yaml:"app_type"`
 	// ClientSecret is plaintext in the seed file and sealed under the master
 	// key when applied (D-0038). Protect seed files like any other credential
 	// store. A confidential client may omit it once it exists: its stored

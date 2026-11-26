@@ -141,6 +141,11 @@ service StoreService {
   // args/result are JSON (see internal/store/grpcstore/adhub.go).
   rpc ADHubCapabilities(PingRequest) returns (EventsCapabilitiesResult);
   rpc ADHubCall(ADHubCallRequest) returns (ADHubCallResult);
+  // my_org.v1 (Plan 42b): applications' My Organization configurations and
+  // the roles visible to the My Organization API. MyOrgCall invokes one
+  // store.MyOrgStore method (see internal/store/grpcstore/myorg.go).
+  rpc MyOrgCapabilities(PingRequest) returns (EventsCapabilitiesResult);
+  rpc MyOrgCall(MyOrgCallRequest) returns (MyOrgCallResult);
   rpc SAMLSessionParticipant(SAMLParticipantWrite) returns (Result);
   rpc SAMLReplayUse(GlobalRevocationJTIRequest) returns (Result); // connection_id + jti = assertion ID
   rpc SAMLReplayPurge(ClientCredentialsPurgeRequest) returns (CountResult);
@@ -1941,6 +1946,19 @@ message ADHubCallRequest {
 
 // ADHubCallResult is a store.ADHubStore method's outcome.
 message ADHubCallResult {
+  Error error = 1;
+  bytes result = 2; // JSON of the method's results
+}
+
+// MyOrgCallRequest invokes a store.MyOrgStore method (my_org.v1, Plan 42b).
+message MyOrgCallRequest {
+  string tx_id = 1;
+  string method = 2;
+  bytes args = 3; // JSON object of the method's parameters
+}
+
+// MyOrgCallResult is a store.MyOrgStore method's outcome.
+message MyOrgCallResult {
   Error error = 1;
   bytes result = 2; // JSON of the method's results
 }

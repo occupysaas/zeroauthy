@@ -782,3 +782,24 @@ func TestDecoratorForwardsADHub(t *testing.T) {
 		t.Fatalf("find through the decorator: %v %v", p, err)
 	}
 }
+
+// The decorator forwards the My Organization store (Plan 42b), also inside
+// transactions.
+func TestDecoratorForwardsMyOrg(t *testing.T) {
+	ctx := context.Background()
+	s := events.Wrap(memory.New(), events.Config{})
+	err := s.WithTx(ctx, func(tx store.Store) error {
+		repo, err := store.MyOrg(ctx, tx)
+		if err != nil {
+			t.Fatalf("%T hides MyOrgStore: %v", tx, err)
+		}
+		_, err = repo.ListMyOrgVisibleRoles(ctx, "t")
+		return err
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := store.MyOrg(ctx, s); err != nil {
+		t.Fatal(err)
+	}
+}

@@ -320,3 +320,16 @@ See [AD/LDAP](../ad-ldap.md) and the [implementation record](../superpowers/2026
 | Not served | Connected accounts (Plan 43), consents, consent signing keys, profile. |
 
 Verified with `@auth0/auth0-spa-js` 2.28.3 in Chromium with a virtual authenticator. See [My Account API](../my-account-api.md), D-0210 and the [implementation record](../superpowers/2026-11-16-plan-42a-implementation-record.md).
+
+## Plan 42b My Organization API (Phase A)
+
+| Surface | Behavior |
+| --- | --- |
+| Activation | The system API `https://{canonical host}/my-org/` (`My Organization API`, user `require_client_grant`, client `deny_all`, RBAC on, 600 s tokens), from the console, `POST /resource-servers` or the seed; deleting it deactivates. |
+| Tokens | Audience per host; an organization is required (`org_id`); scopes are the user's organization-role permissions on the API within the client grant; ID token claim `urn:auth0:my_org_current_user_permissions`; client credentials refused. |
+| Applications | `my_organization_configuration` on clients (Management API, console, seed); without it the API answers 403. |
+| Roles | `my_organization_visible` on `PATCH/GET /roles/{id}` (local extension) selects the roles administrators may list and assign; permission ceiling and self-assignment restriction from the application's configuration; last-admin guard (409). |
+| Operations | Config, details, members (checkpoint paging, totals capped at 1000, roles gated by scope), member detail, membership removal, member roles, roles, invitations (≤ 10, user store or identity provider, revoke earlier), user stores. |
+| Not served | Domains, identity providers, provisioning, SCIM tokens (Phase B). |
+
+Verified with `@auth0/auth0-spa-js` 2.28.3 organization logins in Chromium. See [My Organization API](../my-organization-api.md), D-0220 and the [implementation record](../superpowers/2026-11-16-plan-42b-implementation-record.md).

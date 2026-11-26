@@ -1,0 +1,630 @@
+# api/myorg.yaml
+openapi: 3.1.0
+info:
+  title: zeroauthy My Organization API
+  version: 0.1.0
+  summary: Organization administrators manage their own organization (Plan 42b Phase A, D-0220).
+  description: |
+    Each tenant host serves the My Organization API at `https://{host}/my-org/v1`
+    once the tenant has activated it (the system API `https://{canonical
+    host}/my-org/` exists). Calls carry a user access token for
+    `https://{host}/my-org/`, issued on the host being called, for a login
+    in an organization: every operation acts on the token's `org_id`; no path
+    or body names an organization. Permissions are `my_org` scopes the user
+    holds through organization member roles, within the application's client
+    grant. The application needs a `my_organization_configuration`.
+
+    Phase A: configuration, details, members, memberships, member roles,
+    roles, invitations and user stores. Phase B (domains, identity
+    providers, provisioning) is not served yet. Auth0 marks the whole API
+    Early Access; this contract follows its OpenAPI 1.0.0 (D-0220).
+    zeroauthy is a clean-room implementation; see `CLEAN_ROOM.md`.
+  license:
+    name: Apache-2.0
+    identifier: Apache-2.0
+servers:
+- url: https://{host}/my-org/v1
+  variables:
+    host:
+      default: tenant.example.com
+      description: The canonical host or a custom domain of the tenant.
+security:
+- myOrgToken: []
+paths:
+  /config:
+    get:
+      operationId: GetMyOrgConfiguration
+      summary: The application's My Organization configuration
+      x-source: &src
+      - https://auth0.com/docs/oas/myorganization/myorganization-api-oas.json
+      - https://auth0.com/docs/manage-users/my-organization-api
+      security:
+      - myOrgToken: [read:my_org:configuration]
+      responses:
+        '200':
+          description: Configuration.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Configuration'
+        '401': {$ref: '#/components/responses/Problem'}
+        '403': {$ref: '#/components/responses/Problem'}
+        '404': {$ref: '#/components/responses/Problem'}
+  /details:
+    get:
+      operationId: GetMyOrgDetails
+      summary: The organization's details
+      x-source: *src
+      security:
+      - myOrgToken: [read:my_org:details]
+      responses:
+        '200':
+          description: Details.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/OrgDetails'}
+        '401': {$ref: '#/components/responses/Problem'}
+        '403': {$ref: '#/components/responses/Problem'}
+        '404': {$ref: '#/components/responses/Problem'}
+    patch:
+      operationId: UpdateMyOrgDetails
+      summary: Update the organization's details
+      description: '`name`, `display_name`, `branding` and `third_party_client_access` (within the application''s allowed values).'
+      x-source: *src
+      security:
+      - myOrgToken: [update:my_org:details]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/OrgDetails'}
+      responses:
+        '200':
+          description: Details.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/OrgDetails'}
+        '400': {$ref: '#/components/responses/Problem'}
+        '401': {$ref: '#/components/responses/Problem'}
+        '403': {$ref: '#/components/responses/Problem'}
+        '404': {$ref: '#/components/responses/Problem'}
+  /members:
+    get:
+      operationId: ListMyOrgMembers
+      summary: List the organization's members
+      description: '`roles` (at most 10 per member) is included only when the token also carries `read:my_org:member_roles`.'
+      x-source: *src
+      security:
+      - myOrgToken: [read:my_org:members]
+      parameters:
+      - {$ref: '#/components/parameters/Fields'}
+      - {$ref: '#/components/parameters/IncludeFields'}
+      - {$ref: '#/components/parameters/From'}
+      - {$ref: '#/components/parameters/Take'}
+      - {$ref: '#/components/parameters/IncludeTotals'}
+      responses:
+        '200':
+          description: Members.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  members:
+                    type: array
+                    items: {$ref: '#/components/schemas/Member'}
+                  next: {type: string}
+                  total: {type: integer}
+                  total_is_capped: {type: boolean}
+        '400': {$ref: '#/components/responses/Problem'}
+        '401': {$ref: '#/components/responses/Problem'}
+        '403': {$ref: '#/components/responses/Problem'}
+        '404': {$ref: '#/components/responses/Problem'}
+  /members/{user_id}:
+    get:
+      operationId: GetMyOrgMember
+      summary: One member
+      x-source: *src
+      security:
+      - myOrgToken: [read:my_org:members]
+      parameters:
+      - {$ref: '#/components/parameters/UserID'}
+      - {$ref: '#/components/parameters/Fields'}
+      - {$ref: '#/components/parameters/IncludeFields'}
+      responses:
+        '200':
+          description: Member.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Member'}
+        '400': {$ref: '#/components/responses/Problem'}
+        '401': {$ref: '#/components/responses/Problem'}
+        '403': {$ref: '#/components/responses/Problem'}
+        '404': {$ref: '#/components/responses/Problem'}
+  /delete-memberships:
+    post:
+      operationId: DeleteMyOrgMemberships
+      summary: Remove a member from the organization (the user stays)
+      x-source: *src
+      security:
+      - myOrgToken: [delete:my_org:memberships]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [members]
+              properties:
+                members:
+                  type: array
+                  minItems: 1
+                  maxItems: 1
+                  uniqueItems: true
+                  items: {$ref: '#/components/schemas/UserID'}
+      responses:
+        '204': {description: Removed.}
+        '400': {$ref: '#/components/responses/Problem'}
+        '401': {$ref: '#/components/responses/Problem'}
+        '403': {$ref: '#/components/responses/Problem'}
+        '404': {$ref: '#/components/responses/Problem'}
+        '409': {$ref: '#/components/responses/Problem'}
+  /members/{user_id}/roles:
+    get:
+      operationId: ListMyOrgMemberRoles
+      summary: A member's roles in the organization
+      x-source: *src
+      security:
+      - myOrgToken: [read:my_org:member_roles]
+      parameters:
+      - {$ref: '#/components/parameters/UserID'}
+      - {$ref: '#/components/parameters/From'}
+      - {$ref: '#/components/parameters/Take'}
+      responses:
+        '200':
+          description: Roles.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/RolePage'}
+        '400': {$ref: '#/components/responses/Problem'}
+        '401': {$ref: '#/components/responses/Problem'}
+        '403': {$ref: '#/components/responses/Problem'}
+        '404': {$ref: '#/components/responses/Problem'}
+    post:
+      operationId: AssignMyOrgMemberRoles
+      summary: Assign roles to a member
+      description: Only roles visible to the API; the application's `enforce_permission_ceiling` and `enforce_self_assignment_restriction` apply.
+      x-source: *src
+      security:
+      - myOrgToken: [create:my_org:member_roles]
+      parameters:
+      - {$ref: '#/components/parameters/UserID'}
+      requestBody: {$ref: '#/components/requestBodies/RoleChange'}
+      responses:
+        '204': {description: Assigned.}
+        '400': {$ref: '#/components/responses/Problem'}
+        '401': {$ref: '#/components/responses/Problem'}
+        '403': {$ref: '#/components/responses/Problem'}
+        '404': {$ref: '#/components/responses/Problem'}
+  /members/{user_id}/unassign-roles:
+    post:
+      operationId: UnassignMyOrgMemberRoles
+      summary: Remove roles from a member
+      description: Removing the organization's last role holding `my_org` permissions answers `409`.
+      x-source: *src
+      security:
+      - myOrgToken: [delete:my_org:member_roles]
+      parameters:
+      - {$ref: '#/components/parameters/UserID'}
+      requestBody: {$ref: '#/components/requestBodies/RoleChange'}
+      responses:
+        '204': {description: Removed.}
+        '400': {$ref: '#/components/responses/Problem'}
+        '401': {$ref: '#/components/responses/Problem'}
+        '403': {$ref: '#/components/responses/Problem'}
+        '404': {$ref: '#/components/responses/Problem'}
+        '409': {$ref: '#/components/responses/Problem'}
+  /roles:
+    get:
+      operationId: ListMyOrgRoles
+      summary: Roles the operator made visible to the API
+      x-source: *src
+      security:
+      - myOrgToken: [read:my_org:member_roles]
+      parameters:
+      - {$ref: '#/components/parameters/From'}
+      - {$ref: '#/components/parameters/Take'}
+      - name: name
+        in: query
+        description: Case-insensitive name filter.
+        schema: {type: string, minLength: 1, maxLength: 300}
+      responses:
+        '200':
+          description: Roles.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/RolePage'}
+        '400': {$ref: '#/components/responses/Problem'}
+        '401': {$ref: '#/components/responses/Problem'}
+        '403': {$ref: '#/components/responses/Problem'}
+  /member-invitations:
+    get:
+      operationId: ListMyOrgInvitations
+      summary: Pending invitations
+      x-source: *src
+      security:
+      - myOrgToken: [read:my_org:member_invitations]
+      parameters:
+      - {$ref: '#/components/parameters/Fields'}
+      - {$ref: '#/components/parameters/IncludeFields'}
+      - {$ref: '#/components/parameters/From'}
+      - {$ref: '#/components/parameters/Take'}
+      - name: sort
+        in: query
+        schema: {type: string, pattern: '^created_at:(1|-1)$', default: 'created_at:-1'}
+      - {$ref: '#/components/parameters/IncludeTotals'}
+      responses:
+        '200':
+          description: Invitations.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  invitations:
+                    type: array
+                    items: {$ref: '#/components/schemas/Invitation'}
+                  next: {type: string}
+                  total: {type: integer}
+                  total_is_capped: {type: boolean}
+        '400': {$ref: '#/components/responses/Problem'}
+        '401': {$ref: '#/components/responses/Problem'}
+        '403': {$ref: '#/components/responses/Problem'}
+        '404': {$ref: '#/components/responses/Problem'}
+    post:
+      operationId: CreateMyOrgInvitations
+      summary: Invite up to ten people
+      description: A new invitation for an email revokes its earlier pending ones. The landing application is the configuration's `invitation_landing_client_id`; roles must be visible to the API.
+      x-source: *src
+      security:
+      - myOrgToken: [create:my_org:member_invitations]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [invitees]
+              properties:
+                invitees:
+                  type: array
+                  minItems: 1
+                  maxItems: 10
+                  items:
+                    type: object
+                    additionalProperties: false
+                    required: [email]
+                    properties:
+                      email: {type: string, format: email, minLength: 1, maxLength: 320}
+                      roles:
+                        type: array
+                        maxItems: 10
+                        uniqueItems: true
+                        items: {$ref: '#/components/schemas/RoleID'}
+                inviter:
+                  type: object
+                  additionalProperties: false
+                  properties:
+                    name: {type: string, minLength: 1, maxLength: 300}
+                identity_provider_id: {type: string, pattern: '^con_[A-Za-z0-9]+$'}
+                user_store_id: {type: string, pattern: '^con_[A-Za-z0-9]+$'}
+                ttl_sec: {type: integer, minimum: 0, maximum: 2592000, default: 604800}
+      responses:
+        '201':
+          description: The invitations.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {$ref: '#/components/schemas/Invitation'}
+        '400': {$ref: '#/components/responses/Problem'}
+        '401': {$ref: '#/components/responses/Problem'}
+        '403': {$ref: '#/components/responses/Problem'}
+        '404': {$ref: '#/components/responses/Problem'}
+  /member-invitations/{invitation_id}:
+    get:
+      operationId: GetMyOrgInvitation
+      summary: One invitation
+      x-source: *src
+      security:
+      - myOrgToken: [read:my_org:member_invitations]
+      parameters:
+      - {$ref: '#/components/parameters/InvitationID'}
+      - {$ref: '#/components/parameters/Fields'}
+      - {$ref: '#/components/parameters/IncludeFields'}
+      responses:
+        '200':
+          description: Invitation.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Invitation'}
+        '400': {$ref: '#/components/responses/Problem'}
+        '401': {$ref: '#/components/responses/Problem'}
+        '403': {$ref: '#/components/responses/Problem'}
+        '404': {$ref: '#/components/responses/Problem'}
+  /member-invitations/{invitation_id}/roles:
+    get:
+      operationId: ListMyOrgInvitationRoles
+      summary: The roles an invitation grants
+      x-source: *src
+      security:
+      - myOrgToken: [read:my_org:member_roles]
+      parameters:
+      - {$ref: '#/components/parameters/InvitationID'}
+      responses:
+        '200':
+          description: Roles.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [roles]
+                properties:
+                  roles:
+                    type: array
+                    items: {$ref: '#/components/schemas/Role'}
+        '400': {$ref: '#/components/responses/Problem'}
+        '401': {$ref: '#/components/responses/Problem'}
+        '403': {$ref: '#/components/responses/Problem'}
+        '404': {$ref: '#/components/responses/Problem'}
+  /delete-member-invitations:
+    post:
+      operationId: DeleteMyOrgInvitations
+      summary: Revoke invitations
+      x-source: *src
+      security:
+      - myOrgToken: [delete:my_org:member_invitations]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [invitations]
+              properties:
+                invitations:
+                  type: array
+                  minItems: 1
+                  maxItems: 10
+                  uniqueItems: true
+                  items: {type: string, maxLength: 100}
+      responses:
+        '204': {description: Revoked.}
+        '400': {$ref: '#/components/responses/Problem'}
+        '401': {$ref: '#/components/responses/Problem'}
+        '403': {$ref: '#/components/responses/Problem'}
+        '404': {$ref: '#/components/responses/Problem'}
+  /user-stores:
+    get:
+      operationId: ListMyOrgUserStores
+      summary: The organization's database connections, for invitations
+      x-source: *src
+      security:
+      - myOrgToken: [read:my_org:user_stores]
+      responses:
+        '200':
+          description: User stores.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [user_stores]
+                properties:
+                  user_stores:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: {type: string}
+                        name: {type: string}
+                        display_name: {type: string}
+                        access_level: {type: string, enum: [none, readonly, limited, full]}
+                        is_enabled: {type: boolean}
+        '401': {$ref: '#/components/responses/Problem'}
+        '403': {$ref: '#/components/responses/Problem'}
+        '404': {$ref: '#/components/responses/Problem'}
+components:
+  securitySchemes:
+    myOrgToken:
+      type: http
+      scheme: bearer
+      description: A user access token for `https://{host}/my-org/` with `org_id`, issued on the host being called.
+  parameters:
+    Fields:
+      name: fields
+      in: query
+      schema: {type: string, minLength: 1, maxLength: 255}
+    IncludeFields:
+      name: include_fields
+      in: query
+      schema: {type: boolean, default: true}
+    From:
+      name: from
+      in: query
+      description: Opaque cursor from a previous page's `next`.
+      schema: {type: string, minLength: 1, maxLength: 1000}
+    Take:
+      name: take
+      in: query
+      schema: {type: integer, minimum: 1, maximum: 100, default: 50}
+    IncludeTotals:
+      name: include_totals
+      in: query
+      description: Adds `total` (capped at 1000) and `total_is_capped`.
+      schema: {type: boolean, default: false}
+    UserID:
+      name: user_id
+      in: path
+      required: true
+      schema: {$ref: '#/components/schemas/UserID'}
+    InvitationID:
+      name: invitation_id
+      in: path
+      required: true
+      schema: {type: string, maxLength: 100}
+  requestBodies:
+    RoleChange:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            additionalProperties: false
+            required: [role_ids]
+            properties:
+              role_ids:
+                type: array
+                minItems: 1
+                maxItems: 10
+                uniqueItems: true
+                items: {$ref: '#/components/schemas/RoleID'}
+  responses:
+    Problem:
+      description: An error.
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/ErrorResponse'}
+  schemas:
+    UserID:
+      type: string
+      minLength: 3
+      maxLength: 1024
+      pattern: '^.+\|.+$'
+    RoleID:
+      type: string
+      pattern: '^rol_[A-Za-z0-9_]+$'
+    Role:
+      type: object
+      additionalProperties: false
+      required: [id, name]
+      properties:
+        id: {$ref: '#/components/schemas/RoleID'}
+        name: {type: string}
+        description: {type: string}
+    RolePage:
+      type: object
+      additionalProperties: false
+      required: [roles]
+      properties:
+        roles:
+          type: array
+          items: {$ref: '#/components/schemas/Role'}
+        next: {type: string}
+    Configuration:
+      type: object
+      additionalProperties: false
+      properties:
+        allowed_strategies:
+          type: array
+          items: {type: string, enum: [adfs, google-apps, oidc, okta, pingfederate, samlp, waad]}
+        connection_deletion_behavior: {type: string, enum: [allow, allow_if_empty]}
+        organization_deletion_behavior: {type: string, enum: [allow, allow_if_empty]}
+        third_party_client_access:
+          type: object
+          additionalProperties: false
+          required: [default_value, allowed_values]
+          properties:
+            default_value: {type: string, enum: [allow, block]}
+            allowed_values:
+              type: array
+              minItems: 1
+              items: {type: string, enum: [allow, block]}
+    OrgDetails:
+      type: object
+      additionalProperties: false
+      minProperties: 1
+      properties:
+        id: {type: string, readOnly: true}
+        name: {type: string, minLength: 1, maxLength: 50}
+        display_name: {type: string, minLength: 1, maxLength: 255}
+        branding:
+          type: object
+          additionalProperties: false
+          properties:
+            logo_url: {type: ['string', 'null'], format: uri, pattern: '^https://.*'}
+            colors:
+              type: object
+              additionalProperties: false
+              required: [primary, page_background]
+              properties:
+                primary: {type: string, pattern: '^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$'}
+                page_background: {type: string, pattern: '^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$'}
+        third_party_client_access: {type: string, enum: [allow, block]}
+    Member:
+      type: object
+      properties:
+        user_id: {type: string}
+        email: {type: string}
+        name: {type: string}
+        nickname: {type: string}
+        given_name: {type: string}
+        family_name: {type: string}
+        phone_number: {type: string}
+        created_at: {type: string, format: date-time}
+        updated_at: {type: string, format: date-time}
+        last_login: {type: string, format: date-time}
+        roles:
+          type: array
+          maxItems: 10
+          items: {$ref: '#/components/schemas/Role'}
+    Invitation:
+      type: object
+      additionalProperties: false
+      properties:
+        id: {type: string}
+        organization_id: {type: string}
+        inviter:
+          type: object
+          properties:
+            name: {type: string}
+        invitee:
+          type: object
+          properties:
+            email: {type: string}
+        identity_provider_id: {type: string}
+        user_store_id: {type: string}
+        created_at: {type: string, format: date-time}
+        expires_at: {type: string, format: date-time}
+        roles:
+          type: array
+          items: {$ref: '#/components/schemas/RoleID'}
+        invitation_url: {type: string, format: uri}
+        ticket_id: {type: string}
+    ValidationError:
+      type: object
+      additionalProperties: false
+      required: [detail]
+      properties:
+        detail: {type: string}
+        field: {type: string}
+        pointer: {type: string}
+        source: {type: string}
+    ErrorResponse:
+      type: object
+      additionalProperties: false
+      required: [type, status, title]
+      properties:
+        type: {type: string}
+        status: {type: integer}
+        title: {type: string}
+        detail: {type: string}
+        validation_errors:
+          type: array
+          items: {$ref: '#/components/schemas/ValidationError'}

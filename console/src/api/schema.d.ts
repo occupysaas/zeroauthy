@@ -9134,6 +9134,8 @@ export interface components {
             id: string;
             name: string;
             description: string;
+            /** @description Local extension (Plan 42b, LR42b-2), on GET and PATCH /roles/{id} only, when the My Organization API's storage is available. Organization administrators may list and assign the role through the My Organization API. */
+            my_organization_visible?: boolean;
         };
         RoleCreate: {
             name: string;
@@ -9144,6 +9146,8 @@ export interface components {
         RoleUpdate: {
             name?: string;
             description?: string;
+            /** @description Local extension (Plan 42b, LR42b-2). Lets organization administrators list and assign the role through the My Organization API. */
+            my_organization_visible?: boolean;
         };
         RBACPermissionKey: {
             resource_server_identifier: string;
@@ -10370,6 +10374,8 @@ export interface components {
             oidc_logout?: components["schemas"]["ClientOIDCLogout"];
             oidc_support?: components["schemas"]["ClientOIDCSupport"];
             addons?: components["schemas"]["ClientAddons"];
+            /** @description The My Organization API settings of this application (Plan 42b, Early Access); `null` removes them. */
+            my_organization_configuration?: components["schemas"]["ClientMyOrganizationConfiguration"] | null;
             /**
              * @description Realms (`wtrealm` values) and audiences accepted for the `wsfed`
              *     add-on, besides the client ID (Plan 37b). Each alias is unique
@@ -10451,6 +10457,39 @@ export interface components {
             allowed_clients?: unknown;
         };
         /**
+         * @description An application's My Organization API settings (Plan 42b, D-0220;
+         *     Early Access at Auth0). The My Organization API refuses tokens of an
+         *     application without them. `invitation_landing_client_id` is where
+         *     invitees accept (an application of this tenant);
+         *     `enforce_permission_ceiling` limits the roles an organization
+         *     administrator may assign to permissions they hold;
+         *     `enforce_self_assignment_restriction` stops administrators assigning
+         *     roles to themselves. `allowed_strategies`,
+         *     `connection_deletion_behavior`, `third_party_client_access` and the
+         *     profile IDs are returned by `GET /my-org/v1/config` and used by the
+         *     identity provider operations (Phase B).
+         */
+        ClientMyOrganizationConfiguration: {
+            connection_profile_id?: string;
+            user_attribute_profile_id?: string;
+            allowed_strategies: ("pingfederate" | "adfs" | "waad" | "google-apps" | "okta" | "oidc" | "samlp")[];
+            third_party_client_access?: {
+                /** @enum {string} */
+                default_value: "block";
+                allowed_values: ("allow" | "block")[];
+            };
+            /**
+             * @default allow
+             * @enum {string}
+             */
+            connection_deletion_behavior: "allow" | "allow_if_empty";
+            invitation_landing_client_id?: string;
+            /** @default false */
+            enforce_permission_ceiling?: boolean;
+            /** @default false */
+            enforce_self_assignment_restriction?: boolean;
+        };
+        /**
          * @description A new application. Unknown fields are refused (`invalid_body`).
          *     Defaults: `app_type` `regular_web`,
          *     `token_endpoint_auth_method` `none` for `spa` and `native` and
@@ -10517,6 +10556,7 @@ export interface components {
             oidc_logout?: components["schemas"]["ClientOIDCLogout"];
             oidc_support?: components["schemas"]["ClientOIDCSupport"];
             addons?: components["schemas"]["ClientAddons"];
+            my_organization_configuration?: components["schemas"]["ClientMyOrganizationConfiguration"];
             /**
              * @description Realms (`wtrealm` values) and audiences accepted for the `wsfed`
              *     add-on, besides the client ID (Plan 37b). Each alias is unique

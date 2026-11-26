@@ -71,6 +71,13 @@ func applyRole(ctx context.Context, st store.Store, tenantID string, in Role, cr
 			}
 			keys = keys[n:]
 		}
+		if repo, err := store.MyOrg(ctx, tx); err == nil {
+			if err := repo.SetMyOrgRoleVisible(ctx, tenantID, role.ID, in.MyOrganizationVisible); err != nil {
+				return err
+			}
+		} else if in.MyOrganizationVisible {
+			return err
+		}
 		return nil
 	})
 }

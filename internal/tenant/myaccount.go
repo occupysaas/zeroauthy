@@ -37,19 +37,49 @@ func IsMyAccountAPI(t *store.Tenant, rs *store.ResourceServer) bool {
 // (TokenAudience), so it is only accepted on that host. ok is false for
 // no audience the caller may use; it is reserved and currently always true.
 func APIIdentifier(res Resolved, aud string) (id string, ok bool) {
-	canonical := MyAccountIdentifier(res.Tenant)
-	if canonical != "" && strings.HasSuffix(aud, MyAccountPath) && aud == MyAccountAudience(res.Host) {
+	if canonical := MyAccountIdentifier(res.Tenant); canonical != "" && strings.HasSuffix(aud, MyAccountPath) && aud == MyAccountAudience(res.Host) {
+		return canonical, true
+	}
+	if canonical := MyOrgIdentifier(res.Tenant); canonical != "" && strings.HasSuffix(aud, store.MyOrgAPIPath) && aud == MyOrgAudience(res.Host) {
 		return canonical, true
 	}
 	return aud, true
 }
 
 // TokenAudience is the audience a token for rs carries when issued on
-// res's host: the host's My Account audience for the My Account API, the
-// identifier otherwise.
+// res's host: the host's own audience for the My Account and My
+// Organization APIs, the identifier otherwise.
 func TokenAudience(res Resolved, rs *store.ResourceServer) string {
-	if IsMyAccountAPI(res.Tenant, rs) {
+	switch {
+	case IsMyAccountAPI(res.Tenant, rs):
 		return MyAccountAudience(res.Host)
+	case IsMyOrgAPI(res.Tenant, rs):
+		return MyOrgAudience(res.Host)
 	}
 	return rs.Identifier
+}
+
+// IsUserSystemAPI reports whether rs is one of the system APIs that users
+// call (My Account, My Organization): its tokens follow the user-flow
+// decision, unlike the Management API's.
+func IsUserSystemAPI(t *store.Tenant, rs *store.ResourceServer) bool {
+	return IsMyAccountAPI(t, rs) || IsMyOrgAPI(t, rs)
+}
+
+// MyOrgIdentifier is the identifier of t's My Organization API (Plan 42b):
+// its canonical host followed by /my-org/.
+func MyOrgIdentifier(t *store.Tenant) string {
+	if t == nil || t.Reserved || t.CanonicalHost == "" {
+		return ""
+	}
+	return MyOrgAudience(t.CanonicalHost)
+}
+
+// MyOrgAudience is the My Organization audience of tokens issued on host.
+func MyOrgAudience(host string) string { return "https://" + host + store.MyOrgAPIPath }
+
+// IsMyOrgAPI reports whether rs is t's My Organization API.
+func IsMyOrgAPI(t *store.Tenant, rs *store.ResourceServer) bool {
+	id := MyOrgIdentifier(t)
+	return rs != nil && rs.IsSystem && id != "" && rs.Identifier == id
 }

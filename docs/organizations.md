@@ -337,3 +337,9 @@ organization login, and Plan 42 the My Organization API. Classic Login/Lock,
 per-organization custom domains and unsupported organization token flows remain
 outside this release. Exact tested versions and remaining verification limits
 are recorded in the Organizations II implementation record.
+
+## My Organization API
+
+Organization administrators can manage their own organization's details,
+members, roles and invitations from your application through the
+[My Organization API](my-organization-api.md) (`/my-org/v1`, Plan 42b).

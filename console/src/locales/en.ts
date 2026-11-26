@@ -200,6 +200,7 @@ const en = {
     groupIDs: 'Google group IDs (one per line)', idpAttr: 'Google Directory attribute', save: 'Save',
   },
   rbac: {
+    myOrgVisible: 'Organization administrators may assign this role (My Organization API)',
     title: 'Roles', back: 'Back to roles', create: 'Create role', name: 'Role name', description: 'Description',
     filter: 'Filter roles', empty: 'No roles yet', settings: 'Settings', permissions: 'Permissions', users: 'Users',
     delete: 'Delete role', deleteTitle: 'Delete this role?', deleteHint: 'This removes the role from {count} users. Their other permission sources remain in place.',
@@ -740,6 +741,10 @@ const en = {
     unnamed: '(no name)',
     identifier: 'Identifier',
     system: 'System',
+    myOrg: {
+      title: 'My Organization API',
+      body: 'Lets organization administrators manage their organization’s details, members, roles and invitations through the API at /my-org/v1 (Early Access at Auth0). Administrators get permissions through organization roles; applications need user access and a My Organization configuration, set on their APIs tab.',
+    },
     myAccount: {
       title: 'My Account API',
       body: 'Lets your applications’ users manage their own passwords, passkeys and second factors through the API at /me/v1. Applications need user access to it, granted on their APIs tab.',
@@ -842,6 +847,19 @@ const en = {
     noneLeft: 'Every API in this tenant is already authorized.',
     revoke: 'Revoke',
     revokeLabel: 'Revoke {audience}',
+    myOrg: {
+      title: 'My Organization API',
+      hint: 'Organization administrators signed in to this application manage their organization within the permissions chosen here and their organization roles.',
+      config: 'My Organization configuration',
+      landing: 'Invitation landing application',
+      landingNone: 'None (invitations disabled)',
+      deletion: 'Connection deletion',
+      ceiling: 'Administrators may assign only roles within their own permissions',
+      selfAssign: 'Administrators may not assign roles to themselves',
+      strategies: 'Allowed identity provider strategies',
+      save: 'Save configuration',
+      remove: 'Remove configuration',
+    },
     myAccount: {
       title: 'My Account API',
       hint: 'Signed-in users of this application may manage their own authentication methods with the permissions chosen here.',

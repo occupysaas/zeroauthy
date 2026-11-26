@@ -228,6 +228,16 @@ func (t *Tenant) validate() []error {
 		}
 		for _, key := range role.Permissions {
 			api := apis[key.ResourceServerIdentifier]
+			if api == nil && isMyOrgAudience(key.ResourceServerIdentifier) {
+				// The My Organization API comes from my_organization_api.
+				if t.MyOrganizationAPI == nil || !t.MyOrganizationAPI.Active {
+					fail("role %q: permissions on %q need my_organization_api.active", role.Name, key.ResourceServerIdentifier)
+				}
+				if !slices.ContainsFunc(tenantsetup.MyOrgAPIScopes, func(d store.Scope) bool { return d.Value == key.PermissionName }) {
+					fail("role %q: %q is not a My Organization API permission", role.Name, key.PermissionName)
+				}
+				continue
+			}
 			if api == nil {
 				fail("role %q: permission API %q is not defined", role.Name, key.ResourceServerIdentifier)
 				continue
@@ -339,6 +349,20 @@ func (t *Tenant) validate() []error {
 			for _, s := range g.Scopes {
 				if !slices.ContainsFunc(tenantsetup.MyAccountAPIScopes, func(d store.Scope) bool { return d.Value == s }) {
 					fail("scope %q is not a My Account API scope", s)
+				}
+			}
+			continue
+		}
+		if rs == nil && isMyOrgAudience(g.Audience) {
+			if t.MyOrganizationAPI == nil || !t.MyOrganizationAPI.Active {
+				fail("client grant to %q needs my_organization_api.active", g.Audience)
+			}
+			if g.SubjectType != store.SubjectTypeUser {
+				fail("the My Organization API accepts user grants only")
+			}
+			for _, s := range g.Scopes {
+				if !slices.ContainsFunc(tenantsetup.MyOrgAPIScopes, func(d store.Scope) bool { return d.Value == s }) {
+					fail("scope %q is not a My Organization API scope", s)
 				}
 			}
 			continue
@@ -492,4 +516,11 @@ func (t *Tenant) suppliedClients() []map[string]any {
 func isMyAccountAudience(aud string) bool {
 	u, err := url.Parse(aud)
 	return err == nil && u.Scheme == "https" && u.Host != "" && u.Path == "/me/" && u.RawQuery == "" && u.Fragment == "" && u.User == nil
+}
+
+// isMyOrgAudience reports whether aud has the form of a My Organization API
+// audience: an https URL whose path is /my-org/.
+func isMyOrgAudience(aud string) bool {
+	u, err := url.Parse(aud)
+	return err == nil && u.Scheme == "https" && u.Host != "" && u.Path == "/my-org/" && u.RawQuery == "" && u.Fragment == "" && u.User == nil
 }

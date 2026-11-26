@@ -7,7 +7,8 @@ import Banner from '../../ui/Banner.vue'
 import Button from '../../ui/Button.vue'
 import Field from '../../ui/Field.vue'
 import GrantForm from '../apis/GrantForm.vue'
-import { isMyAccount, myAccountIdentifier } from '../apis/myAccount'
+import { isMyAccount, isMyOrg, myAccountIdentifier, myOrgIdentifier } from '../apis/myAccount'
+import MyOrgSection from './MyOrgSection.vue'
 
 const { t } = useI18n()
 
@@ -20,6 +21,8 @@ const servers = ref<ResourceServer[]>([])
 const grants = ref<ClientGrant[]>([])
 // The application's user grant for the My Account API (Plan 42a).
 const userGrant = ref<ClientGrant | null>(null)
+// The application's user grant for the My Organization API (Plan 42b).
+const orgGrant = ref<ClientGrant | null>(null)
 const loading = ref(true)
 const error = ref('')
 const actionError = ref('')
@@ -34,6 +37,7 @@ async function load() {
     servers.value = s
     grants.value = g.filter((x) => x.subject_type === 'client')
     userGrant.value = g.find((x) => x.subject_type === 'user' && x.audience === myAccountIdentifier(props.tenant)) ?? null
+    orgGrant.value = g.find((x) => x.subject_type === 'user' && x.audience === myOrgIdentifier(props.tenant)) ?? null
   } catch (e) {
     error.value = errorMessage(e)
   } finally {
@@ -44,7 +48,8 @@ onMounted(load)
 
 const rows = computed(() => grants.value.map((g) => ({ grant: g, server: servers.value.find((s) => s.identifier === g.audience) })))
 // The My Account API denies machine-to-machine access.
-const unauthorized = computed(() => servers.value.filter((s) => !isMyAccount(props.tenant, s) && !grants.value.some((g) => g.audience === s.identifier)))
+const unauthorized = computed(() => servers.value.filter((s) => !isMyAccount(props.tenant, s) && !isMyOrg(props.tenant, s) && !grants.value.some((g) => g.audience === s.identifier)))
+const myOrg = computed(() => servers.value.find((s) => isMyOrg(props.tenant, s)) ?? null)
 const myAccount = computed(() => servers.value.find((s) => isMyAccount(props.tenant, s)) ?? null)
 
 async function allowUsers() {
@@ -143,6 +148,8 @@ function replaced(g: ClientGrant) {
         </template>
         <div v-else class="row"><Button variant="primary" :disabled="busy" @click="allowUsers">{{ t('grants.myAccount.allow') }}</Button></div>
       </section>
+
+      <MyOrgSection v-if="myOrg" :tenant="tenant" :client="client" :api="myOrg" :grant="orgGrant" @grant="(g) => (orgGrant = g)" />
 
       <form class="card stack" novalidate @submit.prevent="authorize">
         <h2 class="m-0 text-[1.05rem]">{{ t('grants.authorizeAnother') }}</h2>

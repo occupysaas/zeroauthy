@@ -167,6 +167,10 @@ type userTokens struct {
 	actor map[string]any
 }
 
+// MyOrgPermissionsClaim is the ID token claim listing the user's my_org
+// permissions when the My Organization audience was requested.
+const MyOrgPermissionsClaim = "urn:auth0:my_org_current_user_permissions"
+
 // mintUserTokens returns an access token and, with scope openid, an ID
 // token (D-0008). Scope order (spec §7): ut.scopes already carry the
 // Actions' target-scope edits and API-definition and client-policy
@@ -186,6 +190,10 @@ func (h *Handlers) mintUserTokens(ctx context.Context, res tenant.Resolved, c *s
 	if ut.organization != nil {
 		orgID = ut.organization.ID
 	}
+	// The My Organization API acts on an organization (LR42b-5).
+	if ut.rs != nil && tenant.IsMyOrgAPI(res.Tenant, ut.rs) && ut.organization == nil {
+		return nil, false, accessDenied("the My Organization API needs a login in an organization")
+	}
 	auth, authErr := h.authorizeUserToken(ctx, tenantID, orgID, ut, frozen)
 	if authErr != nil {
 		return nil, false, authErr
@@ -193,7 +201,7 @@ func (h *Handlers) mintUserTokens(ctx context.Context, res tenant.Resolved, c *s
 	ut.rs, ut.scopes = auth.API, slices.DeleteFunc(slices.Clone(auth.Scopes), func(scope string) bool { return !access.OIDCScopeAllowed(c, scope) })
 	// The My Account API is a system API whose user tokens follow the
 	// ordinary user-flow decision (LR42a-9).
-	if ut.rs != nil && (!ut.rs.IsSystem || tenant.IsMyAccountAPI(res.Tenant, ut.rs)) {
+	if ut.rs != nil && (!ut.rs.IsSystem || tenant.IsUserSystemAPI(res.Tenant, ut.rs)) {
 		decision, e := h.decide(ctx, tenantID, access.Refresh, c, ut.rs, ut.scopes)
 		if e != nil {
 			return nil, false, e
@@ -246,6 +254,14 @@ func (h *Handlers) mintUserTokens(ctx context.Context, res tenant.Resolved, c *s
 			h.log().ErrorContext(ctx, "apply Action custom claims", "tenant", tenantID, "err", err)
 			return nil, false, serverError()
 		}
+	}
+	// The ID token lists the administrator's my_org permissions (Plan 42b).
+	if openid && tenant.IsMyOrgAPI(res.Tenant, ut.rs) {
+		if idClaims == nil {
+			idClaims = map[string]any{}
+		}
+		perms := slices.DeleteFunc(slices.Clone(auth.Permissions), func(p string) bool { return !strings.Contains(p, ":my_org:") })
+		idClaims[MyOrgPermissionsClaim] = append([]string{}, perms...)
 	}
 	orgClaims := OrgClaims(res, ut.organization)
 	if len(orgClaims) > 0 {

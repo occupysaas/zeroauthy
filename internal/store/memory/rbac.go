@@ -71,6 +71,7 @@ func (r rbac) DeleteRole(_ context.Context, tid, id string) error {
 		return store.ErrNotFound
 	}
 	delete(r.s.roles, key{tid, id})
+	delete(r.s.myOrgRoles, key{tid, id})
 	r.s.cleanupOrgRole(tid, id)
 	r.s.directory.dropRole(tid, id)
 	for k := range r.s.rolePermissions {
@@ -114,7 +115,7 @@ func (r rbac) ListRoles(_ context.Context, tid string, p store.RBACPage) (store.
 func (r rbac) permission(tid string, k store.PermissionKey) (store.PermissionGrant, error) {
 	for _, api := range r.s.resourceServers {
 		if api.TenantID == tid && api.Identifier == k.ResourceServerIdentifier {
-			if api.IsSystem {
+			if store.RBACRefused(api) {
 				return store.PermissionGrant{}, store.ErrInvalid
 			}
 			for _, scope := range api.Scopes {
@@ -397,7 +398,7 @@ func (r rbac) Snapshot(_ context.Context, tid, uid, aud string) (*store.Authoriz
 	if api == nil {
 		return nil, store.ErrNotFound
 	}
-	if api.IsSystem {
+	if store.RBACRefused(api) {
 		return nil, store.ErrInvalid
 	}
 	permissions, err := r.effective(tid, uid)

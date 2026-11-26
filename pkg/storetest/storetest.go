@@ -49,6 +49,7 @@ var Suites = map[string]func(t *testing.T, newStore Factory){
 	"DirectorySync":               testDirectorySync,
 	"SAMLReplay":                  testSAMLReplay,
 	"ADHub":                       testADHub,
+	"MyOrg":                       testMyOrg,
 	"GlobalRevocationState":       testGlobalRevocationState,
 	"Clients":                     testClients,
 	"ResourceServers":             testResourceServers,
@@ -97,7 +98,7 @@ var suiteOrder = []string{
 	"PushedAuthRequests",
 	"RefreshTokens", "RefreshTokensII", "DPoP", "TokenQuotas", "PasswordResetTickets", "EmailVerificationTickets", "Tx",
 	"DeviceCodes", "Operators", "Jobs", "TenantsDelete", "EmptyLists",
-	"Email", "HostedLogin", "HostedTransition", "Federation", "ClientCredentials", "Actions", "ActionsII", "ADHub",
+	"Email", "HostedLogin", "HostedTransition", "Federation", "ClientCredentials", "Actions", "ActionsII", "ADHub", "MyOrg",
 }
 
 // Areas groups the suites by the part of zeroauthy they back. Every suite in
@@ -112,7 +113,7 @@ var Areas = map[string][]string{
 	"oauth": {"Clients", "ResourceServers", "ClientGrants", "UserGrants", "SigningKeys", "CustomSigningKeys", "AuthCodes",
 		"PushedAuthRequests", "RefreshTokens", "RefreshTokensII", "DPoP", "TokenQuotas", "DeviceCodes", "ClientCredentials",
 		"OIDCClientSettings", "GlobalRevocationState", "ClientAddons", "ClientAliases", "SAMLReplay"},
-	"orgs":    {"RBAC", "Organizations", "OrganizationsII", "Directory", "SelfService", "DirectorySync"},
+	"orgs":    {"RBAC", "Organizations", "OrganizationsII", "Directory", "SelfService", "DirectorySync", "MyOrg"},
 	"runtime": {"Events", "Logs", "Jobs", "Email", "Actions", "ActionsII"},
 	"tenancy": {"CustomDomainAttemptLimits", "CustomDomainClaims", "CustomDomainCap", "CustomDomainCAS",
 		"CustomDomainDefaultRollback", "CustomDomainCascade", "TLSAssetCopies", "TLSLeaseFence", "OriginRoundTrip",

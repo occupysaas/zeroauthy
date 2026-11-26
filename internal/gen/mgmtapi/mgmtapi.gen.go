@@ -1293,6 +1293,90 @@ func (e ClientGrantSettingsOrganizationUsage) Valid() bool {
 	}
 }
 
+// Defines values for ClientMyOrganizationConfigurationAllowedStrategies.
+const (
+	ClientMyOrganizationConfigurationAllowedStrategiesAdfs         ClientMyOrganizationConfigurationAllowedStrategies = "adfs"
+	ClientMyOrganizationConfigurationAllowedStrategiesGoogleApps   ClientMyOrganizationConfigurationAllowedStrategies = "google-apps"
+	ClientMyOrganizationConfigurationAllowedStrategiesOidc         ClientMyOrganizationConfigurationAllowedStrategies = "oidc"
+	ClientMyOrganizationConfigurationAllowedStrategiesOkta         ClientMyOrganizationConfigurationAllowedStrategies = "okta"
+	ClientMyOrganizationConfigurationAllowedStrategiesPingfederate ClientMyOrganizationConfigurationAllowedStrategies = "pingfederate"
+	ClientMyOrganizationConfigurationAllowedStrategiesSamlp        ClientMyOrganizationConfigurationAllowedStrategies = "samlp"
+	ClientMyOrganizationConfigurationAllowedStrategiesWaad         ClientMyOrganizationConfigurationAllowedStrategies = "waad"
+)
+
+// Valid indicates whether the value is a known member of the ClientMyOrganizationConfigurationAllowedStrategies enum.
+func (e ClientMyOrganizationConfigurationAllowedStrategies) Valid() bool {
+	switch e {
+	case ClientMyOrganizationConfigurationAllowedStrategiesAdfs:
+		return true
+	case ClientMyOrganizationConfigurationAllowedStrategiesGoogleApps:
+		return true
+	case ClientMyOrganizationConfigurationAllowedStrategiesOidc:
+		return true
+	case ClientMyOrganizationConfigurationAllowedStrategiesOkta:
+		return true
+	case ClientMyOrganizationConfigurationAllowedStrategiesPingfederate:
+		return true
+	case ClientMyOrganizationConfigurationAllowedStrategiesSamlp:
+		return true
+	case ClientMyOrganizationConfigurationAllowedStrategiesWaad:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ClientMyOrganizationConfigurationConnectionDeletionBehavior.
+const (
+	ClientMyOrganizationConfigurationConnectionDeletionBehaviorAllow        ClientMyOrganizationConfigurationConnectionDeletionBehavior = "allow"
+	ClientMyOrganizationConfigurationConnectionDeletionBehaviorAllowIfEmpty ClientMyOrganizationConfigurationConnectionDeletionBehavior = "allow_if_empty"
+)
+
+// Valid indicates whether the value is a known member of the ClientMyOrganizationConfigurationConnectionDeletionBehavior enum.
+func (e ClientMyOrganizationConfigurationConnectionDeletionBehavior) Valid() bool {
+	switch e {
+	case ClientMyOrganizationConfigurationConnectionDeletionBehaviorAllow:
+		return true
+	case ClientMyOrganizationConfigurationConnectionDeletionBehaviorAllowIfEmpty:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ClientMyOrganizationConfigurationThirdPartyClientAccessAllowedValues.
+const (
+	ClientMyOrganizationConfigurationThirdPartyClientAccessAllowedValuesAllow ClientMyOrganizationConfigurationThirdPartyClientAccessAllowedValues = "allow"
+	ClientMyOrganizationConfigurationThirdPartyClientAccessAllowedValuesBlock ClientMyOrganizationConfigurationThirdPartyClientAccessAllowedValues = "block"
+)
+
+// Valid indicates whether the value is a known member of the ClientMyOrganizationConfigurationThirdPartyClientAccessAllowedValues enum.
+func (e ClientMyOrganizationConfigurationThirdPartyClientAccessAllowedValues) Valid() bool {
+	switch e {
+	case ClientMyOrganizationConfigurationThirdPartyClientAccessAllowedValuesAllow:
+		return true
+	case ClientMyOrganizationConfigurationThirdPartyClientAccessAllowedValuesBlock:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ClientMyOrganizationConfigurationThirdPartyClientAccessDefaultValue.
+const (
+	ClientMyOrganizationConfigurationThirdPartyClientAccessDefaultValueBlock ClientMyOrganizationConfigurationThirdPartyClientAccessDefaultValue = "block"
+)
+
+// Valid indicates whether the value is a known member of the ClientMyOrganizationConfigurationThirdPartyClientAccessDefaultValue enum.
+func (e ClientMyOrganizationConfigurationThirdPartyClientAccessDefaultValue) Valid() bool {
+	switch e {
+	case ClientMyOrganizationConfigurationThirdPartyClientAccessDefaultValueBlock:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for ClientOIDCLogoutBackchannelLogoutInitiatorsMode.
 const (
 	ClientOIDCLogoutBackchannelLogoutInitiatorsModeAll    ClientOIDCLogoutBackchannelLogoutInitiatorsMode = "all"
@@ -8859,7 +8943,20 @@ type Client struct {
 
 	// Mobile Native application identities. Unknown settings are accepted and ignored.
 	Mobile *ClientMobile `json:"mobile,omitempty"`
-	Name   string        `json:"name"`
+
+	// MyOrganizationConfiguration An application's My Organization API settings (Plan 42b, D-0220;
+	// Early Access at Auth0). The My Organization API refuses tokens of an
+	// application without them. `invitation_landing_client_id` is where
+	// invitees accept (an application of this tenant);
+	// `enforce_permission_ceiling` limits the roles an organization
+	// administrator may assign to permissions they hold;
+	// `enforce_self_assignment_restriction` stops administrators assigning
+	// roles to themselves. `allowed_strategies`,
+	// `connection_deletion_behavior`, `third_party_client_access` and the
+	// profile IDs are returned by `GET /my-org/v1/config` and used by the
+	// identity provider operations (Phase B).
+	MyOrganizationConfiguration *ClientMyOrganizationConfiguration `json:"my_organization_configuration,omitempty"`
+	Name                        string                             `json:"name"`
 
 	// NativeSocialLogin Stored native social switches; Apple is enforced (Plan 39a, D-0170).
 	// Apple exchange additionally requires
@@ -9134,6 +9231,9 @@ type ClientCreate struct {
 
 	// Mobile Native application identities. Unknown settings are accepted and ignored.
 	Mobile *ClientMobile `json:"mobile,omitempty"`
+
+	// MyOrganizationConfiguration The My Organization API settings of this application (Plan 42b, Early Access); `null` removes them.
+	MyOrganizationConfiguration *ClientMyOrganizationConfiguration `json:"my_organization_configuration,omitempty"`
 
 	// Name The application's name.
 	Name string `json:"name"`
@@ -9431,6 +9531,43 @@ type ClientMobileIOS struct {
 	AdditionalProperties map[string]interface{} `json:"-"`
 }
 
+// ClientMyOrganizationConfiguration An application's My Organization API settings (Plan 42b, D-0220;
+// Early Access at Auth0). The My Organization API refuses tokens of an
+// application without them. `invitation_landing_client_id` is where
+// invitees accept (an application of this tenant);
+// `enforce_permission_ceiling` limits the roles an organization
+// administrator may assign to permissions they hold;
+// `enforce_self_assignment_restriction` stops administrators assigning
+// roles to themselves. `allowed_strategies`,
+// `connection_deletion_behavior`, `third_party_client_access` and the
+// profile IDs are returned by `GET /my-org/v1/config` and used by the
+// identity provider operations (Phase B).
+type ClientMyOrganizationConfiguration struct {
+	AllowedStrategies                []ClientMyOrganizationConfigurationAllowedStrategies        `json:"allowed_strategies"`
+	ConnectionDeletionBehavior       ClientMyOrganizationConfigurationConnectionDeletionBehavior `json:"connection_deletion_behavior"`
+	ConnectionProfileId              *string                                                     `json:"connection_profile_id,omitempty"`
+	EnforcePermissionCeiling         *bool                                                       `json:"enforce_permission_ceiling,omitempty"`
+	EnforceSelfAssignmentRestriction *bool                                                       `json:"enforce_self_assignment_restriction,omitempty"`
+	InvitationLandingClientId        *string                                                     `json:"invitation_landing_client_id,omitempty"`
+	ThirdPartyClientAccess           *struct {
+		AllowedValues []ClientMyOrganizationConfigurationThirdPartyClientAccessAllowedValues `json:"allowed_values"`
+		DefaultValue  ClientMyOrganizationConfigurationThirdPartyClientAccessDefaultValue    `json:"default_value"`
+	} `json:"third_party_client_access,omitempty"`
+	UserAttributeProfileId *string `json:"user_attribute_profile_id,omitempty"`
+}
+
+// ClientMyOrganizationConfigurationAllowedStrategies defines model for ClientMyOrganizationConfiguration.AllowedStrategies.
+type ClientMyOrganizationConfigurationAllowedStrategies string
+
+// ClientMyOrganizationConfigurationConnectionDeletionBehavior defines model for ClientMyOrganizationConfiguration.ConnectionDeletionBehavior.
+type ClientMyOrganizationConfigurationConnectionDeletionBehavior string
+
+// ClientMyOrganizationConfigurationThirdPartyClientAccessAllowedValues defines model for ClientMyOrganizationConfiguration.ThirdPartyClientAccess.AllowedValues.
+type ClientMyOrganizationConfigurationThirdPartyClientAccessAllowedValues string
+
+// ClientMyOrganizationConfigurationThirdPartyClientAccessDefaultValue defines model for ClientMyOrganizationConfiguration.ThirdPartyClientAccess.DefaultValue.
+type ClientMyOrganizationConfigurationThirdPartyClientAccessDefaultValue string
+
 // ClientOIDCLogout defines model for ClientOIDCLogout.
 type ClientOIDCLogout struct {
 	// BackchannelLogoutInitiators Custom mode requires selected_initiators including rp-logout and idp-logout. Absent defaults to those two initiators.
@@ -9559,6 +9696,9 @@ type ClientSettings struct {
 
 	// Mobile Native application identities. Unknown settings are accepted and ignored.
 	Mobile *ClientMobile `json:"mobile,omitempty"`
+
+	// MyOrganizationConfiguration The My Organization API settings of this application (Plan 42b, Early Access); `null` removes them.
+	MyOrganizationConfiguration *ClientMyOrganizationConfiguration `json:"my_organization_configuration,omitempty"`
 
 	// Name The application's name.
 	Name *string `json:"name,omitempty"`
@@ -9744,6 +9884,9 @@ type ClientUpdate struct {
 
 	// Mobile Native application identities. Unknown settings are accepted and ignored.
 	Mobile *ClientMobile `json:"mobile,omitempty"`
+
+	// MyOrganizationConfiguration The My Organization API settings of this application (Plan 42b, Early Access); `null` removes them.
+	MyOrganizationConfiguration *ClientMyOrganizationConfiguration `json:"my_organization_configuration,omitempty"`
 
 	// Name The application's name.
 	Name *string `json:"name,omitempty"`
@@ -15042,7 +15185,10 @@ type RoamingUVSettingsUserVerification string
 type Role struct {
 	Description string `json:"description"`
 	Id          string `json:"id"`
-	Name        string `json:"name"`
+
+	// MyOrganizationVisible Local extension (Plan 42b, LR42b-2), on GET and PATCH /roles/{id} only, when the My Organization API's storage is available. Organization administrators may list and assign the role through the My Organization API.
+	MyOrganizationVisible *bool  `json:"my_organization_visible,omitempty"`
+	Name                  string `json:"name"`
 }
 
 // RoleCreate defines model for RoleCreate.
@@ -15071,7 +15217,10 @@ type RolePage struct {
 // RoleUpdate defines model for RoleUpdate.
 type RoleUpdate struct {
 	Description *string `json:"description,omitempty"`
-	Name        *string `json:"name,omitempty"`
+
+	// MyOrganizationVisible Local extension (Plan 42b, LR42b-2). Lets organization administrators list and assign the role through the My Organization API.
+	MyOrganizationVisible *bool   `json:"my_organization_visible,omitempty"`
+	Name                  *string `json:"name,omitempty"`
 }
 
 // RoleUser defines model for RoleUser.

@@ -21,6 +21,7 @@ const { t } = useI18n(),
 const role = ref<Role | null>(null),
   name = ref(''),
   description = ref(''),
+  visible = ref(false),
   tab = ref('settings'),
   error = ref(''),
   actionError = ref(''),
@@ -46,6 +47,7 @@ async function load() {
     role.value = result
     name.value = result.name
     description.value = result.description
+    visible.value = result.my_organization_visible === true
   } catch (e) {
     if (mine !== seq || current !== epoch) return
     if (e instanceof ApiError && e.status === 404) notFound.value = true
@@ -87,7 +89,9 @@ async function save() {
   actionError.value = ''
   status.value = ''
   try {
-    const result = await api.updateRole(tn, id, { name: name.value, description: description.value })
+    const body: { name: string; description: string; my_organization_visible?: boolean } = { name: name.value, description: description.value }
+    if (role.value?.my_organization_visible !== undefined) body.my_organization_visible = visible.value
+    const result = await api.updateRole(tn, id, body)
     if (current !== epoch) return
     role.value = result
     status.value = t('saved')
@@ -152,6 +156,9 @@ async function remove() {
             ><Field id="role-description" :label="t('rbac.description')">
               <textarea id="role-description" v-model="description" maxlength="255" />
             </Field>
+            <label v-if="role.my_organization_visible !== undefined" class="row"
+              ><input id="role-my-org" v-model="visible" type="checkbox" /> {{ t('rbac.myOrgVisible') }}</label
+            >
             <div class="row">
               <Button type="submit" variant="primary" :disabled="busy">{{ t('save') }}</Button
               ><span role="status">{{ status }}</span>

@@ -13,7 +13,7 @@ import DangerZone from './DangerZone.vue'
 import PermissionsTab from './PermissionsTab.vue'
 import SettingsTab from './SettingsTab.vue'
 import Tag from '../../ui/Tag.vue'
-import { isMyAccount } from './myAccount'
+import { isMyAccount, isMyOrg } from './myAccount'
 
 const { t } = useI18n()
 
@@ -22,7 +22,7 @@ const tenant = useTenant()
 const route = useRoute()
 const server = ref<ResourceServer | null>(null)
 // System APIs cannot be deleted, except the My Account API: deleting it deactivates it (Plan 42a).
-const deletable = computed(() => !!server.value && (!server.value.is_system || (!!tenant.value && isMyAccount(tenant.value, server.value))))
+const deletable = computed(() => !!server.value && (!server.value.is_system || (!!tenant.value && (isMyAccount(tenant.value, server.value) || isMyOrg(tenant.value, server.value)))))
 const error = ref('')
 const notFound = ref(false)
 const tab = ref('settings')

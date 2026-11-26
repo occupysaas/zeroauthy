@@ -19,6 +19,9 @@ type (
 	SAMLSupporter                  = store.SAMLSupporter
 	WSFedSupporter                 = store.WSFedSupporter
 	ADHubSupporter                 = store.ADHubSupporter
+	MyOrgSupporter                 = store.MyOrgSupporter
+	MyOrgStore                     = store.MyOrgStore
+	MyOrgClientConfig              = store.MyOrgClientConfig
 	ADHubStore                     = store.ADHubStore
 	ADProvisioning                 = store.ADProvisioning
 	ADHubSession                   = store.ADHubSession
@@ -501,3 +504,9 @@ var ErrSelfServiceUnavailable = store.ErrSelfServiceUnavailable
 
 // ErrDirectorySyncUnavailable reports a plugin without scim.v1 version 3.
 var ErrDirectorySyncUnavailable = store.ErrDirectorySyncUnavailable
+
+// ErrMyOrgUnavailable reports a plugin without my_org.v1 (Plan 42b).
+var ErrMyOrgUnavailable = store.ErrMyOrgUnavailable
+
+// MyOrg returns s's My Organization store after checking my_org.v1.
+func MyOrg(ctx context.Context, s Store) (MyOrgStore, error) { return store.MyOrg(ctx, s) }
