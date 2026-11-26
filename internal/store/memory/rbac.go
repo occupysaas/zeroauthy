@@ -71,6 +71,7 @@ func (r rbac) DeleteRole(_ context.Context, tid, id string) error {
 		return store.ErrNotFound
 	}
 	delete(r.s.roles, key{tid, id})
+	delete(r.s.myOrgRoles, key{tid, id})
 	r.s.cleanupOrgRole(tid, id)
 	r.s.directory.dropRole(tid, id)
 	for k := range r.s.rolePermissions {

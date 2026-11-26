@@ -107,7 +107,7 @@ func (r clients) Delete(ctx context.Context, tenantID, clientID string) error {
 		if err := expectRow(res); err != nil {
 			return err
 		}
-		for _, table := range []string{"client_grants", "user_grants", "refresh_tokens", "mfa_tokens", "client_credentials", "client_assertion_jtis", "client_aliases"} {
+		for _, table := range []string{"client_grants", "user_grants", "refresh_tokens", "mfa_tokens", "client_credentials", "client_assertion_jtis", "client_aliases", "my_org_client_configs"} {
 			if _, err := tx.exec(ctx, `DELETE FROM `+table+` WHERE tenant_id = ? AND client_id = ?`, tenantID, clientID); err != nil {
 				return err
 			}

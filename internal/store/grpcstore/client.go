@@ -32,6 +32,7 @@ type Client struct {
 	ssCap       *orgCapState // scim.v1 version 2 (Plan 37c Phase B)
 	dsCap       *orgCapState // scim.v1 version 3 (Plan 37c Phase C)
 	adCap       *orgCapState // ad_hub.v1 (Plan 38a)
+	myOrgCap    *orgCapState // my_org.v1 (Plan 42b)
 	ccCap       *orgCapState // client_credentials.v1
 	logsCap     *orgCapState
 	orgIICap    *orgCapState
@@ -42,7 +43,7 @@ var _ store.Store = (*Client)(nil)
 
 // NewClient returns a store over conn. Close calls closer, which may be nil.
 func NewClient(conn grpc.ClientConnInterface, closer func() error) *Client {
-	return &Client{rpc: storev1.NewStoreServiceClient(conn), closer: closer, orgCap: &orgCapState{}, orgIICap: &orgCapState{}, logsCap: &orgCapState{}, eventsCap: &orgCapState{}, mfaCap: &orgCapState{}, phoneCap: &orgCapState{}, webauthnCap: &orgCapState{}, refreshCap: &refreshCapability{}, ckCap: &orgCapState{}, ccCap: &orgCapState{}, oidcCap: &orgCapState{}, samlCap: &orgCapState{}, wsfedCap: &orgCapState{}, dirCap: &orgCapState{}, ssCap: &orgCapState{}, dsCap: &orgCapState{}, adCap: &orgCapState{}}
+	return &Client{rpc: storev1.NewStoreServiceClient(conn), closer: closer, orgCap: &orgCapState{}, orgIICap: &orgCapState{}, logsCap: &orgCapState{}, eventsCap: &orgCapState{}, mfaCap: &orgCapState{}, phoneCap: &orgCapState{}, webauthnCap: &orgCapState{}, refreshCap: &refreshCapability{}, ckCap: &orgCapState{}, ccCap: &orgCapState{}, oidcCap: &orgCapState{}, samlCap: &orgCapState{}, wsfedCap: &orgCapState{}, dirCap: &orgCapState{}, ssCap: &orgCapState{}, dsCap: &orgCapState{}, adCap: &orgCapState{}, myOrgCap: &orgCapState{}}
 }
 
 // rpcErr wraps a transport failure so it never matches a store sentinel.
@@ -90,7 +91,7 @@ func (c *Client) WithTx(ctx context.Context, fn func(store.Store) error) (err er
 	if e := errFromPB(r.GetError()); e != nil {
 		return e
 	}
-	tx := &Client{rpc: c.rpc, txID: r.TxId, orgCap: c.orgCap, orgIICap: c.orgIICap, logsCap: c.logsCap, eventsCap: c.eventsCap, mfaCap: c.mfaCap, phoneCap: c.phoneCap, webauthnCap: c.webauthnCap, refreshCap: c.refreshCap, ckCap: c.ckCap, ccCap: c.ccCap, oidcCap: c.oidcCap, samlCap: c.samlCap, wsfedCap: c.wsfedCap, dirCap: c.dirCap, ssCap: c.ssCap, dsCap: c.dsCap, adCap: c.adCap}
+	tx := &Client{rpc: c.rpc, txID: r.TxId, orgCap: c.orgCap, orgIICap: c.orgIICap, logsCap: c.logsCap, eventsCap: c.eventsCap, mfaCap: c.mfaCap, phoneCap: c.phoneCap, webauthnCap: c.webauthnCap, refreshCap: c.refreshCap, ckCap: c.ckCap, ccCap: c.ccCap, oidcCap: c.oidcCap, samlCap: c.samlCap, wsfedCap: c.wsfedCap, dirCap: c.dirCap, ssCap: c.ssCap, dsCap: c.dsCap, adCap: c.adCap, myOrgCap: c.myOrgCap}
 	end := context.WithoutCancel(ctx)
 	committed, commitFailed := false, false
 	defer func() {

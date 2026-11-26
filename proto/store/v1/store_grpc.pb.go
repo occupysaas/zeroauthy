@@ -88,6 +88,8 @@ const (
 	StoreService_DirectoryCall_FullMethodName                                 = "/zeroauthy.store.v1.StoreService/DirectoryCall"
 	StoreService_ADHubCapabilities_FullMethodName                             = "/zeroauthy.store.v1.StoreService/ADHubCapabilities"
 	StoreService_ADHubCall_FullMethodName                                     = "/zeroauthy.store.v1.StoreService/ADHubCall"
+	StoreService_MyOrgCapabilities_FullMethodName                             = "/zeroauthy.store.v1.StoreService/MyOrgCapabilities"
+	StoreService_MyOrgCall_FullMethodName                                     = "/zeroauthy.store.v1.StoreService/MyOrgCall"
 	StoreService_SAMLSessionParticipant_FullMethodName                        = "/zeroauthy.store.v1.StoreService/SAMLSessionParticipant"
 	StoreService_SAMLReplayUse_FullMethodName                                 = "/zeroauthy.store.v1.StoreService/SAMLReplayUse"
 	StoreService_SAMLReplayPurge_FullMethodName                               = "/zeroauthy.store.v1.StoreService/SAMLReplayPurge"
@@ -634,6 +636,11 @@ type StoreServiceClient interface {
 	// args/result are JSON (see internal/store/grpcstore/adhub.go).
 	ADHubCapabilities(ctx context.Context, in *PingRequest, opts ...grpc.CallOption) (*EventsCapabilitiesResult, error)
 	ADHubCall(ctx context.Context, in *ADHubCallRequest, opts ...grpc.CallOption) (*ADHubCallResult, error)
+	// my_org.v1 (Plan 42b): applications' My Organization configurations and
+	// the roles visible to the My Organization API. MyOrgCall invokes one
+	// store.MyOrgStore method (see internal/store/grpcstore/myorg.go).
+	MyOrgCapabilities(ctx context.Context, in *PingRequest, opts ...grpc.CallOption) (*EventsCapabilitiesResult, error)
+	MyOrgCall(ctx context.Context, in *MyOrgCallRequest, opts ...grpc.CallOption) (*MyOrgCallResult, error)
 	SAMLSessionParticipant(ctx context.Context, in *SAMLParticipantWrite, opts ...grpc.CallOption) (*Result, error)
 	SAMLReplayUse(ctx context.Context, in *GlobalRevocationJTIRequest, opts ...grpc.CallOption) (*Result, error)
 	SAMLReplayPurge(ctx context.Context, in *ClientCredentialsPurgeRequest, opts ...grpc.CallOption) (*CountResult, error)
@@ -1764,6 +1771,26 @@ func (c *storeServiceClient) ADHubCall(ctx context.Context, in *ADHubCallRequest
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ADHubCallResult)
 	err := c.cc.Invoke(ctx, StoreService_ADHubCall_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) MyOrgCapabilities(ctx context.Context, in *PingRequest, opts ...grpc.CallOption) (*EventsCapabilitiesResult, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(EventsCapabilitiesResult)
+	err := c.cc.Invoke(ctx, StoreService_MyOrgCapabilities_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) MyOrgCall(ctx context.Context, in *MyOrgCallRequest, opts ...grpc.CallOption) (*MyOrgCallResult, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(MyOrgCallResult)
+	err := c.cc.Invoke(ctx, StoreService_MyOrgCall_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -5944,6 +5971,11 @@ type StoreServiceServer interface {
 	// args/result are JSON (see internal/store/grpcstore/adhub.go).
 	ADHubCapabilities(context.Context, *PingRequest) (*EventsCapabilitiesResult, error)
 	ADHubCall(context.Context, *ADHubCallRequest) (*ADHubCallResult, error)
+	// my_org.v1 (Plan 42b): applications' My Organization configurations and
+	// the roles visible to the My Organization API. MyOrgCall invokes one
+	// store.MyOrgStore method (see internal/store/grpcstore/myorg.go).
+	MyOrgCapabilities(context.Context, *PingRequest) (*EventsCapabilitiesResult, error)
+	MyOrgCall(context.Context, *MyOrgCallRequest) (*MyOrgCallResult, error)
 	SAMLSessionParticipant(context.Context, *SAMLParticipantWrite) (*Result, error)
 	SAMLReplayUse(context.Context, *GlobalRevocationJTIRequest) (*Result, error)
 	SAMLReplayPurge(context.Context, *ClientCredentialsPurgeRequest) (*CountResult, error)
@@ -6596,6 +6628,12 @@ func (UnimplementedStoreServiceServer) ADHubCapabilities(context.Context, *PingR
 }
 func (UnimplementedStoreServiceServer) ADHubCall(context.Context, *ADHubCallRequest) (*ADHubCallResult, error) {
 	return nil, status.Error(codes.Unimplemented, "method ADHubCall not implemented")
+}
+func (UnimplementedStoreServiceServer) MyOrgCapabilities(context.Context, *PingRequest) (*EventsCapabilitiesResult, error) {
+	return nil, status.Error(codes.Unimplemented, "method MyOrgCapabilities not implemented")
+}
+func (UnimplementedStoreServiceServer) MyOrgCall(context.Context, *MyOrgCallRequest) (*MyOrgCallResult, error) {
+	return nil, status.Error(codes.Unimplemented, "method MyOrgCall not implemented")
 }
 func (UnimplementedStoreServiceServer) SAMLSessionParticipant(context.Context, *SAMLParticipantWrite) (*Result, error) {
 	return nil, status.Error(codes.Unimplemented, "method SAMLSessionParticipant not implemented")
@@ -9059,6 +9097,42 @@ func _StoreService_ADHubCall_Handler(srv interface{}, ctx context.Context, dec f
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(StoreServiceServer).ADHubCall(ctx, req.(*ADHubCallRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_MyOrgCapabilities_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PingRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).MyOrgCapabilities(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_MyOrgCapabilities_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).MyOrgCapabilities(ctx, req.(*PingRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_MyOrgCall_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(MyOrgCallRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).MyOrgCall(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_MyOrgCall_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).MyOrgCall(ctx, req.(*MyOrgCallRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -16538,6 +16612,14 @@ var StoreService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ADHubCall",
 			Handler:    _StoreService_ADHubCall_Handler,
+		},
+		{
+			MethodName: "MyOrgCapabilities",
+			Handler:    _StoreService_MyOrgCapabilities_Handler,
+		},
+		{
+			MethodName: "MyOrgCall",
+			Handler:    _StoreService_MyOrgCall_Handler,
 		},
 		{
 			MethodName: "SAMLSessionParticipant",

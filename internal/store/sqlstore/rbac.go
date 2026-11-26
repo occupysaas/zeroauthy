@@ -82,7 +82,7 @@ func (r rbac) DeleteRole(ctx context.Context, tenant, id string) error {
 			return err
 		}
 
-		for _, table := range []string{"organization_member_roles", "rbac_user_roles", "rbac_role_permissions", "directory_group_roles"} {
+		for _, table := range []string{"organization_member_roles", "rbac_user_roles", "rbac_role_permissions", "directory_group_roles", "my_org_visible_roles"} {
 			if _, err := t.s.exec(ctx, `DELETE FROM `+table+` WHERE tenant_id=? AND role_id=?`, tenant, id); err != nil {
 				return err
 			}

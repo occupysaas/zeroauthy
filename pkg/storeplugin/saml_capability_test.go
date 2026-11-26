@@ -97,3 +97,19 @@ func TestOpenedForwardsDirectorySyncCapability(t *testing.T) {
 type noDirectorySync struct{ store.Store }
 
 func (noDirectorySync) DirectorySyncSupported() bool { return false }
+
+// The process wrapper forwards my_org.v1 (Plan 42b) to the wrapped store.
+func TestOpenedForwardsMyOrg(t *testing.T) {
+	var _ store.MyOrgSupporter = (*opened)(nil)
+	var _ store.MyOrgStore = (*opened)(nil)
+	o := &opened{Store: memory.New()}
+	defer o.Store.Close()
+	ctx := context.Background()
+	repo, err := store.MyOrg(ctx, o)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := repo.GetMyOrgClientConfig(ctx, "t", "c"); !errors.Is(err, store.ErrNotFound) {
+		t.Fatalf("GetMyOrgClientConfig through the wrapper: %v", err)
+	}
+}

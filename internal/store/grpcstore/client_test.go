@@ -554,3 +554,19 @@ func TestOldPluginADHubUnavailable(t *testing.T) {
 		t.Fatalf("GetADProvisioning: %v", err)
 	}
 }
+
+// A plugin without my_org.v1 (Plan 42b) has no My Organization store.
+func TestOldPluginMyOrgUnavailable(t *testing.T) {
+	c := serveOldPlugin(t)
+	defer c.Close()
+	ctx := context.Background()
+	if err := c.CheckMyOrgSupport(ctx); !errors.Is(err, store.ErrMyOrgUnavailable) {
+		t.Fatalf("capability: %v", err)
+	}
+	if _, err := store.MyOrg(ctx, c); !errors.Is(err, store.ErrMyOrgUnavailable) {
+		t.Fatalf("MyOrg: %v", err)
+	}
+	if _, err := c.ListMyOrgVisibleRoles(ctx, "t"); !errors.Is(err, store.ErrMyOrgUnavailable) {
+		t.Fatalf("ListMyOrgVisibleRoles: %v", err)
+	}
+}
