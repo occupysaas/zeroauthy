@@ -387,3 +387,24 @@ func TestGlobalRevocationDiscovery(t *testing.T) {
 		}
 	}
 }
+
+// TestDiscoveryCIBA: the CIBA members, poll mode only (Plan 41c).
+func TestDiscoveryCIBA(t *testing.T) {
+	ctx := context.Background()
+	st := memory.New()
+	if err := st.Tenants().Create(ctx, &store.Tenant{ID: "ten_c", Name: "c", CanonicalHost: "c.example.test", Domains: []string{"c.example.test"}}); err != nil {
+		t.Fatal(err)
+	}
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /.well-known/openid-configuration", (&Handlers{Store: st}).Discovery)
+	h := contract.Wrap(t, tenant.NewResolver(st.Tenants(), "", false).Middleware(mux))
+	var out map[string]any
+	if err := json.Unmarshal(get(h, "https://c.example.test/.well-known/openid-configuration").Body.Bytes(), &out); err != nil {
+		t.Fatal(err)
+	}
+	modes, _ := out["backchannel_token_delivery_modes_supported"].([]any)
+	if out["backchannel_authentication_endpoint"] != "https://c.example.test/bc-authorize" || len(modes) != 1 || modes[0] != "poll" ||
+		out["backchannel_user_code_parameter_supported"] != false || out["backchannel_authentication_request_signing_alg_values_supported"] == nil {
+		t.Fatalf("discovery %v", out)
+	}
+}

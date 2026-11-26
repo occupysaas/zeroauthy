@@ -67,6 +67,14 @@ func NewLimiter(rate Rate, maxKeys int) *Limiter {
 	return &Limiter{rate: rate, maxKeys: maxKeys, now: time.Now, keys: map[string]*list.Element{}, order: list.New()}
 }
 
+// WithClock makes l read the time from now (tests); it returns l.
+func (l *Limiter) WithClock(now func() time.Time) *Limiter {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	l.now = now
+	return l
+}
+
 // Len is the number of tracked keys.
 func (l *Limiter) Len() int {
 	l.mu.Lock()

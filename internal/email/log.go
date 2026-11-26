@@ -23,7 +23,7 @@ func (l *logMailer) Send(ctx context.Context, m Message) error {
 	if _, err := build(l.from, m, time.Now()); err != nil {
 		return err
 	}
-	if m.Type == "user_invitation" || m.Type == "mfa_oob_code" || m.Type == "enrollment_email" {
+	if m.Type == "user_invitation" || m.Type == "mfa_oob_code" || m.Type == "enrollment_email" || m.Type == AsyncApprovalTemplate {
 		l.log.InfoContext(ctx, "email (log driver)", "type", m.Type)
 		return nil
 	}

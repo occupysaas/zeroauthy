@@ -202,13 +202,8 @@ func (a authAPI) OauthPar(w http.ResponseWriter, r *http.Request, _ authapi.Oaut
 	a.oauth.OauthPar(w, r)
 }
 
-// BcAuthorize starts a CIBA request (Plan 41c); until the handler lands it
-// refuses every client.
-func (a authAPI) BcAuthorize(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusBadRequest)
-	_, _ = w.Write([]byte(`{"error":"unauthorized_client","error_description":"CIBA is not available"}`))
-}
+// BcAuthorize starts a CIBA request (Plan 41c).
+func (a authAPI) BcAuthorize(w http.ResponseWriter, r *http.Request) { a.oauth.BcAuthorize(w, r) }
 
 func (a authAPI) OauthDeviceCode(w http.ResponseWriter, r *http.Request) {
 	a.oauth.OauthDeviceCode(w, r)
@@ -384,7 +379,7 @@ func New(d Deps) http.Handler {
 		authapi.HandlerWithOptions(authAPI{
 			ad:   d.AD,
 			oidc: &oidc.Handlers{UpstreamLogout: lg.UpstreamLogout, Wrapper: d.Wrapper, Compat: d.Compat, DPoP: proofService, Keys: d.Keys, Store: d.Store, Sessions: d.Sessions, Log: d.Log},
-			oauth: &oauth.Handlers{Compat: d.Compat, Logout: d.Logout,
+			oauth: &oauth.Handlers{CIBA: oauth.NewCIBAService(d.EmailService, nil), Compat: d.Compat, Logout: d.Logout,
 				DPoP:       proofService,
 				Federation: d.Federation,
 				MFA:        d.MFA,

@@ -56,6 +56,11 @@ type Configuration struct {
 	RevocationEndpoint                 string   `json:"revocation_endpoint"`
 	DeviceAuthorizationEndpoint        string   `json:"device_authorization_endpoint,omitempty"`
 	PushedAuthorizationRequestEndpoint string   `json:"pushed_authorization_request_endpoint,omitempty"`
+	// The CIBA members (Plan 41c), present when the store holds CIBA requests.
+	BackchannelAuthenticationEndpoint                         string   `json:"backchannel_authentication_endpoint,omitempty"`
+	BackchannelTokenDeliveryModesSupported                    []string `json:"backchannel_token_delivery_modes_supported,omitempty"`
+	BackchannelUserCodeParameterSupported                     *bool    `json:"backchannel_user_code_parameter_supported,omitempty"`
+	BackchannelAuthenticationRequestSigningAlgValuesSupported []string `json:"backchannel_authentication_request_signing_alg_values_supported,omitempty"`
 	// RequestURIParameterSupported is always false (D-0030): request_uri is
 	// accepted only from /oauth/par. OIDC Discovery defaults it to true.
 	RequestURIParameterSupported bool `json:"request_uri_parameter_supported"`
@@ -136,6 +141,15 @@ func (h *Handlers) Discovery(w http.ResponseWriter, r *http.Request) {
 	}
 	if res.Tenant.PushedAuthorizationRequestsSupported {
 		cfg.PushedAuthorizationRequestEndpoint = base + "/oauth/par" // P8
+	}
+	if h.Store != nil {
+		if _, err := store.CIBA(r.Context(), h.Store); err == nil {
+			no := false
+			cfg.BackchannelAuthenticationEndpoint = base + "/bc-authorize"
+			cfg.BackchannelTokenDeliveryModesSupported = []string{"poll"}
+			cfg.BackchannelUserCodeParameterSupported = &no
+			cfg.BackchannelAuthenticationRequestSigningAlgValuesSupported = cfg.RequestObjectSigningAlgValuesSupported
+		}
 	}
 	if h.Store != nil && store.CheckRefreshTokensIISupport(r.Context(), h.Store) == nil {
 		cfg.DPoPSigningAlgValuesSupported = []string{"ES256", "RS256"}

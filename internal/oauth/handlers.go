@@ -25,6 +25,8 @@ import (
 )
 
 type Handlers struct {
+	// CIBA serves /bc-authorize (Plan 41c); nil answers server_error.
+	CIBA       *CIBAService
 	Logout     *logout.Service
 	Compat     compat.Switches
 	DPoP       *dpop.Service
