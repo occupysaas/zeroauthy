@@ -134,3 +134,40 @@ func TestSocialFacebookAndLinkedInRules(t *testing.T) {
 		t.Fatalf("linkedin default %+v %v", s.Social, s.Scopes)
 	}
 }
+
+func TestSocialSalesforceCommunityRules(t *testing.T) {
+	for name, c := range map[string]struct {
+		v  any
+		ok bool
+	}{
+		"valid":    {"https://community.example.com", true},
+		"path":     {"https://community.example.com/partners", true},
+		"missing":  {nil, false},
+		"http":     {"http://community.example.com", false},
+		"query":    {"https://community.example.com/?x=1", false},
+		"fragment": {"https://community.example.com/#x", false},
+		"userinfo": {"https://u:p@community.example.com", false},
+		"loopback": {"https://127.0.0.1", false},
+		"number":   {42.0, false},
+	} {
+		t.Run(name, func(t *testing.T) {
+			o := map[string]any{}
+			if c.v != nil {
+				o["community_base_url"] = c.v
+			}
+			s, errs := Parse(socialInput("salesforce-community", o))
+			if c.ok != (len(errs) == 0) {
+				t.Fatalf("%v", errs)
+			}
+			if c.ok && !strings.HasPrefix(s.AuthorizationURL, c.v.(string)+"/services/oauth2/authorize") {
+				t.Fatalf("authorization URL %s", s.AuthorizationURL)
+			}
+		})
+	}
+	if _, errs := Parse(socialInput("salesforce", map[string]any{"community_base_url": "https://c.example.com"})); len(errs) > 0 {
+		t.Fatalf("salesforce stores community_base_url: %v", errs)
+	}
+	if _, errs := Parse(socialInput("yahoo", map[string]any{"freeform_scopes": []any{"x"}})); len(errs) == 0 {
+		t.Fatal("yahoo accepted freeform_scopes")
+	}
+}

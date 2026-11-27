@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"net/url"
+	"strings"
 	"testing"
 
 	"github.com/zeroauthy/zeroauthy/internal/federation/providers"
@@ -37,11 +38,29 @@ var tier1Cases = []tier1Case{
 	{strategy: "linkedin", options: `,"email":true`, tokenPath: "/linkedin/oauth/v2/accessToken", tokenBody: tokenOK,
 		profilePath: "/linkedin/v2/userinfo", profileBody: `{"sub":"782bbtaQ","name":"Lin Kedin","given_name":"Lin","family_name":"Kedin","email":"lin@example.com","email_verified":true,"picture":"https://media.example/p.jpg"}`,
 		scope: "openid profile email", subject: "782bbtaQ", email: "lin@example.com", verified: true, name: "Lin Kedin"},
+	{strategy: "paypal", options: `,"email":true`, tokenPath: "/paypal/v1/oauth2/token", tokenBody: `{"access_token":"` + socTestToken + `","token_type":"Bearer","expires_in":28800}`,
+		profilePath: "/paypal/v1/identity/oauth2/userinfo", profileBody: `{"user_id":"https://www.paypal.com/webapps/auth/identity/user/THROWAWAY","name":"Pay Pal","given_name":"Pay","family_name":"Pal","emails":[{"value":"old@example.com","primary":false,"confirmed":true},{"value":"pay@example.com","primary":true,"confirmed":false}]}`,
+		scope: "openid email", subject: "https://www.paypal.com/webapps/auth/identity/user/THROWAWAY", email: "pay@example.com", verified: false, name: "Pay Pal"},
+	{strategy: "paypal-sandbox", options: `,"profile":true`, tokenPath: "/paypal-sandbox/v1/oauth2/token", tokenBody: tokenOK,
+		profilePath: "/paypal-sandbox/v1/identity/oauth2/userinfo", profileBody: `{"user_id":"https://www.sandbox.paypal.com/webapps/auth/identity/user/SANDBOX","name":"Sand Box","emails":[{"value":"sb@example.com","primary":true,"confirmed":true}]}`,
+		scope: "openid profile", subject: "https://www.sandbox.paypal.com/webapps/auth/identity/user/SANDBOX", email: "sb@example.com", verified: true, name: "Sand Box"},
+	{strategy: "salesforce", tokenPath: "/salesforce/services/oauth2/token", tokenBody: `{"access_token":"` + socTestToken + `","token_type":"Bearer","id":"{base}/salesforce/id/00Dxx0000001gPL/005xx000001X8Uz","instance_url":"https://example.my.salesforce.com"}`,
+		profilePath: "/salesforce/id/00Dxx0000001gPL/005xx000001X8Uz", profileBody: `{"user_id":"005xx000001X8Uz","organization_id":"00Dxx0000001gPL","display_name":"Sales Force","first_name":"Sales","last_name":"Force","email":"sf@example.com","email_verified":true}`,
+		scope: "id profile", subject: "005xx000001X8Uz", email: "sf@example.com", verified: true, name: "Sales Force"},
+	{strategy: "salesforce-sandbox", options: `,"profile":false`, tokenPath: "/salesforce-sandbox/services/oauth2/token", tokenBody: `{"access_token":"` + socTestToken + `","token_type":"Bearer","id":"{base}/salesforce-sandbox/id/00D/005SB"}`,
+		profilePath: "/salesforce-sandbox/id/00D/005SB", profileBody: `{"user_id":"005SB","display_name":"Sand Force","email":"sfsb@example.com","email_verified":false}`,
+		scope: "id", subject: "005SB", email: "sfsb@example.com", verified: false, name: "Sand Force"},
+	{strategy: "salesforce-community", options: `,"community_base_url":"https://community.example.com"`, tokenPath: "/salesforce-community/services/oauth2/token", tokenBody: `{"access_token":"` + socTestToken + `","token_type":"Bearer","id":"{base}/salesforce-community/id/00D/005C"}`,
+		profilePath: "/salesforce-community/id/00D/005C", profileBody: `{"user_id":"005C","display_name":"Com Munity","email":"c@example.com","email_verified":true}`,
+		scope: "id profile", subject: "005C", email: "c@example.com", verified: true, name: "Com Munity"},
+	{strategy: "yahoo", tokenPath: "/yahoo/oauth2/get_token", tokenBody: tokenOK,
+		profilePath: "/yahoo/openid/v1/userinfo", profileBody: `{"sub":"YAHOO123","name":"Ya Hoo","given_name":"Ya","family_name":"Hoo","email":"y@example.com","email_verified":true,"picture":"https://s.yimg.example/p.png"}`,
+		scope: "openid profile email", subject: "YAHOO123", email: "y@example.com", verified: true, name: "Ya Hoo"},
 }
 
 func (c tier1Case) fixture(t *testing.T) *socFixture {
 	f := newSocFixture(t)
-	f.on(c.tokenPath, jsonHandler(200, c.tokenBody))
+	f.on(c.tokenPath, jsonHandler(200, strings.ReplaceAll(c.tokenBody, "{base}", f.srv.URL)))
 	f.on(c.profilePath, jsonHandler(200, c.profileBody))
 	for p, b := range c.extra {
 		f.on(p, jsonHandler(200, b))
@@ -221,5 +240,54 @@ func TestLinkedInRetiredVersionsRefused(t *testing.T) {
 	}
 	if _, err := ps.SocialEndpoints(socConfig(t, "linkedin", `,"strategy_version":3`), ""); err != nil {
 		t.Fatal(err)
+	}
+}
+
+// TestSalesforceIdentityURL: the profile is read from the token response's
+// identity URL only when it is https on the token endpoint's host
+// (LR39b-7); anything else is refused before any profile call.
+func TestSalesforceIdentityURL(t *testing.T) {
+	for name, id := range map[string]string{
+		"other host":  `"https://evil.example/id/00D/005"`,
+		"http":        `"{http}/salesforce/id/00D/005"`,
+		"missing":     ``,
+		"not string":  `42`,
+		"userinfo":    `"https://user@{host}/salesforce/id/00D/005"`,
+		"relative":    `"/salesforce/id/00D/005"`,
+	} {
+		t.Run(name, func(t *testing.T) {
+			f := newSocFixture(t)
+			host := strings.TrimPrefix(f.srv.URL, "https://")
+			id = strings.NewReplacer("{http}", "http://"+host, "{host}", host).Replace(id)
+			body := `{"access_token":"` + socTestToken + `","token_type":"Bearer"`
+			if id != "" {
+				body += `,"id":` + id
+			}
+			f.on("/salesforce/services/oauth2/token", jsonHandler(200, body+"}"))
+			f.on("/salesforce/id/00D/005", jsonHandler(200, `{"user_id":"005"}`))
+			ps := f.providers()
+			cfg := socConfig(t, "salesforce", "")
+			e, _ := ps.SocialEndpoints(cfg, "")
+			_, err := ps.For(cfg).Exchange(t.Context(), ExchangeInput{Config: cfg, Endpoints: e, CallbackURL: "https://login.example/login/callback",
+				Code: "code-1", CodeVerifier: "verifier-1", ClientSecret: socTestSecret, Now: fixedTime})
+			if !errors.Is(err, ErrProviderResponse) {
+				t.Fatalf("err %v", err)
+			}
+			if f.calls["/salesforce/id/00D/005"] != 0 {
+				t.Fatal("profile fetched from a refused identity URL")
+			}
+			socNoSecrets(t, err)
+		})
+	}
+}
+
+func TestSalesforceCommunityEndpoints(t *testing.T) {
+	ps := NewProviders(NetworkPolicy{}, nil)
+	e, err := ps.SocialEndpoints(socConfig(t, "salesforce-community", `,"community_base_url":"https://community.example.com/partners"`), "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if e.AuthorizationURL != "https://community.example.com/partners/services/oauth2/authorize" || e.TokenURL != "https://community.example.com/partners/services/oauth2/token" {
+		t.Fatalf("endpoints %+v", e)
 	}
 }

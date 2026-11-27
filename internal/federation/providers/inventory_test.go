@@ -51,7 +51,9 @@ func TestDescriptorsMatchInventory(t *testing.T) {
 		if !ok {
 			t.Fatalf("%s: not in the inventory", d.Strategy)
 		}
-		literal := func(s string) bool { return strings.HasPrefix(s, "https://") && !strings.Contains(s, "<") && !strings.Contains(s, " ") }
+		literal := func(s string) bool {
+			return strings.HasPrefix(s, "https://") && !strings.Contains(s, "<") && !strings.Contains(s, " ")
+		}
 		for name, pair := range map[string][2]string{
 			"authorization_url": {row.AuthorizationURL, d.AuthorizationURL},
 			"token_url":         {row.TokenURL, d.TokenURL},

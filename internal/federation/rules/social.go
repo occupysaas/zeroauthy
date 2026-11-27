@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"math"
+	"net/url"
 	"regexp"
 	"strings"
 
@@ -140,6 +141,22 @@ func parseSocialHook(d *providers.Descriptor, o map[string]any, s *SocialSetting
 	var errs []error
 	fail := func(format string, args ...any) { errs = append(errs, fmt.Errorf(format, args...)) }
 	switch d.Hook {
+	case providers.HookSalesforce:
+		v, named := o["community_base_url"]
+		if d.Strategy != "salesforce-community" {
+			break // stored only
+		}
+		raw, isStr := v.(string)
+		if !named || !isStr || raw == "" {
+			fail("options.community_base_url is required for salesforce-community")
+			break
+		}
+		u, err := url.Parse(raw)
+		if verr := ValidateEndpoint(raw, false); verr != nil || err != nil || u.RawQuery != "" || strings.Contains(raw, "?") {
+			fail("options.community_base_url must be an https URL of a public host without query, fragment or credentials")
+			break
+		}
+		s.CommunityBaseURL = strings.TrimSuffix(raw, "/")
 	case providers.HookLinkedIn:
 		s.StrategyVersion = 3
 		if v, ok := o["strategy_version"]; ok && v != nil {
