@@ -1,8 +1,8 @@
 # Plan 39b implementation record
 
-Status: **implemented and verified locally**, on `plan-39b-social-providers`
-(worktree `/mnt/nvme2/code/zeroauthy-plan39b`), based on `main` after PR #104.
-Plan-branch CI and maintainer approval pending.
+Status: **merged** 2026-11-27 (PR #105, merge commit `36d42f16`), from
+`plan-39b-social-providers`, based on `main` after PR #104. Plan-branch CI
+green (run 45970075639, 70 checks).
 
 Plan: [Plan 39b](plans/2026-11-16-zeroauthy-plan-39b-social-providers.md).
 Spec: [remaining social providers](specs/2026-11-16-zeroauthy-social-providers-design.md).
@@ -60,12 +60,12 @@ Local, 2026-11-27, at `df2e8b07`, TMPDIR/GOTMPDIR on `/dev/shm`:
 - Final review: self-review (subagents only on request); no Critical or
   Important findings. Deferred minors are in the final report.
 
-## Follow-ups and rulings for the maintainer
+## Maintainer rulings after review (2026-11-27)
 
-- GitHub stays on its Plan 39c adapter; porting it to a descriptor is a
-  maintainer decision (plan, "GitHub moved out").
-- SP-3: Auth0 documents no native Google `subject_token_type`; the local URN
-  `http://auth0.com/oauth/token-type/google-id-token` is used.
-- The spec's "client's allowed native audiences" for Google has no client
-  field; only the connection's `client_id` is accepted.
-- Tier 2 providers: a later plan (maintainer ruling).
+- GitHub stays on its Plan 39c adapter in this plan; the next social batch
+  (Tier 2) ports it to a descriptor, with Plan 39c's adapter tests as the
+  acceptance tests and public IDs unchanged.
+- SP-3: the local native Google URN
+  `http://auth0.com/oauth/token-type/google-id-token` stands.
+- Native Google accepts only tokens whose `aud` is the connection's
+  `client_id`; no extra audiences.

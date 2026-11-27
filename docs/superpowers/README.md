@@ -52,7 +52,7 @@ track order in the [parallel paths design](specs/2026-11-13-zeroauthy-parallel-p
 | O1 | 38c Network ACLs | [spec](specs/2026-11-16-zeroauthy-network-acls-design.md) | [plan](plans/2026-11-16-zeroauthy-plan-38c-network-acls.md) |
 | M1 | 38d Management API gaps | [spec](specs/2026-11-16-zeroauthy-management-gaps-design.md) | [plan](plans/2026-11-16-zeroauthy-plan-38d-management-gaps.md) |
 | S1 | 39a Sign in with Apple | [spec](specs/2026-11-16-zeroauthy-apple-design.md) | [plan](plans/2026-11-16-zeroauthy-plan-39a-apple.md) |
-| S2 | 39b Remaining social providers, Tier 1 ([implemented and verified locally](2026-11-16-plan-39b-implementation-record.md); Tier 2 later) | [spec](specs/2026-11-16-zeroauthy-social-providers-design.md) | [plan](plans/2026-11-16-zeroauthy-plan-39b-social-providers.md) |
+| S2 | 39b Remaining social providers, Tier 1 ([merged 2026-11-27](2026-11-16-plan-39b-implementation-record.md), PR #105; Tier 2 and the GitHub descriptor port are the next social batch) | [spec](specs/2026-11-16-zeroauthy-social-providers-design.md) | [plan](plans/2026-11-16-zeroauthy-plan-39b-social-providers.md) |
 | S2 | 39c GitHub social connection (split out of 39b; merged 2026-11-19, PR #71) | [spec](specs/2026-11-16-zeroauthy-github-connection-design.md) | [plan](plans/2026-11-18-zeroauthy-plan-39c-github.md) |
 | A1 | 40 Actions III | [spec](specs/2026-11-16-zeroauthy-actions-iii-design.md) | [plan](plans/2026-11-16-zeroauthy-plan-40-actions-iii.md) |
 | P3 | 41a OIDC extras and logout ([merged 2026-11-21](2026-11-16-plan-41a-implementation-record.md), PRs #74, #76) | [spec](specs/2026-11-16-zeroauthy-oidc-extras-logout-design.md) | [plan](plans/2026-11-16-zeroauthy-plan-41a-oidc-extras-logout.md) |
@@ -69,7 +69,7 @@ track order in the [parallel paths design](specs/2026-11-13-zeroauthy-parallel-p
 | O5 | 46 Release leftovers | [spec](specs/2026-11-16-zeroauthy-release-leftovers-design.md) | [plan](plans/2026-11-16-zeroauthy-plan-46-release-leftovers.md) |
 | P2 | 48 Refresh tokens II (merged 2026-11-21, PR #73) | [spec](specs/2026-11-16-zeroauthy-refresh-tokens-ii-design.md) | [plan](plans/2026-11-16-zeroauthy-plan-48-refresh-tokens-ii.md) |
 
-P1 (Plan 35) and S1 (Plan 39a) are implemented and merged, and so are the items marked merged above. Still open: P6, S2 (39b), A1, A2, H1, M1, O1, O2, O4, O5 and X1 (maintainer-only).
+P1 (Plan 35) and S1 (Plan 39a) are implemented and merged, and so are the items marked merged above. Still open: P6, S2 (39b Tier 2), A1, A2, H1, M1, O1, O2, O4, O5 and X1 (maintainer-only).
 
 ## Before implementing an item
 

@@ -3632,8 +3632,9 @@ records the scope and evidence, including the DPoP extension authorized on
 
 ## D-0180 — Plan 39b remaining social providers (2026-11-27)
 
-**Status:** implemented on `plan-39b-social-providers` (2026-11-27); plan-branch CI
-and approval pending. Record: [implementation record](../superpowers/2026-11-16-plan-39b-implementation-record.md).
+**Status:** merged 2026-11-27 (PR #105). After review the maintainer kept
+the local Google URN (SP-3) and connection-`client_id`-only Google audiences,
+and moved the GitHub descriptor port to the next social batch (Tier 2). Record: [implementation record](../superpowers/2026-11-16-plan-39b-implementation-record.md).
 
 **Authority:** [Plan 39b design](../superpowers/specs/2026-11-16-zeroauthy-social-providers-design.md),
 Auth0's Management OpenAPI (`ConnectionOptions*` schemas), Auth0's social
