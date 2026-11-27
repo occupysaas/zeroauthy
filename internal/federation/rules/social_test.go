@@ -171,3 +171,20 @@ func TestSocialSalesforceCommunityRules(t *testing.T) {
 		t.Fatal("yahoo accepted freeform_scopes")
 	}
 }
+
+func TestSocialTwitterProtocol(t *testing.T) {
+	s, errs := Parse(socialInput("twitter", nil))
+	if len(errs) > 0 || s.OAuth1 != nil || !reflect.DeepEqual(s.Scopes, []string{"tweet.read", "users.read"}) || s.AuthorizationURL != "https://x.com/i/oauth2/authorize" {
+		t.Fatalf("default %+v %v", s, errs)
+	}
+	s, errs = Parse(socialInput("twitter", map[string]any{"protocol": "oauth1", "tweet_read": true}))
+	if len(errs) > 0 || s.OAuth1 == nil || len(s.Scopes) != 0 || s.OAuth1.RequestTokenURL != "https://api.x.com/oauth/request_token" ||
+		s.OAuth1.UserAuthorizationURL != "https://api.x.com/oauth/authenticate" || s.OAuth1.AccessTokenURL != "https://api.x.com/oauth/access_token" || s.OAuth1.SignatureMethod != "HMAC-SHA1" {
+		t.Fatalf("oauth1 %+v %+v %v", s, s.OAuth1, errs)
+	}
+	for _, v := range []any{"oauth3", "OAUTH1", 1.0} {
+		if _, errs := Parse(socialInput("twitter", map[string]any{"protocol": v})); len(errs) == 0 {
+			t.Fatalf("protocol %v accepted", v)
+		}
+	}
+}

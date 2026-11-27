@@ -50,13 +50,22 @@ func TestParseCallbackOAuth1(t *testing.T) {
 // under <srv>/oauth1 and checks every signature with the consumer secret.
 type o1Fixture struct {
 	*socFixture
-	t        *testing.T
-	sigFails int
+	t                   *testing.T
+	sigFails            int
+	consumer, secret    string
+	accessTokenResponse string
 }
 
 func newO1Fixture(t *testing.T) *o1Fixture {
-	f := &o1Fixture{socFixture: newSocFixture(t), t: t}
-	f.on("/oauth1/oauth/request_token", func(w http.ResponseWriter, r *http.Request) {
+	return newO1FixtureAt(t, "oauth1", "consumer-key", o1ConsumerSecret)
+}
+
+// newO1FixtureAt serves the OAuth 1.0a endpoints under <srv>/<prefix>/oauth
+// for one consumer key and secret.
+func newO1FixtureAt(t *testing.T, prefix, consumer, secret string) *o1Fixture {
+	f := &o1Fixture{socFixture: newSocFixture(t), t: t, consumer: consumer, secret: secret,
+		accessTokenResponse: "oauth_token=" + o1AccessToken + "&oauth_token_secret=" + o1AccessSecret + "&user_id=42&screen_name=someone"}
+	f.on("/"+prefix+"/oauth/request_token", func(w http.ResponseWriter, r *http.Request) {
 		p := f.verify(r, "")
 		if p["oauth_callback"] != "https://login.example/login/callback" || p["oauth_token"] != "" {
 			f.sigFails++
@@ -64,14 +73,14 @@ func newO1Fixture(t *testing.T) *o1Fixture {
 		w.Header().Set("Content-Type", "application/x-www-form-urlencoded")
 		_, _ = w.Write([]byte("oauth_token=" + o1RequestToken + "&oauth_token_secret=" + o1RequestSecret + "&oauth_callback_confirmed=true"))
 	})
-	f.on("/oauth1/oauth/access_token", func(w http.ResponseWriter, r *http.Request) {
+	f.on("/"+prefix+"/oauth/access_token", func(w http.ResponseWriter, r *http.Request) {
 		p := f.verify(r, o1RequestSecret)
 		if p["oauth_token"] != o1RequestToken || p["oauth_verifier"] != o1Verifier {
 			f.sigFails++
 			w.WriteHeader(401)
 			return
 		}
-		_, _ = w.Write([]byte("oauth_token=" + o1AccessToken + "&oauth_token_secret=" + o1AccessSecret + "&user_id=42&screen_name=someone"))
+		_, _ = w.Write([]byte(f.accessTokenResponse))
 	})
 	return f
 }
@@ -87,10 +96,10 @@ func (f *o1Fixture) verify(r *http.Request, tokenSecret string) map[string]strin
 	}
 	sig := p["oauth_signature"]
 	delete(p, "oauth_signature")
-	creds := oauth1sig.Credentials{ConsumerKey: p["oauth_consumer_key"], ConsumerSecret: o1ConsumerSecret, TokenSecret: tokenSecret}
+	creds := oauth1sig.Credentials{ConsumerKey: p["oauth_consumer_key"], ConsumerSecret: f.secret, TokenSecret: tokenSecret}
 	_ = r.ParseForm()
 	want, _ := oauth1sig.Sign(creds, r.Method, "https://"+r.Host+r.URL.RequestURI(), r.PostForm, p)
-	if sig == "" || sig != want || p["oauth_consumer_key"] != "consumer-key" {
+	if sig == "" || sig != want || p["oauth_consumer_key"] != f.consumer {
 		f.sigFails++
 	}
 	return p

@@ -22,6 +22,9 @@ func init() {
 	socialHooks[providers.HookSalesforce] = socialHook{profileURL: salesforceIdentityURL}
 	socialHooks[providers.HookLine] = socialHook{after: lineEmail}
 	socialHooks[providers.HookShopify] = socialHook{begin: shopifyShop}
+	// Twitter's protocol oauth1 runs on the OAuth 1.0a provider (Config.OAuth1);
+	// protocol oauth2 needs no hook.
+	socialHooks[providers.HookTwitter] = socialHook{}
 }
 
 // lineIssuer is the iss of LINE ID tokens.

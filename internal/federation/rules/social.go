@@ -39,6 +39,14 @@ var socialRejected = []string{"authorizationURL", "tokenURL", "profileURL", "use
 // Twitter is the twitter strategy (protocol oauth2 or oauth1).
 const Twitter = "twitter"
 
+// Twitter's OAuth 1.0a endpoints (protocol oauth1, LR39b-10).
+const (
+	TwitterRequestTokenURL   = "https://api.x.com/oauth/request_token"
+	TwitterAuthenticateURL   = "https://api.x.com/oauth/authenticate"
+	TwitterAccessTokenURL    = "https://api.x.com/oauth/access_token"
+	TwitterVerifyCredentials = "https://api.x.com/1.1/account/verify_credentials.json?include_email=true&skip_status=true"
+)
+
 // IsDescriptorSocial reports whether strategy runs on a Plan 39b descriptor.
 func IsDescriptorSocial(strategy string) bool { return providers.Is(strategy) }
 
@@ -112,6 +120,11 @@ func parseSocial(strategy string, o, connectedAccounts map[string]any, out *Sett
 	out.Scopes = scopes
 	out.Social = social
 	out.AuthorizationURL, out.TokenURL = d.AuthorizationURL, d.TokenURL
+	if social.Protocol == "oauth1" {
+		out.OAuth1 = &OAuth1Settings{RequestTokenURL: TwitterRequestTokenURL, AccessTokenURL: TwitterAccessTokenURL,
+			UserAuthorizationURL: TwitterAuthenticateURL, SignatureMethod: "HMAC-SHA1"}
+		out.AuthorizationURL, out.TokenURL = TwitterAuthenticateURL, TwitterAccessTokenURL
+	}
 	if social.CommunityBaseURL != "" {
 		out.AuthorizationURL = strings.Replace(d.AuthorizationURL, providers.CommunityPlaceholder, social.CommunityBaseURL, 1)
 		out.TokenURL = strings.Replace(d.TokenURL, providers.CommunityPlaceholder, social.CommunityBaseURL, 1)
@@ -160,6 +173,15 @@ func parseSocialHook(d *providers.Descriptor, o map[string]any, s *SocialSetting
 			break
 		}
 		s.CommunityBaseURL = strings.TrimSuffix(raw, "/")
+	case providers.HookTwitter:
+		s.Protocol = "oauth2"
+		if v, ok := o["protocol"]; ok && v != nil {
+			if v != "oauth1" && v != "oauth2" {
+				fail("options.protocol must be oauth1 or oauth2")
+			} else {
+				s.Protocol = v.(string)
+			}
+		}
 	case providers.HookLinkedIn:
 		s.StrategyVersion = 3
 		if v, ok := o["strategy_version"]; ok && v != nil {

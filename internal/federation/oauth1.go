@@ -1,8 +1,10 @@
 package federation
 
 import (
+	"bytes"
 	"context"
 	"crypto/subtle"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -12,6 +14,7 @@ import (
 	"strings"
 
 	"github.com/zeroauthy/zeroauthy/internal/federation/oauth1sig"
+	"github.com/zeroauthy/zeroauthy/internal/federation/providers"
 	"github.com/zeroauthy/zeroauthy/internal/federation/rules"
 	"github.com/zeroauthy/zeroauthy/internal/federation/script"
 	"github.com/zeroauthy/zeroauthy/internal/store"
@@ -256,7 +259,36 @@ func (s *FlowService) beginOAuth1(ctx context.Context, in BeginInput, conn *stor
 	return &Begun{URL: u, CookieName: AttemptCookiePrefix + stateHash[:16], CookieValue: cookie, ExpiresAt: expires}, nil
 }
 
-// twitterOAuth1Profile reads verify_credentials (Task 4).
-func (ps *Providers) twitterOAuth1Profile(ctx context.Context, in ExchangeInput, c oauth1sig.Credentials) (Profile, error) {
-	return Profile{}, fmt.Errorf("%w: twitter oauth1 is not wired yet", ErrConnectionUnusable)
+// twitterOAuth1Profile reads verify_credentials with include_email through
+// a signed GET (LR39b-10). The subject is id_str; an email needs the app's
+// elevated access and is never marked verified (SP-7).
+func (ps *Providers) twitterOAuth1Profile(ctx context.Context, _ ExchangeInput, c oauth1sig.Credentials) (Profile, error) {
+	target := ps.socialURL(rules.Twitter, rules.TwitterVerifyCredentials)
+	h, err := oauth1sig.Header(c, http.MethodGet, target, nil, nil, oauth1sig.Nonce(), strconv.FormatInt(ps.now().Unix(), 10))
+	if err != nil {
+		return Profile{}, fmt.Errorf("%w: oauth1 signing", ErrInvalidConfig)
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, target, nil)
+	if err != nil {
+		return Profile{}, fmt.Errorf("%w: twitter profile URL", ErrInvalidConfig)
+	}
+	req.Header.Set("Authorization", h)
+	req.Header.Set("Accept", "application/json")
+	resp, err := ps.client.Do(req)
+	if err != nil {
+		return Profile{}, fmt.Errorf("%w: twitter profile request: %w", ErrProviderResponse, redact(err))
+	}
+	body, err := readAll(resp)
+	if err != nil || resp.StatusCode != http.StatusOK {
+		return Profile{}, fmt.Errorf("%w: twitter profile response", ErrProviderResponse)
+	}
+	d := &providers.Descriptor{Strategy: rules.Twitter, Profile: providers.ProfileMap{UserID: "id_str", Name: "name", Nickname: "screen_name",
+		Picture: "profile_image_url_https", Email: "email"}, EmailVerified: providers.EmailRule{Rule: providers.EmailNever}}
+	var doc map[string]any
+	dec := json.NewDecoder(bytes.NewReader(body))
+	dec.UseNumber()
+	if dec.Decode(&doc) != nil || doc == nil {
+		return Profile{}, fmt.Errorf("%w: twitter profile is not a JSON object", ErrProviderResponse)
+	}
+	return mapSocialProfile(d, doc, doc)
 }
