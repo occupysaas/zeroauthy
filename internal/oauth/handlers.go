@@ -5,6 +5,7 @@
 package oauth
 
 import (
+	"github.com/zeroauthy/zeroauthy/internal/cimd"
 	"github.com/zeroauthy/zeroauthy/internal/compat"
 	"github.com/zeroauthy/zeroauthy/internal/dpop"
 	"log/slog"
@@ -26,7 +27,10 @@ import (
 
 type Handlers struct {
 	// CIBA serves /bc-authorize (Plan 41c); nil answers server_error.
-	CIBA       *CIBAService
+	CIBA *CIBAService
+	// CIMD resolves Client ID Metadata Document URLs used as client_id
+	// (Plan 41b); nil accepts none.
+	CIMD       *cimd.Registrar
 	Logout     *logout.Service
 	Compat     compat.Switches
 	DPoP       *dpop.Service

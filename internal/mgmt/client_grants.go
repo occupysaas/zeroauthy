@@ -68,7 +68,14 @@ func (h *Handlers) GetClientGrants(w http.ResponseWriter, r *http.Request, _ mgm
 		Fail(w, badQuery("Query validation error: subject_type must be client or user"))
 		return
 	}
-	if f.SubjectType != "" && f.ClientID == "" && f.Audience == "" {
+	if values, ok := q["default_for"]; ok {
+		if len(values) != 1 || values[0] != store.GrantDefaultForThirdParty {
+			Fail(w, badQuery("Query validation error: default_for must be third_party_clients"))
+			return
+		}
+		f.DefaultFor = values[0]
+	}
+	if f.SubjectType != "" && f.ClientID == "" && f.Audience == "" && f.DefaultFor == "" {
 		Fail(w, noCode("subject_type needs client_id or audience"))
 		return
 	}
@@ -194,6 +201,7 @@ type grantBody struct {
 	organizationUsageSet bool
 	allowAny             bool
 	allowAnySet          bool
+	defaultFor           string
 }
 
 // readClientGrantBody reads body in name order so that the first error
@@ -217,6 +225,15 @@ func readClientGrantBody(body map[string]json.RawMessage, create bool) (grantBod
 			default:
 				if err = decodeString(raw, &out.subjectType); err == nil && out.subjectType != store.SubjectTypeClient && out.subjectType != store.SubjectTypeUser {
 					err = errors.New("must be client or user")
+				}
+			}
+		case "default_for":
+			if !create {
+				return out, badBody("unknown property %q", k)
+			}
+			if !isNull(raw) {
+				if err = decodeString(raw, &out.defaultFor); err == nil && out.defaultFor != store.GrantDefaultForThirdParty {
+					err = errors.New("must be third_party_clients")
 				}
 			}
 		case "scope":
@@ -246,10 +263,6 @@ func readClientGrantBody(body map[string]json.RawMessage, create bool) (grantBod
 			if !isNull(raw) && (json.Unmarshal(raw, &v) != nil || len(v) > 0) {
 				err = errors.New("is not supported; only null or an empty list is accepted")
 			}
-		case "default_for":
-			if !isNull(raw) {
-				err = errors.New("is not supported; only null is accepted")
-			}
 		default:
 			return out, badBody("unknown property %q", k)
 		}
@@ -278,7 +291,10 @@ func (h *Handlers) CreateClientGrant(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	switch {
-	case in.clientID == "":
+	case in.clientID != "" && in.defaultFor != "":
+		Fail(w, badBody("client_id and default_for are mutually exclusive"))
+		return
+	case in.clientID == "" && in.defaultFor == "":
 		Fail(w, badBody("Missing required property: client_id"))
 		return
 	case in.audience == "":
@@ -299,20 +315,31 @@ func (h *Handlers) CreateClientGrant(w http.ResponseWriter, r *http.Request) {
 	}
 	g := &store.ClientGrant{
 		TenantID: tn.ID, ID: "cgr_" + secrets.RandomString(clientGrantIDLength),
-		ClientID: in.clientID, Audience: in.audience, SubjectType: in.subjectType,
+		ClientID: in.clientID, Audience: in.audience, SubjectType: in.subjectType, DefaultFor: in.defaultFor,
 		CreatedAt: h.now(), Origin: store.OriginAPI,
 		OrganizationUsage: cmp.Or(in.organizationUsage, store.OrgUsageDeny), AllowAnyOrganization: in.allowAny,
 	}
 	err = h.Store.WithTx(r.Context(), func(tx store.Store) error {
 		ctx := r.Context()
-		client, err := tx.Clients().Get(ctx, tn.ID, in.clientID)
-		if errors.Is(err, store.ErrNotFound) {
-			return errClientNotFound
-		} else if err != nil {
-			return err
+		if g.DefaultFor != "" {
+			// A default grant has no client; organization policy is per client.
+			if g.OrganizationUsage != store.OrgUsageDeny || g.AllowAnyOrganization {
+				return badBody("default grants take no organization policy")
+			}
+		} else {
+			client, err := tx.Clients().Get(ctx, tn.ID, in.clientID)
+			if errors.Is(err, store.ErrNotFound) {
+				return errClientNotFound
+			} else if err != nil {
+				return err
+			}
+			if err := checkGrantOrganization(r, h.Store, g, client); err != nil {
+				return err
+			}
 		}
-		if err := checkGrantOrganization(r, h.Store, g, client); err != nil {
-			return err
+		if g.DefaultFor != "" && (in.audience == own || apirules.IsManagementAPIIdentifier(in.audience)) {
+			// Auth0: system APIs do not support default third-party grants.
+			return badBody("audience: system APIs do not support default grants for third-party applications")
 		}
 		rs, err := tx.ResourceServers().GetByIdentifier(ctx, tn.ID, in.audience)
 		if errors.Is(err, store.ErrNotFound) && in.audience == own {
@@ -331,6 +358,9 @@ func (h *Handlers) CreateClientGrant(w http.ResponseWriter, r *http.Request) {
 		}
 		if err != nil {
 			return err
+		}
+		if g.DefaultFor != "" && rs.IsSystem {
+			return badBody("audience: system APIs do not support default grants for third-party applications")
 		}
 		g.AllowAllScopes, g.Scopes = in.allowAll, in.scopes
 		if err := checkGrant(g, rs, in.audience == own); err != nil {
@@ -352,7 +382,7 @@ func (h *Handlers) CreateClientGrant(w http.ResponseWriter, r *http.Request) {
 		h.failTx(w, r, "create client grant", err)
 		return
 	}
-	logDetails(r, "create client grant", "id", g.ID, "client_id", g.ClientID, "audience", g.Audience)
+	logDetails(r, "create client grant", "id", g.ID, "client_id", g.ClientID, "default_for", g.DefaultFor, "audience", g.Audience)
 	writeJSON(w, http.StatusCreated, clientGrantView(g))
 }
 
@@ -432,12 +462,18 @@ func (h *Handlers) UpdateClientGrant(w http.ResponseWriter, r *http.Request, id 
 		if in.allowAnySet {
 			next.AllowAnyOrganization = in.allowAny
 		}
-		client, err := tx.Clients().Get(r.Context(), tn.ID, g.ClientID)
-		if err != nil {
-			return err
-		}
-		if err := checkGrantOrganization(r, h.Store, &next, client); err != nil {
-			return err
+		if next.DefaultFor != "" {
+			if next.OrganizationUsage != store.OrgUsageDeny || next.AllowAnyOrganization {
+				return badBody("default grants take no organization policy")
+			}
+		} else {
+			client, err := tx.Clients().Get(r.Context(), tn.ID, g.ClientID)
+			if err != nil {
+				return err
+			}
+			if err := checkGrantOrganization(r, h.Store, &next, client); err != nil {
+				return err
+			}
 		}
 		switch {
 		case in.allowAll:
@@ -487,8 +523,16 @@ func (h *Handlers) DeleteClientGrant(w http.ResponseWriter, r *http.Request, id 
 // (A8).
 func clientGrantView(g *store.ClientGrant) mgmtapi.ClientGrant {
 	v := mgmtapi.ClientGrant{
-		Id: g.ID, ClientId: g.ClientID, Audience: g.Audience,
+		Id: g.ID, Audience: g.Audience,
 		SubjectType: mgmtapi.ClientGrantSubjectType(cmp.Or(g.SubjectType, store.SubjectTypeClient)),
+	}
+	if g.ClientID != "" {
+		id := g.ClientID
+		v.ClientId = &id
+	}
+	if g.DefaultFor != "" {
+		df := mgmtapi.ClientGrantDefaultFor(g.DefaultFor)
+		v.DefaultFor = &df
 	}
 	usage := mgmtapi.ClientGrantOrganizationUsage(cmp.Or(g.OrganizationUsage, store.OrgUsageDeny))
 	anyOrg := g.AllowAnyOrganization

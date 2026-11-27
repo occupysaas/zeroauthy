@@ -189,6 +189,13 @@ func TestClientRoundTrip(t *testing.T) {
 		OrganizationRequireBehavior:                    store.OrgBehaviorPreLoginPrompt,
 		OrganizationDiscoveryMethods:                   []string{store.OrgDiscoveryEmail},
 		AsyncApprovalNotificationChannels:              []string{"email", "guardian-push"},
+		External: &store.ClientExternalMetadata{Type: store.ExternalMetadataCIMD, CreatedBy: store.ExternalCreatedByAdmin,
+			ClientID: "https://app.example/client.json", Status: store.ExternalStatusAvailable, FetchedAt: nanoTime, ExpiresAt: nanoTime},
+	}, clientToPB, clientFromPB)
+	roundTrip(t, "cimd", &store.Client{
+		TenantID: "ten", ClientID: "tpc_x", ThirdPartySecurityMode: store.SecurityModeStrict,
+		External: &store.ClientExternalMetadata{Type: store.ExternalMetadataCIMD, CreatedBy: store.ExternalCreatedByClient,
+			ClientID: "https://app.example/client.json", Status: store.ExternalStatusUnavailable, FetchedAt: nanoTime, ExpiresAt: nanoTime.Add(time.Hour)},
 	}, clientToPB, clientFromPB)
 	roundTrip(t, "third party", &store.Client{
 		TenantID: "ten", ClientID: "tp", ThirdPartySecurityMode: store.SecurityModePermissive,
@@ -225,8 +232,10 @@ func TestClientGrantRoundTrip(t *testing.T) {
 	roundTrip(t, "full", &store.ClientGrant{
 		TenantID: "ten", ID: "g", ClientID: "cid", Audience: "https://api", Scopes: []string{"a", "b"}, CreatedAt: nanoTime,
 		OrganizationUsage: "require", AllowAnyOrganization: true, SubjectType: store.SubjectTypeUser, Origin: store.OriginAPI, AllowAllScopes: true,
+		DefaultFor: store.GrantDefaultForThirdParty,
 	}, clientGrantToPB, clientGrantFromPB)
 	roundTrip(t, "empty", &store.ClientGrant{Scopes: []string{}, SubjectType: store.SubjectTypeClient, OrganizationUsage: "deny"}, clientGrantToPB, clientGrantFromPB)
+	roundTrip(t, "default", &store.ClientGrant{Scopes: []string{"read"}, Audience: "https://api/", SubjectType: store.SubjectTypeUser, OrganizationUsage: "deny", DefaultFor: store.GrantDefaultForThirdParty}, clientGrantToPB, clientGrantFromPB)
 	roundTrip(t, "zero", &store.ClientGrant{SubjectType: store.SubjectTypeClient, OrganizationUsage: "deny"}, clientGrantToPB, clientGrantFromPB)
 }
 

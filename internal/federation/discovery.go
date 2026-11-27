@@ -132,6 +132,11 @@ func (ps *Providers) google() (Endpoints, string) {
 	return GoogleEndpoints(), rules.GoogleIssuer
 }
 
+// Policy is the outbound policy the providers were built with; other
+// fetchers of tenant-supplied URLs (Client ID Metadata Documents, Plan 41b)
+// reuse it.
+func (ps *Providers) Policy() NetworkPolicy { return ps.policy }
+
 // NewProviders returns adapters whose network access follows policy. now
 // defaults to time.Now.
 func NewProviders(policy NetworkPolicy, now func() time.Time) *Providers {

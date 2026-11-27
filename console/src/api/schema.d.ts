@@ -953,6 +953,60 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v2/clients/cimd/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Preview a Client ID Metadata Document
+         * @description Requires `read:clients`. Fetches the Client ID Metadata Document at
+         *     `external_client_id`, validates it and returns how it maps to client
+         *     fields, without creating anything. A document that cannot be fetched
+         *     is a `200` with `errors` and no `validation`. The fetch follows the
+         *     outbound policy of D-0090 (HTTPS, public addresses, 10 s, 64 KiB, no
+         *     redirects).
+         */
+        post: operations["previewCimdMetadata"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/clients/cimd/register": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Register or update a Client ID Metadata Document client
+         * @description Idempotent upsert keyed by `external_client_id`: creates a client
+         *     (`201`, requires `create:clients`) or updates the one registered with
+         *     that URL (`200`, requires `update:clients`). The document is fetched,
+         *     validated and mapped; its `jwks` or `jwks_uri` keys become the
+         *     client's `private_key_jwt` credentials, replaced to match the
+         *     document. Only `none` and `private_key_jwt` are accepted (no shared
+         *     secrets). A client a user's authorization request created from that
+         *     URL (`external_metadata_created_by: client`) is `409`. An invalid document is `400` with the violations. Created
+         *     clients are third party (D-0025) with `external_metadata_type: cimd`
+         *     and `external_metadata_created_by: admin`.
+         */
+        post: operations["registerCimdClient"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v2/clients/{id}": {
         parameters: {
             query?: never;
@@ -1242,7 +1296,7 @@ export interface paths {
          *     `per_page` and `include_totals`. A `from` that is not a cursor this
          *     API issued is `400` without an `errorCode`.
          *
-         *     `client_id`, `audience` and `subject_type` filter and combine;
+         *     `client_id`, `audience`, `subject_type` and `default_for` filter and combine;
          *     `subject_type` (`client` or `user`) needs `client_id` or `audience`
          *     too, otherwise the answer is `400` without an `errorCode`.
          */
@@ -9602,7 +9656,10 @@ export interface components {
                 improved_signup_bot_detection_in_classic?: boolean;
                 genai_trial?: boolean;
                 local_resource_discovery?: boolean;
-                /** @default false */
+                /**
+                 * @description Open RFC 7591 registration at `/oidc/register` (Plan 41b, D-0090).
+                 * @default false
+                 */
                 enable_dynamic_client_registration?: boolean;
                 /** @default true */
                 disable_management_api_sms_obfuscation?: boolean;
@@ -9767,12 +9824,12 @@ export interface components {
              */
             resource_parameter_profile?: "audience" | "compatibility";
             /**
-             * @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
+             * @description Accept a Client ID Metadata Document URL as `client_id` at `/authorize`, `/oauth/par` and `/oauth/token` (Plan 41b, D-0090).
              * @default false
              */
             client_id_metadata_document_supported?: boolean;
             /**
-             * @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
+             * @description Create a client from an unknown Client ID Metadata Document URL at `/authorize`. Has effect only with `client_id_metadata_document_supported` (Plan 41b, D-0090).
              * @default false
              */
             client_id_metadata_document_dynamic_registration_supported?: boolean;
@@ -9786,7 +9843,7 @@ export interface components {
              */
             include_session_metadata_in_tenant_logs?: boolean;
             /**
-             * @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
+             * @description The `third_party_security_mode` of clients created through `/oidc/register`; `strict` when unset (Plan 41b, D-0025).
              * @enum {string}
              */
             dynamic_client_registration_security_mode?: "strict" | "permissive";
@@ -9878,7 +9935,10 @@ export interface components {
                 improved_signup_bot_detection_in_classic?: boolean;
                 genai_trial?: boolean;
                 local_resource_discovery?: boolean;
-                /** @default false */
+                /**
+                 * @description Open RFC 7591 registration at `/oidc/register` (Plan 41b, D-0090).
+                 * @default false
+                 */
                 enable_dynamic_client_registration?: boolean;
                 /** @default true */
                 disable_management_api_sms_obfuscation?: boolean;
@@ -10051,12 +10111,12 @@ export interface components {
              */
             resource_parameter_profile?: "audience" | "compatibility";
             /**
-             * @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
+             * @description Accept a Client ID Metadata Document URL as `client_id` at `/authorize`, `/oauth/par` and `/oauth/token` (Plan 41b, D-0090).
              * @default false
              */
             client_id_metadata_document_supported?: boolean;
             /**
-             * @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
+             * @description Create a client from an unknown Client ID Metadata Document URL at `/authorize`. Has effect only with `client_id_metadata_document_supported` (Plan 41b, D-0090).
              * @default false
              */
             client_id_metadata_document_dynamic_registration_supported?: boolean;
@@ -10070,7 +10130,7 @@ export interface components {
              */
             include_session_metadata_in_tenant_logs?: boolean;
             /**
-             * @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
+             * @description The `third_party_security_mode` of clients created through `/oidc/register`; `strict` when unset (Plan 41b, D-0025).
              * @enum {string}
              */
             dynamic_client_registration_security_mode?: "strict" | "permissive";
@@ -10582,6 +10642,28 @@ export interface components {
             client_aliases?: string[];
             /** @description HTML form template for WS-Federation. Stored and returned only; zeroauthy always posts with its own form (LR37b-5). */
             form_template?: string;
+            /**
+             * @description The Client ID Metadata Document URL accepted as `client_id` in
+             *     authorization flows (Plan 41b). Read-only; set by
+             *     `/clients/cimd/register` or CIMD dynamic registration.
+             */
+            external_client_id?: string;
+            /**
+             * @description How the client was registered; absent for regular clients. Read-only.
+             * @enum {string}
+             */
+            external_metadata_type?: "cimd" | "dcr";
+            /**
+             * @description `admin` through the Management API, `client` dynamically. Present only with `external_metadata_type`. Read-only.
+             * @enum {string}
+             */
+            external_metadata_created_by?: "admin" | "client";
+            /**
+             * @description Whether the document at `external_client_id` was reachable at the
+             *     last fetch (Early Access on Auth0, LR41b-1). Read-only.
+             * @enum {string}
+             */
+            external_metadata_status?: "available" | "unavailable";
             jwt_configuration: components["schemas"]["JwtConfiguration"];
             refresh_token: components["schemas"]["RefreshTokenSettings"];
             token_quota?: components["schemas"]["IITokenQuota"];
@@ -10870,6 +10952,52 @@ export interface components {
         ResourceServerPage: components["schemas"]["ListTotals"] & {
             resource_servers: components["schemas"]["ResourceServer"][];
         };
+        CimdRequest: {
+            /** @description The HTTPS URL of the Client ID Metadata Document. */
+            external_client_id: string;
+        };
+        CimdValidation: {
+            valid: boolean;
+            violations: string[];
+            warnings: string[];
+        };
+        /** @description Client fields mapped from the document. */
+        CimdMappedFields: {
+            external_client_id?: string;
+            name?: string;
+            app_type?: string;
+            callbacks?: string[];
+            logo_uri?: string;
+            description?: string;
+            grant_types?: string[];
+            token_endpoint_auth_method?: string;
+            jwks_uri?: string;
+            client_authentication_methods?: {
+                private_key_jwt?: {
+                    credentials: {
+                        /** @enum {string} */
+                        credential_type: "public_key";
+                        kid: string;
+                        alg: string;
+                    }[];
+                };
+            };
+        };
+        CimdPreview: {
+            /** @description The client registered with this URL, if any. */
+            client_id?: string;
+            /** @enum {string} */
+            external_metadata_created_by?: "admin" | "client";
+            /** @description Retrieval errors; validation is then absent. */
+            errors?: string[];
+            validation?: components["schemas"]["CimdValidation"];
+            mapped_fields?: components["schemas"]["CimdMappedFields"];
+        };
+        CimdRegistration: {
+            client_id: string;
+            mapped_fields: components["schemas"]["CimdMappedFields"];
+            validation: components["schemas"]["CimdValidation"];
+        };
         ClientGrantSettings: {
             /** @description The scopes granted; each must be one the API defines. `[]` is valid. */
             scope?: string[];
@@ -10896,11 +11024,17 @@ export interface components {
         };
         /**
          * @description A new client grant. Unknown properties are refused (`invalid_body`).
-         *     `scope` or `allow_all_scopes` is required. `default_for` is not
-         *     supported: only null is accepted.
+         *     `scope` or `allow_all_scopes` is required. Exactly one of
+         *     `client_id` and `default_for` is required: a `default_for:
+         *     third_party_clients` grant applies to every third-party application
+         *     that has no grant of its own for the API and subject type (Plan 41b).
+         *     System APIs (the Management, My Account and My Organization APIs)
+         *     refuse default grants.
          */
         ClientGrantCreate: components["schemas"]["ClientGrantSettings"] & {
-            client_id: string;
+            /** @enum {string} */
+            default_for?: "third_party_clients";
+            client_id?: string;
             /** @description The API's identifier. */
             audience: string;
             /**
@@ -10919,7 +11053,13 @@ export interface components {
         ClientGrant: {
             /** @description `cgr_` and 16 letters and digits for grants created through the API. */
             id: string;
-            client_id: string;
+            /** @description Absent for a default grant. */
+            client_id?: string;
+            /**
+             * @description Present only on a default grant for third-party applications.
+             * @enum {string}
+             */
+            default_for?: "third_party_clients";
             audience: string;
             /** @description Absent when the grant has `allow_all_scopes`. */
             scope?: string[];
@@ -16010,6 +16150,72 @@ export interface operations {
             403: components["responses"]["Forbidden"];
         };
     };
+    previewCimdMetadata: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CimdRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["CimdRequest"];
+            };
+        };
+        responses: {
+            /** @description The validation and mapping, or the retrieval errors. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CimdPreview"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    registerCimdClient: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CimdRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["CimdRequest"];
+            };
+        };
+        responses: {
+            /** @description The client was updated. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CimdRegistration"];
+                };
+            };
+            /** @description The client was created. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CimdRegistration"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
+        };
+    };
     getClient: {
         parameters: {
             query?: {
@@ -16595,6 +16801,8 @@ export interface operations {
                 audience?: string;
                 /** @description Only grants of this subject type; needs `client_id` or `audience`. */
                 subject_type?: string;
+                /** @description Only default grants for this group (`third_party_clients`, Plan 41b). */
+                default_for?: "third_party_clients";
             };
             header?: never;
             path?: never;

@@ -30,6 +30,16 @@ func TestOpenedForwardsWSFedCapability(t *testing.T) {
 	}
 }
 
+// The process wrapper must forward cimd.v1 (Plan 41b) the same way.
+func TestOpenedForwardsCIMDCapability(t *testing.T) {
+	var _ store.CIMDSupporter = (*opened)(nil)
+	o := &opened{Store: memory.New()}
+	defer o.Store.Close()
+	if err := store.CheckCIMDSupport(context.Background(), o); !errors.Is(err, store.ErrCIMDUnavailable) {
+		t.Fatalf("wrapper without cimd.v1: %v", err)
+	}
+}
+
 // The process wrapper forwards ciba.v1 (Plan 41c) to the wrapped store.
 func TestOpenedForwardsCIBA(t *testing.T) {
 	var _ store.CIBASupporter = (*opened)(nil)

@@ -105,3 +105,49 @@ func ParsePEM(credType, pemText, alg string) (*Parsed, error) {
 	id := base64.RawURLEncoding.EncodeToString(tp)
 	return &Parsed{DER: der, KID: id, Thumbprint: id, CertNotAfter: notAfter}, nil
 }
+
+// ParseJWK parses an RSA public JSON Web Key (a Client ID Metadata
+// Document's jwks member, Plan 41b) as ParsePEM parses a public_key PEM. A
+// key with private members, of another type or out of the size bounds is
+// refused. An empty alg means the key's own alg, then RS256. The returned
+// KID is the key's kid when it has one, else the RFC 7638 thumbprint.
+func ParseJWK(raw []byte, alg string) (*Parsed, string, error) {
+	var k jose.JSONWebKey
+	if err := k.UnmarshalJSON(raw); err != nil {
+		return nil, "", &Error{"jwks", "a key could not be parsed"}
+	}
+	if !k.IsPublic() {
+		return nil, "", &Error{"jwks", "a key contains private key material"}
+	}
+	if alg == "" {
+		alg = k.Algorithm
+	}
+	if alg == "" {
+		alg = string(jose.RS256)
+	}
+	if !AlgAllowed(alg) {
+		return nil, "", &Error{"alg", "must be RS256, RS384 or PS256"}
+	}
+	if k.Use != "" && k.Use != "sig" {
+		return nil, "", &Error{"jwks", "a key is not for signatures"}
+	}
+	rk, ok := k.Key.(*rsa.PublicKey)
+	if !ok {
+		return nil, "", &Error{"jwks", "only RSA keys are supported"}
+	}
+	der, err := x509.MarshalPKIXPublicKey(rk)
+	if err != nil {
+		return nil, "", &Error{"jwks", "could not encode public key"}
+	}
+	p, err := ParsePEM("public_key", string(pem.EncodeToMemory(&pem.Block{Type: "PUBLIC KEY", Bytes: der})), alg)
+	if err != nil {
+		return nil, "", err
+	}
+	if k.KeyID != "" {
+		if len(k.KeyID) > 128 {
+			return nil, "", &Error{"jwks", "a key's kid is longer than 128 characters"}
+		}
+		p.KID = k.KeyID
+	}
+	return p, alg, nil
+}

@@ -61,4 +61,43 @@ describe('Applications list', () => {
     expect(wrapper.text()).toContain('This tenant does not exist')
     wrapper.unmount()
   })
+
+  it('marks dynamically registered applications', async () => {
+    const { wrapper } = await mountAt(List, '/t/acme/applications', () => ({
+      status: 200,
+      body: { clients: [client('a', { name: 'Plain' }), client('tpc_b', { name: 'Dyn', external_metadata_type: 'dcr' }), client('tpc_c', { name: 'Doc', external_metadata_type: 'cimd' })], start: 0, limit: 20, total: 3 },
+    }))
+    const rows = wrapper.findAll('tbody tr')
+    expect(rows[0]!.text()).not.toContain('DCR')
+    expect(rows[1]!.text()).toContain('DCR')
+    expect(rows[2]!.text()).toContain('CIMD')
+    wrapper.unmount()
+  })
+
+  it('previews and registers a client metadata document', async () => {
+    const doc = 'https://agent.example/client.json'
+    const { wrapper, calls } = await mountAt(List, '/t/acme/applications', (c) => {
+      if (c.url.endsWith('/clients/cimd/preview')) {
+        return { status: 200, body: { validation: { valid: false, violations: ['client_id must equal the document URL exactly'], warnings: [] }, mapped_fields: { external_client_id: doc } } }
+      }
+      if (c.url.endsWith('/clients/cimd/register')) {
+        return { status: 201, body: { client_id: 'tpc_new', validation: { valid: true, violations: [], warnings: ['client_name is absent'] }, mapped_fields: { external_client_id: doc, name: 'agent.example' } } }
+      }
+      return { status: 200, body: { clients: [], start: 0, limit: 20, total: 0 } }
+    })
+    await wrapper.find('#cimd-url').setValue(doc)
+    await wrapper.find('form').trigger('submit')
+    await flushPromises()
+    const preview = calls.find((c) => c.url.endsWith('/clients/cimd/preview'))!
+    expect(preview.body).toEqual({ external_client_id: doc })
+    expect(wrapper.find('.violations').text()).toContain('client_id must equal')
+    expect(wrapper.text()).toContain('The document is invalid.')
+    await wrapper.findAll('button').find((b) => b.text() === 'Register')!.trigger('click')
+    await flushPromises()
+    expect(wrapper.text()).toContain('Registered tpc_new.')
+    expect(wrapper.find('.warnings').text()).toContain('client_name is absent')
+    // The list reloads after registering.
+    expect(calls.filter((c) => c.url.includes('/api/v2/clients?')).length).toBeGreaterThan(1)
+    wrapper.unmount()
+  })
 })

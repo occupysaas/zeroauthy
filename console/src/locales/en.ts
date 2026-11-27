@@ -27,6 +27,16 @@ const en = {
   source: 'Federation metadata', fromServer: 'ADFS server', fromXML: 'Metadata document', server: 'ADFS server or metadata URL', serverHint: 'A host name, such as adfs.example.com, or an HTTPS metadata URL.',
   xml: 'Federation metadata XML', realm: 'Realm identifier', callback: 'Endpoint for the ADFS relying party trust:', userIdAttribute: 'User ID claim', emailVerified: 'Trust email addresses as verified',
  },
+ dcr41: {
+  enable: 'Dynamic Client Registration', enableHint: 'Anyone can register a third-party application at /oidc/register without a token. Configure default permissions for third-party applications first.',
+  mode: 'Registered application security mode', modeHint: 'Strict applies the enhanced third-party controls; permissive follows each API\'s access policy.',
+  cimd: 'Client ID Metadata Documents', cimdHint: 'Accept an HTTPS metadata document URL as client_id at /authorize and /oauth/token.',
+  cimdDynamic: 'Register metadata document clients on first use', cimdDynamicHint: 'Create an application the first time an unknown metadata document URL is used. Needs Client ID Metadata Documents.',
+  dcrBadge: 'DCR', cimdBadge: 'CIMD', badgeTitle: 'Registered dynamically or from a client metadata document',
+  register: 'Register from a client metadata document', url: 'Metadata document URL', urlHint: 'The HTTPS URL that is also the application\'s client_id.',
+  preview: 'Preview', submit: 'Register', valid: 'The document is valid.', invalid: 'The document is invalid.', violations: 'Violations', warnings: 'Warnings',
+  mapped: 'Application fields', retrieval: 'The document could not be fetched', existing: 'Already registered as {id}.', registered: 'Registered {id}.',
+ },
  oidc41: {
   tab: 'OIDC and logout', logout: 'Back-channel logout', receiver: 'Logout receiver URL', receiverHint: 'One HTTPS URL, up to 2,048 bytes. Organization name and ID placeholders are supported. Clear to remove.', invalidURL: 'Enter one HTTPS URL without credentials, spaces or a fragment.',
   initiators: 'Send logout notifications when', custom: 'Selected events', all: 'All supported events', metadata: 'Include session metadata in logout tokens', tokens: 'OpenID Connect', algorithm: 'ID token signing algorithm', hsHint: 'HS256 requires a confidential application using a retrievable client secret of at least 32 characters. Rotate an unavailable secret in Settings.',

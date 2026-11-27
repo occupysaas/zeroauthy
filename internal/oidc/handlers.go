@@ -61,6 +61,12 @@ type Configuration struct {
 	BackchannelTokenDeliveryModesSupported                    []string `json:"backchannel_token_delivery_modes_supported,omitempty"`
 	BackchannelUserCodeParameterSupported                     *bool    `json:"backchannel_user_code_parameter_supported,omitempty"`
 	BackchannelAuthenticationRequestSigningAlgValuesSupported []string `json:"backchannel_authentication_request_signing_alg_values_supported,omitempty"`
+	// RegistrationEndpoint is /oidc/register when the tenant enables
+	// Dynamic Client Registration (Plan 41b).
+	RegistrationEndpoint string `json:"registration_endpoint,omitempty"`
+	// ClientIDMetadataDocumentSupported is true when the tenant accepts
+	// Client ID Metadata Document URLs as client_id (Plan 41b).
+	ClientIDMetadataDocumentSupported bool `json:"client_id_metadata_document_supported,omitempty"`
 	// RequestURIParameterSupported is always false (D-0030): request_uri is
 	// accepted only from /oauth/par. OIDC Discovery defaults it to true.
 	RequestURIParameterSupported bool `json:"request_uri_parameter_supported"`
@@ -142,6 +148,10 @@ func (h *Handlers) Discovery(w http.ResponseWriter, r *http.Request) {
 	if res.Tenant.PushedAuthorizationRequestsSupported {
 		cfg.PushedAuthorizationRequestEndpoint = base + "/oauth/par" // P8
 	}
+	if tenantrules.DynamicClientRegistration(res.Tenant) {
+		cfg.RegistrationEndpoint = base + "/oidc/register"
+	}
+	cfg.ClientIDMetadataDocumentSupported = tenantrules.ClientIDMetadataDocuments(res.Tenant)
 	if h.Store != nil {
 		if _, err := store.CIBA(r.Context(), h.Store); err == nil {
 			no := false

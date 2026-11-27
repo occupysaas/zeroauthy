@@ -20,6 +20,7 @@ import (
 	actionsbuild "github.com/zeroauthy/zeroauthy/internal/actions/build"
 	"github.com/zeroauthy/zeroauthy/internal/authz"
 	"github.com/zeroauthy/zeroauthy/internal/certificates"
+	"github.com/zeroauthy/zeroauthy/internal/cimd"
 	"github.com/zeroauthy/zeroauthy/internal/config"
 	"github.com/zeroauthy/zeroauthy/internal/customdb"
 	"github.com/zeroauthy/zeroauthy/internal/customdomain"
@@ -238,6 +239,7 @@ func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.S
 			builds.Close()
 		}
 	}()
+	var seedCIMD map[string][]string
 	if cfg.Seed != "" {
 		f, err := seed.Load(cfg.Seed)
 		if err != nil {
@@ -253,6 +255,7 @@ func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.S
 		if err := seed.ApplyWithActions(ctx, st, f, time.Now, wrapper, &actions.Engine{Store: st, Builds: builds, Secrets: wrapper, Log: log}, seed.Options{EventsMaxStreams: cfg.Events.MaxStreams, RPIDPolicy: rpid.Policy{BaseDomain: cfg.Server.BaseDomain, SystemHost: systemHost, OriginSuffix: cfg.Server.OriginDomain(), RestrictShared: cfg.Security.WebAuthn.RestrictSharedRPIDs}}); err != nil {
 			return nil, err
 		}
+		seedCIMD = f.CIMDClients()
 		log.Info("applied seed", "file", cfg.Seed, "mode", cfg.SeedMode, "tenants", len(f.Tenants))
 	}
 	if _, err := system.Ensure(ctx, st, system.Config{Host: systemHost, Wrapper: wrapper}); err != nil {
@@ -388,6 +391,8 @@ func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.S
 	if o.federation != nil {
 		providers = o.federation()
 	}
+	cimdRegistrar := &cimd.Registrar{Store: st, Fetcher: cimd.NewFetcher(providers.Policy())}
+	registerSeedCIMD(ctx, st, cimdRegistrar, seedCIMD, log)
 	profiles, err := script.NewRunner(script.Config{Node: cfg.CustomDB.Node}, script.NewBroker(providers.HTTPClient()))
 	if err == nil {
 		if perr := profiles.Probe(); perr != nil {
@@ -475,6 +480,7 @@ func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.S
 			Scripts:        &customdb.Client{Exec: runner, Wrapper: wrapper},
 			Federation:     flows,
 			AD:             adService,
+			CIMD:           cimdRegistrar,
 			Actions:        engine,
 			Phone:          phoneDispatcher,
 
@@ -965,6 +971,27 @@ func (a *App) domainProofLoop(ctx context.Context, interval time.Duration) {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
+		}
+	}
+}
+
+// registerSeedCIMD registers the seed's cimd_clients (Plan 41b) as an
+// administrator would. A document that cannot be fetched or is invalid
+// only logs a warning: the deployment starts without that client.
+func registerSeedCIMD(ctx context.Context, st store.Store, reg *cimd.Registrar, byTenant map[string][]string, log *slog.Logger) {
+	for name, urls := range byTenant {
+		tn, err := st.Tenants().GetByName(ctx, name)
+		if err != nil {
+			log.Warn("seed CIMD clients skipped: tenant not found", "tenant", name)
+			continue
+		}
+		for _, url := range urls {
+			out, err := reg.Register(ctx, tn, url, store.ExternalCreatedByAdmin, nil)
+			if err != nil {
+				log.Warn("seed CIMD client not registered", "tenant", name, "url", url, "reason", err)
+				continue
+			}
+			log.Info("seed CIMD client registered", "tenant", name, "url", url, "client_id", out.Client.ClientID)
 		}
 	}
 }

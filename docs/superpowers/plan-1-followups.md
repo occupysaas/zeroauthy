@@ -971,3 +971,15 @@ CIBA with the email channel (D-0100).
 - **C41-6** Resolved 2026-11-26: the link goes to `/bc-verify` with `consent`.
 - **C41-7** Resolved 2026-11-26: `event.transaction.protocol` is `oidc-ciba-web-link`.
 - **C41-8** Resolved 2026-11-26: log types `ciba_start_succeeded`, `ciba_start_failed`, `ciba_exchange_succeeded`, `ciba_exchange_failed`.
+## Plan 41b observation points
+
+Dynamic Client Registration and Client ID Metadata Documents (D-0090).
+
+- **R41-1** The CIMD draft version Auth0 follows (zeroauthy: the draft current on 2026-11-26).
+- **R41-2** The answer of `/oidc/register` when DCR is off (zeroauthy: `404`).
+- **R41-3** The default `client_name` (zeroauthy: `My App`).
+- **R41-4** Which RFC 7591 metadata Auth0 keeps (zeroauthy: none; clients have no `logo_uri`).
+- **R41-5** The `app_type` of DCR clients (zeroauthy: `spa` for `none`, `regular_web` otherwise).
+- **R41-6** The tenant log event type of a registration (zeroauthy: none, LR41b-9).
+- **R41-7** Behaviour when a CIMD document becomes unreachable (zeroauthy: cached until 24 hours after the last good fetch).
+- **R41-8** Resolved 2026-11-26: Auth0's default third-party permissions are client grants with `default_for: third_party_clients` (LR41b-4).

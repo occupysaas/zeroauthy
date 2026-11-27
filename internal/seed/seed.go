@@ -68,7 +68,11 @@ type Tenant struct {
 	AttackProtection      map[string]map[string]any `yaml:"attack_protection"`
 	// Settings uses the public tenant settings inventory; legacy top-level durations remain seconds.
 	Settings map[string]any `yaml:"settings"`
-	supplied map[string]any
+	// CIMDClients are Client ID Metadata Document URLs the deployment
+	// registers once the server can fetch them (Plan 41b): a document that
+	// cannot be fetched or is invalid is a warning, not a seed error.
+	CIMDClients []string `yaml:"cimd_clients"`
+	supplied    map[string]any
 
 	Name         string   `yaml:"name"`
 	FriendlyName string   `yaml:"friendly_name"`
@@ -560,4 +564,15 @@ func cloneYAMLValue(v any) any {
 // creates the system API https://{canonical host}/me/, false removes it.
 type MyAccountAPI struct {
 	Active bool `yaml:"active"`
+}
+
+// CIMDClients maps each tenant name to its cimd_clients URLs.
+func (f *File) CIMDClients() map[string][]string {
+	out := map[string][]string{}
+	for _, t := range f.Tenants {
+		if len(t.CIMDClients) > 0 {
+			out[t.Name] = append([]string(nil), t.CIMDClients...)
+		}
+	}
+	return out
 }

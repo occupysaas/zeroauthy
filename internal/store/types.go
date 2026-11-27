@@ -214,6 +214,47 @@ type Client struct {
 	// AsyncApprovalNotificationChannels are how a user is asked to approve a
 	// CIBA request (Plan 41c); only "email" is delivered. Nil means unset.
 	AsyncApprovalNotificationChannels []string
+	// External is set on clients registered dynamically or from a Client ID
+	// Metadata Document (Plan 41b); nil for regular clients.
+	External *ClientExternalMetadata
+}
+
+// External metadata types and creators (Plan 41b, Auth0's
+// external_metadata_type and external_metadata_created_by).
+const (
+	ExternalMetadataCIMD = "cimd"
+	ExternalMetadataDCR  = "dcr"
+
+	ExternalCreatedByAdmin  = "admin"
+	ExternalCreatedByClient = "client"
+
+	ExternalStatusAvailable   = "available"
+	ExternalStatusUnavailable = "unavailable"
+)
+
+// ClientExternalMetadata records how a client was registered (Plan 41b).
+type ClientExternalMetadata struct {
+	// Type is ExternalMetadataCIMD or ExternalMetadataDCR.
+	Type string `json:"type"`
+	// CreatedBy is ExternalCreatedByAdmin or ExternalCreatedByClient.
+	CreatedBy string `json:"created_by"`
+	// ClientID is the Client ID Metadata Document URL (CIMD only); unique
+	// within the tenant.
+	ClientID string `json:"client_id,omitempty"`
+	// Status is an ExternalStatus* value (CIMD only).
+	Status string `json:"status,omitempty"`
+	// FetchedAt is the last successful fetch of the document; ExpiresAt is
+	// when the cached document must be fetched again (CIMD only).
+	FetchedAt time.Time `json:"fetched_at,omitzero"`
+	ExpiresAt time.Time `json:"expires_at,omitzero"`
+}
+
+// ExternalClientID is c's Client ID Metadata Document URL, or "".
+func (c *Client) ExternalClientID() string {
+	if c == nil || c.External == nil {
+		return ""
+	}
+	return c.External.ClientID
 }
 
 // SignedRequestObject is a client's signed authorization request (JAR)
@@ -365,7 +406,14 @@ type ClientGrant struct {
 	// OrganizationUsage governs explicit M2M organization policy; empty defaults deny.
 	OrganizationUsage    string // deny, allow, require
 	AllowAnyOrganization bool
+	// DefaultFor is GrantDefaultForThirdParty on a default grant, whose
+	// ClientID is empty (Plan 41b); empty otherwise.
+	DefaultFor string
 }
+
+// GrantDefaultForThirdParty marks a client grant that applies to every
+// third-party client without its own grant (Auth0's default_for).
+const GrantDefaultForThirdParty = "third_party_clients"
 
 // ExplicitGrantScopes are scopes a grant holds only when it names them:
 // AllowAllScopes never implies them, so registering one grants it to no
@@ -398,6 +446,8 @@ type ClientGrantFilter struct {
 	// AfterID keeps only grants whose ID sorts after it in byte order: the
 	// cursor of checkpoint paging.
 	AfterID string
+	// DefaultFor keeps only default grants for this group (Plan 41b).
+	DefaultFor string
 }
 
 // Page selects a window of an ordered list: Offset rows are skipped and at
@@ -1209,6 +1259,9 @@ type ClientFilter struct {
 	IsFirstParty *bool
 	// Alias keeps the client whose client_aliases contain it (Plan 37b).
 	Alias string
+	// ExternalClientID keeps the client registered with this Client ID
+	// Metadata Document URL (Plan 41b).
+	ExternalClientID string
 }
 
 // JobType is the kind of a Management API job.

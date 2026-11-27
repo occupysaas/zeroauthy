@@ -1,6 +1,7 @@
 package oauth
 
 import (
+	"cmp"
 	"context"
 	"errors"
 	"fmt"
@@ -356,7 +357,7 @@ func (h *Handlers) mintUserTokens(ctx context.Context, res tenant.Resolved, c *s
 		}
 		idToken, err := h.Minter.IDToken(ctx, IDTokenParams{
 			SigningAlg: c.IDTokenAlg, SigningSecret: signingSecret,
-			ACR: ut.acr, TenantID: tenantID, Issuer: res.Issuer(), ClientID: c.ClientID, User: ut.user, Scopes: idScopes,
+			ACR: ut.acr, TenantID: tenantID, Issuer: res.Issuer(), ClientID: cmp.Or(c.ExternalClientID(), c.ClientID), User: ut.user, Scopes: idScopes,
 			Nonce: ut.nonce, SessionID: ut.sessionID, AuthTime: ut.authTime, MFAAt: mfaAt, AccessToken: atHashSource,
 			Lifetime: time.Duration(c.IDTokenLifetime) * time.Second, CustomClaims: idClaims,
 		})

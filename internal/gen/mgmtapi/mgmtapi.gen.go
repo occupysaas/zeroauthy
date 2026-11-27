@@ -816,6 +816,39 @@ func (e CaptchaUpdateActiveProviderId) Valid() bool {
 	}
 }
 
+// Defines values for CimdMappedFieldsClientAuthenticationMethodsPrivateKeyJwtCredentialsCredentialType.
+const (
+	CimdMappedFieldsClientAuthenticationMethodsPrivateKeyJwtCredentialsCredentialTypePublicKey CimdMappedFieldsClientAuthenticationMethodsPrivateKeyJwtCredentialsCredentialType = "public_key"
+)
+
+// Valid indicates whether the value is a known member of the CimdMappedFieldsClientAuthenticationMethodsPrivateKeyJwtCredentialsCredentialType enum.
+func (e CimdMappedFieldsClientAuthenticationMethodsPrivateKeyJwtCredentialsCredentialType) Valid() bool {
+	switch e {
+	case CimdMappedFieldsClientAuthenticationMethodsPrivateKeyJwtCredentialsCredentialTypePublicKey:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for CimdPreviewExternalMetadataCreatedBy.
+const (
+	CimdPreviewExternalMetadataCreatedByAdmin  CimdPreviewExternalMetadataCreatedBy = "admin"
+	CimdPreviewExternalMetadataCreatedByClient CimdPreviewExternalMetadataCreatedBy = "client"
+)
+
+// Valid indicates whether the value is a known member of the CimdPreviewExternalMetadataCreatedBy enum.
+func (e CimdPreviewExternalMetadataCreatedBy) Valid() bool {
+	switch e {
+	case CimdPreviewExternalMetadataCreatedByAdmin:
+		return true
+	case CimdPreviewExternalMetadataCreatedByClient:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for ClientAsyncApprovalNotificationChannels.
 const (
 	ClientAsyncApprovalNotificationChannelsEmail        ClientAsyncApprovalNotificationChannels = "email"
@@ -846,6 +879,60 @@ const (
 func (e ClientCallbackUrlTemplate) Valid() bool {
 	switch e {
 	case ClientCallbackUrlTemplateFalse:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ClientExternalMetadataCreatedBy.
+const (
+	ClientExternalMetadataCreatedByAdmin  ClientExternalMetadataCreatedBy = "admin"
+	ClientExternalMetadataCreatedByClient ClientExternalMetadataCreatedBy = "client"
+)
+
+// Valid indicates whether the value is a known member of the ClientExternalMetadataCreatedBy enum.
+func (e ClientExternalMetadataCreatedBy) Valid() bool {
+	switch e {
+	case ClientExternalMetadataCreatedByAdmin:
+		return true
+	case ClientExternalMetadataCreatedByClient:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ClientExternalMetadataStatus.
+const (
+	Available   ClientExternalMetadataStatus = "available"
+	Unavailable ClientExternalMetadataStatus = "unavailable"
+)
+
+// Valid indicates whether the value is a known member of the ClientExternalMetadataStatus enum.
+func (e ClientExternalMetadataStatus) Valid() bool {
+	switch e {
+	case Available:
+		return true
+	case Unavailable:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ClientExternalMetadataType.
+const (
+	Cimd ClientExternalMetadataType = "cimd"
+	Dcr  ClientExternalMetadataType = "dcr"
+)
+
+// Valid indicates whether the value is a known member of the ClientExternalMetadataType enum.
+func (e ClientExternalMetadataType) Valid() bool {
+	switch e {
+	case Cimd:
+		return true
+	case Dcr:
 		return true
 	default:
 		return false
@@ -1236,6 +1323,21 @@ func (e ClientCredentialType) Valid() bool {
 	}
 }
 
+// Defines values for ClientGrantDefaultFor.
+const (
+	ClientGrantDefaultForThirdPartyClients ClientGrantDefaultFor = "third_party_clients"
+)
+
+// Valid indicates whether the value is a known member of the ClientGrantDefaultFor enum.
+func (e ClientGrantDefaultFor) Valid() bool {
+	switch e {
+	case ClientGrantDefaultForThirdPartyClients:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for ClientGrantOrganizationUsage.
 const (
 	ClientGrantOrganizationUsageAllow   ClientGrantOrganizationUsage = "allow"
@@ -1269,6 +1371,21 @@ func (e ClientGrantSubjectType) Valid() bool {
 	case ClientGrantSubjectTypeClient:
 		return true
 	case ClientGrantSubjectTypeUser:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ClientGrantCreateDefaultFor.
+const (
+	ClientGrantCreateDefaultForThirdPartyClients ClientGrantCreateDefaultFor = "third_party_clients"
+)
+
+// Valid indicates whether the value is a known member of the ClientGrantCreateDefaultFor enum.
+func (e ClientGrantCreateDefaultFor) Valid() bool {
+	switch e {
+	case ClientGrantCreateDefaultForThirdPartyClients:
 		return true
 	default:
 		return false
@@ -8304,6 +8421,21 @@ func (e TestTenantEmail200JSONResponseBodyStatus) Valid() bool {
 	}
 }
 
+// Defines values for GetClientGrantsParamsDefaultFor.
+const (
+	GetClientGrantsParamsDefaultForThirdPartyClients GetClientGrantsParamsDefaultFor = "third_party_clients"
+)
+
+// Valid indicates whether the value is a known member of the GetClientGrantsParamsDefaultFor enum.
+func (e GetClientGrantsParamsDefaultFor) Valid() bool {
+	switch e {
+	case GetClientGrantsParamsDefaultForThirdPartyClients:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for SetGuardianFactorParamsName.
 const (
 	SetGuardianFactorParamsNameDuo              SetGuardianFactorParamsName = "duo"
@@ -8979,6 +9111,70 @@ type CaptchaUpdate struct {
 // CaptchaUpdateActiveProviderId defines model for CaptchaUpdate.ActiveProviderId.
 type CaptchaUpdateActiveProviderId string
 
+// CimdMappedFields Client fields mapped from the document.
+type CimdMappedFields struct {
+	AppType                     *string   `json:"app_type,omitempty"`
+	Callbacks                   *[]string `json:"callbacks,omitempty"`
+	ClientAuthenticationMethods *struct {
+		PrivateKeyJwt *struct {
+			Credentials []struct {
+				Alg            string                                                                            `json:"alg"`
+				CredentialType CimdMappedFieldsClientAuthenticationMethodsPrivateKeyJwtCredentialsCredentialType `json:"credential_type"`
+				Kid            string                                                                            `json:"kid"`
+			} `json:"credentials"`
+		} `json:"private_key_jwt,omitempty"`
+	} `json:"client_authentication_methods,omitempty"`
+	Description             *string   `json:"description,omitempty"`
+	ExternalClientId        *string   `json:"external_client_id,omitempty"`
+	GrantTypes              *[]string `json:"grant_types,omitempty"`
+	JwksUri                 *string   `json:"jwks_uri,omitempty"`
+	LogoUri                 *string   `json:"logo_uri,omitempty"`
+	Name                    *string   `json:"name,omitempty"`
+	TokenEndpointAuthMethod *string   `json:"token_endpoint_auth_method,omitempty"`
+}
+
+// CimdMappedFieldsClientAuthenticationMethodsPrivateKeyJwtCredentialsCredentialType defines model for CimdMappedFields.ClientAuthenticationMethods.PrivateKeyJwt.Credentials.CredentialType.
+type CimdMappedFieldsClientAuthenticationMethodsPrivateKeyJwtCredentialsCredentialType string
+
+// CimdPreview defines model for CimdPreview.
+type CimdPreview struct {
+	// ClientId The client registered with this URL, if any.
+	ClientId *string `json:"client_id,omitempty"`
+
+	// Errors Retrieval errors; validation is then absent.
+	Errors                    *[]string                             `json:"errors,omitempty"`
+	ExternalMetadataCreatedBy *CimdPreviewExternalMetadataCreatedBy `json:"external_metadata_created_by,omitempty"`
+
+	// MappedFields Client fields mapped from the document.
+	MappedFields *CimdMappedFields `json:"mapped_fields,omitempty"`
+	Validation   *CimdValidation   `json:"validation,omitempty"`
+}
+
+// CimdPreviewExternalMetadataCreatedBy defines model for CimdPreview.ExternalMetadataCreatedBy.
+type CimdPreviewExternalMetadataCreatedBy string
+
+// CimdRegistration defines model for CimdRegistration.
+type CimdRegistration struct {
+	ClientId string `json:"client_id"`
+
+	// MappedFields Client fields mapped from the document.
+	MappedFields CimdMappedFields `json:"mapped_fields"`
+	Validation   CimdValidation   `json:"validation"`
+}
+
+// CimdRequest defines model for CimdRequest.
+type CimdRequest struct {
+	// ExternalClientId The HTTPS URL of the Client ID Metadata Document.
+	ExternalClientId string `json:"external_client_id"`
+}
+
+// CimdValidation defines model for CimdValidation.
+type CimdValidation struct {
+	Valid      bool     `json:"valid"`
+	Violations []string `json:"violations"`
+	Warnings   []string `json:"warnings"`
+}
+
 // Client An application.
 type Client struct {
 	// Addons Application add-ons. `samlp` (SAML2 Web App, Plan 37a) and `wsfed`
@@ -9018,6 +9214,21 @@ type Client struct {
 	// stored before D-0038 until they are rotated).
 	ClientSecret *string    `json:"client_secret,omitempty"`
 	CreatedAt    *time.Time `json:"created_at,omitempty"`
+
+	// ExternalClientId The Client ID Metadata Document URL accepted as `client_id` in
+	// authorization flows (Plan 41b). Read-only; set by
+	// `/clients/cimd/register` or CIMD dynamic registration.
+	ExternalClientId *string `json:"external_client_id,omitempty"`
+
+	// ExternalMetadataCreatedBy `admin` through the Management API, `client` dynamically. Present only with `external_metadata_type`. Read-only.
+	ExternalMetadataCreatedBy *ClientExternalMetadataCreatedBy `json:"external_metadata_created_by,omitempty"`
+
+	// ExternalMetadataStatus Whether the document at `external_client_id` was reachable at the
+	// last fetch (Early Access on Auth0, LR41b-1). Read-only.
+	ExternalMetadataStatus *ClientExternalMetadataStatus `json:"external_metadata_status,omitempty"`
+
+	// ExternalMetadataType How the client was registered; absent for regular clients. Read-only.
+	ExternalMetadataType *ClientExternalMetadataType `json:"external_metadata_type,omitempty"`
 
 	// FormTemplate HTML form template for WS-Federation. Stored and returned only; zeroauthy always posts with its own form (LR37b-5).
 	FormTemplate *string      `json:"form_template,omitempty"`
@@ -9098,6 +9309,16 @@ type ClientAsyncApprovalNotificationChannels string
 
 // ClientCallbackUrlTemplate defines model for Client.CallbackUrlTemplate.
 type ClientCallbackUrlTemplate bool
+
+// ClientExternalMetadataCreatedBy `admin` through the Management API, `client` dynamically. Present only with `external_metadata_type`. Read-only.
+type ClientExternalMetadataCreatedBy string
+
+// ClientExternalMetadataStatus Whether the document at `external_client_id` was reachable at the
+// last fetch (Early Access on Auth0, LR41b-1). Read-only.
+type ClientExternalMetadataStatus string
+
+// ClientExternalMetadataType How the client was registered; absent for regular clients. Read-only.
+type ClientExternalMetadataType string
 
 // ClientGlobal defines model for Client.Global.
 type ClientGlobal bool
@@ -9510,7 +9731,12 @@ type ClientGrant struct {
 	AllowAllScopes       *bool  `json:"allow_all_scopes,omitempty"`
 	AllowAnyOrganization *bool  `json:"allow_any_organization,omitempty"`
 	Audience             string `json:"audience"`
-	ClientId             string `json:"client_id"`
+
+	// ClientId Absent for a default grant.
+	ClientId *string `json:"client_id,omitempty"`
+
+	// DefaultFor Present only on a default grant for third-party applications.
+	DefaultFor *ClientGrantDefaultFor `json:"default_for,omitempty"`
 
 	// Id `cgr_` and 16 letters and digits for grants created through the API.
 	Id                string                        `json:"id"`
@@ -9520,6 +9746,9 @@ type ClientGrant struct {
 	Scope       *[]string              `json:"scope,omitempty"`
 	SubjectType ClientGrantSubjectType `json:"subject_type"`
 }
+
+// ClientGrantDefaultFor Present only on a default grant for third-party applications.
+type ClientGrantDefaultFor string
 
 // ClientGrantOrganizationUsage defines model for ClientGrant.OrganizationUsage.
 type ClientGrantOrganizationUsage string
@@ -9536,8 +9765,12 @@ type ClientGrantCheckpointPage struct {
 }
 
 // ClientGrantCreate A new client grant. Unknown properties are refused (`invalid_body`).
-// `scope` or `allow_all_scopes` is required. `default_for` is not
-// supported: only null is accepted.
+// `scope` or `allow_all_scopes` is required. Exactly one of
+// `client_id` and `default_for` is required: a `default_for:
+// third_party_clients` grant applies to every third-party application
+// that has no grant of its own for the API and subject type (Plan 41b).
+// System APIs (the Management, My Account and My Organization APIs)
+// refuse default grants.
 type ClientGrantCreate struct {
 	// AllowAllScopes Grant every scope the API defines, at the time a token is issued,
 	// so scopes added later are covered. Stored without a `scope`;
@@ -9552,8 +9785,9 @@ type ClientGrantCreate struct {
 	Audience string `json:"audience"`
 
 	// AuthorizationDetailsTypes zeroauthy has no rich authorization requests; only an empty list (or null) is accepted.
-	AuthorizationDetailsTypes *[]string `json:"authorization_details_types,omitempty"`
-	ClientId                  string    `json:"client_id"`
+	AuthorizationDetailsTypes *[]string                    `json:"authorization_details_types,omitempty"`
+	ClientId                  *string                      `json:"client_id,omitempty"`
+	DefaultFor                *ClientGrantCreateDefaultFor `json:"default_for,omitempty"`
 
 	// OrganizationUsage Client-subject M2M policy; user-subject grants accept only deny. Omission preserves on PATCH; null rejected (D-0056).
 	OrganizationUsage *ClientGrantCreateOrganizationUsage `json:"organization_usage,omitempty"`
@@ -9562,6 +9796,9 @@ type ClientGrantCreate struct {
 	Scope       *[]string                     `json:"scope,omitempty"`
 	SubjectType *ClientGrantCreateSubjectType `json:"subject_type,omitempty"`
 }
+
+// ClientGrantCreateDefaultFor defines model for ClientGrantCreate.DefaultFor.
+type ClientGrantCreateDefaultFor string
 
 // ClientGrantCreateOrganizationUsage Client-subject M2M policy; user-subject grants accept only deny. Omission preserves on PATCH; null rejected (D-0056).
 type ClientGrantCreateOrganizationUsage string
@@ -15878,10 +16115,10 @@ type TenantSettings struct {
 		Html    *string `json:"html,omitempty"`
 	} `json:"change_password,omitempty"`
 
-	// ClientIdMetadataDocumentDynamicRegistrationSupported Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
+	// ClientIdMetadataDocumentDynamicRegistrationSupported Create a client from an unknown Client ID Metadata Document URL at `/authorize`. Has effect only with `client_id_metadata_document_supported` (Plan 41b, D-0090).
 	ClientIdMetadataDocumentDynamicRegistrationSupported *bool `json:"client_id_metadata_document_dynamic_registration_supported,omitempty"`
 
-	// ClientIdMetadataDocumentSupported Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
+	// ClientIdMetadataDocumentSupported Accept a Client ID Metadata Document URL as `client_id` at `/authorize`, `/oauth/par` and `/oauth/token` (Plan 41b, D-0090).
 	ClientIdMetadataDocumentSupported *bool `json:"client_id_metadata_document_supported,omitempty"`
 
 	// CountryCodes Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
@@ -15910,7 +16147,7 @@ type TenantSettings struct {
 	// DpopStrictRefreshTokenBinding Bind refresh tokens to any supplied DPoP proof independently of API access-token settings. New tenants default to true; explicit false retains legacy per-API binding.
 	DpopStrictRefreshTokenBinding *bool `json:"dpop_strict_refresh_token_binding,omitempty"`
 
-	// DynamicClientRegistrationSecurityMode Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
+	// DynamicClientRegistrationSecurityMode The `third_party_security_mode` of clients created through `/oidc/register`; `strict` when unset (Plan 41b, D-0025).
 	DynamicClientRegistrationSecurityMode *TenantSettingsDynamicClientRegistrationSecurityMode `json:"dynamic_client_registration_security_mode,omitempty"`
 
 	// EnableAiGuide Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
@@ -15929,21 +16166,23 @@ type TenantSettings struct {
 
 	// Flags Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
 	Flags *struct {
-		AllowChangingEnableSso                         *bool `json:"allow_changing_enable_sso,omitempty"`
-		AllowLegacyDelegationGrantTypes                *bool `json:"allow_legacy_delegation_grant_types,omitempty"`
-		AllowLegacyRoGrantTypes                        *bool `json:"allow_legacy_ro_grant_types,omitempty"`
-		AllowLegacyTokeninfoEndpoint                   *bool `json:"allow_legacy_tokeninfo_endpoint,omitempty"`
-		ChangePwdFlowV1                                *bool `json:"change_pwd_flow_v1,omitempty"`
-		CustomDomainsProvisioning                      *bool `json:"custom_domains_provisioning,omitempty"`
-		DashboardInsightsView                          *bool `json:"dashboard_insights_view,omitempty"`
-		DashboardLogStreamsNext                        *bool `json:"dashboard_log_streams_next,omitempty"`
-		DisableClickjackProtectionHeaders              *bool `json:"disable_clickjack_protection_headers,omitempty"`
-		DisableFieldsMapFix                            *bool `json:"disable_fields_map_fix,omitempty"`
-		DisableImpersonation                           *bool `json:"disable_impersonation,omitempty"`
-		DisableManagementApiSmsObfuscation             *bool `json:"disable_management_api_sms_obfuscation,omitempty"`
-		EnableAdfsWaadEmailVerification                *bool `json:"enable_adfs_waad_email_verification,omitempty"`
-		EnableApisSection                              *bool `json:"enable_apis_section,omitempty"`
-		EnableClientConnections                        *bool `json:"enable_client_connections,omitempty"`
+		AllowChangingEnableSso             *bool `json:"allow_changing_enable_sso,omitempty"`
+		AllowLegacyDelegationGrantTypes    *bool `json:"allow_legacy_delegation_grant_types,omitempty"`
+		AllowLegacyRoGrantTypes            *bool `json:"allow_legacy_ro_grant_types,omitempty"`
+		AllowLegacyTokeninfoEndpoint       *bool `json:"allow_legacy_tokeninfo_endpoint,omitempty"`
+		ChangePwdFlowV1                    *bool `json:"change_pwd_flow_v1,omitempty"`
+		CustomDomainsProvisioning          *bool `json:"custom_domains_provisioning,omitempty"`
+		DashboardInsightsView              *bool `json:"dashboard_insights_view,omitempty"`
+		DashboardLogStreamsNext            *bool `json:"dashboard_log_streams_next,omitempty"`
+		DisableClickjackProtectionHeaders  *bool `json:"disable_clickjack_protection_headers,omitempty"`
+		DisableFieldsMapFix                *bool `json:"disable_fields_map_fix,omitempty"`
+		DisableImpersonation               *bool `json:"disable_impersonation,omitempty"`
+		DisableManagementApiSmsObfuscation *bool `json:"disable_management_api_sms_obfuscation,omitempty"`
+		EnableAdfsWaadEmailVerification    *bool `json:"enable_adfs_waad_email_verification,omitempty"`
+		EnableApisSection                  *bool `json:"enable_apis_section,omitempty"`
+		EnableClientConnections            *bool `json:"enable_client_connections,omitempty"`
+
+		// EnableDynamicClientRegistration Open RFC 7591 registration at `/oidc/register` (Plan 41b, D-0090).
 		EnableDynamicClientRegistration                *bool `json:"enable_dynamic_client_registration,omitempty"`
 		EnableIdtokenApi2                              *bool `json:"enable_idtoken_api2,omitempty"`
 		EnableLegacyProfile                            *bool `json:"enable_legacy_profile,omitempty"`
@@ -16062,7 +16301,7 @@ type TenantSettingsCountryCodesMode string
 // TenantSettingsDeviceFlowCharset defines model for TenantSettings.DeviceFlow.Charset.
 type TenantSettingsDeviceFlowCharset string
 
-// TenantSettingsDynamicClientRegistrationSecurityMode Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
+// TenantSettingsDynamicClientRegistrationSecurityMode The `third_party_security_mode` of clients created through `/oidc/register`; `strict` when unset (Plan 41b, D-0025).
 type TenantSettingsDynamicClientRegistrationSecurityMode string
 
 // TenantSettingsEnabledLocales defines model for TenantSettings.EnabledLocales.
@@ -16111,10 +16350,10 @@ type TenantSettingsPatch struct {
 		Html    *string `json:"html,omitempty"`
 	} `json:"change_password,omitempty"`
 
-	// ClientIdMetadataDocumentDynamicRegistrationSupported Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
+	// ClientIdMetadataDocumentDynamicRegistrationSupported Create a client from an unknown Client ID Metadata Document URL at `/authorize`. Has effect only with `client_id_metadata_document_supported` (Plan 41b, D-0090).
 	ClientIdMetadataDocumentDynamicRegistrationSupported *bool `json:"client_id_metadata_document_dynamic_registration_supported,omitempty"`
 
-	// ClientIdMetadataDocumentSupported Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
+	// ClientIdMetadataDocumentSupported Accept a Client ID Metadata Document URL as `client_id` at `/authorize`, `/oauth/par` and `/oauth/token` (Plan 41b, D-0090).
 	ClientIdMetadataDocumentSupported *bool `json:"client_id_metadata_document_supported,omitempty"`
 
 	// CountryCodes Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
@@ -16143,7 +16382,7 @@ type TenantSettingsPatch struct {
 	// DpopStrictRefreshTokenBinding Bind refresh tokens to any supplied DPoP proof independently of API access-token settings. New tenants default to true; explicit false retains legacy per-API binding.
 	DpopStrictRefreshTokenBinding *bool `json:"dpop_strict_refresh_token_binding,omitempty"`
 
-	// DynamicClientRegistrationSecurityMode Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
+	// DynamicClientRegistrationSecurityMode The `third_party_security_mode` of clients created through `/oidc/register`; `strict` when unset (Plan 41b, D-0025).
 	DynamicClientRegistrationSecurityMode *TenantSettingsPatchDynamicClientRegistrationSecurityMode `json:"dynamic_client_registration_security_mode,omitempty"`
 
 	// EnableAiGuide Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
@@ -16165,21 +16404,23 @@ type TenantSettingsPatch struct {
 
 	// Flags Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
 	Flags *struct {
-		AllowChangingEnableSso                         *bool `json:"allow_changing_enable_sso,omitempty"`
-		AllowLegacyDelegationGrantTypes                *bool `json:"allow_legacy_delegation_grant_types,omitempty"`
-		AllowLegacyRoGrantTypes                        *bool `json:"allow_legacy_ro_grant_types,omitempty"`
-		AllowLegacyTokeninfoEndpoint                   *bool `json:"allow_legacy_tokeninfo_endpoint,omitempty"`
-		ChangePwdFlowV1                                *bool `json:"change_pwd_flow_v1,omitempty"`
-		CustomDomainsProvisioning                      *bool `json:"custom_domains_provisioning,omitempty"`
-		DashboardInsightsView                          *bool `json:"dashboard_insights_view,omitempty"`
-		DashboardLogStreamsNext                        *bool `json:"dashboard_log_streams_next,omitempty"`
-		DisableClickjackProtectionHeaders              *bool `json:"disable_clickjack_protection_headers,omitempty"`
-		DisableFieldsMapFix                            *bool `json:"disable_fields_map_fix,omitempty"`
-		DisableImpersonation                           *bool `json:"disable_impersonation,omitempty"`
-		DisableManagementApiSmsObfuscation             *bool `json:"disable_management_api_sms_obfuscation,omitempty"`
-		EnableAdfsWaadEmailVerification                *bool `json:"enable_adfs_waad_email_verification,omitempty"`
-		EnableApisSection                              *bool `json:"enable_apis_section,omitempty"`
-		EnableClientConnections                        *bool `json:"enable_client_connections,omitempty"`
+		AllowChangingEnableSso             *bool `json:"allow_changing_enable_sso,omitempty"`
+		AllowLegacyDelegationGrantTypes    *bool `json:"allow_legacy_delegation_grant_types,omitempty"`
+		AllowLegacyRoGrantTypes            *bool `json:"allow_legacy_ro_grant_types,omitempty"`
+		AllowLegacyTokeninfoEndpoint       *bool `json:"allow_legacy_tokeninfo_endpoint,omitempty"`
+		ChangePwdFlowV1                    *bool `json:"change_pwd_flow_v1,omitempty"`
+		CustomDomainsProvisioning          *bool `json:"custom_domains_provisioning,omitempty"`
+		DashboardInsightsView              *bool `json:"dashboard_insights_view,omitempty"`
+		DashboardLogStreamsNext            *bool `json:"dashboard_log_streams_next,omitempty"`
+		DisableClickjackProtectionHeaders  *bool `json:"disable_clickjack_protection_headers,omitempty"`
+		DisableFieldsMapFix                *bool `json:"disable_fields_map_fix,omitempty"`
+		DisableImpersonation               *bool `json:"disable_impersonation,omitempty"`
+		DisableManagementApiSmsObfuscation *bool `json:"disable_management_api_sms_obfuscation,omitempty"`
+		EnableAdfsWaadEmailVerification    *bool `json:"enable_adfs_waad_email_verification,omitempty"`
+		EnableApisSection                  *bool `json:"enable_apis_section,omitempty"`
+		EnableClientConnections            *bool `json:"enable_client_connections,omitempty"`
+
+		// EnableDynamicClientRegistration Open RFC 7591 registration at `/oidc/register` (Plan 41b, D-0090).
 		EnableDynamicClientRegistration                *bool `json:"enable_dynamic_client_registration,omitempty"`
 		EnableIdtokenApi2                              *bool `json:"enable_idtoken_api2,omitempty"`
 		EnableLegacyProfile                            *bool `json:"enable_legacy_profile,omitempty"`
@@ -16304,7 +16545,7 @@ type TenantSettingsPatchCountryCodesMode string
 // TenantSettingsPatchDeviceFlowCharset defines model for TenantSettingsPatch.DeviceFlow.Charset.
 type TenantSettingsPatchDeviceFlowCharset string
 
-// TenantSettingsPatchDynamicClientRegistrationSecurityMode Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
+// TenantSettingsPatchDynamicClientRegistrationSecurityMode The `third_party_security_mode` of clients created through `/oidc/register`; `strict` when unset (Plan 41b, D-0025).
 type TenantSettingsPatchDynamicClientRegistrationSecurityMode string
 
 // TenantSettingsPatchEnabledLocales defines model for TenantSettingsPatch.EnabledLocales.
@@ -17130,7 +17371,13 @@ type GetClientGrantsParams struct {
 
 	// SubjectType Only grants of this subject type; needs `client_id` or `audience`.
 	SubjectType *string `form:"subject_type,omitempty" json:"subject_type,omitempty"`
+
+	// DefaultFor Only default grants for this group (`third_party_clients`, Plan 41b).
+	DefaultFor *GetClientGrantsParamsDefaultFor `form:"default_for,omitempty" json:"default_for,omitempty"`
 }
+
+// GetClientGrantsParamsDefaultFor defines parameters for GetClientGrants.
+type GetClientGrantsParamsDefaultFor string
 
 // GetClientGrants200JSONResponseBody0 defines parameters for GetClientGrants.
 type GetClientGrants200JSONResponseBody0 = []ClientGrant
@@ -18254,6 +18501,18 @@ type UpdateClientGrantJSONRequestBody = ClientGrantUpdate
 
 // CreateClientJSONRequestBody defines body for CreateClient for application/json ContentType.
 type CreateClientJSONRequestBody = ClientCreate
+
+// PreviewCimdMetadataJSONRequestBody defines body for PreviewCimdMetadata for application/json ContentType.
+type PreviewCimdMetadataJSONRequestBody = CimdRequest
+
+// PreviewCimdMetadataFormdataRequestBody defines body for PreviewCimdMetadata for application/x-www-form-urlencoded ContentType.
+type PreviewCimdMetadataFormdataRequestBody = CimdRequest
+
+// RegisterCimdClientJSONRequestBody defines body for RegisterCimdClient for application/json ContentType.
+type RegisterCimdClientJSONRequestBody = CimdRequest
+
+// RegisterCimdClientFormdataRequestBody defines body for RegisterCimdClient for application/x-www-form-urlencoded ContentType.
+type RegisterCimdClientFormdataRequestBody = CimdRequest
 
 // UpdateClientJSONRequestBody defines body for UpdateClient for application/json ContentType.
 type UpdateClientJSONRequestBody = ClientUpdate
@@ -27622,6 +27881,12 @@ type ServerInterface interface {
 	// CreateClient Create an application
 	// (POST /api/v2/clients)
 	CreateClient(w http.ResponseWriter, r *http.Request)
+	// PreviewCimdMetadata Preview a Client ID Metadata Document
+	// (POST /api/v2/clients/cimd/preview)
+	PreviewCimdMetadata(w http.ResponseWriter, r *http.Request)
+	// RegisterCimdClient Register or update a Client ID Metadata Document client
+	// (POST /api/v2/clients/cimd/register)
+	RegisterCimdClient(w http.ResponseWriter, r *http.Request)
 	// DeleteClient Delete an application
 	// (DELETE /api/v2/clients/{id})
 	DeleteClient(w http.ResponseWriter, r *http.Request, id string)
@@ -29062,6 +29327,18 @@ func (_ Unimplemented) GetClients(w http.ResponseWriter, r *http.Request, params
 // CreateClient Create an application
 // (POST /api/v2/clients)
 func (_ Unimplemented) CreateClient(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// PreviewCimdMetadata Preview a Client ID Metadata Document
+// (POST /api/v2/clients/cimd/preview)
+func (_ Unimplemented) PreviewCimdMetadata(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// RegisterCimdClient Register or update a Client ID Metadata Document client
+// (POST /api/v2/clients/cimd/register)
+func (_ Unimplemented) RegisterCimdClient(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -33316,6 +33593,19 @@ func (siw *ServerInterfaceWrapper) GetClientGrants(w http.ResponseWriter, r *htt
 		return
 	}
 
+	// ------------- Optional query parameter "default_for" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "default_for", r.URL.Query(), &params.DefaultFor, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "default_for"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "default_for", Err: err})
+		}
+		return
+	}
+
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetClientGrants(w, r, params)
 	}))
@@ -33629,6 +33919,34 @@ func (siw *ServerInterfaceWrapper) CreateClient(w http.ResponseWriter, r *http.R
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.CreateClient(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// PreviewCimdMetadata operation middleware
+func (siw *ServerInterfaceWrapper) PreviewCimdMetadata(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.PreviewCimdMetadata(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// RegisterCimdClient operation middleware
+func (siw *ServerInterfaceWrapper) RegisterCimdClient(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.RegisterCimdClient(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -44186,6 +44504,12 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/api/v2/clients", wrapper.CreateClient)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/v2/clients/cimd/preview", wrapper.PreviewCimdMetadata)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/v2/clients/cimd/register", wrapper.RegisterCimdClient)
 	})
 	r.Group(func(r chi.Router) {
 		r.Delete(options.BaseURL+"/api/v2/clients/{id}", wrapper.DeleteClient)

@@ -21,6 +21,8 @@ Third-party clients have a security mode:
 
 Strict clients default to expiring refresh tokens; an explicit `refresh_token.expiration_type: non-expiring` is rejected by the seed, even for a client without the `refresh_token` grant.
 
+Applications registered through `/oidc/register` or from a Client ID Metadata Document are third-party clients (Plan 41b). A client grant with `default_for: third_party_clients` serves every third-party client that has no grant of its own for that API and subject type; see [Dynamic Client Registration](dynamic-client-registration.md#default-permissions-for-third-party-applications).
+
 A stored third-party client whose mode is empty or unknown is treated as `strict`. Permissive mode could not be observed on Auth0 (the maintainer's account cannot create such clients), so its behaviour follows Auth0's permissive-mode page; strict behaviour was observed.
 
 All third-party clients:

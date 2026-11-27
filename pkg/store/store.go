@@ -18,6 +18,7 @@ type (
 	SAMLAddonLogout                = store.SAMLAddonLogout
 	SAMLSupporter                  = store.SAMLSupporter
 	WSFedSupporter                 = store.WSFedSupporter
+	CIMDSupporter                  = store.CIMDSupporter
 	ADHubSupporter                 = store.ADHubSupporter
 	MyOrgSupporter                 = store.MyOrgSupporter
 	MyOrgStore                     = store.MyOrgStore
@@ -486,6 +487,12 @@ var ErrSAMLUnavailable = store.ErrSAMLUnavailable
 
 // CheckSAMLSupport reports whether s implements saml.v1.
 func CheckSAMLSupport(ctx context.Context, s Store) error { return store.CheckSAMLSupport(ctx, s) }
+
+// ErrCIMDUnavailable reports a plugin without cimd.v1 (Plan 41b).
+var ErrCIMDUnavailable = store.ErrCIMDUnavailable
+
+// CheckCIMDSupport reports whether s implements cimd.v1.
+func CheckCIMDSupport(ctx context.Context, s Store) error { return store.CheckCIMDSupport(ctx, s) }
 
 // ErrWSFedUnavailable reports a plugin without wsfed.v1 (Plan 37b).
 var ErrWSFedUnavailable = store.ErrWSFedUnavailable

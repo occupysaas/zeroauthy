@@ -242,6 +242,11 @@ func (a clientClients) Create(ctx context.Context, v *store.Client) error {
 			return err
 		}
 	}
+	if store.ClientNeedsCIMD(v) {
+		if err := a.c.CheckCIMDSupport(ctx); err != nil {
+			return err
+		}
+	}
 	if v != nil && v.AsyncApprovalNotificationChannels != nil {
 		if err := a.c.CheckCIBASupport(ctx); err != nil {
 			return err
@@ -278,6 +283,11 @@ func (a clientClients) Update(ctx context.Context, v *store.Client) error {
 			return err
 		}
 	}
+	if store.ClientNeedsCIMD(v) {
+		if err := a.c.CheckCIMDSupport(ctx); err != nil {
+			return err
+		}
+	}
 	if v != nil && v.AsyncApprovalNotificationChannels != nil {
 		if err := a.c.CheckCIBASupport(ctx); err != nil {
 			return err
@@ -303,7 +313,7 @@ func (a clientClients) Delete(ctx context.Context, tenantID, clientID string) er
 }
 
 func (a clientClients) List(ctx context.Context, tenantID string, f store.ClientFilter, p store.Page) ([]*store.Client, int, error) {
-	if f.Alias != "" {
+	if f.Alias != "" || f.ExternalClientID != "" {
 		// Plan 37b: the page RPC has no alias filter; every wsfed.v1 plugin
 		// returns client_aliases, so list everything and filter here.
 		all, _, err := a.List(ctx, tenantID, store.ClientFilter{}, store.Page{})
@@ -354,7 +364,8 @@ func filterClients(all []*store.Client, f store.ClientFilter, p store.Page) ([]*
 	var kept []*store.Client
 	for _, c := range all {
 		if (len(f.AppTypes) == 0 || slices.Contains(f.AppTypes, string(c.AppType))) &&
-			(f.IsFirstParty == nil || c.IsFirstParty == *f.IsFirstParty) && (f.Alias == "" || slices.Contains(c.ClientAliases, f.Alias)) {
+			(f.IsFirstParty == nil || c.IsFirstParty == *f.IsFirstParty) && (f.Alias == "" || slices.Contains(c.ClientAliases, f.Alias)) &&
+			(f.ExternalClientID == "" || c.ExternalClientID() == f.ExternalClientID) {
 			kept = append(kept, c)
 		}
 	}
@@ -436,6 +447,11 @@ func (a clientResourceServers) RenameSystem(ctx context.Context, tenantID, ident
 type clientClientGrants struct{ c *Client }
 
 func (a clientClientGrants) Create(ctx context.Context, v *store.ClientGrant) error {
+	if store.GrantNeedsCIMD(v) {
+		if err := a.c.CheckCIMDSupport(ctx); err != nil {
+			return err
+		}
+	}
 	if v != nil && (v.AllowAnyOrganization || (v.OrganizationUsage != "" && v.OrganizationUsage != "deny")) {
 		if err := a.c.requireOrganizationsII(ctx); err != nil {
 			return err
@@ -478,8 +494,14 @@ func (a clientClientGrants) Delete(ctx context.Context, tenantID, id string) err
 }
 
 func (a clientClientGrants) List(ctx context.Context, tenantID string, f store.ClientGrantFilter, p store.Page) ([]*store.ClientGrant, int, error) {
+	if f.DefaultFor != "" {
+		// A plugin without cimd.v1 would ignore the filter.
+		if err := a.c.CheckCIMDSupport(ctx); err != nil {
+			return nil, 0, err
+		}
+	}
 	r, err := a.c.rpc.ClientGrantsList(ctx, &storev1.ClientGrantsListRequest{TxId: a.c.txID, TenantId: tenantID,
-		ClientId: f.ClientID, Audience: f.Audience, SubjectType: f.SubjectType, AfterId: f.AfterID, Id: f.ID, Offset: int64(p.Offset), Limit: int64(p.Limit)})
+		ClientId: f.ClientID, Audience: f.Audience, SubjectType: f.SubjectType, AfterId: f.AfterID, Id: f.ID, DefaultFor: f.DefaultFor, Offset: int64(p.Offset), Limit: int64(p.Limit)})
 	out, err := decList("ClientGrantsList", tooOld(err), r.GetError(), r.GetValues(), clientGrantFromPB)
 	if err != nil {
 		return nil, 0, err

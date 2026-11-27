@@ -1,11 +1,10 @@
 # Plan 41c implementation record
 
 Status: **implemented and verified locally**, on `plan-41c-ciba` (worktree
-`/mnt/nvme2/code/zeroauthy-plan41c`), based on `main` after PR #101. Plan
-41b (PR #102) is independent; whichever merges second renumbers its
-migration (both are 0052 here) and rebases the protobuf (41b uses client
-field 38, 41c field 39) and `ratelimit.Limiter.WithClock`, which both add
-identically.
+`/mnt/nvme2/code/zeroauthy-plan41c`), based on `main` after PR #101 and
+merged with `main` after Plan 41b (PR #102): the migration is renumbered
+0053 (41b is 0052), and the protobuf keeps 41b's client field 38 and this
+plan's 39.
 
 Plan: [Plan 41c](plans/2026-11-16-zeroauthy-plan-41c-ciba.md). Spec:
 [CIBA, email channel](specs/2026-11-16-zeroauthy-ciba-design.md).
@@ -20,7 +19,7 @@ Maintainer request (2026-11-26): start on 41b and 41c.
 
 1. Task 1: contracts (`/bc-authorize`, the CIBA grant, discovery members,
    client `async_approval_notification_channels`), D-0100.
-2. Task 2: `store.CIBAStore` (`ciba.v1`) in memory, SQL (migration 0052)
+2. Task 2: `store.CIBAStore` (`ciba.v1`) in memory, SQL (migration 0053)
    and gRPC (JSON dispatch); the client channels field; client rules.
 3. Task 3: `/bc-authorize` (`internal/ciba`, `internal/oauth`), the
    `async_approval` email, limits, discovery.

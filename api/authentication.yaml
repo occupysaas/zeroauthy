@@ -1308,6 +1308,72 @@ paths:
               schema: {type: string}
         "404":
           description: Unknown application or the wsfed add-on is not enabled.
+  /oidc/register:
+    post:
+      operationId: oidcRegister
+      tags: [Applications]
+      summary: Register an application (Dynamic Client Registration)
+      description: |
+        Open RFC 7591 registration, without a token, when the tenant sets
+        `flags.enable_dynamic_client_registration`; otherwise `404`. Creates a
+        third-party application (`tpc_` client ID) whose
+        `third_party_security_mode` is the tenant's
+        `dynamic_client_registration_security_mode` (`strict` when unset).
+        Only `authorization_code` and `refresh_token` are granted; other
+        requested grant types are dropped from the answer. `response_types`
+        accepts only `code`; `token_endpoint_auth_method` only `none` (a
+        public SPA) or `client_secret_post` (the default, a regular web
+        application). `redirect_uris` (1 to 20) are required: HTTPS, or
+        loopback HTTP, or a private-use scheme. `client_name` is 1 to 255
+        characters, "My App" when absent; other RFC 7591 metadata
+        (`logo_uri`, `client_uri`, `contacts`, ...) is accepted and ignored,
+        as `logo_uri` is on `POST /api/v2/clients`. The secret is returned once. At
+        most 5 requests per second per tenant (`429`). The tenant's network
+        ACL scope `dynamic_client_registration` applies. Errors follow RFC
+        7591 §3.2.2 (D-0090).
+      x-source:
+        - https://auth0.com/docs/get-started/applications/dynamic-client-registration
+        - https://www.rfc-editor.org/rfc/rfc7591
+        - https://openid.net/specs/openid-connect-registration-1_0.html
+      security:
+        - {}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ClientRegistrationRequest"
+      responses:
+        "201":
+          description: The application was created.
+          headers:
+            Cache-Control: {schema: {type: string, const: no-store}}
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClientRegistrationResponse"
+        "400":
+          description: "`invalid_redirect_uri` or `invalid_client_metadata` (RFC 7591 §3.2.2)."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OAuthError"
+        "404":
+          description: Dynamic Client Registration is off, or the host is not a tenant domain.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OAuthError"
+        "429":
+          $ref: "#/components/responses/OAuthErrorResponse"
+        "503":
+          description: The storage plugin cannot hold dynamically registered clients (no `cimd.v1`).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OAuthError"
+        default:
+          $ref: "#/components/responses/ServerError"
   /oidc/logout:
     get:
       operationId: oidcLogout
@@ -2051,6 +2117,33 @@ components:
         auth_req_id: {type: string, description: Opaque; never logged.}
         expires_in: {type: integer}
         interval: {type: integer, const: 5}
+    ClientRegistrationRequest:
+      type: object
+      additionalProperties: true
+      required: [redirect_uris]
+      properties:
+        client_name: {type: string, minLength: 1, maxLength: 255}
+        redirect_uris:
+          type: array
+          minItems: 1
+          maxItems: 20
+          items: {type: string, minLength: 1, maxLength: 2048}
+        token_endpoint_auth_method: {type: string, enum: [none, client_secret_post]}
+        grant_types: {type: array, items: {type: string}}
+        response_types: {type: array, items: {type: string, enum: [code]}}
+        logo_uri: {type: string, maxLength: 2048}
+    ClientRegistrationResponse:
+      type: object
+      required: [client_id, client_name, redirect_uris, grant_types, token_endpoint_auth_method, client_secret_expires_at]
+      properties:
+        client_id: {type: string, pattern: "^tpc_[0-9A-Za-z]{22}$"}
+        client_secret: {type: string, description: Absent when `token_endpoint_auth_method` is `none`.}
+        client_name: {type: string}
+        redirect_uris: {type: array, items: {type: string}}
+        grant_types: {type: array, items: {type: string, enum: [authorization_code, refresh_token]}}
+        response_types: {type: array, items: {type: string}}
+        token_endpoint_auth_method: {type: string, enum: [none, client_secret_post]}
+        client_secret_expires_at: {type: integer, const: 0}
     MFAAssociateRequest:
       type: object
       additionalProperties: false
@@ -2657,6 +2750,8 @@ components:
         backchannel_token_delivery_modes_supported: {type: array, items: {type: string, enum: [poll]}}
         backchannel_user_code_parameter_supported: {type: boolean, enum: [false]}
         backchannel_authentication_request_signing_alg_values_supported: {type: array, items: {type: string}, description: Present with signed request object support.}
+        registration_endpoint: {type: string, description: "`/oidc/register`; present when the tenant enables Dynamic Client Registration (Plan 41b)."}
+        client_id_metadata_document_supported: {type: boolean, description: True when the tenant accepts Client ID Metadata Document URLs as `client_id` (Plan 41b).}
         request_uri_parameter_supported: {type: boolean, description: "Always false: `request_uri` is accepted only from `/oauth/par`."}
         request_parameter_supported: {type: boolean, description: "Present and true when the store supports client credentials (D-0063, lifting D-0035): signed request objects are processed and unsigned ones are refused."}
         request_object_signing_alg_values_supported: {type: array, items: {type: string, enum: [RS256, RS384, PS256]}, description: Algorithms accepted for request objects; present when the store supports client credentials.}

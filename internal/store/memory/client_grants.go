@@ -70,7 +70,7 @@ func (r clientGrants) List(_ context.Context, tenantID string, f store.ClientGra
 	for k, g := range r.s.clientGrants {
 		if k.tenant == tenantID && (f.ClientID == "" || g.ClientID == f.ClientID) &&
 			(f.Audience == "" || g.Audience == f.Audience) && (f.SubjectType == "" || g.SubjectType == f.SubjectType) &&
-			(f.ID == "" || g.ID == f.ID) &&
+			(f.ID == "" || g.ID == f.ID) && (f.DefaultFor == "" || g.DefaultFor == f.DefaultFor) &&
 			(f.AfterID == "" || g.ID > f.AfterID) {
 			all = append(all, g)
 		}

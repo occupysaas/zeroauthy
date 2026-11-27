@@ -94,7 +94,7 @@ The inventory below is a factual constraint transcription (field names, types, e
 | `flags.improved_signup_bot_detection_in_classic` | `{"type":"boolean"}` | inert; follow-up owner table below |
 | `flags.genai_trial` | `{"type":"boolean"}` | inert; follow-up owner table below |
 | `flags.local_resource_discovery` | `{"type":"boolean"}` | inert; follow-up owner table below |
-| `flags.enable_dynamic_client_registration` | `{"type":"boolean","default":false}` | inert; follow-up owner table below |
+| `flags.enable_dynamic_client_registration` | `{"type":"boolean","default":false}` | enforced (Plan 41b, D-0090) |
 | `flags.disable_management_api_sms_obfuscation` | `{"type":"boolean","default":true}` | inert; follow-up owner table below |
 | `flags.trust_azure_adfs_email_verified_connection_property` | `{"type":"boolean","default":false}` | inert; follow-up owner table below |
 | `flags.custom_domains_provisioning` | `{"type":"boolean","default":false}` | inert; follow-up owner table below |
@@ -160,12 +160,12 @@ The inventory below is a factual constraint transcription (field names, types, e
 | `dpop_strict_refresh_token_binding` | `{"type":["boolean","null"],"default":false}` | inert; sender-constraining / MFA follow-up |
 | `skip_non_verifiable_callback_uri_confirmation_prompt` | `{"type":["boolean","null"]}` | enforced; Task 5 |
 | `resource_parameter_profile` | `{"type":"string","default":"audience","enum":["audience","compatibility"]}` | inert; OAuth resource-indicator follow-up |
-| `client_id_metadata_document_supported` | `{"type":"boolean","default":false}` | inert; client-registration follow-up |
-| `client_id_metadata_document_dynamic_registration_supported` | `{"type":"boolean","default":false}` | inert; client-registration follow-up |
+| `client_id_metadata_document_supported` | `{"type":"boolean","default":false}` | enforced (Plan 41b, D-0090) |
+| `client_id_metadata_document_dynamic_registration_supported` | `{"type":"boolean","default":false}` | enforced with `client_id_metadata_document_supported` (Plan 41b, LR41b-7) |
 | `enable_ai_guide` | `{"type":"boolean"}` | inert; tenant-feature follow-up |
 | `phone_consolidated_experience` | `{"type":"boolean"}` | inert; Plan 34 |
 | `include_session_metadata_in_tenant_logs` | `{"type":"boolean","default":false}` | inert; session/logout follow-up |
-| `dynamic_client_registration_security_mode` | `{"type":"string","enum":["strict","permissive"]}` | inert; client-registration follow-up |
+| `dynamic_client_registration_security_mode` | `{"type":"string","enum":["strict","permissive"]}` | enforced (Plan 41b, D-0090) |
 | `country_codes` | `{"type":["object","null"],"additionalProperties":false}` | inert; Plan 34 |
 | `country_codes.list` | `{"type":"array","items":{"type":"string","minLength":2,"maxLength":2,"pattern":"^[A-Z]{2}$"}}` | inert; Plan 34 |
 | `country_codes.mode` | `{"type":"string","enum":["allow","deny"]}` | inert; Plan 34 |
@@ -175,7 +175,7 @@ GET-only field: `sandbox_versions_available` is an array of strings, read-only (
 | Flags | Deferred consumer |
 |---|---|
 | `change_pwd_flow_v1`, `enable_public_signup_user_exists_error`, `enable_sso`, `allow_changing_enable_sso`, `disable_clickjack_protection_headers`, `improved_signup_bot_detection_in_classic` | legacy/classic hosted flow follow-up; no relaxation of current safe flow |
-| `enable_client_connections`, `enable_pipeline2`, `allow_legacy_delegation_grant_types`, `allow_legacy_ro_grant_types`, `allow_legacy_tokeninfo_endpoint`, `enable_legacy_profile`, `enable_idtoken_api2`, `enable_dynamic_client_registration` | application/legacy OAuth registration follow-up |
+| `enable_client_connections`, `enable_pipeline2`, `allow_legacy_delegation_grant_types`, `allow_legacy_ro_grant_types`, `allow_legacy_tokeninfo_endpoint`, `enable_legacy_profile`, `enable_idtoken_api2` | application/legacy OAuth registration follow-up |
 | `revoke_refresh_token_grant` | refresh-token grant-revocation follow-up |
 | `no_disclose_enterprise_connections`, `enable_adfs_waad_email_verification`, `trust_azure_adfs_email_verified_connection_property`, `disable_fields_map_fix` | enterprise/SAML follow-up |
 | `enforce_client_authentication_on_passwordless_start`, `disable_management_api_sms_obfuscation` | Plan 34 |

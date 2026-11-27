@@ -19,6 +19,7 @@ import (
 	"time"
 
 	"github.com/zeroauthy/zeroauthy/internal/actions"
+	"github.com/zeroauthy/zeroauthy/internal/cimd"
 	"github.com/zeroauthy/zeroauthy/internal/clientrules"
 	"github.com/zeroauthy/zeroauthy/internal/customdb"
 	"github.com/zeroauthy/zeroauthy/internal/email"
@@ -54,6 +55,9 @@ const (
 // Handlers serves the Management API and the system API.
 type Handlers struct {
 	Logout *logout.Service
+	// CIMD fetches and registers Client ID Metadata Document clients (Plan
+	// 41b); nil leaves the CIMD routes unavailable.
+	CIMD *cimd.Registrar
 	// AD serves ad connections (Plan 38a); nil refuses creating them.
 	AD ADConnections
 	// LogsConfig carries deployment-wide stream transport policy.
@@ -640,6 +644,20 @@ func (h *Handlers) clientView(ctx context.Context, tn *store.Tenant, c *store.Cl
 	}
 	if c.FormTemplate != "" {
 		v.FormTemplate = &c.FormTemplate
+	}
+	if ext := c.External; ext != nil {
+		typ, by := mgmtapi.ClientExternalMetadataType(ext.Type), mgmtapi.ClientExternalMetadataCreatedBy(ext.CreatedBy)
+		v.ExternalMetadataType, v.ExternalMetadataCreatedBy = &typ, &by
+		if ext.ClientID != "" {
+			id := ext.ClientID
+			v.ExternalClientId = &id
+			// LR41b-1: always available for clients an administrator registered.
+			status := mgmtapi.Available
+			if ext.CreatedBy == store.ExternalCreatedByClient && ext.Status == store.ExternalStatusUnavailable {
+				status = mgmtapi.Unavailable
+			}
+			v.ExternalMetadataStatus = &status
+		}
 	}
 	if c.AsyncApprovalNotificationChannels != nil {
 		channels := make([]mgmtapi.ClientAsyncApprovalNotificationChannels, len(c.AsyncApprovalNotificationChannels))

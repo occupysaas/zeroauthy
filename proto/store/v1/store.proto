@@ -150,6 +150,9 @@ service StoreService {
   // invokes one store.CIBAStore method (see internal/store/grpcstore/ciba.go).
   rpc CIBACapabilities(PingRequest) returns (EventsCapabilitiesResult);
   rpc CIBACall(CIBACallRequest) returns (CIBACallResult);
+  // cimd.v1 (Plan 41b) gates client external_metadata (Client ID Metadata
+  // Document URLs unique per tenant) and default client grants (default_for).
+  rpc CIMDCapabilities(PingRequest) returns (EventsCapabilitiesResult);
   rpc SAMLSessionParticipant(SAMLParticipantWrite) returns (Result);
   rpc SAMLReplayUse(GlobalRevocationJTIRequest) returns (Result); // connection_id + jti = assertion ID
   rpc SAMLReplayPurge(ClientCredentialsPurgeRequest) returns (CountResult);
@@ -802,11 +805,12 @@ message Client {
   bytes oidc_support = 32; // store.OIDCSupport JSON, oidc_logout.v1
   bytes oidc_logout = 33; // store.OIDCLogout JSON, oidc_logout.v1
   string id_token_alg = 34; // empty = RS256; non-RS256 requires oidc_logout.v1
+  // Plan 41c; absent = unset (field 38 is Plan 41b's external_metadata); writes require ciba.v1
+  repeated string async_approval_notification_channels = 39;
   bytes addons = 35; // store.ClientAddons JSON (Plan 37a); writes require saml.v1
   repeated string client_aliases = 36; // Plan 37b, unique per tenant; writes require wsfed.v1
   string form_template = 37; // Plan 37b, stored only; writes require wsfed.v1
-  // Plan 41c; absent = unset (field 38 is Plan 41b's external_metadata); writes require ciba.v1
-  repeated string async_approval_notification_channels = 39;
+  bytes external_metadata = 38; // store.ClientExternalMetadata JSON (Plan 41b); external_metadata.client_id unique per tenant; writes require cimd.v1
 }
 
 message Scope { string value = 1; string description = 2; }
@@ -837,6 +841,7 @@ message ClientGrant {
   string origin = 8;       // "api" or empty (seed)
   bool allow_all_scopes = 9; // every scope the API defines; absent = false
   string organization_usage = 10; bool allow_any_organization = 11;
+  string default_for = 12; // Plan 41b: "third_party_clients" with an empty client_id; writes require cimd.v1
 }
 
 message UserGrant {
@@ -1155,6 +1160,7 @@ message ClientGrantsListRequest {
   int64 offset = 6; int64 limit = 7;
   string after_id = 8; // keep only ids that sort after it (byte order)
   string id = 9;       // keep only this id
+  string default_for = 10; // Plan 41b, cimd.v1: keep only default grants for this group
 }
 message ClientGrantList { Error error = 1; repeated ClientGrant values = 2; int64 total = 3; }
 
