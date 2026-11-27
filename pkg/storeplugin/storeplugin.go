@@ -356,6 +356,15 @@ func (o *opened) SelfServiceSupported() bool {
 	return false
 }
 
+// CheckCIMDSupport keeps cimd.v1 (Plan 41b) visible through the process
+// wrapper; without it, CheckCIMDSupport would treat the wrapper as supporting.
+func (o *opened) CheckCIMDSupport(ctx context.Context) error {
+	if repo, ok := o.Store.(store.CIMDSupporter); ok {
+		return repo.CheckCIMDSupport(ctx)
+	}
+	return store.ErrCIMDUnavailable
+}
+
 // CheckWSFedSupport keeps wsfed.v1 (Plan 37b) visible through the process
 // wrapper; without it, CheckWSFedSupport would treat the wrapper as supporting.
 func (o *opened) CheckWSFedSupport(ctx context.Context) error {

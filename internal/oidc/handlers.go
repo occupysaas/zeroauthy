@@ -56,6 +56,12 @@ type Configuration struct {
 	RevocationEndpoint                 string   `json:"revocation_endpoint"`
 	DeviceAuthorizationEndpoint        string   `json:"device_authorization_endpoint,omitempty"`
 	PushedAuthorizationRequestEndpoint string   `json:"pushed_authorization_request_endpoint,omitempty"`
+	// RegistrationEndpoint is /oidc/register when the tenant enables
+	// Dynamic Client Registration (Plan 41b).
+	RegistrationEndpoint string `json:"registration_endpoint,omitempty"`
+	// ClientIDMetadataDocumentSupported is true when the tenant accepts
+	// Client ID Metadata Document URLs as client_id (Plan 41b).
+	ClientIDMetadataDocumentSupported bool `json:"client_id_metadata_document_supported,omitempty"`
 	// RequestURIParameterSupported is always false (D-0030): request_uri is
 	// accepted only from /oauth/par. OIDC Discovery defaults it to true.
 	RequestURIParameterSupported bool `json:"request_uri_parameter_supported"`
@@ -137,6 +143,10 @@ func (h *Handlers) Discovery(w http.ResponseWriter, r *http.Request) {
 	if res.Tenant.PushedAuthorizationRequestsSupported {
 		cfg.PushedAuthorizationRequestEndpoint = base + "/oauth/par" // P8
 	}
+	if tenantrules.DynamicClientRegistration(res.Tenant) {
+		cfg.RegistrationEndpoint = base + "/oidc/register"
+	}
+	cfg.ClientIDMetadataDocumentSupported = tenantrules.ClientIDMetadataDocuments(res.Tenant)
 	if h.Store != nil && store.CheckRefreshTokensIISupport(r.Context(), h.Store) == nil {
 		cfg.DPoPSigningAlgValuesSupported = []string{"ES256", "RS256"}
 	}

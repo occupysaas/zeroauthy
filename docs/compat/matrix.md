@@ -348,3 +348,19 @@ Verified with `@auth0/auth0-spa-js` 2.28.3 organization logins in Chromium. See 
 Verified in `make e2e-my-org` against a fixture DNS server and the
 production binary (SCIM user created with an issued token, then revoked).
 See D-0221 and the [Phase B record](../superpowers/2026-11-26-plan-42b-phase-b-implementation-record.md).
+
+## Plan 41b Dynamic Client Registration and Client ID Metadata Documents
+
+| Surface | Behavior |
+| --- | --- |
+| `POST /oidc/register` | Open RFC 7591 registration with `flags.enable_dynamic_client_registration` (`404` off): third-party `tpc_` client in the tenant's `dynamic_client_registration_security_mode`, `authorization_code`/`refresh_token` only, `none` or `client_secret_post`, RFC 7591 errors, 5 requests per second per tenant. |
+| CIMD at the authorization server | With `client_id_metadata_document_supported`, an HTTPS document URL is a `client_id` at `/authorize`, `/oauth/par`, `/oauth/token` and `/oauth/revoke`; unknown URLs register on first use with `client_id_metadata_document_dynamic_registration_supported`; cached for `max-age` (5 minutes–24 hours), usable 24 hours after the last good fetch. |
+| `POST /api/v2/clients/cimd/preview`, `/register` | Fetch, validate, map; register upserts by `external_client_id` (`201` create, `200` update, `409` over a client a user's flow created); `jwks`/`jwks_uri` keys replace the client's `private_key_jwt` credentials. |
+| Clients | `external_client_id`, `external_metadata_type`, `external_metadata_created_by`, `external_metadata_status` (read-only). |
+| Client grants | `default_for: third_party_clients` (no `client_id`): applies to third-party clients without their own grant; not for system APIs. |
+| Discovery | `registration_endpoint`, `client_id_metadata_document_supported`. |
+
+Verified in `make e2e-dcr` (raw registrations, a seeded CIMD client, an
+`@auth0/auth0-spa-js` 2.28.3 login with a registered client, a PKCE flow
+whose `client_id` is a document URL). See D-0090 and the
+[implementation record](../superpowers/2026-11-16-plan-41b-implementation-record.md).

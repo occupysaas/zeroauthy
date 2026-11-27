@@ -65,9 +65,11 @@ silently enables a legacy endpoint. The linked inventory lists every nested
 field and its owner. Stored-only families include error-page HTML/default
 redirection, sandbox versions, token quotas, access-token claim mapping,
 security headers, anonymous sessions/logout toggles, MFA/organization options,
-mTLS/DPoP, resource indicators, dynamic registration,
+mTLS/DPoP, resource indicators,
 AI/vendor UI options and session-log metadata. These settings round-trip but
-do not activate those features. The existing issuer response behavior is
+do not activate those features. The Dynamic Client Registration and Client
+ID Metadata Document settings are enforced (Plan 41b); see
+[Dynamic Client Registration](dynamic-client-registration.md). The existing issuer response behavior is
 unchanged by `authorization_response_iss_parameter_supported`.
 
 See [attack protection](attack-protection.md) for shared limits, provider

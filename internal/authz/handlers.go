@@ -16,6 +16,7 @@ import (
 
 	"github.com/zeroauthy/zeroauthy/internal/access"
 	"github.com/zeroauthy/zeroauthy/internal/actions"
+	"github.com/zeroauthy/zeroauthy/internal/cimd"
 	"github.com/zeroauthy/zeroauthy/internal/compat"
 	"github.com/zeroauthy/zeroauthy/internal/connrules"
 	"github.com/zeroauthy/zeroauthy/internal/httpx"
@@ -50,6 +51,9 @@ type SAMLResponder interface {
 
 type Handlers struct {
 	Compat compat.Switches
+	// CIMD resolves Client ID Metadata Document URLs used as client_id
+	// (Plan 41b); nil accepts none.
+	CIMD *cimd.Registrar
 	// SAML completes samlp transactions; nil disables the SAML IdP.
 	SAML SAMLResponder
 	// Passkeys decides post-MFA enrollment prompts.
@@ -132,6 +136,14 @@ func (h *Handlers) Authorize(w http.ResponseWriter, r *http.Request) {
 			req = *pushed
 			view = ui.RequestTenant(r, res.Tenant, i18n.ForRequest(res.Tenant, r, req.UILocales))
 		}
+	}
+	// A Client ID Metadata Document URL names its client (Plan 41b, LR41b-6).
+	if id, err := h.CIMD.Resolve(ctx, res.Tenant, req.ClientID); err != nil {
+		h.log().InfoContext(ctx, "client metadata document unusable", "tenant", res.Tenant.ID, "client_id", req.ClientID, "err", err)
+		renderPageError(w, view, &Error{"invalid_client", "the client metadata document is unavailable or invalid"})
+		return
+	} else {
+		req.ClientID = id
 	}
 	// Register request credentials before organization policy or later outcomes
 	// can record already-resolved names that happen to contain their values.
@@ -565,7 +577,7 @@ func (h *Handlers) accessInput(ctx context.Context, res tenant.Resolved, client 
 			return in, "", err
 		}
 		in.API, audienceKey = rs, rs.Identifier
-		g, err := h.Store.ClientGrants().Find(ctx, res.Tenant.ID, client.ClientID, rs.Identifier, store.SubjectTypeUser)
+		g, err := store.FindEffectiveClientGrant(ctx, h.Store, client, rs.Identifier, store.SubjectTypeUser)
 		switch {
 		case err == nil:
 			in.ClientGrant = g

@@ -15,7 +15,7 @@ func (r clients) Create(_ context.Context, c *store.Client) error {
 	r.s.lock()
 	defer r.s.unlock()
 	k := key{c.TenantID, c.ClientID}
-	if _, ok := r.s.clients[k]; ok || r.aliasTaken(c) {
+	if _, ok := r.s.clients[k]; ok || r.aliasTaken(c) || r.externalTaken(c) {
 		return store.ErrConflict
 	}
 	r.s.clients[k] = cloneClient(c)
@@ -38,6 +38,21 @@ func (r clients) aliasTaken(c *store.Client) bool {
 	return false
 }
 
+// externalTaken reports whether another client of c's tenant has c's
+// Client ID Metadata Document URL (Plan 41b).
+func (r clients) externalTaken(c *store.Client) bool {
+	url := c.ExternalClientID()
+	if url == "" {
+		return false
+	}
+	for k, other := range r.s.clients {
+		if k.tenant == c.TenantID && k.id != c.ClientID && other.ExternalClientID() == url {
+			return true
+		}
+	}
+	return false
+}
+
 func (r clients) Get(_ context.Context, tenantID, clientID string) (*store.Client, error) {
 	r.s.readLock()
 	defer r.s.readUnlock()
@@ -55,7 +70,7 @@ func (r clients) Update(_ context.Context, c *store.Client) error {
 	if _, ok := r.s.clients[k]; !ok {
 		return store.ErrNotFound
 	}
-	if r.aliasTaken(c) {
+	if r.aliasTaken(c) || r.externalTaken(c) {
 		return store.ErrConflict
 	}
 	r.s.clients[k] = cloneClient(c)
@@ -103,7 +118,8 @@ func (r clients) List(_ context.Context, tenantID string, f store.ClientFilter, 
 	var all []*store.Client
 	for k, c := range r.s.clients {
 		if k.tenant == tenantID && (len(f.AppTypes) == 0 || slices.Contains(f.AppTypes, string(c.AppType))) &&
-			(f.IsFirstParty == nil || c.IsFirstParty == *f.IsFirstParty) && (f.Alias == "" || slices.Contains(c.ClientAliases, f.Alias)) {
+			(f.IsFirstParty == nil || c.IsFirstParty == *f.IsFirstParty) && (f.Alias == "" || slices.Contains(c.ClientAliases, f.Alias)) &&
+			(f.ExternalClientID == "" || c.ExternalClientID() == f.ExternalClientID) {
 			all = append(all, c)
 		}
 	}

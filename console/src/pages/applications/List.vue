@@ -7,6 +7,8 @@ import { useI18n } from 'vue-i18n'
 import Banner from '../../ui/Banner.vue'
 import { onModalClosed } from '../../ui/routeModal'
 import Button from '../../ui/Button.vue'
+import Tag from '../../ui/Tag.vue'
+import CimdRegister from './CimdRegister.vue'
 import { appTypes } from './defaults'
 
 const { t, te } = useI18n()
@@ -96,6 +98,7 @@ onModalClosed(load)
           <tr v-for="c in clients" :key="c.client_id">
             <td>
               <RouterLink :to="{ name: 'application', params: { tenant: tenant.name, id: c.client_id } }">{{ c.name }}</RouterLink>
+              <Tag v-if="c.external_metadata_type" class="ml-2" :title="t('dcr41.badgeTitle')">{{ c.external_metadata_type === 'cimd' ? t('dcr41.cimdBadge') : t('dcr41.dcrBadge') }}</Tag>
             </td>
             <td>{{ typeLabel(c.app_type) }}</td>
             <td><code>{{ c.client_id }}</code></td>
@@ -109,6 +112,7 @@ onModalClosed(load)
         <Button :disabled="to >= total" @click="setQuery({ page: page + 1 })">{{ t('apps.next') }}</Button>
       </nav>
     </template>
+    <CimdRegister @registered="load" />
     <RouterView />
   </div>
   <Banner v-else kind="error">{{ t('unknownTenant') }}</Banner>

@@ -17,7 +17,11 @@ export const settingsPanels: Panel[] = [
     { ...field('oidc_logout.rp_logout_end_session_endpoint_discovery', 'toggle'), label: 'oidc41.discovery' },
     { ...field('resource_parameter_profile', undefined, { options: ['audience', 'compatibility'] }), label: 'oidc41.resource' },
     field('default_redirection_uri', 'url', { hint: 'policy.future' }),
-    ...['change_pwd_flow_v1', 'enable_apis_section', 'enable_client_connections', 'enable_pipeline2', 'enable_dynamic_client_registration', 'disable_management_api_sms_obfuscation', 'trust_azure_adfs_email_verified_connection_property', 'custom_domains_provisioning'].map(p => field('flags.' + p, 'toggle', { hint: 'policy.future' })),
+    { ...field('flags.enable_dynamic_client_registration', 'toggle'), label: 'dcr41.enable', hint: 'dcr41.enableHint' },
+    { ...field('dynamic_client_registration_security_mode', undefined, { options: ['strict', 'permissive'] }), label: 'dcr41.mode', hint: 'dcr41.modeHint' },
+    { ...field('client_id_metadata_document_supported', 'toggle'), label: 'dcr41.cimd', hint: 'dcr41.cimdHint' },
+    { ...field('client_id_metadata_document_dynamic_registration_supported', 'toggle'), label: 'dcr41.cimdDynamic', hint: 'dcr41.cimdDynamicHint' },
+    ...['change_pwd_flow_v1', 'enable_apis_section', 'enable_client_connections', 'enable_pipeline2', 'disable_management_api_sms_obfuscation', 'trust_azure_adfs_email_verified_connection_property', 'custom_domains_provisioning'].map(p => field('flags.' + p, 'toggle', { hint: 'policy.future' })),
     field('flags.disable_impersonation', 'toggle', { readonly: true, hint: 'policy.readonly' }),
   ] },
 ]

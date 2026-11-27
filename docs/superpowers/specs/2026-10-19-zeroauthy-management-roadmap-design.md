@@ -25,7 +25,7 @@ per item; items without rulings can start as soon as their track allows.
 | F1 | 36 enterprise OIDC (**merged** 2026-11-19, PR #70) | [spec](2026-11-16-zeroauthy-enterprise-oidc-design.md) | none |
 | P2 | 48 refresh tokens II (**merged** 2026-11-21, PR #73) | [spec](2026-11-16-zeroauthy-refresh-tokens-ii-design.md) | none |
 | P3 | 41a OIDC extras, logout (**merged** 2026-11-21, PRs #74, #76) | [spec](2026-11-16-zeroauthy-oidc-extras-logout-design.md) | none (ruled 2026-11-17: no front-channel logout; spec-compliant defaults; certify logout right after 41a merges) |
-| P4 | 41b DCR and CIMD | [spec](2026-11-16-zeroauthy-dynamic-client-registration-design.md) | none |
+| P4 | 41b DCR and CIMD (implemented on `plan-41b-dcr`; CI and approval pending) | [spec](2026-11-16-zeroauthy-dynamic-client-registration-design.md) | none |
 | P5 | 41c CIBA (email channel) | [spec](2026-11-16-zeroauthy-ciba-design.md) | none |
 | P6 | 43 Token Vault | [spec](2026-11-16-zeroauthy-token-vault-design.md) | which clients may exchange; upstream revocation; vault vs identities |
 | F2 | 37a SAML (**merged** 2026-11-22, PR #81) | [spec](2026-11-16-zeroauthy-saml-design.md) | none (ruled 2026-11-21: vendor goxmldsig + etree; E2E `@node-saml/node-saml` and `samlify`; SHA-1/RSA-1_5 opt-in only) |

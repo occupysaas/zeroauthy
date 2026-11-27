@@ -38,6 +38,8 @@ export type ResourceServerUpdate = components['schemas']['ResourceServerUpdate']
 export type ResourceServerPage = components['schemas']['ResourceServerPage']
 export type ResourceServerScope = components['schemas']['ResourceServerScope']
 export type ClientGrant = components['schemas']['ClientGrant']
+export type CimdPreview = components['schemas']['CimdPreview']
+export type CimdRegistration = components['schemas']['CimdRegistration']
 export type ClientGrantCreate = components['schemas']['ClientGrantCreate']
 export type ClientGrantUpdate = components['schemas']['ClientGrantUpdate']
 export type ClientGrantPage = components['schemas']['ClientGrantPage']
@@ -645,6 +647,14 @@ export class Api {
 
   listClients(t: SystemTenant, q: { page: number; per_page: number; app_type?: string }): Promise<ClientPage> {
     return this.tenantRequest(t, 'GET', '/api/v2/clients', { query: { ...q, include_totals: true, fields: 'client_secret', include_fields: false } })
+  }
+
+  previewCimd(t: SystemTenant, externalClientID: string): Promise<CimdPreview> {
+    return this.tenantRequest(t, 'POST', '/api/v2/clients/cimd/preview', { body: { external_client_id: externalClientID } })
+  }
+
+  registerCimd(t: SystemTenant, externalClientID: string): Promise<CimdRegistration> {
+    return this.tenantRequest(t, 'POST', '/api/v2/clients/cimd/register', { body: { external_client_id: externalClientID } })
   }
 
   getClient(t: SystemTenant, id: string): Promise<Client> {

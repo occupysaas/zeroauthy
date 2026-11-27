@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/zeroauthy/zeroauthy/internal/apirules"
+	"github.com/zeroauthy/zeroauthy/internal/cimd"
 	"github.com/zeroauthy/zeroauthy/internal/clientrules"
 	"github.com/zeroauthy/zeroauthy/internal/connrules"
 	"github.com/zeroauthy/zeroauthy/internal/devicecode"
@@ -162,6 +163,11 @@ func (t *Tenant) validate() []error {
 	for _, u := range t.AllowedLogoutURLs {
 		if err := clientrules.CheckURL(u); err != nil {
 			fail("allowed_logout_urls: %v", err)
+		}
+	}
+	for _, u := range t.CIMDClients {
+		if err := cimd.CheckURL(u); err != nil {
+			fail("cimd_clients: %q: %v", u, err)
 		}
 	}
 

@@ -17,10 +17,12 @@ import (
 	"github.com/zeroauthy/zeroauthy/console"
 	"github.com/zeroauthy/zeroauthy/internal/actions"
 	"github.com/zeroauthy/zeroauthy/internal/authz"
+	"github.com/zeroauthy/zeroauthy/internal/cimd"
 	"github.com/zeroauthy/zeroauthy/internal/compat"
 	"github.com/zeroauthy/zeroauthy/internal/customdb"
 	"github.com/zeroauthy/zeroauthy/internal/customdomain"
 	"github.com/zeroauthy/zeroauthy/internal/dbconn"
+	"github.com/zeroauthy/zeroauthy/internal/dcr"
 	"github.com/zeroauthy/zeroauthy/internal/dirsync"
 	"github.com/zeroauthy/zeroauthy/internal/dpop"
 	"github.com/zeroauthy/zeroauthy/internal/email"
@@ -122,6 +124,9 @@ type Deps struct {
 	Federation *federation.FlowService
 	// AD serves ad connections (Plan 38a); nil leaves them unavailable.
 	AD *adhub.Service
+	// CIMD fetches and registers Client ID Metadata Document clients (Plan
+	// 41b); nil uses the production outbound policy.
+	CIMD *cimd.Registrar
 
 	// Actions runs post-login and credentials-exchange flows (Plan 27);
 	// nil runs none. Its effects are sealed with Wrapper.
@@ -173,6 +178,7 @@ type authAPI struct {
 
 	passwordless *passwordless.Handlers
 	ad           *adhub.Service
+	dcr          *dcr.Handler
 }
 
 func (a authAPI) Discovery(w http.ResponseWriter, r *http.Request) { a.oidc.Discovery(w, r) }
@@ -201,6 +207,9 @@ func (a authAPI) OauthRevoke(w http.ResponseWriter, r *http.Request) { a.oauth.O
 func (a authAPI) OauthPar(w http.ResponseWriter, r *http.Request, _ authapi.OauthParParams) {
 	a.oauth.OauthPar(w, r)
 }
+
+// OidcRegister is Dynamic Client Registration (Plan 41b).
+func (a authAPI) OidcRegister(w http.ResponseWriter, r *http.Request) { a.dcr.ServeHTTP(w, r) }
 func (a authAPI) OauthDeviceCode(w http.ResponseWriter, r *http.Request) {
 	a.oauth.OauthDeviceCode(w, r)
 }
@@ -230,6 +239,10 @@ func (a authAPI) OidcLogoutPost(w http.ResponseWriter, r *http.Request) { a.oidc
 var _ authapi.ServerInterface = authAPI{}
 
 func New(d Deps) http.Handler {
+	cimdRegistrar := d.CIMD
+	if cimdRegistrar == nil {
+		cimdRegistrar = &cimd.Registrar{Store: d.Store, Fetcher: cimd.NewFetcher(federation.NetworkPolicy{})}
+	}
 	if d.Recorder == nil {
 		d.Recorder = logs.Nop
 	}
@@ -286,7 +299,7 @@ func New(d Deps) http.Handler {
 	})
 	r.Get("/docs", serveDocs)
 
-	az := &authz.Handlers{Compat: d.Compat, Passkeys: d.Passkeys, MFA: d.MFA, Store: d.Store, Sessions: d.Sessions, Log: d.Log,
+	az := &authz.Handlers{CIMD: cimdRegistrar, Compat: d.Compat, Passkeys: d.Passkeys, MFA: d.MFA, Store: d.Store, Sessions: d.Sessions, Log: d.Log,
 		Actions: d.Actions, Wrapper: d.Wrapper, TrustProxyHeaders: d.TrustProxyHeaders}
 	samlIdP := &samlidp.Handler{Store: d.Store, Keys: d.Keys, Sessions: d.Sessions, Wrapper: d.Wrapper, Authz: az, Log: d.Log}
 	az.SAML = samlIdP
@@ -374,8 +387,9 @@ func New(d Deps) http.Handler {
 		proofService := &dpop.Service{Store: d.Store, Wrapper: d.Wrapper}
 		authapi.HandlerWithOptions(authAPI{
 			ad:   d.AD,
+			dcr:  dcr.NewHandler(d.Store, d.Wrapper, d.Log),
 			oidc: &oidc.Handlers{UpstreamLogout: lg.UpstreamLogout, Wrapper: d.Wrapper, Compat: d.Compat, DPoP: proofService, Keys: d.Keys, Store: d.Store, Sessions: d.Sessions, Log: d.Log},
-			oauth: &oauth.Handlers{Compat: d.Compat, Logout: d.Logout,
+			oauth: &oauth.Handlers{CIMD: cimdRegistrar, Compat: d.Compat, Logout: d.Logout,
 				DPoP:       proofService,
 				Federation: d.Federation,
 				MFA:        d.MFA,
@@ -490,6 +504,7 @@ func New(d Deps) http.Handler {
 		samlMetadata = d.Federation.Providers.FetchSAMLMetadata
 	}
 	mh := &mgmt.Handlers{
+		CIMD:           cimdRegistrar,
 		Logout:         d.Logout,
 		AD:             adConnections(d.AD),
 		SAMLMetadata:   samlMetadata,

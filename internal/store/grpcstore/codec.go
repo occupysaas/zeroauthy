@@ -406,6 +406,9 @@ func clientToPB(c *store.Client) (*storev1.Client, error) {
 		return nil, err
 	}
 	pb.ClientAliases, pb.FormTemplate = slices.Clone(c.ClientAliases), c.FormTemplate
+	if pb.ExternalMetadata, err = optJSON(c.External, c.External == nil); err != nil {
+		return nil, err
+	}
 	if pb.NativeSocialLogin, err = optJSON(c.NativeSocialLogin, c.NativeSocialLogin == nil); err != nil {
 		return nil, err
 	}
@@ -486,6 +489,9 @@ func clientFromPB(pb *storev1.Client) (*store.Client, error) {
 	if err := fromOptJSON(pb.Mobile, &c.Mobile); err != nil {
 		return nil, err
 	}
+	if err := fromOptJSON(pb.ExternalMetadata, &c.External); err != nil {
+		return nil, err
+	}
 	if err := clientCredentialFieldsFromPB(pb, c); err != nil {
 		return nil, err
 	}
@@ -553,7 +559,7 @@ func clientGrantToPB(g *store.ClientGrant) (*storev1.ClientGrant, error) {
 	}
 	return &storev1.ClientGrant{
 		TenantId: g.TenantID, Id: g.ID, ClientId: g.ClientID, Audience: g.Audience,
-		Scopes: stringsToPB(g.Scopes), CreatedAt: tsToPB(g.CreatedAt), SubjectType: g.SubjectType, Origin: g.Origin, AllowAllScopes: g.AllowAllScopes, OrganizationUsage: g.OrganizationUsage, AllowAnyOrganization: g.AllowAnyOrganization,
+		Scopes: stringsToPB(g.Scopes), CreatedAt: tsToPB(g.CreatedAt), SubjectType: g.SubjectType, Origin: g.Origin, AllowAllScopes: g.AllowAllScopes, OrganizationUsage: g.OrganizationUsage, AllowAnyOrganization: g.AllowAnyOrganization, DefaultFor: g.DefaultFor,
 	}, nil
 }
 
@@ -571,7 +577,7 @@ func clientGrantFromPB(pb *storev1.ClientGrant) (*store.ClientGrant, error) {
 	}
 	return &store.ClientGrant{
 		TenantID: pb.TenantId, ID: pb.Id, ClientID: pb.ClientId, Audience: pb.Audience,
-		Scopes: stringsFromPB(pb.Scopes), CreatedAt: tsFromPB(pb.CreatedAt), SubjectType: subjectType, Origin: pb.Origin, AllowAllScopes: pb.AllowAllScopes, OrganizationUsage: grantOrgUsage(pb.OrganizationUsage), AllowAnyOrganization: pb.AllowAnyOrganization,
+		Scopes: stringsFromPB(pb.Scopes), CreatedAt: tsFromPB(pb.CreatedAt), SubjectType: subjectType, Origin: pb.Origin, AllowAllScopes: pb.AllowAllScopes, OrganizationUsage: grantOrgUsage(pb.OrganizationUsage), AllowAnyOrganization: pb.AllowAnyOrganization, DefaultFor: pb.DefaultFor,
 	}, nil
 }
 

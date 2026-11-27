@@ -12,9 +12,9 @@ zeroauthy is checked against the OpenID Foundation conformance suite (https://gi
 | `oidcc-rp-initiated-logout-certification-test-plan` | RP-Initiated OP |
 | `oidcc-backchannel-rp-initiated-logout-certification-test-plan` | Back-Channel OP |
 
-- Every plan uses discovery (`server_metadata=discovery`) and static clients (`client_registration=static_client`), because zeroauthy has no registration endpoint.
+- Every plan uses discovery (`server_metadata=discovery`) and static clients (`client_registration=static_client`).
 - Basic and Form Post use `client_secret_basic`. The suite also runs one module with `client_secret_post`. The pinned plans fix authentication for their other modules; they have no selectable full post-authentication variant.
-- Implicit and Hybrid were tried during Plan 41a inventory and rejected unsupported response types. Dynamic OP and front-channel logout remain outside this implementation.
+- Implicit and Hybrid were tried during Plan 41a inventory and rejected unsupported response types. Front-channel logout remains outside this implementation. The Dynamic OP profile (`oidcc-dynamic-certification-test-plan`) registers every client with `private_key_jwt` and exercises `request_uri` and sector identifiers; zeroauthy's `/oidc/register` follows Auth0's open registration, which offers only `none` and `client_secret_post`, so the profile is not run (Plan 41b, D-0090; see [Dynamic Client Registration](dynamic-client-registration.md)).
 
 ## Running it
 

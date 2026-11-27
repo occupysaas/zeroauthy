@@ -90,6 +90,7 @@ const (
 	StoreService_ADHubCall_FullMethodName                                     = "/zeroauthy.store.v1.StoreService/ADHubCall"
 	StoreService_MyOrgCapabilities_FullMethodName                             = "/zeroauthy.store.v1.StoreService/MyOrgCapabilities"
 	StoreService_MyOrgCall_FullMethodName                                     = "/zeroauthy.store.v1.StoreService/MyOrgCall"
+	StoreService_CIMDCapabilities_FullMethodName                              = "/zeroauthy.store.v1.StoreService/CIMDCapabilities"
 	StoreService_SAMLSessionParticipant_FullMethodName                        = "/zeroauthy.store.v1.StoreService/SAMLSessionParticipant"
 	StoreService_SAMLReplayUse_FullMethodName                                 = "/zeroauthy.store.v1.StoreService/SAMLReplayUse"
 	StoreService_SAMLReplayPurge_FullMethodName                               = "/zeroauthy.store.v1.StoreService/SAMLReplayPurge"
@@ -641,6 +642,9 @@ type StoreServiceClient interface {
 	// store.MyOrgStore method (see internal/store/grpcstore/myorg.go).
 	MyOrgCapabilities(ctx context.Context, in *PingRequest, opts ...grpc.CallOption) (*EventsCapabilitiesResult, error)
 	MyOrgCall(ctx context.Context, in *MyOrgCallRequest, opts ...grpc.CallOption) (*MyOrgCallResult, error)
+	// cimd.v1 (Plan 41b) gates client external_metadata (Client ID Metadata
+	// Document URLs unique per tenant) and default client grants (default_for).
+	CIMDCapabilities(ctx context.Context, in *PingRequest, opts ...grpc.CallOption) (*EventsCapabilitiesResult, error)
 	SAMLSessionParticipant(ctx context.Context, in *SAMLParticipantWrite, opts ...grpc.CallOption) (*Result, error)
 	SAMLReplayUse(ctx context.Context, in *GlobalRevocationJTIRequest, opts ...grpc.CallOption) (*Result, error)
 	SAMLReplayPurge(ctx context.Context, in *ClientCredentialsPurgeRequest, opts ...grpc.CallOption) (*CountResult, error)
@@ -1791,6 +1795,16 @@ func (c *storeServiceClient) MyOrgCall(ctx context.Context, in *MyOrgCallRequest
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(MyOrgCallResult)
 	err := c.cc.Invoke(ctx, StoreService_MyOrgCall_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) CIMDCapabilities(ctx context.Context, in *PingRequest, opts ...grpc.CallOption) (*EventsCapabilitiesResult, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(EventsCapabilitiesResult)
+	err := c.cc.Invoke(ctx, StoreService_CIMDCapabilities_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -5976,6 +5990,9 @@ type StoreServiceServer interface {
 	// store.MyOrgStore method (see internal/store/grpcstore/myorg.go).
 	MyOrgCapabilities(context.Context, *PingRequest) (*EventsCapabilitiesResult, error)
 	MyOrgCall(context.Context, *MyOrgCallRequest) (*MyOrgCallResult, error)
+	// cimd.v1 (Plan 41b) gates client external_metadata (Client ID Metadata
+	// Document URLs unique per tenant) and default client grants (default_for).
+	CIMDCapabilities(context.Context, *PingRequest) (*EventsCapabilitiesResult, error)
 	SAMLSessionParticipant(context.Context, *SAMLParticipantWrite) (*Result, error)
 	SAMLReplayUse(context.Context, *GlobalRevocationJTIRequest) (*Result, error)
 	SAMLReplayPurge(context.Context, *ClientCredentialsPurgeRequest) (*CountResult, error)
@@ -6634,6 +6651,9 @@ func (UnimplementedStoreServiceServer) MyOrgCapabilities(context.Context, *PingR
 }
 func (UnimplementedStoreServiceServer) MyOrgCall(context.Context, *MyOrgCallRequest) (*MyOrgCallResult, error) {
 	return nil, status.Error(codes.Unimplemented, "method MyOrgCall not implemented")
+}
+func (UnimplementedStoreServiceServer) CIMDCapabilities(context.Context, *PingRequest) (*EventsCapabilitiesResult, error) {
+	return nil, status.Error(codes.Unimplemented, "method CIMDCapabilities not implemented")
 }
 func (UnimplementedStoreServiceServer) SAMLSessionParticipant(context.Context, *SAMLParticipantWrite) (*Result, error) {
 	return nil, status.Error(codes.Unimplemented, "method SAMLSessionParticipant not implemented")
@@ -9133,6 +9153,24 @@ func _StoreService_MyOrgCall_Handler(srv interface{}, ctx context.Context, dec f
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(StoreServiceServer).MyOrgCall(ctx, req.(*MyOrgCallRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_CIMDCapabilities_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PingRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).CIMDCapabilities(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_CIMDCapabilities_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).CIMDCapabilities(ctx, req.(*PingRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -16620,6 +16658,10 @@ var StoreService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "MyOrgCall",
 			Handler:    _StoreService_MyOrgCall_Handler,
+		},
+		{
+			MethodName: "CIMDCapabilities",
+			Handler:    _StoreService_CIMDCapabilities_Handler,
 		},
 		{
 			MethodName: "SAMLSessionParticipant",

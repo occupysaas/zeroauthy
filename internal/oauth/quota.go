@@ -116,7 +116,7 @@ func (h *Handlers) finishClientCredentials(ctx context.Context, res tenant.Resol
 		if err != nil {
 			return err
 		}
-		grant, err := tx.ClientGrants().Find(ctx, res.Tenant.ID, c.ClientID, rs.Identifier, store.SubjectTypeClient)
+		grant, err := store.FindEffectiveClientGrant(ctx, tx, current, rs.Identifier, store.SubjectTypeClient)
 		if err != nil {
 			return err
 		}
