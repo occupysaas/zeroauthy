@@ -45,7 +45,20 @@ plan (Task 6 not built); fixture providers only, no live checks.
 
 ## Verification
 
-Recorded in the final report and below as runs complete.
+Local, 2026-11-27, at `df2e8b07`, TMPDIR/GOTMPDIR on `/dev/shm`:
+
+- `go test -p 4 ./...` (no `-race`): exit 0, 124 packages ok.
+- `make e2e-social-providers`: exit 0; 17 Chromium tests (every Tier 1
+  strategy, denial, Shopify without a shop) and the Deploy CLI 9.1.0 YAML
+  and directory cells with 15 connections.
+- `make e2e-social`: the first run failed to launch Playwright's bundled
+  browser (not installed on this host); rerun with
+  `E2E_CHROMIUM=$(command -v chromium)`: exit 0.
+- `make e2e-deploy`, `make e2e-apple`, `make e2e-github`: exit 0.
+- Console: `vitest run` 774 tests, `vue-tsc` clean, `eslint` clean; two
+  clean-clone `make console` builds identical and committed.
+- Final review: self-review (subagents only on request); no Critical or
+  Important findings. Deferred minors are in the final report.
 
 ## Follow-ups and rulings for the maintainer
 
