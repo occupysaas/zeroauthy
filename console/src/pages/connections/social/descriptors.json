@@ -1,0 +1,534 @@
+[
+  {
+    "strategy": "amazon",
+    "display_name": "Amazon",
+    "separator": " ",
+    "base_scopes": [
+      "profile"
+    ],
+    "flags": [
+      {
+        "option": "postal_code",
+        "scopes": [
+          "postal_code"
+        ]
+      }
+    ],
+    "freeform_scopes": true,
+    "fields": []
+  },
+  {
+    "strategy": "bitbucket",
+    "display_name": "Bitbucket",
+    "separator": " ",
+    "base_scopes": [
+      "account",
+      "email"
+    ],
+    "flags": [],
+    "freeform_scopes": true,
+    "fields": []
+  },
+  {
+    "strategy": "box",
+    "display_name": "Box",
+    "separator": " ",
+    "base_scopes": [],
+    "flags": [],
+    "freeform_scopes": false,
+    "fields": []
+  },
+  {
+    "strategy": "dropbox",
+    "display_name": "Dropbox",
+    "separator": " ",
+    "base_scopes": [
+      "account_info.read"
+    ],
+    "flags": [],
+    "freeform_scopes": false,
+    "fields": []
+  },
+  {
+    "strategy": "facebook",
+    "display_name": "Facebook",
+    "separator": ",",
+    "base_scopes": [],
+    "flags": [
+      {
+        "option": "public_profile",
+        "scopes": [
+          "public_profile"
+        ],
+        "default": true
+      },
+      {
+        "option": "ads_management",
+        "scopes": [
+          "ads_management"
+        ]
+      },
+      {
+        "option": "ads_read",
+        "scopes": [
+          "ads_read"
+        ]
+      },
+      {
+        "option": "business_management",
+        "scopes": [
+          "business_management"
+        ]
+      },
+      {
+        "option": "email",
+        "scopes": [
+          "email"
+        ]
+      },
+      {
+        "option": "groups_access_member_info",
+        "scopes": [
+          "groups_access_member_info"
+        ]
+      },
+      {
+        "option": "leads_retrieval",
+        "scopes": [
+          "leads_retrieval"
+        ]
+      },
+      {
+        "option": "manage_notifications",
+        "scopes": [
+          "manage_notifications"
+        ]
+      },
+      {
+        "option": "manage_pages",
+        "scopes": [
+          "manage_pages"
+        ]
+      },
+      {
+        "option": "pages_manage_cta",
+        "scopes": [
+          "pages_manage_cta"
+        ]
+      },
+      {
+        "option": "pages_manage_instant_articles",
+        "scopes": [
+          "pages_manage_instant_articles"
+        ]
+      },
+      {
+        "option": "pages_messaging",
+        "scopes": [
+          "pages_messaging"
+        ]
+      },
+      {
+        "option": "pages_messaging_phone_number",
+        "scopes": [
+          "pages_messaging_phone_number"
+        ]
+      },
+      {
+        "option": "pages_messaging_subscriptions",
+        "scopes": [
+          "pages_messaging_subscriptions"
+        ]
+      },
+      {
+        "option": "pages_show_list",
+        "scopes": [
+          "pages_show_list"
+        ]
+      },
+      {
+        "option": "publish_actions",
+        "scopes": [
+          "publish_actions"
+        ]
+      },
+      {
+        "option": "publish_pages",
+        "scopes": [
+          "publish_pages"
+        ]
+      },
+      {
+        "option": "publish_to_groups",
+        "scopes": [
+          "publish_to_groups"
+        ]
+      },
+      {
+        "option": "publish_video",
+        "scopes": [
+          "publish_video"
+        ]
+      },
+      {
+        "option": "read_audience_network_insights",
+        "scopes": [
+          "read_audience_network_insights"
+        ]
+      },
+      {
+        "option": "read_insights",
+        "scopes": [
+          "read_insights"
+        ]
+      },
+      {
+        "option": "read_mailbox",
+        "scopes": [
+          "read_mailbox"
+        ]
+      },
+      {
+        "option": "read_page_mailboxes",
+        "scopes": [
+          "read_page_mailboxes"
+        ]
+      },
+      {
+        "option": "read_stream",
+        "scopes": [
+          "read_stream"
+        ]
+      },
+      {
+        "option": "user_age_range",
+        "scopes": [
+          "user_age_range"
+        ]
+      },
+      {
+        "option": "user_birthday",
+        "scopes": [
+          "user_birthday"
+        ]
+      },
+      {
+        "option": "user_events",
+        "scopes": [
+          "user_events"
+        ]
+      },
+      {
+        "option": "user_friends",
+        "scopes": [
+          "user_friends"
+        ]
+      },
+      {
+        "option": "user_gender",
+        "scopes": [
+          "user_gender"
+        ]
+      },
+      {
+        "option": "user_groups",
+        "scopes": [
+          "user_groups"
+        ]
+      },
+      {
+        "option": "user_hometown",
+        "scopes": [
+          "user_hometown"
+        ]
+      },
+      {
+        "option": "user_likes",
+        "scopes": [
+          "user_likes"
+        ]
+      },
+      {
+        "option": "user_link",
+        "scopes": [
+          "user_link"
+        ]
+      },
+      {
+        "option": "user_location",
+        "scopes": [
+          "user_location"
+        ]
+      },
+      {
+        "option": "user_managed_groups",
+        "scopes": [
+          "user_managed_groups"
+        ]
+      },
+      {
+        "option": "user_photos",
+        "scopes": [
+          "user_photos"
+        ]
+      },
+      {
+        "option": "user_posts",
+        "scopes": [
+          "user_posts"
+        ]
+      },
+      {
+        "option": "user_status",
+        "scopes": [
+          "user_status"
+        ]
+      },
+      {
+        "option": "user_tagged_places",
+        "scopes": [
+          "user_tagged_places"
+        ]
+      },
+      {
+        "option": "user_videos",
+        "scopes": [
+          "user_videos"
+        ]
+      }
+    ],
+    "freeform_scopes": true,
+    "fields": []
+  },
+  {
+    "strategy": "line",
+    "display_name": "LINE",
+    "separator": " ",
+    "base_scopes": [
+      "openid"
+    ],
+    "flags": [
+      {
+        "option": "profile",
+        "scopes": [
+          "profile"
+        ],
+        "default": true
+      },
+      {
+        "option": "email",
+        "scopes": [
+          "email"
+        ]
+      }
+    ],
+    "freeform_scopes": true,
+    "fields": []
+  },
+  {
+    "strategy": "linkedin",
+    "display_name": "LinkedIn",
+    "separator": " ",
+    "base_scopes": [
+      "openid",
+      "profile"
+    ],
+    "flags": [
+      {
+        "option": "email",
+        "scopes": [
+          "email"
+        ]
+      }
+    ],
+    "freeform_scopes": true,
+    "fields": []
+  },
+  {
+    "strategy": "paypal",
+    "display_name": "PayPal",
+    "separator": " ",
+    "base_scopes": [
+      "openid"
+    ],
+    "flags": [
+      {
+        "option": "profile",
+        "scopes": [
+          "profile"
+        ]
+      },
+      {
+        "option": "email",
+        "scopes": [
+          "email"
+        ]
+      },
+      {
+        "option": "address",
+        "scopes": [
+          "address"
+        ]
+      },
+      {
+        "option": "phone",
+        "scopes": [
+          "phone"
+        ]
+      }
+    ],
+    "freeform_scopes": true,
+    "fields": []
+  },
+  {
+    "strategy": "paypal-sandbox",
+    "display_name": "PayPal Sandbox",
+    "separator": " ",
+    "base_scopes": [
+      "openid"
+    ],
+    "flags": [
+      {
+        "option": "profile",
+        "scopes": [
+          "profile"
+        ]
+      },
+      {
+        "option": "email",
+        "scopes": [
+          "email"
+        ]
+      },
+      {
+        "option": "address",
+        "scopes": [
+          "address"
+        ]
+      },
+      {
+        "option": "phone",
+        "scopes": [
+          "phone"
+        ]
+      }
+    ],
+    "freeform_scopes": true,
+    "fields": []
+  },
+  {
+    "strategy": "salesforce",
+    "display_name": "Salesforce",
+    "separator": " ",
+    "base_scopes": [
+      "id"
+    ],
+    "flags": [
+      {
+        "option": "profile",
+        "scopes": [
+          "profile"
+        ],
+        "default": true
+      }
+    ],
+    "freeform_scopes": true,
+    "fields": []
+  },
+  {
+    "strategy": "salesforce-community",
+    "display_name": "Salesforce Community",
+    "separator": " ",
+    "base_scopes": [
+      "id"
+    ],
+    "flags": [
+      {
+        "option": "profile",
+        "scopes": [
+          "profile"
+        ],
+        "default": true
+      }
+    ],
+    "freeform_scopes": true,
+    "fields": [
+      "community_base_url"
+    ]
+  },
+  {
+    "strategy": "salesforce-sandbox",
+    "display_name": "Salesforce (sandbox)",
+    "separator": " ",
+    "base_scopes": [
+      "id"
+    ],
+    "flags": [
+      {
+        "option": "profile",
+        "scopes": [
+          "profile"
+        ],
+        "default": true
+      }
+    ],
+    "freeform_scopes": true,
+    "fields": []
+  },
+  {
+    "strategy": "shopify",
+    "display_name": "Shopify",
+    "separator": " ",
+    "base_scopes": [],
+    "flags": [],
+    "freeform_scopes": false,
+    "fields": [
+      "login_hint"
+    ]
+  },
+  {
+    "strategy": "twitter",
+    "display_name": "X (Twitter)",
+    "separator": " ",
+    "base_scopes": [],
+    "flags": [
+      {
+        "option": "tweet_read",
+        "scopes": [
+          "tweet.read"
+        ],
+        "default": true
+      },
+      {
+        "option": "users_read",
+        "scopes": [
+          "users.read"
+        ],
+        "default": true
+      },
+      {
+        "option": "offline_access",
+        "scopes": [
+          "offline.access"
+        ]
+      }
+    ],
+    "freeform_scopes": true,
+    "fields": [
+      "protocol"
+    ]
+  },
+  {
+    "strategy": "yahoo",
+    "display_name": "Yahoo",
+    "separator": " ",
+    "base_scopes": [
+      "openid",
+      "profile",
+      "email"
+    ],
+    "flags": [],
+    "freeform_scopes": false,
+    "fields": []
+  }
+]

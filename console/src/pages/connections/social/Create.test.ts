@@ -4,7 +4,7 @@ import { apiError, mountAt } from '../../../test/mount'
 import { client, connection, type Call } from '../../../test/services'
 import Create from './Create.vue'
 import { appleKey } from '../../../test/apple'
-import { githubScopeFlags } from './social'
+import { descriptorStrategies, githubScopeFlags } from './social'
 import { appStorageKeys } from '../../../test/storage'
 
 const apps = (c: Call) =>
@@ -17,7 +17,7 @@ async function open(handler: (c: Call) => unknown = () => ({ status: 201, body: 
 describe('Create social connection', () => {
   it('offers social providers once and keeps generic OIDC reachable through Enterprise', async () => {
     const { wrapper } = await open()
-    expect(wrapper.findAll('input[name="strategy"]').map((i) => (i.element as HTMLInputElement).value)).toEqual(['google-oauth2', 'oauth2', 'windowslive', 'apple', 'github'])
+    expect(wrapper.findAll('input[name="strategy"]').map((i) => (i.element as HTMLInputElement).value)).toEqual(['google-oauth2', 'oauth2', 'windowslive', 'apple', 'github', ...descriptorStrategies])
     expect(wrapper.find('[data-testid="oidc-subset"]').exists()).toBe(false)
     expect(wrapper.find('a[href="/admin/t/acme/enterprise/new"]').exists()).toBe(true)
     await wrapper.find('input[value="oauth2"]').setValue(true)

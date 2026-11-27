@@ -9,7 +9,8 @@ import Field from '../../../ui/Field.vue'
 import ScriptEditor from './ScriptEditor.vue'
 import MicrosoftOptions from './MicrosoftOptions.vue'
 import GitHubOptions from './GitHubOptions.vue'
-import { applePEM, githubFlagOptions, githubFlagsOf, githubScopeFlags, APPLE_IDENTIFIER, callbackURLs, optionsOf, type Options } from './social'
+import DescriptorOptions from './DescriptorOptions.vue'
+import { applePEM, githubFlagOptions, githubFlagsOf, githubScopeFlags, APPLE_IDENTIFIER, callbackURLs, optionsOf, descriptorOf, descriptorFlagsOf, descriptorOptions, httpsURL, type Options } from './social'
 
 const { t } = useI18n()
 const props = defineProps<{ tenant: SystemTenant; connection: Connection }>()
@@ -21,7 +22,7 @@ const syncModes = ['on_each_login', 'on_first_login', 'never_on_login'] as const
 // The editable draft. It is reset from the connection only when another
 // connection is shown or after a save of ours: a failed reload in the parent
 // never discards edits.
-const draft = reactive({ displayName: '', showAsButton: true, active: true, sync: 'on_each_login', scope: '', scopes: '', email: true, githubFlags: {} as Record<string, boolean>, profile: true, newSecret: '', appleTeam: '', appleKID: '', appleName: true })
+const draft = reactive({ displayName: '', showAsButton: true, active: true, sync: 'on_each_login', scope: '', scopes: '', email: true, githubFlags: {} as Record<string, boolean>, profile: true, newSecret: '', appleTeam: '', appleKID: '', appleName: true, descFlags: {} as Record<string, boolean>, freeform: '', community: '', protocol: 'oauth2' })
 const errors = reactive<Record<string, string>>({})
 const general = ref('')
 const status = ref('')
@@ -29,6 +30,7 @@ const uncertain = ref(false)
 const busy = ref(false)
 
 const strategy = computed(() => props.connection.strategy ?? '')
+const descriptor = computed(() => descriptorOf(strategy.value))
 const options = computed(() => optionsOf(props.connection))
 const script = computed(() => {
   const s = (options.value.scripts as Options | undefined)?.fetchUserProfile
@@ -52,6 +54,13 @@ function reset(c: Connection) {
   draft.appleTeam = typeof o.team_id === 'string' ? o.team_id : ''
   draft.appleKID = typeof o.kid === 'string' ? o.kid : ''
   draft.newSecret = ''
+  const d = descriptorOf(c.strategy ?? '')
+  if (d) {
+    draft.descFlags = descriptorFlagsOf(d, o)
+    draft.freeform = Array.isArray(o.freeform_scopes) ? (o.freeform_scopes as string[]).join(' ') : ''
+    draft.community = typeof o.community_base_url === 'string' ? o.community_base_url : ''
+    draft.protocol = o.protocol === 'oauth1' ? 'oauth1' : 'oauth2'
+  }
 }
 watch(() => props.connection.id, () => reset(props.connection), { immediate: true })
 
@@ -65,6 +74,7 @@ function validate(): boolean {
   if (draft.newSecret && !draft.newSecret.trim()) errors.newSecret = t('social.required')
   if (strategy.value === 'oauth2' && !draft.scope.trim()) errors.scope = t('social.required')
   if (strategy.value === 'oidc' && !draft.scopes.split(/\s+/).includes('openid')) errors.scopes = t('social.openidRequired')
+  if (descriptor.value?.fields.includes('community_base_url') && !httpsURL(draft.community.trim())) errors.community = t('social.httpsRequired')
   return Object.keys(errors).length === 0
 }
 
@@ -92,6 +102,14 @@ async function save() {
     for (const f of githubScopeFlags) delete opts[f.option]
     Object.assign(opts, githubFlagOptions(draft.email, draft.githubFlags))
     delete opts.scope
+  }
+  const d = descriptor.value
+  if (d) {
+    for (const f of d.flags) delete opts[f.option]
+    delete opts.freeform_scopes
+    delete opts.scope
+    Object.assign(opts, descriptorOptions(d, draft.descFlags, draft.freeform, { community: draft.community, protocol: draft.protocol }))
+    if (d.fields.includes('protocol') && draft.protocol === 'oauth2') delete opts.protocol
   }
   if (strategy.value === 'apple') {
     Object.assign(opts, { team_id: draft.appleTeam, kid: draft.appleKID, name: draft.appleName, email: draft.email })
@@ -159,6 +177,8 @@ function fixed(key: string): string {
     <MicrosoftOptions v-if="strategy === 'windowslive' || strategy === 'waad'" :strategy="strategy" :mode="options.useCommonEndpoint === true ? 'organizations' : 'single'" :tenant-domain="fixed('tenant_domain')" readonly />
 
     <GitHubOptions v-if="strategy === 'github'" v-model:email="draft.email" v-model:flags="draft.githubFlags" />
+    <DescriptorOptions v-if="descriptor" v-model:flags="draft.descFlags" v-model:freeform="draft.freeform" v-model:community="draft.community" v-model:protocol="draft.protocol" :descriptor="descriptor" :community-error="errors.community" />
+    <p v-if="strategy === 'oauth1'" class="muted" data-testid="oauth1-api-only">{{ t('social.oauth1ApiOnly') }}</p>
     <template v-if="strategy === 'google-oauth2'">
       <label class="check"><input v-model="draft.email" type="checkbox" /> <span>{{ t('social.googleEmail') }}</span></label>
       <label class="check"><input v-model="draft.profile" type="checkbox" /> <span>{{ t('social.googleProfile') }}</span></label>

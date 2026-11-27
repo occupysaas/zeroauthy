@@ -1,9 +1,17 @@
 import type { Connection, SystemTenant } from '../../../api/client'
+import descriptorList from './descriptors.json'
 
 // Classification and route support are distinct: historical social routes
 // must continue opening generic OIDC connections.
-export const federatedStrategies = ['google-oauth2', 'oauth2', 'oidc', 'windowslive', 'waad', 'apple', 'github', 'okta', 'samlp', 'adfs', 'google-apps', 'ad'] as const
-export const socialStrategies = ['google-oauth2', 'oauth2', 'windowslive', 'apple', 'github'] as const
+// The Plan 39b descriptor strategies, in descriptors.json order (a test keeps
+// them equal). descriptors.json is generated from the server's descriptors.
+export const descriptorStrategies = ['amazon', 'bitbucket', 'box', 'dropbox', 'facebook', 'line', 'linkedin', 'paypal', 'paypal-sandbox', 'salesforce', 'salesforce-community', 'salesforce-sandbox', 'shopify', 'twitter', 'yahoo'] as const
+export type DescriptorStrategy = (typeof descriptorStrategies)[number]
+export const federatedStrategies = ['google-oauth2', 'oauth2', 'oidc', 'windowslive', 'waad', 'apple', 'github', 'okta', 'samlp', 'adfs', 'google-apps', 'ad', 'oauth1', ...descriptorStrategies] as const
+export const socialStrategies = ['google-oauth2', 'oauth2', 'windowslive', 'apple', 'github', ...descriptorStrategies] as const
+// oauth1 connections are listed and opened as social, but created through
+// the Management API only.
+const socialListed = [...socialStrategies, 'oauth1']
 export const enterpriseStrategies = ['oidc', 'okta', 'waad', 'samlp', 'adfs', 'google-apps', 'ad'] as const
 export type FederatedStrategy = (typeof federatedStrategies)[number]
 export type SocialStrategy = (typeof socialStrategies)[number]
@@ -17,7 +25,7 @@ export function isFederated(c: Pick<Connection, 'strategy'>): boolean {
 export const isSocial = isFederated
 
 export function isSocialConnection(c: Pick<Connection, 'strategy'>): boolean {
-  return (socialStrategies as readonly string[]).includes(c.strategy ?? '')
+  return socialListed.includes(c.strategy ?? '')
 }
 
 export function isEnterpriseConnection(c: Pick<Connection, 'strategy'>): boolean {
@@ -155,4 +163,53 @@ export function samlCertificate(raw: string): boolean {
   const s = raw.trim()
   if (s.startsWith('-----BEGIN CERTIFICATE-----')) return /-----END CERTIFICATE-----$/.test(s)
   return s.length > 64 && /^[A-Za-z0-9+/=\s]+$/.test(s)
+}
+
+export interface DescriptorFlag { option: string; scopes: string[]; default?: boolean }
+export interface SocialDescriptor {
+  strategy: string
+  display_name: string
+  separator: string
+  base_scopes: string[]
+  flags: DescriptorFlag[]
+  freeform_scopes: boolean
+  fields: string[]
+}
+export const socialDescriptors = descriptorList as SocialDescriptor[]
+
+export function descriptorOf(strategy: string): SocialDescriptor | undefined {
+  return socialDescriptors.find((d) => d.strategy === strategy)
+}
+
+/** Each flag's value: the stored option, else its default. */
+export function descriptorFlagsOf(d: SocialDescriptor, o: Options): Record<string, boolean> {
+  const out: Record<string, boolean> = {}
+  for (const f of d.flags) out[f.option] = typeof o[f.option] === 'boolean' ? (o[f.option] as boolean) : f.default === true
+  return out
+}
+
+export function freeformList(text: string): string[] {
+  return text.split(/[\s,]+/).filter(Boolean)
+}
+
+/** The scope the server will compute; OAuth 1.0a has none. */
+export function descriptorScope(d: SocialDescriptor, flags: Record<string, boolean>, freeform: string, protocol = 'oauth2'): string {
+  if (protocol === 'oauth1') return ''
+  const out: string[] = []
+  const add = (s: string) => { if (!out.includes(s)) out.push(s) }
+  d.base_scopes.forEach(add)
+  for (const f of d.flags) if (flags[f.option]) f.scopes.forEach(add)
+  if (d.freeform_scopes) freeformList(freeform).forEach(add)
+  return out.join(d.separator)
+}
+
+/** The options a descriptor form sends: flags that differ from their
+ * default, freeform scopes and the extra fields; never scope. */
+export function descriptorOptions(d: SocialDescriptor, flags: Record<string, boolean>, freeform: string, extra: { community?: string; protocol?: string }): Options {
+  const o: Options = {}
+  for (const f of d.flags) if ((flags[f.option] === true) !== (f.default === true)) o[f.option] = flags[f.option] === true
+  if (d.freeform_scopes && freeformList(freeform).length) o.freeform_scopes = freeformList(freeform)
+  if (d.fields.includes('community_base_url') && extra.community !== undefined) o.community_base_url = extra.community.trim()
+  if (d.fields.includes('protocol') && extra.protocol && extra.protocol !== 'oauth2') o.protocol = extra.protocol
+  return o
 }
