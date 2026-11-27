@@ -186,7 +186,7 @@ func obj(m map[string]any) map[string]any {
 // allowlist: Auth0 passes the request body, and Actions read non-secret
 // custom parameters from it. Every token grant's credentials must be
 // listed; oauth's TestActionsBodyStripsEveryGrant enforces that.
-var credentialParams = []string{"password", "client_secret", "client_assertion", "code_verifier", "refresh_token", "device_code", "mfa_token", "otp", "oob_code", "binding_code", "recovery_code", "auth_session", "authn_response", "clientDataJSON", "attestationObject", "authenticatorData", "signature", "userHandle", "user_handle", "challenge_id", "subject_token", "actor_token"}
+var credentialParams = []string{"password", "client_secret", "client_assertion", "code_verifier", "refresh_token", "device_code", "mfa_token", "otp", "oob_code", "binding_code", "recovery_code", "auth_session", "authn_response", "clientDataJSON", "attestationObject", "authenticatorData", "signature", "userHandle", "user_handle", "challenge_id", "subject_token", "actor_token", "auth_req_id"}
 
 // StripCredentials is body without its credentials (the authorization code
 // grant's code is one too), as event.request.body carries it.
