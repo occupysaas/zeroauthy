@@ -330,8 +330,9 @@ func (d *Descriptor) validate() error {
 	return nil
 }
 
-// checkURL requires https without userinfo or fragment. Endpoint URLs may
-// start with a template placeholder.
+// checkURL requires https without userinfo; endpoints also without a
+// fragment, and they may start with a template placeholder. Sources may link
+// a document anchor.
 func checkURL(raw string, endpoint bool) error {
 	if endpoint {
 		for _, p := range []string{CommunityPlaceholder} {
@@ -345,8 +346,8 @@ func checkURL(raw string, endpoint bool) error {
 		raw = strings.Replace(raw, ShopPlaceholder, "shop.example", 1)
 	}
 	u, err := url.Parse(raw)
-	if err != nil || u.Scheme != "https" || u.Host == "" || u.User != nil || u.Fragment != "" {
-		return fmt.Errorf("must be an https URL without userinfo or fragment")
+	if err != nil || u.Scheme != "https" || u.Host == "" || u.User != nil || (endpoint && u.Fragment != "") {
+		return fmt.Errorf("must be an https URL without userinfo (or fragment, for endpoints)")
 	}
 	return nil
 }

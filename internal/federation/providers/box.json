@@ -1,0 +1,26 @@
+{
+ "strategy": "box",
+ "display_name": "Box",
+ "source": [
+  "https://developer.box.com/guides/authentication/oauth2/",
+  "https://developer.box.com/reference/get-users-me/",
+  "https://auth0.com/docs/authenticate/identity-providers/social-identity-providers/box"
+ ],
+ "authorization_url": "https://account.box.com/api/oauth2/authorize",
+ "token_url": "https://api.box.com/oauth2/token",
+ "profile_url": "https://api.box.com/2.0/users/me",
+ "token_auth": "client_secret_post",
+ "pkce": "none",
+ "base_scopes": [],
+ "flags": [],
+ "freeform_scopes": false,
+ "profile": {
+  "user_id": "id",
+  "email": "login",
+  "name": "name",
+  "picture": "avatar_url"
+ },
+ "email_verified": {
+  "rule": "never"
+ }
+}

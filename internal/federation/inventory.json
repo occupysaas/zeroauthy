@@ -2759,9 +2759,6 @@
      "https://auth0.com/docs/authenticate/identity-providers/social-identity-providers/bitbucket",
      "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
     ],
-    "default_flags": [
-     "profile"
-    ],
     "stored_only": [
      "profile"
     ]
