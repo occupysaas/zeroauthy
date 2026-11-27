@@ -10356,9 +10356,18 @@ export interface components {
             signed_request_object?: components["schemas"]["SignedRequestObject"];
             token_exchange?: components["schemas"]["ClientTokenExchange"];
             /**
+             * @description How a user is asked to approve a CIBA request (Plan 41c, D-0100).
+             *     Only `email` is delivered; `guardian-push` and `my-account` are
+             *     stored only, and a list without `email` is refused (LR41c-2).
+             *     Absent, the application has no channel and cannot use CIBA.
+             */
+            async_approval_notification_channels?: ("email" | "guardian-push" | "my-account")[];
+            /**
              * @description Grant types the application may use. zeroauthy serves
              *     authorization_code, refresh_token, client_credentials, password,
-             *     password-realm and device_code; implicit and the MFA grants are
+             *     password-realm, device_code and CIBA
+             *     (`urn:openid:params:grant-type:ciba`: first-party, confidential,
+             *     OIDC-conformant applications only, Plan 41c); implicit and the MFA grants are
              *     stored but not served. The native passkey grant is
              *     urn:okta:params:oauth:grant-type:webauthn.
              */
@@ -10553,6 +10562,13 @@ export interface components {
             client_authentication_methods?: components["schemas"]["ClientAuthenticationMethods"];
             signed_request_object?: components["schemas"]["SignedRequestObject"];
             token_exchange?: components["schemas"]["ClientTokenExchange"];
+            /**
+             * @description How a user is asked to approve a CIBA request (Plan 41c, D-0100).
+             *     Only `email` is delivered; `guardian-push` and `my-account` are
+             *     stored only, and a list without `email` is refused (LR41c-2).
+             *     Absent, the application has no channel and cannot use CIBA.
+             */
+            async_approval_notification_channels?: ("email" | "guardian-push" | "my-account")[];
             oidc_logout?: components["schemas"]["ClientOIDCLogout"];
             oidc_support?: components["schemas"]["ClientOIDCSupport"];
             addons?: components["schemas"]["ClientAddons"];

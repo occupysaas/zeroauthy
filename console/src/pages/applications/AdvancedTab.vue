@@ -13,7 +13,12 @@ const { t, te } = useI18n()
 const GRANT_KEYS: Record<string, string> = {
   'http://auth0.com/oauth/grant-type/password-realm': 'passwordRealm',
   'urn:ietf:params:oauth:grant-type:device_code': 'deviceCode',
+  'urn:openid:params:grant-type:ciba': 'ciba',
 }
+const CIBA = 'urn:openid:params:grant-type:ciba'
+// The CIBA channels; only email is delivered (D-0100).
+const channelChoices = ['email', 'guardian-push', 'my-account'] as const
+type Channel = (typeof channelChoices)[number]
 // grantLabel names a grant type; one this console does not know shows as is.
 function grantLabel(g: string): string {
   const key = `apps.grants.${GRANT_KEYS[g] ?? g}`
@@ -31,6 +36,7 @@ const offered = [
   'password',
   'http://auth0.com/oauth/grant-type/password-realm',
   'urn:ietf:params:oauth:grant-type:device_code',
+  CIBA,
 ]
 
 type AuthMethod = NonNullable<Client['token_endpoint_auth_method']> | 'private_key_jwt'
@@ -47,6 +53,7 @@ const form = reactive({
   rotation: 'non-rotating' as 'rotating' | 'non-rotating',
   expiration: 'non-expiring' as 'expiring' | 'non-expiring',
   requirePAR: false,
+  channels: [] as Channel[],
 })
 const error = ref('')
 const status = ref('')
@@ -66,6 +73,7 @@ watch(
     form.rotation = c.refresh_token.rotation_type ?? 'non-rotating'
     form.expiration = c.refresh_token.expiration_type ?? 'non-expiring'
     form.requirePAR = c.require_pushed_authorization_requests
+    form.channels = [...((c.async_approval_notification_channels ?? []) as Channel[])]
   },
   { immediate: true },
 )
@@ -134,6 +142,10 @@ async function save() {
     // No requirement and no keys is the unset state, which the API takes as null.
     body.signed_request_object = form.jarRequired || form.jarIds.length ? { required: form.jarRequired, credentials: form.jarIds.map((id) => ({ id })) } : (null as never)
   }
+  const initialChannels = [...(props.client.async_approval_notification_channels ?? [])].sort().join()
+  if ([...form.channels].sort().join() !== initialChannels) {
+    body.async_approval_notification_channels = form.channels.length ? form.channels : (null as never)
+  }
   if (form.exchange !== initialExchange.value) {
     body.token_exchange = form.exchange ? { allow_any_profile_of_type: ['custom_authentication'] } : null
   }
@@ -158,6 +170,14 @@ async function save() {
       <label v-for="g in grantChoices" :key="g" class="check">
         <input v-model="form.grants" type="checkbox" :value="g" />
         {{ grantLabel(g) }}
+      </label>
+    </fieldset>
+    <fieldset v-if="form.grants.includes(CIBA) || form.channels.length" class="m-0 grid gap-1.5 border-0 p-0" data-testid="ciba-channels">
+      <legend class="p-0 font-bold">{{ t('apps.cibaChannels') }}</legend>
+      <p class="m-0 muted">{{ t('apps.cibaChannelsHint') }}</p>
+      <label v-for="ch in channelChoices" :key="ch" class="check">
+        <input v-model="form.channels" type="checkbox" :value="ch" />
+        {{ t(`apps.cibaChannel.${ch}`) }}
       </label>
     </fieldset>
     <Field id="app-auth-method" :label="t('apps.authMethod')">

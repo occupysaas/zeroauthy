@@ -99,6 +99,27 @@ describe('Application detail', () => {
     wrapper.unmount()
   })
 
+  it('enables CIBA with the email channel', async () => {
+    const ciba = 'urn:openid:params:grant-type:ciba'
+    const { wrapper, calls } = await mountAt(Detail, path, (c) =>
+      c.method === 'PATCH' ? { status: 200, body: client('abc', { grant_types: ['authorization_code', ciba], async_approval_notification_channels: ['email'] }) } : { status: 200, body: client('abc') },
+    )
+    tabTo('Advanced')
+    await flushPromises()
+    const checkbox = (v: string) => document.body.querySelector<HTMLInputElement>(`input[type="checkbox"][value="${v}"]`)
+    expect(document.body.querySelector('[data-testid="ciba-channels"]')).toBeNull()
+    checkbox(ciba)!.click()
+    await flushPromises()
+    expect(document.body.querySelector('[data-testid="ciba-channels"]')!.textContent).toContain('Only email is delivered')
+    checkbox('email')!.click()
+    await flushPromises()
+    document.body.querySelector<HTMLFormElement>('form')!.dispatchEvent(new Event('submit'))
+    await flushPromises()
+    expect(calls.at(-1)!.body).toMatchObject({ async_approval_notification_channels: ['email'] })
+    expect((calls.at(-1)!.body as { grant_types: string[] }).grant_types).toContain(ciba)
+    wrapper.unmount()
+  })
+
   it('rotates the secret after confirmation', async () => {
     const { wrapper, calls } = await mountAt(Detail, path, (c) =>
       c.url.endsWith('/rotate-secret') ? { status: 200, body: client('abc', { client_secret: 'N'.repeat(64) }) } : { status: 200, body: client('abc') },
