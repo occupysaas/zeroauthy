@@ -19,6 +19,8 @@ type Error struct {
 	basicChallenge bool
 	// repeated names the parameter a request sent more than once.
 	repeated string
+	// Interval is slow_down's new poll interval in seconds (CIBA, Auth0).
+	Interval int
 }
 
 func (e *Error) Error() string { return e.Code + ": " + e.Description }
@@ -75,6 +77,10 @@ func writeError(w http.ResponseWriter, e *Error) {
 	}
 	if e.MFAToken != "" {
 		httpx.WriteJSON(w, e.Status, map[string]string{"error": e.Code, "error_description": e.Description, "mfa_token": e.MFAToken})
+		return
+	}
+	if e.Interval > 0 {
+		httpx.WriteJSON(w, e.Status, map[string]any{"error": e.Code, "error_description": e.Description, "interval": e.Interval})
 		return
 	}
 	httpx.WriteError(w, e.Status, e.Code, e.Description)

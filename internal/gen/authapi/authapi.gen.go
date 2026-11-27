@@ -866,6 +866,9 @@ type OAuthError struct {
 	// Error Examples: invalid_client
 	Error            string `json:"error"`
 	ErrorDescription string `json:"error_description"`
+
+	// Interval The new poll interval in seconds, on a CIBA `slow_down` (Plan 41c).
+	Interval *int `json:"interval,omitempty"`
 }
 
 // OidcLogoutRequest defines model for OidcLogoutRequest.

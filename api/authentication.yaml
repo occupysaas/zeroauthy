@@ -2422,6 +2422,9 @@ components:
           examples: [invalid_client]
         error_description:
           type: string
+        interval:
+          type: integer
+          description: The new poll interval in seconds, on a CIBA `slow_down` (Plan 41c).
     PushedAuthorizationRequest:
       type: object
       description: The `/authorize` parameters (including dpop_jkt), plus client authentication (`client_id`, `client_secret`) and up to 10 `ext-` parameters.

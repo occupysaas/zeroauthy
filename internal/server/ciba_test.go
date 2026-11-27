@@ -181,3 +181,32 @@ func TestApprovalDeny(t *testing.T) {
 		t.Fatalf("unknown link %d", resp.StatusCode)
 	}
 }
+
+// The whole flow over HTTP: /bc-authorize, the emailed link, approval as
+// the user, and the poll that redeems the tokens once.
+func TestCIBAEndToEnd(t *testing.T) {
+	e := newCIBAEnv(t)
+	c := e.client(t)
+	id, link := e.start(t, c, "alice@flow.test")
+	poll := func() (*http.Response, map[string]any) {
+		return e.postForm(t, c, "/oauth/token", url.Values{"grant_type": {"urn:openid:params:grant-type:ciba"}, "client_id": {"agent"}, "client_secret": {"agent-secret"}, "auth_req_id": {id}})
+	}
+	if resp, out := poll(); resp.StatusCode != 400 || out["error"] != "authorization_pending" {
+		t.Fatalf("pending: %d %v", resp.StatusCode, out)
+	}
+	loc := e.decide(t, c, link, "approve")
+	resp, _ := e.login(t, c, loc, "alice@flow.test", "alice password 1")
+	if next, _ := resp.Location(); next == nil || next.Path != "/bc-verify/approved" {
+		t.Fatalf("approval ended at %v", next)
+	}
+	// The pending poll started the 5-second interval; poll after it.
+	time.Sleep(5100 * time.Millisecond)
+	resp, tok := poll()
+	if resp.StatusCode != 200 || tok["id_token"] == nil || tok["access_token"] == nil {
+		t.Fatalf("tokens: %d %v", resp.StatusCode, tok)
+	}
+	time.Sleep(5100 * time.Millisecond)
+	if resp, out := poll(); resp.StatusCode != 400 || out["error"] != "invalid_grant" {
+		t.Fatalf("second poll: %d %v", resp.StatusCode, out)
+	}
+}
