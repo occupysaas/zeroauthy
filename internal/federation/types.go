@@ -76,6 +76,9 @@ type ExchangeInput struct {
 	// OAuth1Token and OAuth1Secret are the sealed request token and its
 	// secret (OAuth 1.0a); Code is then the oauth_verifier.
 	OAuth1Token, OAuth1Secret string
+	// GoogleNative verifies a native Google ID token (Plan 39b): no nonce,
+	// and aud alone binds it to the connection (an Android azp is allowed).
+	GoogleNative bool
 	// AppleNative permits nonce-free exchange only for StrategyApple.
 	AppleNative bool
 	// AppleUser carries bounded posted names, after attempt validation.

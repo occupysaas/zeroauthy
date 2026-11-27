@@ -22,7 +22,25 @@ import (
 const nativeAppleSubjectType = "http://auth0.com/oauth/token-type/apple-authz-code"
 const nativeAppleDisabled = "Native Social Login is not enabled for this client"
 
-func (h *Handlers) nativeAppleExchange(ctx context.Context, res tenant.Resolved, c *store.Client, form url.Values) (response *authapi.TokenResponse, failure *Error) {
+// nativeKinds are the reserved native subject token types (Plan 39a Apple,
+// Plan 39b Google and Facebook).
+var nativeKinds = map[string]string{
+	nativeAppleSubjectType:               federation.NativeKindApple,
+	federation.NativeGoogleSubjectType:   federation.NativeKindGoogle,
+	federation.NativeFacebookSubjectType: federation.NativeKindFacebook,
+}
+
+func isNativeSubjectType(t string) bool { _, ok := nativeKinds[t]; return ok }
+
+// nativeLabels name the connection in the generic invalid_grant text.
+var nativeLabels = map[string]string{federation.NativeKindApple: "Apple", federation.NativeKindGoogle: "Google", federation.NativeKindFacebook: "Facebook"}
+
+func (h *Handlers) nativeAppleExchange(ctx context.Context, res tenant.Resolved, c *store.Client, form url.Values) (*authapi.TokenResponse, *Error) {
+	return h.nativeExchange(ctx, res, c, form, federation.NativeKindApple)
+}
+
+// nativeExchange signs a user in with a native social token of kind.
+func (h *Handlers) nativeExchange(ctx context.Context, res tenant.Resolved, c *store.Client, form url.Values, kind string) (response *authapi.TokenResponse, failure *Error) {
 	code := form.Get("subject_token")
 	ctx = logscrub.WithCredentials(ctx, code, form.Get("user_profile"))
 	logs.AddCredentials(ctx, code, form.Get("user_profile"))
@@ -38,7 +56,7 @@ func (h *Handlers) nativeAppleExchange(ctx context.Context, res tenant.Resolved,
 		}
 		h.exchangeEvent(ctx, res, c, event, conn, uid, nil)
 	}()
-	if h.Federation == nil || !federation.NativeAppleEnabled(c) {
+	if h.Federation == nil || !federation.NativeEnabled(c, kind) {
 		return nil, invalidRequest(nativeAppleDisabled)
 	}
 	if code == "" {
@@ -47,15 +65,24 @@ func (h *Handlers) nativeAppleExchange(ctx context.Context, res tenant.Resolved,
 	if form.Get("actor_token") != "" || form.Get("actor_token_type") != "" {
 		return nil, invalidRequest("actor tokens are not supported for native social login")
 	}
-	userProfile, err := federation.ParseAppleUser(form.Get("user_profile"))
-	if err != nil {
-		return nil, invalidRequest("user_profile must be a JSON object of at most 1 KiB with valid names")
+	var userProfile *federation.AppleUser
+	var facebookUser *federation.FacebookUser
+	var err error
+	switch kind {
+	case federation.NativeKindApple:
+		if userProfile, err = federation.ParseAppleUser(form.Get("user_profile")); err != nil {
+			return nil, invalidRequest("user_profile must be a JSON object of at most 1 KiB with valid names")
+		}
+	case federation.NativeKindFacebook:
+		if facebookUser, err = federation.ParseFacebookUser(form.Get("user_profile")); err != nil {
+			return nil, invalidRequest("user_profile must be a JSON object of at most 2 KiB of strings")
+		}
 	}
 	tid := res.Tenant.ID
 	// List's documented order is LOWER(name), id in every built-in store. The
 	// client has no separate connection order: choose the first usable Apple.
 	for page := 0; conn == nil; page++ {
-		cs, total, err := h.Store.Connections().List(ctx, tid, store.ConnectionFilter{Strategies: []string{federation.StrategyApple}}, store.Page{Offset: page * 100, Limit: 100})
+		cs, total, err := h.Store.Connections().List(ctx, tid, store.ConnectionFilter{Strategies: []string{federation.NativeStrategy(kind)}}, store.Page{Offset: page * 100, Limit: 100})
 		if err != nil {
 			return nil, serverError()
 		}
@@ -150,7 +177,7 @@ func (h *Handlers) nativeAppleExchange(ctx context.Context, res tenant.Resolved,
 		}
 		return nil, serverError()
 	}
-	user, binding, err := h.Federation.NativeApple(ctx, federation.NativeAppleInput{Client: c, Connection: conn, Code: code, User: userProfile,
+	user, binding, err := h.Federation.NativeLogin(ctx, federation.NativeAppleInput{Kind: kind, Client: c, Connection: conn, Code: code, User: userProfile, FacebookUser: facebookUser,
 		BeforeProvision: func(ctx context.Context) error { return spend(ctx, "social-signup") },
 		CommitIdentity: func(ctx context.Context, tx store.Store, u *store.User, current *store.Connection) error {
 			fresh, err := tx.Clients().Get(ctx, tid, c.ClientID)
@@ -184,9 +211,9 @@ func (h *Handlers) nativeAppleExchange(ctx context.Context, res tenant.Resolved,
 		// Never surface or log provider error text: it may echo a code or token.
 		switch {
 		case errors.Is(err, federation.ErrProviderResponse), errors.Is(err, federation.ErrNetworkPolicy), errors.Is(err, federation.ErrAttemptStale), errors.Is(err, federation.ErrConnectionUnusable), errors.Is(err, federation.ErrUserBlocked), errors.Is(err, federation.ErrEmailRequired), errors.Is(err, federation.ErrIdentityConflict), errors.Is(err, orglogin.ErrNotMember), errors.Is(err, errOrganizationGrant), errors.Is(err, store.ErrNotFound):
-			return nil, invalidGrant("Error from Apple connection")
+			return nil, invalidGrant("Error from " + nativeLabels[kind] + " connection")
 		default:
-			h.log().ErrorContext(ctx, "native Apple login could not complete", "tenant", tid)
+			h.log().ErrorContext(ctx, "native social login could not complete", "tenant", tid, "kind", kind)
 			return nil, serverError()
 		}
 	}

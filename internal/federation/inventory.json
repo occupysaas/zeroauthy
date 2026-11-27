@@ -2290,7 +2290,7 @@
   "local_rulings": "local:docs/superpowers/specs/2026-11-16-zeroauthy-apple-design.md"
  },
  "native_social_client_fields": {
-  "status": "stored and returned; Apple enforced; Facebook/Google stored-only until Plan 39b",
+  "status": "stored and returned; Apple (Plan 39a), Google and Facebook (Plan 39b) enforced",
   "native_social_login": {
    "apple": {
     "enabled": false
@@ -2306,7 +2306,7 @@
    "team_id",
    "app_bundle_identifier"
   ],
-  "facebook_google": "stored and returned in Plan 39a; enforcement deferred to Plan 39b",
+  "facebook_google": "enforced by Plan 39b: native_social_login.google and .facebook gate the Google ID-token and Facebook session-info exchanges",
   "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
  },
  "github_profile": {
@@ -2803,6 +2803,21 @@
     "https://www.rfc-editor.org/rfc/rfc5849",
     "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
    ]
+  },
+  "native": {
+   "google": {
+    "subject_token_type": "http://auth0.com/oauth/token-type/google-id-token",
+    "note": "local URN; Auth0 documents none (SP-3)",
+    "verification": "RS256 with a key from Google's pinned JWKS; Google issuer; aud must be the google-oauth2 connection's client_id (an Android azp is allowed); exp/iat with 60 s skew; no nonce",
+    "requires": "native_social_login.google.enabled and an enabled google-oauth2 connection"
+   },
+   "facebook": {
+    "subject_token_type": "http://auth0.com/oauth/token-type/facebook-info-session-access-token",
+    "source": "https://auth0.com/docs/quickstart/native/android-facebook-login",
+    "verification": "Graph debug_token with the app access token: is_valid, app_id equal to the connection's client_id, USER type; subject is user_id",
+    "user_profile": "optional bounded JSON object of strings; its id must equal user_id; its email is never verified (SP-4)",
+    "requires": "native_social_login.facebook.enabled and an enabled facebook connection"
+   }
   }
  }
 }

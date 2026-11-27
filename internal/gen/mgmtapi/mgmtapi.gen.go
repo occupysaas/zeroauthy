@@ -9571,10 +9571,11 @@ type Client struct {
 	MyOrganizationConfiguration *ClientMyOrganizationConfiguration `json:"my_organization_configuration,omitempty"`
 	Name                        string                             `json:"name"`
 
-	// NativeSocialLogin Stored native social switches; Apple is enforced (Plan 39a, D-0170).
-	// Apple exchange additionally requires
-	// mobile.ios.app_bundle_identifier and an enabled Apple connection.
-	// Facebook and Google enforcement belongs to Plan 39b.
+	// NativeSocialLogin Native social switches, each enforced at the token exchange: Apple
+	// (Plan 39a, D-0170) additionally requires
+	// mobile.ios.app_bundle_identifier and an enabled Apple connection;
+	// Google and Facebook (Plan 39b, D-0180) require an enabled
+	// google-oauth2 or facebook connection.
 	NativeSocialLogin *NativeSocialLogin   `json:"native_social_login,omitempty"`
 	OidcConformant    ClientOidcConformant `json:"oidc_conformant"`
 	OidcLogout        *ClientOIDCLogout    `json:"oidc_logout,omitempty"`
@@ -9872,10 +9873,11 @@ type ClientCreate struct {
 	// Name The application's name.
 	Name string `json:"name"`
 
-	// NativeSocialLogin Stored native social switches; Apple is enforced (Plan 39a, D-0170).
-	// Apple exchange additionally requires
-	// mobile.ios.app_bundle_identifier and an enabled Apple connection.
-	// Facebook and Google enforcement belongs to Plan 39b.
+	// NativeSocialLogin Native social switches, each enforced at the token exchange: Apple
+	// (Plan 39a, D-0170) additionally requires
+	// mobile.ios.app_bundle_identifier and an enabled Apple connection;
+	// Google and Facebook (Plan 39b, D-0180) require an enabled
+	// google-oauth2 or facebook connection.
 	NativeSocialLogin *NativeSocialLogin `json:"native_social_login,omitempty"`
 
 	// OidcConformant zeroauthy is always OIDC-conformant; `false` is refused.
@@ -10364,10 +10366,11 @@ type ClientSettings struct {
 	// Name The application's name.
 	Name *string `json:"name,omitempty"`
 
-	// NativeSocialLogin Stored native social switches; Apple is enforced (Plan 39a, D-0170).
-	// Apple exchange additionally requires
-	// mobile.ios.app_bundle_identifier and an enabled Apple connection.
-	// Facebook and Google enforcement belongs to Plan 39b.
+	// NativeSocialLogin Native social switches, each enforced at the token exchange: Apple
+	// (Plan 39a, D-0170) additionally requires
+	// mobile.ios.app_bundle_identifier and an enabled Apple connection;
+	// Google and Facebook (Plan 39b, D-0180) require an enabled
+	// google-oauth2 or facebook connection.
 	NativeSocialLogin *NativeSocialLogin `json:"native_social_login,omitempty"`
 
 	// OidcConformant zeroauthy is always OIDC-conformant; `false` is refused.
@@ -10563,10 +10566,11 @@ type ClientUpdate struct {
 	// Name The application's name.
 	Name *string `json:"name,omitempty"`
 
-	// NativeSocialLogin Stored native social switches; Apple is enforced (Plan 39a, D-0170).
-	// Apple exchange additionally requires
-	// mobile.ios.app_bundle_identifier and an enabled Apple connection.
-	// Facebook and Google enforcement belongs to Plan 39b.
+	// NativeSocialLogin Native social switches, each enforced at the token exchange: Apple
+	// (Plan 39a, D-0170) additionally requires
+	// mobile.ios.app_bundle_identifier and an enabled Apple connection;
+	// Google and Facebook (Plan 39b, D-0180) require an enabled
+	// google-oauth2 or facebook connection.
 	NativeSocialLogin *NativeSocialLogin `json:"native_social_login,omitempty"`
 
 	// OidcConformant zeroauthy is always OIDC-conformant; `false` is refused.
@@ -15308,10 +15312,11 @@ type ManagementError struct {
 	StatusCode int `json:"statusCode"`
 }
 
-// NativeSocialLogin Stored native social switches; Apple is enforced (Plan 39a, D-0170).
-// Apple exchange additionally requires
-// mobile.ios.app_bundle_identifier and an enabled Apple connection.
-// Facebook and Google enforcement belongs to Plan 39b.
+// NativeSocialLogin Native social switches, each enforced at the token exchange: Apple
+// (Plan 39a, D-0170) additionally requires
+// mobile.ios.app_bundle_identifier and an enabled Apple connection;
+// Google and Facebook (Plan 39b, D-0180) require an enabled
+// google-oauth2 or facebook connection.
 type NativeSocialLogin struct {
 	Apple    *NativeSocialLoginApple    `json:"apple,omitempty"`
 	Facebook *NativeSocialLoginFacebook `json:"facebook,omitempty"`
@@ -15326,13 +15331,13 @@ type NativeSocialLoginApple struct {
 
 // NativeSocialLoginFacebook defines model for NativeSocialLoginFacebook.
 type NativeSocialLoginFacebook struct {
-	// Enabled Stored by Plan 39a; native enforcement is deferred to Plan 39b.
+	// Enabled Allows the Facebook session-info token exchange (subject_token_type http://auth0.com/oauth/token-type/facebook-info-session-access-token) through an enabled facebook connection (Plan 39b, D-0180).
 	Enabled *bool `json:"enabled,omitempty"`
 }
 
 // NativeSocialLoginGoogle defines model for NativeSocialLoginGoogle.
 type NativeSocialLoginGoogle struct {
-	// Enabled Stored by Plan 39a; native enforcement is deferred to Plan 39b.
+	// Enabled Allows the Google ID-token exchange (subject_token_type http://auth0.com/oauth/token-type/google-id-token, a local URN) through an enabled google-oauth2 connection; the token's aud must be that connection's client_id (Plan 39b, D-0180).
 	Enabled *bool `json:"enabled,omitempty"`
 }
 

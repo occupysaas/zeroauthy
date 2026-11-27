@@ -71,7 +71,7 @@ func (h *Handlers) token(w http.ResponseWriter, r *http.Request, res tenant.Reso
 	grant, ok := grantHandlers[grantType]
 	// Custom exchange requires client_credentials.v1 profiles. Reserved native
 	// types use the shared federation capability and their own client settings.
-	if grantType == GrantTokenExchange && form.Get("subject_token_type") != nativeAppleSubjectType && !store.ClientCredentialsAvailable(r.Context(), h.Store) {
+	if grantType == GrantTokenExchange && !isNativeSubjectType(form.Get("subject_token_type")) && !store.ClientCredentialsAvailable(r.Context(), h.Store) {
 		ok = false
 	}
 	if !ok {

@@ -106,7 +106,8 @@ func validateIDTokenClaims(in ExchangeInput, tokens TokenSet, c map[string]any, 
 	if _, present := c["azp"]; present && !hasAzp {
 		return idTokenError("authorized party is malformed")
 	}
-	if !hasClient || (len(aud) > 1 && !hasAzp) || (hasAzp && azp != in.Config.ClientID) {
+	nativeGoogle := in.GoogleNative && in.Config.Strategy == StrategyGoogle
+	if !hasClient || !nativeGoogle && ((len(aud) > 1 && !hasAzp) || (hasAzp && azp != in.Config.ClientID)) {
 		return idTokenError("audience mismatch")
 	}
 	exp, okExp := numericDate(c["exp"])
@@ -114,7 +115,7 @@ func validateIDTokenClaims(in ExchangeInput, tokens TokenSet, c map[string]any, 
 	if !okExp || !okIat || !now.Before(exp.Add(clockSkew)) || iat.After(now.Add(clockSkew)) {
 		return idTokenError("is expired or not yet valid")
 	}
-	if nonce, _ := c["nonce"].(string); !(in.Config.Strategy == StrategyApple && in.AppleNative) && !(in.Config.Channel == "back_channel" && !in.Config.SendNonce && (in.Config.Strategy == StrategyOIDC || in.Config.Strategy == StrategyOkta)) && (in.Nonce == "" || subtle.ConstantTimeCompare([]byte(nonce), []byte(in.Nonce)) != 1) {
+	if nonce, _ := c["nonce"].(string); !(in.Config.Strategy == StrategyApple && in.AppleNative) && !nativeGoogle && !(in.Config.Channel == "back_channel" && !in.Config.SendNonce && (in.Config.Strategy == StrategyOIDC || in.Config.Strategy == StrategyOkta)) && (in.Nonce == "" || subtle.ConstantTimeCompare([]byte(nonce), []byte(in.Nonce)) != 1) {
 		return idTokenError("nonce mismatch")
 	}
 	if sub, _ := c["sub"].(string); ValidateSubject(sub) != nil {

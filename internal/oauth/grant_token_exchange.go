@@ -55,8 +55,8 @@ func tooManyAttempts() *Error {
 // profile's Action, user resolution, post-login, tokens. The subject and
 // actor tokens are credentials: they are masked in every log of the request.
 func (h *Handlers) tokenExchange(ctx context.Context, res tenant.Resolved, c *store.Client, form url.Values) (response *authapi.TokenResponse, failure *Error) {
-	if form.Get("subject_token_type") == nativeAppleSubjectType {
-		return h.nativeAppleExchange(ctx, res, c, form)
+	if kind, ok := nativeKinds[form.Get("subject_token_type")]; ok {
+		return h.nativeExchange(ctx, res, c, form, kind)
 	}
 	subject, actorToken := form.Get("subject_token"), form.Get("actor_token")
 	ctx = logscrub.WithCredentials(ctx, subject, actorToken)

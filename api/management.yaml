@@ -27119,22 +27119,23 @@ components:
       minProperties: 1
       x-source: [https://auth0.com/docs/oas/management/v2/management-api-oas.json]
       properties:
-        enabled: {type: boolean, default: false, description: Stored by Plan 39a; native enforcement is deferred to Plan 39b.}
+        enabled: {type: boolean, default: false, description: "Allows the Facebook session-info token exchange (subject_token_type http://auth0.com/oauth/token-type/facebook-info-session-access-token) through an enabled facebook connection (Plan 39b, D-0180)."}
     NativeSocialLoginGoogle:
       type: object
       additionalProperties: false
       minProperties: 1
       x-source: [https://auth0.com/docs/oas/management/v2/management-api-oas.json]
       properties:
-        enabled: {type: boolean, default: false, description: Stored by Plan 39a; native enforcement is deferred to Plan 39b.}
+        enabled: {type: boolean, default: false, description: "Allows the Google ID-token exchange (subject_token_type http://auth0.com/oauth/token-type/google-id-token, a local URN) through an enabled google-oauth2 connection; the token's aud must be that connection's client_id (Plan 39b, D-0180)."}
     NativeSocialLogin:
       type: object
       additionalProperties: false
       description: |
-        Stored native social switches; Apple is enforced (Plan 39a, D-0170).
-        Apple exchange additionally requires
-        mobile.ios.app_bundle_identifier and an enabled Apple connection.
-        Facebook and Google enforcement belongs to Plan 39b.
+        Native social switches, each enforced at the token exchange: Apple
+        (Plan 39a, D-0170) additionally requires
+        mobile.ios.app_bundle_identifier and an enabled Apple connection;
+        Google and Facebook (Plan 39b, D-0180) require an enabled
+        google-oauth2 or facebook connection.
       x-source: [https://auth0.com/docs/oas/management/v2/management-api-oas.json]
       properties:
         apple: {$ref: "#/components/schemas/NativeSocialLoginApple"}
