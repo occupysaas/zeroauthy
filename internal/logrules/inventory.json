@@ -163,49 +163,73 @@
       "type": "ciba_exchange_failed",
       "description": "A CIBA token request was refused.",
       "category": "auth.token_exchange.fail",
-      "emitted": false,
+      "emitted": true,
       "plan": 41,
       "stats_kind": "",
       "source": "https://auth0.com/docs/tenant-logs/auth-token-exchange-fail/ciba-exchange-failed",
       "origin": "public-catalog",
-      "note": "No corresponding runtime subsystem; deferred owner must recheck public semantics before enabling.",
-      "triggers": []
+      "note": "Plan 41c implementation (D-0100).",
+      "triggers": [
+        {
+          "file": "internal/oauth/grant_ciba.go",
+          "function": "cibaGrant",
+          "when": "Final refused CIBA poll (denied, expired, invalid); pending and slow_down polls are not logged."
+        }
+      ]
     },
     {
       "type": "ciba_exchange_succeeded",
       "description": "A CIBA token request issued tokens.",
       "category": "auth.token_exchange.success",
-      "emitted": false,
+      "emitted": true,
       "plan": 41,
       "stats_kind": "",
       "source": "https://auth0.com/docs/tenant-logs/auth-token-exchange-success/ciba-exchange-succeeded",
       "origin": "public-catalog",
-      "note": "No corresponding runtime subsystem; deferred owner must recheck public semantics before enabling.",
-      "triggers": []
+      "note": "Plan 41c implementation (D-0100).",
+      "triggers": [
+        {
+          "file": "internal/oauth/grant_ciba.go",
+          "function": "cibaGrant",
+          "when": "Final CIBA poll that issued tokens; pending and slow_down polls are not logged."
+        }
+      ]
     },
     {
       "type": "ciba_start_failed",
       "description": "A CIBA authentication request could not begin.",
       "category": "other",
-      "emitted": false,
+      "emitted": true,
       "plan": 41,
       "stats_kind": "",
       "source": "https://auth0.com/docs/tenant-logs/other/ciba-start-failed",
       "origin": "public-catalog",
-      "note": "No corresponding runtime subsystem; deferred owner must recheck public semantics before enabling.",
-      "triggers": []
+      "note": "Plan 41c implementation (D-0100).",
+      "triggers": [
+        {
+          "file": "internal/oauth/bc_authorize.go",
+          "function": "BcAuthorize",
+          "when": "POST /bc-authorize refused a request (Plan 41c)."
+        }
+      ]
     },
     {
       "type": "ciba_start_succeeded",
       "description": "A CIBA authentication request began.",
       "category": "other",
-      "emitted": false,
+      "emitted": true,
       "plan": 41,
       "stats_kind": "",
       "source": "https://auth0.com/docs/tenant-logs/other/ciba-start-succeeded",
       "origin": "public-catalog",
-      "note": "No corresponding runtime subsystem; deferred owner must recheck public semantics before enabling.",
-      "triggers": []
+      "note": "Plan 41c implementation (D-0100).",
+      "triggers": [
+        {
+          "file": "internal/oauth/bc_authorize.go",
+          "function": "BcAuthorize",
+          "when": "POST /bc-authorize accepted a request (Plan 41c)."
+        }
+      ]
     },
     {
       "type": "cls",
