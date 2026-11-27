@@ -109,3 +109,28 @@ func manyScopes(n int) []any {
 	}
 	return out
 }
+
+func TestSocialFacebookAndLinkedInRules(t *testing.T) {
+	s, errs := Parse(socialInput("facebook", nil))
+	if len(errs) > 0 || !reflect.DeepEqual(s.Scopes, []string{"public_profile"}) || s.Social.Separator != "," {
+		t.Fatalf("facebook default %v %v", s.Scopes, errs)
+	}
+	if _, errs := Parse(socialInput("facebook", map[string]any{"email": true, "scope": "public_profile,email"})); len(errs) > 0 {
+		t.Fatalf("facebook comma scope %v", errs)
+	}
+	if _, errs := Parse(socialInput("facebook", map[string]any{"allow_context_profile_field": "x"})); len(errs) == 0 {
+		t.Fatal("stored-only flag must still be a boolean")
+	}
+	for v, ok := range map[any]bool{1.0: true, 2.0: true, 3.0: true, 4.0: false, "3": false, 1.5: false} {
+		s, errs := Parse(socialInput("linkedin", map[string]any{"strategy_version": v}))
+		if ok != (len(errs) == 0) {
+			t.Fatalf("strategy_version %v: %v", v, errs)
+		}
+		if ok && s.Social.StrategyVersion != int(v.(float64)) {
+			t.Fatalf("strategy_version %v stored as %d", v, s.Social.StrategyVersion)
+		}
+	}
+	if s, _ := Parse(socialInput("linkedin", nil)); s.Social.StrategyVersion != 3 || !reflect.DeepEqual(s.Scopes, []string{"openid", "profile"}) {
+		t.Fatalf("linkedin default %+v %v", s.Social, s.Scopes)
+	}
+}

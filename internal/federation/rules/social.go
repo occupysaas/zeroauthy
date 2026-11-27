@@ -137,7 +137,21 @@ func scopeInput(v any) ([]string, bool) {
 
 // parseSocialHook validates the options a hook adds.
 func parseSocialHook(d *providers.Descriptor, o map[string]any, s *SocialSettings) []error {
-	return nil
+	var errs []error
+	fail := func(format string, args ...any) { errs = append(errs, fmt.Errorf(format, args...)) }
+	switch d.Hook {
+	case providers.HookLinkedIn:
+		s.StrategyVersion = 3
+		if v, ok := o["strategy_version"]; ok && v != nil {
+			n, isInt := intOption(v)
+			if !isInt || n < 1 || n > 3 {
+				fail("options.strategy_version must be 1, 2 or 3")
+			} else {
+				s.StrategyVersion = n
+			}
+		}
+	}
+	return errs
 }
 
 // intOption reads an integer option sent as a JSON number.
