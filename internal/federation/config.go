@@ -20,6 +20,7 @@ var ErrImmutable = errors.New("federation: immutable connection setting changed"
 type Config struct {
 	// SAML is set for samlp connections (Plan 37a).
 	SAML                       *rules.SAMLSettings
+	Social                     *rules.SocialSettings     // Plan 39b descriptor strategies
 	ADFS                       *rules.ADFSSettings       // Plan 37b
 	GoogleApps                 *rules.GoogleAppsSettings // Plan 37c
 	AD                         *rules.ADSettings         // Plan 38a
@@ -96,6 +97,7 @@ func ParseConfig(spec connrules.Spec) (Config, error) {
 	}
 	c := Config{
 		SAML:          settings.SAML,
+		Social:        settings.Social,
 		ADFS:          settings.ADFS,
 		GoogleApps:    settings.GoogleApps,
 		AD:            settings.AD,

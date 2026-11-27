@@ -60,13 +60,13 @@ const (
 
 // IsFederated reports whether strategy is one of the federated strategies.
 func IsFederated(strategy string) bool {
-	return strategy == Apple || strategy == WindowsLive || strategy == WAAD || strategy == Google || strategy == GitHub || strategy == OAuth2 || strategy == OIDC || strategy == Okta || strategy == SAMLP || strategy == ADFS || strategy == GoogleApps || strategy == AD
+	return strategy == Apple || strategy == WindowsLive || strategy == WAAD || strategy == Google || strategy == GitHub || strategy == OAuth2 || strategy == OIDC || strategy == Okta || strategy == SAMLP || strategy == ADFS || strategy == GoogleApps || strategy == AD || IsDescriptorSocial(strategy)
 }
 
 // IsSocial reports whether identities of strategy are social (isSocial).
 // OIDC is an enterprise strategy.
 func IsSocial(strategy string) bool {
-	return strategy == Apple || strategy == WindowsLive || strategy == Google || strategy == GitHub || strategy == OAuth2
+	return strategy == Apple || strategy == WindowsLive || strategy == Google || strategy == GitHub || strategy == OAuth2 || IsDescriptorSocial(strategy)
 }
 
 // RejectedKeys are the upstream parameter names that no inert map may target
@@ -167,6 +167,8 @@ type Settings struct {
 	Script               string
 	ProfileSync          string
 	AuthenticationActive bool
+	// Social is set for the Plan 39b descriptor strategies.
+	Social *SocialSettings
 	// SAML is set for the samlp strategy (Plan 37a).
 	SAML *SAMLSettings
 	// ADFS is set for the adfs strategy (Plan 37b).
@@ -262,7 +264,7 @@ func Parse(in Input) (Settings, []error) {
 	}
 
 	for _, k := range slices.Sorted(maps.Keys(rejectedOptions)) {
-		if _, ok := o[k]; ok && !((in.Strategy == OIDC || in.Strategy == Okta) && enterpriseOption(k) && (k != "domain" || in.Strategy == Okta)) && !((in.Strategy == WAAD || in.Strategy == GoogleApps) && (k == "domain" || k == "tenant_domain" || k == "domain_aliases")) && !((in.Strategy == Apple || in.Strategy == GitHub) && k == "freeform_scopes") {
+		if _, ok := o[k]; ok && !((in.Strategy == OIDC || in.Strategy == Okta) && enterpriseOption(k) && (k != "domain" || in.Strategy == Okta)) && !((in.Strategy == WAAD || in.Strategy == GoogleApps) && (k == "domain" || k == "tenant_domain" || k == "domain_aliases")) && !((in.Strategy == Apple || in.Strategy == GitHub || IsDescriptorSocial(in.Strategy)) && k == "freeform_scopes") {
 			fail("options.%s: %s", k, rejectedOptions[k])
 		}
 	}
@@ -307,6 +309,10 @@ func Parse(in Input) (Settings, []error) {
 		errs = append(errs, parseOAuth2(o, &out)...)
 	case OIDC, Okta:
 		errs = append(errs, parseOIDC(o, &out)...)
+	default:
+		if IsDescriptorSocial(in.Strategy) {
+			errs = append(errs, parseSocial(in.Strategy, o, in.ConnectedAccounts, &out)...)
+		}
 	}
 	if v, ok := o["domain_aliases"]; ok && IsEnterprise(in.Strategy) {
 		var err error

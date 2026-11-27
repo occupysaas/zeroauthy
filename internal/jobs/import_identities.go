@@ -6,6 +6,7 @@ import (
 	"slices"
 
 	"github.com/zeroauthy/zeroauthy/internal/federation"
+	"github.com/zeroauthy/zeroauthy/internal/federation/rules"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 )
 
@@ -49,6 +50,14 @@ func resolveImportIdentities(ctx context.Context, tx store.Store, tenant string,
 	for _, id := range ids {
 		if id.Provider == "github" {
 			if err := federation.RequireGitHubFederation(ctx, tx); err != nil {
+				return nil, err
+			}
+			break
+		}
+	}
+	for _, id := range ids {
+		if rules.IsDescriptorSocial(id.Provider) {
+			if err := federation.RequireSocialFederation(ctx, tx); err != nil {
 				return nil, err
 			}
 			break

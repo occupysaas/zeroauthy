@@ -468,13 +468,17 @@ func normalizeFederated(s *Spec) []error {
 		if settings.Channel != "" {
 			s.Options.Extra["type"] = settings.Channel
 		}
-		if s.Strategy == rules.GitHub {
-			// The effective scope is returned, as the GitHub rules document.
+		if s.Strategy == rules.GitHub || rules.IsDescriptorSocial(s.Strategy) {
+			// The effective scope is returned, as the GitHub and Plan 39b
+			// rules document. Facebook's is a comma-separated string.
 			scope := make([]any, len(settings.Scopes))
 			for i, sc := range settings.Scopes {
 				scope[i] = sc
 			}
 			s.Options.Extra["scope"] = scope
+			if settings.Social != nil && settings.Social.Separator == "," {
+				s.Options.Extra["scope"] = strings.Join(settings.Scopes, ",")
+			}
 		}
 	}
 	return append(errs, ruleErrs...)

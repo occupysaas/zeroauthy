@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/zeroauthy/zeroauthy/internal/federation/providers"
 	"net/http"
 	"net/url"
 	"slices"
@@ -89,6 +90,7 @@ type Providers struct {
 	googleFix     *GoogleOverride
 	microsoftFix  *MicrosoftOverride
 	githubFix     *GitHubOverride
+	socialFix     string // Plan 39b descriptor fixture base (tests, E2E harness)
 	appleSecretMu sync.Mutex
 	appleSecrets  *ttlCache[appleSecretEntry]
 }
@@ -172,6 +174,9 @@ func (ps *Providers) For(cfg Config) Provider {
 	case StrategyOIDC, StrategyOkta, StrategyGoogle, StrategyGoogleApps:
 		return oidcProvider{ps}
 	default:
+		if d, ok := providers.Get(cfg.Strategy); ok {
+			return socialProvider{ps: ps, d: d}
+		}
 		return unsupportedProvider{}
 	}
 }

@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/zeroauthy/zeroauthy/internal/federation/providers"
 	"net/http"
 	"net/url"
 	"slices"
@@ -86,6 +87,15 @@ func authorizationURL(endpoint string, cfg Config, in StartInput, withNonce bool
 // exchangeCode POSTs the authorization code once with exactly one client
 // authentication method. It never retries.
 func (ps *Providers) exchangeCode(ctx context.Context, tokenURL, method string, in ExchangeInput) (TokenSet, error) {
+	body, err := ps.exchangeCodeRaw(ctx, tokenURL, method, in)
+	if err != nil {
+		return TokenSet{}, err
+	}
+	return parseTokenResponse(body, ps.now())
+}
+
+// exchangeCodeRaw is exchangeCode returning the successful response body.
+func (ps *Providers) exchangeCodeRaw(ctx context.Context, tokenURL, method string, in ExchangeInput) ([]byte, error) {
 	form := url.Values{
 		"grant_type":    {"authorization_code"},
 		"code":          {in.Code},
@@ -93,6 +103,9 @@ func (ps *Providers) exchangeCode(ctx context.Context, tokenURL, method string, 
 		"code_verifier": {in.CodeVerifier},
 	}
 	if in.Config.Channel != "" && (in.Config.Strategy == StrategyOIDC || in.Config.Strategy == StrategyOkta) && in.Endpoints.PKCEMethod == "" {
+		form.Del("code_verifier")
+	}
+	if in.CodeVerifier == "" && providers.Is(in.Config.Strategy) {
 		form.Del("code_verifier")
 	}
 	if in.Config.Strategy == StrategyApple {
@@ -108,7 +121,7 @@ func (ps *Providers) exchangeCode(ctx context.Context, tokenURL, method string, 
 		form.Set("client_secret", in.ClientSecret)
 	} else if method == "private_key_jwt" {
 		if in.ClientAssertion == nil {
-			return TokenSet{}, fmt.Errorf("%w: client assertion unavailable", ErrInvalidConfig)
+			return nil, fmt.Errorf("%w: client assertion unavailable", ErrInvalidConfig)
 		}
 		aud := in.Issuer
 		if in.Config.AssertionAud == "token_endpoint" {
@@ -116,17 +129,17 @@ func (ps *Providers) exchangeCode(ctx context.Context, tokenURL, method string, 
 		}
 		assertion, e := in.ClientAssertion(aud)
 		if e != nil {
-			return TokenSet{}, e
+			return nil, e
 		}
 		form.Set("client_id", in.Config.ClientID)
 		form.Set("client_assertion_type", assertionType)
 		form.Set("client_assertion", assertion)
 	} else if method != authBasic {
-		return TokenSet{}, fmt.Errorf("%w: unsupported client authentication", ErrInvalidConfig)
+		return nil, fmt.Errorf("%w: unsupported client authentication", ErrInvalidConfig)
 	}
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, tokenURL, strings.NewReader(form.Encode()))
 	if err != nil {
-		return TokenSet{}, fmt.Errorf("%w: token endpoint", ErrInvalidConfig)
+		return nil, fmt.Errorf("%w: token endpoint", ErrInvalidConfig)
 	}
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.Header.Set("Accept", "application/json")
@@ -135,16 +148,16 @@ func (ps *Providers) exchangeCode(ctx context.Context, tokenURL, method string, 
 	}
 	resp, err := ps.client.Do(req)
 	if err != nil {
-		return TokenSet{}, fmt.Errorf("%w: token request: %w", ErrProviderResponse, redact(err))
+		return nil, fmt.Errorf("%w: token request: %w", ErrProviderResponse, redact(err))
 	}
 	body, err := readAll(resp)
 	if err != nil {
-		return TokenSet{}, fmt.Errorf("%w: token response: %w", ErrProviderResponse, redact(err))
+		return nil, fmt.Errorf("%w: token response: %w", ErrProviderResponse, redact(err))
 	}
 	if resp.StatusCode != http.StatusOK {
-		return TokenSet{}, fmt.Errorf("%w: token endpoint status %d", ErrProviderResponse, resp.StatusCode)
+		return nil, fmt.Errorf("%w: token endpoint status %d", ErrProviderResponse, resp.StatusCode)
 	}
-	return parseTokenResponse(body, ps.now())
+	return body, nil
 }
 
 func parseTokenResponse(body []byte, now time.Time) (TokenSet, error) {

@@ -1,0 +1,21 @@
+{
+ "strategy": "amazon",
+ "display_name": "Amazon",
+ "source": [
+  "https://developer.amazon.com/docs/login-with-amazon/authorization-code-grant.html",
+  "https://developer.amazon.com/docs/login-with-amazon/obtain-customer-profile.html",
+  "https://developer.amazon.com/docs/login-with-amazon/customer-profile.html",
+  "https://auth0.com/docs/authenticate/identity-providers/social-identity-providers/amazon"
+ ],
+ "authorization_url": "https://www.amazon.com/ap/oa",
+ "token_url": "https://api.amazon.com/auth/o2/token",
+ "profile_url": "https://api.amazon.com/user/profile",
+ "token_auth": "client_secret_post",
+ "pkce": "S256",
+ "base_scopes": ["profile"],
+ "flags": [{"option": "postal_code", "scopes": ["postal_code"]}],
+ "stored_only": ["profile"],
+ "freeform_scopes": true,
+ "profile": {"user_id": "user_id", "email": "email", "name": "name", "provider_data": ["postal_code"]},
+ "email_verified": {"rule": "never"}
+}

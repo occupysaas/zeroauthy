@@ -20,6 +20,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/access"
 	"github.com/zeroauthy/zeroauthy/internal/connrules"
 	"github.com/zeroauthy/zeroauthy/internal/events"
+	"github.com/zeroauthy/zeroauthy/internal/federation/providers"
 	"github.com/zeroauthy/zeroauthy/internal/federation/rules"
 	"github.com/zeroauthy/zeroauthy/internal/keys"
 	"github.com/zeroauthy/zeroauthy/internal/logs"
@@ -129,6 +130,9 @@ func (s *FlowService) Begin(ctx context.Context, in BeginInput) (*Begun, error) 
 	if err := RequireGitHubConnection(ctx, s.Store, conn); err != nil {
 		return nil, err
 	}
+	if err := RequireSocialConnection(ctx, s.Store, conn); err != nil {
+		return nil, err
+	}
 	if in.Txn == nil {
 		return nil, ErrConnectionUnusable
 	}
@@ -203,7 +207,12 @@ func (s *FlowService) Begin(ctx context.Context, in BeginInput) (*Begun, error) 
 		}
 		issuer, endpoints = meta.Issuer, meta.Endpoints()
 	default:
-		return nil, ErrConnectionUnusable
+		if !rules.IsDescriptorSocial(cfg.Strategy) {
+			return nil, ErrConnectionUnusable
+		}
+		if endpoints, err = s.Providers.SocialEndpoints(cfg, in.LoginHint); err != nil {
+			return nil, err
+		}
 	}
 	now := s.now()
 	state, nonce, verifier, cookie := randomToken(), randomToken(), randomToken(), randomToken()
@@ -700,6 +709,9 @@ func ButtonLabel(c *store.Connection) string {
 		return "Google Workspace"
 	case StrategyGitHub:
 		return "GitHub"
+	}
+	if d, ok := providers.Get(c.Strategy); ok {
+		return d.DisplayName
 	}
 	return c.Name
 }
