@@ -67,7 +67,8 @@ Local toolchain: Go `1.27.4-X:nodwarf5`; Node 26.8.1; Chromium.
 | `-race -count=3` on the redemption and other-client tests | passed |
 | Console: Vitest, `vue-tsc`, ESLint | passed |
 | `make e2e-ciba` | first runs: loopback SMTP refused (switched to the dir driver), then the CIBA log events missing (inventory fixed); then passed |
-| Fast tier `TMPDIR=/dev/shm/za41c GOTMPDIR=/dev/shm/za41c go test -p 4 ./...` | see the pull request |
+| Fast tier `TMPDIR=/dev/shm/za41c GOTMPDIR=/dev/shm/za41c go test -p 4 ./...` | 120 packages ok, none failed |
+| `console/dist` | built in a clean clone |
 | Final review | self-review (no reviewer subagent dispatched) |
 
 ## Deferred minors
