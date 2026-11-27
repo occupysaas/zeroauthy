@@ -162,6 +162,9 @@ func (ps *Providers) HTTPClient() *http.Client { return ps.client }
 
 // For returns the adapter of cfg's strategy.
 func (ps *Providers) For(cfg Config) Provider {
+	if cfg.OAuth1 != nil {
+		return oauth1Provider{ps}
+	}
 	switch cfg.Strategy {
 	case StrategyApple:
 		return appleProvider{ps}

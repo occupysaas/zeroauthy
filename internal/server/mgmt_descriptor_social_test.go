@@ -82,3 +82,41 @@ func TestMgmtDescriptorSocialConnections(t *testing.T) {
 	patch(changed, 400)
 	patch(options("", nil), 400)
 }
+
+func TestMgmtOAuth1Connections(t *testing.T) {
+	e := newConnEnv(t)
+	const secret = "oauth1-throwaway-consumer-secret"
+	opts := func(extra map[string]any) map[string]any {
+		o := map[string]any{"client_id": "consumer-key", "client_secret": secret,
+			"requestTokenURL": "https://provider.example/oauth/request_token", "accessTokenURL": "https://provider.example/oauth/access_token",
+			"userAuthorizationURL": "https://provider.example/oauth/authorize",
+			"scripts":              map[string]any{"fetchUserProfile": "function fetchUserProfile(t, s, c, cb) { cb(null, {user_id: 'x'}); }"}}
+		for k, v := range extra {
+			o[k] = v
+		}
+		return o
+	}
+	rec, out := e.do("POST", connBase, map[string]any{"name": "provider-o1", "strategy": "oauth1", "options": opts(nil)})
+	if rec.Code != 201 || strings.Contains(rec.Body.String(), secret) {
+		t.Fatalf("create: %d %s", rec.Code, rec.Body)
+	}
+	cfg, err := federation.ParseConfig(*connrules.FromConnection(e.stored(out["id"].(string))))
+	if err != nil || cfg.OAuth1 == nil || cfg.OAuth1.SignatureMethod != "HMAC-SHA1" || !cfg.IsSocial {
+		t.Fatalf("runtime configuration: %+v %v", cfg, err)
+	}
+	for name, extra := range map[string]map[string]any{
+		"plaintext": {"signatureMethod": "PLAINTEXT"},
+		"no script": {"scripts": nil},
+		"http":      {"accessTokenURL": "http://provider.example/oauth/access_token"},
+	} {
+		o := opts(extra)
+		for k, v := range o {
+			if v == nil {
+				delete(o, k)
+			}
+		}
+		if rec, _ := e.do("POST", connBase, map[string]any{"name": "o1-" + strings.ReplaceAll(name, " ", "-"), "strategy": "oauth1", "options": o}); rec.Code != 400 {
+			t.Fatalf("%s: %d %s", name, rec.Code, rec.Body)
+		}
+	}
+}

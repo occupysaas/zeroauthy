@@ -99,6 +99,10 @@ type proof struct {
 	Verifier  string     `json:"v"`
 	Nonce     string     `json:"n"`
 	Endpoints *Endpoints `json:"e,omitempty"`
+	// OAuth1Token and OAuth1Secret are the OAuth 1.0a request token and its
+	// secret; the secret never leaves this sealed proof (LR39b-9).
+	OAuth1Token  string `json:"ot,omitempty"`
+	OAuth1Secret string `json:"os,omitempty"`
 }
 
 func randomToken() string {
@@ -150,12 +154,15 @@ func (s *FlowService) Begin(ctx context.Context, in BeginInput) (*Begun, error) 
 	if err != nil || !cfg.AuthenticationActive || !cfg.Secretless() && len(conn.FederationSecretsSealed) == 0 {
 		return nil, ErrConnectionUnusable
 	}
-	if cfg.Strategy == StrategyOAuth2 {
+	if cfg.Strategy == StrategyOAuth2 || cfg.Strategy == StrategyOAuth1 {
 		if err := s.Providers.scriptsReady(); err != nil {
 			return nil, fmt.Errorf("%w: %w", ErrConnectionUnusable, err)
 		}
 	}
 	key := CacheKey{TenantID: conn.TenantID, ConnectionID: conn.ID, Revision: conn.FederationRevision}
+	if cfg.OAuth1 != nil {
+		return s.beginOAuth1(ctx, in, conn, cfg, key)
+	}
 	var endpoints Endpoints
 	issuer := cfg.Issuer
 	switch cfg.Strategy {
@@ -307,6 +314,9 @@ type CallbackParams struct {
 	FormPost bool
 	// User is untrusted, optional Apple first-authorization name JSON.
 	User string
+	// OAuth1 marks an OAuth 1.0a callback: State is its oauth_token and Code
+	// its oauth_verifier, or Error is access_denied for denied=<token>.
+	OAuth1 bool
 }
 
 // ParseCallback validates URL-encoded query or body fields: at most 16 KiB,
@@ -325,6 +335,9 @@ func ParseCallback(rawQuery string) (CallbackParams, error) {
 		}
 	}
 	p := CallbackParams{State: q.Get("state"), Code: q.Get("code"), Error: q.Get("error"), User: q.Get("user"), IDToken: q.Get("id_token")}
+	if q.Has("oauth_token") || q.Has("oauth_verifier") || q.Has("denied") {
+		return parseOAuth1Callback(q, p)
+	}
 	count := 0
 	for _, v := range []string{p.Code, p.Error, p.IDToken} {
 		if v != "" {
@@ -416,6 +429,13 @@ func (s *FlowService) Complete(ctx context.Context, in CompleteInput) (*Completi
 		a.Endpoints.ResponseType = "code"
 		a.Endpoints.PKCEMethod = "S256"
 	}
+	if err := checkOAuth1Callback(cfg, in.Params, pr); err != nil {
+		_ = s.Store.Federation().FinishAttempt(ctx, a.TenantID, a.StateHash)
+		return nil, err
+	}
+	if pr.OAuth1Secret != "" {
+		ctx = logscrub.WithCredentials(logscrub.WithValues(ctx, pr.OAuth1Secret), pr.OAuth1Secret)
+	}
 	front := cfg.Channel == "front_channel"
 	if cfg.ADFS != nil {
 		if !in.Params.FormPost || in.Params.WResult == "" || in.Params.SAMLResponse != "" || in.Params.Code != "" || in.Params.IDToken != "" {
@@ -469,6 +489,7 @@ func (s *FlowService) Complete(ctx context.Context, in CompleteInput) (*Completi
 		Config: cfg, Cache: CacheKey{TenantID: conn.TenantID, ConnectionID: conn.ID, Revision: a.Revision},
 		Endpoints: a.Endpoints, Issuer: a.Issuer, CallbackURL: a.CallbackURL, Code: in.Params.Code,
 		CodeVerifier: pr.Verifier, Nonce: pr.Nonce, ClientSecret: creds.ClientSecret, Now: s.now(), AppleUser: appleUser,
+		OAuth1Token: pr.OAuth1Token, OAuth1Secret: pr.OAuth1Secret,
 	}
 	var res ProviderResult
 	var assertion *samlAssertion

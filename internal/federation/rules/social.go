@@ -36,6 +36,9 @@ var freeformScopeRE = regexp.MustCompile(`^[\x21-\x2b\x2d-\x7e]{1,128}$`) // pri
 var socialRejected = []string{"authorizationURL", "tokenURL", "profileURL", "userInfoURL", "userinfoURL",
 	"api_host", "scripts", "requestTokenURL", "accessTokenURL", "userAuthorizationURL"}
 
+// Twitter is the twitter strategy (protocol oauth2 or oauth1).
+const Twitter = "twitter"
+
 // IsDescriptorSocial reports whether strategy runs on a Plan 39b descriptor.
 func IsDescriptorSocial(strategy string) bool { return providers.Is(strategy) }
 

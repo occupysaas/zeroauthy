@@ -135,7 +135,7 @@ func RequireSocialFederation(ctx context.Context, st store.Store) error {
 // RequireSocialConnection checks social.v1 for a descriptor connection before
 // any attempt is created.
 func RequireSocialConnection(ctx context.Context, st store.Store, c *store.Connection) error {
-	if c != nil && rules.IsDescriptorSocial(c.Strategy) {
+	if c != nil && rules.NeedsSocialCapability(c.Strategy) {
 		return RequireSocialFederation(ctx, st)
 	}
 	return nil

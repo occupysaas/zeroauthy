@@ -29,3 +29,16 @@ func TestDeployMigrationSocial(t *testing.T) {
 		t.Fatalf("mismatched scope: %v", err)
 	}
 }
+
+func TestDeployMigrationOAuth1(t *testing.T) {
+	export := func(options string) Export {
+		return Export{Resources: map[string]json.RawMessage{"connections": json.RawMessage(`[{"name":"o1","strategy":"oauth1","options":` + options + `}]`)}}
+	}
+	const urls = `"requestTokenURL":"https://p.example/rt","accessTokenURL":"https://p.example/at","userAuthorizationURL":"https://p.example/auth"`
+	if _, err := FederationImport(export(`{"client_id":"ck",`+urls+`,"scripts":{"fetchUserProfile":"function fetchUserProfile(t,s,c,cb){}"}}`), map[string]string{"o1": "o1-throwaway-secret"}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := FederationImport(export(`{"client_id":"ck",`+urls+`}`), map[string]string{"o1": "o1-throwaway-secret"}); err == nil || strings.Contains(err.Error(), "o1-throwaway") {
+		t.Fatalf("oauth1 without a profile script: %v", err)
+	}
+}

@@ -7,6 +7,10 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"strconv"
+	"time"
+
+	"github.com/zeroauthy/zeroauthy/internal/federation/oauth1sig"
 	"strings"
 	"sync"
 
@@ -31,6 +35,10 @@ type GetOptions struct {
 	URL     string            `json:"url"`
 	Headers map[string]string `json:"headers"`
 	JSON    bool              `json:"json"`
+	// OAuth asks the broker to sign the GET with OAuth 1.0a using the
+	// execution's credentials (oauth1 connections, Plan 39b). The script never
+	// sees the consumer secret.
+	OAuth bool `json:"oauth"`
 }
 
 // GetResult is what the script's request callback receives.
@@ -55,8 +63,10 @@ func NewBroker(client *http.Client) *Broker { return &Broker{client: client} }
 // originating tenant and connection, and it counts the calls made.
 type execution struct {
 	id, tenantID, connectionID string
-	mu                         sync.Mutex
-	calls                      int
+	// oauth1 signs GETs that ask for it; nil outside oauth1 connections.
+	oauth1 *oauth1sig.Credentials
+	mu     sync.Mutex
+	calls  int
 }
 
 func (b *Broker) get(ctx context.Context, ex *execution, o GetOptions) (GetResult, error) {
@@ -87,6 +97,16 @@ func (b *Broker) get(ctx context.Context, ex *execution, o GetOptions) (GetResul
 			return GetResult{}, fmt.Errorf("%w: header not allowed", ErrBroker)
 		}
 		req.Header.Set(k, v)
+	}
+	if o.OAuth {
+		if ex.oauth1 == nil {
+			return GetResult{}, fmt.Errorf("%w: oauth signing is available to oauth1 connections only", ErrBroker)
+		}
+		h, err := oauth1sig.Header(*ex.oauth1, http.MethodGet, u.String(), nil, nil, oauth1sig.Nonce(), strconv.FormatInt(time.Now().Unix(), 10))
+		if err != nil {
+			return GetResult{}, fmt.Errorf("%w: oauth signing failed", ErrBroker)
+		}
+		req.Header.Set("Authorization", h)
 	}
 	resp, err := b.client.Do(req)
 	if err != nil {

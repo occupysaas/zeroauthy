@@ -40,7 +40,7 @@ func FederationImport(export Export, credentials map[string]string) (json.RawMes
 		if secret != "" {
 			options[rules.SecretOption(strategy)] = secret
 		}
-		if strategy == rules.GitHub || rules.IsDescriptorSocial(strategy) {
+		if strategy == rules.GitHub || strategy == rules.OAuth1 || rules.IsDescriptorSocial(strategy) {
 			// Fail before the Deploy CLI runs: a scope that disagrees with
 			// the flags is rejected, never silently rewritten.
 			if _, errs := rules.Parse(rules.Input{Strategy: strategy, Name: name, Options: options, HasSealedSecret: true}); len(errs) > 0 {

@@ -339,7 +339,7 @@ func requireSocialBacking(ctx context.Context, st store.Store) error {
 func (s *Server) SocialFederationSupported(ctx context.Context, r *storev1.SocialFederationCapabilitiesRequest) (*storev1.Result, error) {
 	return exec(s, r.TxId, func(st store.Store) error { return requireSocialBacking(ctx, st) }), nil
 }
-func socialStrategy(strategy string) bool { return rules.IsDescriptorSocial(strategy) }
+func socialStrategy(strategy string) bool { return rules.NeedsSocialCapability(strategy) }
 func socialUser(u *store.User) bool {
 	if u != nil {
 		for _, id := range u.Identities {

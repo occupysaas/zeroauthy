@@ -21,6 +21,7 @@ type Config struct {
 	// SAML is set for samlp connections (Plan 37a).
 	SAML                       *rules.SAMLSettings
 	Social                     *rules.SocialSettings     // Plan 39b descriptor strategies
+	OAuth1                     *rules.OAuth1Settings     // oauth1 and Twitter's oauth1 protocol
 	ADFS                       *rules.ADFSSettings       // Plan 37b
 	GoogleApps                 *rules.GoogleAppsSettings // Plan 37c
 	AD                         *rules.ADSettings         // Plan 38a
@@ -98,6 +99,7 @@ func ParseConfig(spec connrules.Spec) (Config, error) {
 	c := Config{
 		SAML:          settings.SAML,
 		Social:        settings.Social,
+		OAuth1:        settings.OAuth1,
 		ADFS:          settings.ADFS,
 		GoogleApps:    settings.GoogleApps,
 		AD:            settings.AD,

@@ -56,7 +56,7 @@ func resolveImportIdentities(ctx context.Context, tx store.Store, tenant string,
 		}
 	}
 	for _, id := range ids {
-		if rules.IsDescriptorSocial(id.Provider) {
+		if rules.NeedsSocialCapability(id.Provider) {
 			if err := federation.RequireSocialFederation(ctx, tx); err != nil {
 				return nil, err
 			}

@@ -55,7 +55,10 @@ function brokerGet(options, callback) {
   const id = nextID++;
   pending.set(id, { callback, json: options.json === true });
   process.stdin.ref(); // wait for the host's answer
-  out({ exec: execID, type: 'get', id, options: { url, headers, json: options.json === true } });
+  // oauth (true, or Auth0's oauth object, whose values are ignored) asks the
+  // host to sign the request; the consumer secret never enters this process.
+  const oauth = options.oauth === true || (options.oauth !== null && typeof options.oauth === 'object');
+  out({ exec: execID, type: 'get', id, options: { url, headers, json: options.json === true, oauth } });
 }
 
 function request(options, callback) { return brokerGet(options, callback); }
@@ -113,7 +116,8 @@ function run(m) {
     });
   };
   try {
-    fn(m.accessToken, m.context || {}, callback);
+    if (m.oauth1) fn(m.accessToken, m.tokenSecret, m.context || {}, callback);
+    else fn(m.accessToken, m.context || {}, callback);
   } catch (e) {
     finish('script threw: ' + (e && e.name));
   }
