@@ -469,6 +469,11 @@ func New(d Deps) http.Handler {
 		// Management API ticket links (U6).
 		tr.Get("/u/reset-verify", lg.ResetVerify)
 		tr.Get("/u/email-verification", lg.EmailVerificationPage)
+		// CIBA approval pages (Plan 41c), at Auth0's path.
+		tr.Get("/bc-verify", lg.CIBAVerify)
+		tr.Post("/bc-verify", lg.CIBAVerifySubmit)
+		tr.Get("/bc-verify/approved", lg.CIBAApproved)
+		tr.Get("/bc-verify/denied", lg.CIBADenied)
 		// Device flow pages, at the paths observed on Auth0.
 		tr.Get("/activate", lg.Activate)
 		tr.Post("/activate", lg.ActivateSubmit)

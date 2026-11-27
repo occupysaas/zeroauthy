@@ -890,6 +890,7 @@ type LoginSession struct {
 const (
 	TxnParamFlow  = "za_flow"
 	TxnFlowDevice = "device"
+	TxnFlowCIBA   = "ciba"
 	// TxnParamOrgID holds the organization resolved at /authorize or PAR,
 	// and TxnParamOrgMode how the request uses organizations (D-0055).
 	TxnParamOrgID = "za_org_id"

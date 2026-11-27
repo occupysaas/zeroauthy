@@ -18,6 +18,7 @@ const effectsLabel = "action-effects/v1"
 const (
 	SealCode    = "code"    // an authorization code (bound to its hash)
 	SealDevice  = "device"  // an approved device code (bound to its hash)
+	SealCIBA    = "ciba"    // an approved CIBA request (bound to its hash, Plan 41c)
 	SealConsent = "consent" // a consent transaction (bound to session and client)
 )
 

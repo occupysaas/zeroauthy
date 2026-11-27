@@ -227,6 +227,22 @@
       "unableEnroll": "Impossible d’inscrire ce numéro de téléphone",
       "factorLabel": "Téléphone (SMS ou appel vocal)",
       "countryLabel": "Pays"
+    },
+    "ciba": {
+      "pageTitle": "Approuver une demande",
+      "title": "Approuver une demande",
+      "description": "${clientName} vous demande d’approuver une connexion.",
+      "bindingLabel": "Code de la demande",
+      "bindingText": "Vérifiez que ce code correspond à celui affiché par l’application avant d’approuver.",
+      "scopesLabel": "Elle recevra",
+      "approveButtonText": "Approuver",
+      "denyButtonText": "Refuser",
+      "approvedTitle": "Demande approuvée",
+      "approvedText": "Vous pouvez fermer cette fenêtre et revenir à l’application.",
+      "deniedTitle": "Demande refusée",
+      "deniedText": "L’application a été informée que vous avez refusé la demande.",
+      "expiredText": "Cette demande a expiré, a déjà reçu une réponse ou n’existe pas.",
+      "wrongUserText": "Connectez-vous avec l’utilisateur concerné par cette demande."
     }
   },
   "login-passwordless": {

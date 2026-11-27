@@ -19,6 +19,8 @@ const (
 	// ProtocolWebAuthn identifies the native passkey token exchange.
 	ProtocolWebAuthn   = "oauth2-webauthn"
 	ProtocolDeviceCode = "oauth2-device-code"
+	// ProtocolCIBA is a CIBA approval through the emailed link (Plan 41c).
+	ProtocolCIBA = "oidc-ciba-web-link"
 	// ProtocolSAMLP is a SAML IdP transaction (Plan 37a).
 	ProtocolSAMLP = "samlp"
 	// ProtocolWSFed is a WS-Federation sign-in (Plan 37b).
