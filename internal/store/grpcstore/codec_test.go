@@ -188,6 +188,7 @@ func TestClientRoundTrip(t *testing.T) {
 		OrganizationUsage:                              store.OrgUsageRequire,
 		OrganizationRequireBehavior:                    store.OrgBehaviorPreLoginPrompt,
 		OrganizationDiscoveryMethods:                   []string{store.OrgDiscoveryEmail},
+		AsyncApprovalNotificationChannels:              []string{"email", "guardian-push"},
 		External: &store.ClientExternalMetadata{Type: store.ExternalMetadataCIMD, CreatedBy: store.ExternalCreatedByAdmin,
 			ClientID: "https://app.example/client.json", Status: store.ExternalStatusAvailable, FetchedAt: nanoTime, ExpiresAt: nanoTime},
 	}, clientToPB, clientFromPB)

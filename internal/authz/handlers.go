@@ -561,7 +561,7 @@ func (h *Handlers) accessInput(ctx context.Context, res tenant.Resolved, client 
 		Flow: access.Interactive, Client: client, Scopes: req.Scopes(), Prompts: req.Prompts(),
 		RedirectURI: req.RedirectURI, TenantSkipConfirmation: res.Tenant.SkipNonVerifiableCallbackURIConfirmationPrompt,
 	}
-	if fr.device() {
+	if fr.backchannel() {
 		in.Flow = access.Device
 	}
 	audienceKey := res.Issuer() + "userinfo" // O2
@@ -604,6 +604,11 @@ func (h *Handlers) accessInput(ctx context.Context, res tenant.Resolved, client 
 // page for this request; screenShown means a login or signup page was shown
 // in this transaction.
 func (h *Handlers) finish(w http.ResponseWriter, r *http.Request, res tenant.Resolved, client *store.Client, fr flowReq, sess *store.LoginSession, carried *actions.Effects, accepted, screenShown bool) {
+	if fr.ciba() {
+		// The approval page is the consent; existing grants are not checked
+		// and none is stored (Auth0).
+		accepted, screenShown = true, true
+	}
 	if hosted, e := h.organizationSession(w, r, res, client, &fr, sess); e != nil {
 		h.refuse(w, r, res, client, fr, e)
 		return
@@ -653,6 +658,7 @@ func (h *Handlers) finish(w http.ResponseWriter, r *http.Request, res tenant.Res
 	case (d.Consent || d.Confirmation) && !accepted:
 		h.startConsent(w, r, res, client, fr, sess, eff)
 		return
+	case d.Consent && fr.ciba():
 	case d.Consent: // accepted
 		now := h.now()
 		existing := []string(nil)

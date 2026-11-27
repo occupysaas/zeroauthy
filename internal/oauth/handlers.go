@@ -26,6 +26,8 @@ import (
 )
 
 type Handlers struct {
+	// CIBA serves /bc-authorize (Plan 41c); nil answers server_error.
+	CIBA *CIBAService
 	// CIMD resolves Client ID Metadata Document URLs used as client_id
 	// (Plan 41b); nil accepts none.
 	CIMD       *cimd.Registrar

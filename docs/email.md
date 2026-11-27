@@ -90,9 +90,10 @@ identifiers are never sent. The code templates (`verify_email_by_code`,
 `reset_email_by_code`), the MFA templates (`mfa_oob_code`,
 `enrollment_email`) and organization invitations (`user_invitation`) are
 sent by their flows; see [MFA](mfa.md), [passwordless](passwordless.md) and
-[organizations](organizations.md). Only `async_approval` (CIBA, not yet
-implemented) is stored without a workflow; it can still be previewed or
-test-sent.
+[organizations](organizations.md). `async_approval` is sent by CIBA
+(Plan 41c) with the variables `application.name`, `url` and
+`binding_message`; without an enabled template a built-in message is sent.
+See [CIBA](ciba.md).
 
 Template `resultUrl` values used for verification or reset must satisfy the
 email-ticket redirect rules: HTTPS and, when an application is associated, an

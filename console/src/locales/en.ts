@@ -698,8 +698,12 @@ const en = {
       password: 'Password',
       passwordRealm: 'Password (realm)',
       deviceCode: 'Device code',
+      ciba: 'Client-initiated backchannel authentication (CIBA)',
       implicit: 'Implicit (stored, not served)',
     },
+    cibaChannels: 'CIBA notification channels',
+    cibaChannelsHint: 'How users are asked to approve backchannel requests. Only email is delivered; the CIBA grant needs it.',
+    cibaChannel: { email: 'Email', 'guardian-push': 'Guardian push (stored, not delivered)', 'my-account': 'My Account (stored, not delivered)' },
     authMethod: 'Token endpoint authentication',
     authMethods: {
       none: 'None (public application)',

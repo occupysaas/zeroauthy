@@ -19,7 +19,7 @@ const clientCols = `tenant_id, client_id, name, app_type, secrets, token_endpoin
  allowed_logout_urls, web_origins, allowed_origins, id_token_lifetime, refresh_token, created_at,
  is_first_party, third_party_security_mode, redirection_policy, skip_non_verifiable_callback_uri_confirmation_prompt, require_pushed_authorization_requests, origin,
  organization_usage, organization_require_behavior, organization_discovery_methods, initiate_login_uri, mobile,
- client_authentication_methods, signed_request_object, token_exchange, native_social_login, token_quota, require_proof_of_possession, oidc_support, oidc_logout, id_token_alg, addons, client_aliases, form_template, external_metadata`
+ client_authentication_methods, signed_request_object, token_exchange, native_social_login, token_quota, require_proof_of_possession, oidc_support, oidc_logout, id_token_alg, addons, client_aliases, form_template, external_metadata, async_approval_notification_channels`
 
 // secretJSON is the stored form of store.ClientSecret: times are micros, as
 // everywhere else.
@@ -36,7 +36,7 @@ func (r clients) Create(ctx context.Context, c *store.Client) error {
 		return err
 	}
 	return r.s.atomicRetry(ctx, nil, func(tx *Store) error {
-		if _, err := tx.exec(ctx, `INSERT INTO clients (`+clientCols+`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`, args...); err != nil {
+		if _, err := tx.exec(ctx, `INSERT INTO clients (`+clientCols+`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`, args...); err != nil {
 			return tx.conflict(err)
 		}
 		return tx.syncClientIndexes(ctx, c)
@@ -109,7 +109,7 @@ func (r clients) Update(ctx context.Context, c *store.Client) error {
  callbacks=?, allowed_logout_urls=?, web_origins=?, allowed_origins=?, id_token_lifetime=?, refresh_token=?, created_at=?,
  is_first_party=?, third_party_security_mode=?, redirection_policy=?, skip_non_verifiable_callback_uri_confirmation_prompt=?, require_pushed_authorization_requests=?, origin=?,
  organization_usage=?, organization_require_behavior=?, organization_discovery_methods=?, initiate_login_uri=?, mobile=?,
- client_authentication_methods=?, signed_request_object=?, token_exchange=?, native_social_login=?, token_quota=?, require_proof_of_possession=?, oidc_support=?, oidc_logout=?, id_token_alg=?, addons=?, client_aliases=?, form_template=?, external_metadata=?
+ client_authentication_methods=?, signed_request_object=?, token_exchange=?, native_social_login=?, token_quota=?, require_proof_of_possession=?, oidc_support=?, oidc_logout=?, id_token_alg=?, addons=?, client_aliases=?, form_template=?, external_metadata=?, async_approval_notification_channels=?
  WHERE tenant_id=? AND client_id=?`, append(args[2:], c.TenantID, c.ClientID)...)
 		if err != nil {
 			return tx.conflict(err)
@@ -130,7 +130,7 @@ func (r clients) Delete(ctx context.Context, tenantID, clientID string) error {
 		if err := expectRow(res); err != nil {
 			return err
 		}
-		for _, table := range []string{"client_grants", "user_grants", "refresh_tokens", "mfa_tokens", "client_credentials", "client_assertion_jtis", "client_aliases", "client_external_ids", "my_org_client_configs"} {
+		for _, table := range []string{"client_grants", "user_grants", "refresh_tokens", "mfa_tokens", "client_credentials", "client_assertion_jtis", "client_aliases", "client_external_ids", "my_org_client_configs", "ciba_requests"} {
 			if _, err := tx.exec(ctx, `DELETE FROM `+table+` WHERE tenant_id = ? AND client_id = ?`, tenantID, clientID); err != nil {
 				return err
 			}
@@ -189,7 +189,7 @@ func scanClient(row scanner) (*store.Client, error) {
 	if err := row.Scan(&c.TenantID, &c.ClientID, &c.Name, &c.AppType, &secrets, &c.TokenEndpointAuthMethod, &grants,
 		&callbacks, &logout, &webOrigins, &origins, &c.IDTokenLifetime, &refresh, &created,
 		&c.IsFirstParty, &c.ThirdPartySecurityMode, &c.RedirectionPolicy, &skipPrompt, &c.RequirePushedAuthorizationRequests, &c.Origin,
-		&c.OrganizationUsage, &c.OrganizationRequireBehavior, &discovery, &c.InitiateLoginURI, &mobile, &authMethods, &signedRO, &exchange, &native, jsonColumn{&c.TokenQuota}, &c.RequireProofOfPossession, jsonColumn{&c.OIDCSupport}, jsonColumn{&c.OIDCLogout}, &c.IDTokenAlg, jsonColumn{&c.Addons}, jsonColumn{&c.ClientAliases}, &formTemplate, jsonColumn{&c.External}); err != nil {
+		&c.OrganizationUsage, &c.OrganizationRequireBehavior, &discovery, &c.InitiateLoginURI, &mobile, &authMethods, &signedRO, &exchange, &native, jsonColumn{&c.TokenQuota}, &c.RequireProofOfPossession, jsonColumn{&c.OIDCSupport}, jsonColumn{&c.OIDCLogout}, &c.IDTokenAlg, jsonColumn{&c.Addons}, jsonColumn{&c.ClientAliases}, &formTemplate, jsonColumn{&c.External}, jsonColumn{&c.AsyncApprovalNotificationChannels}); err != nil {
 		return nil, err
 	}
 	c.FormTemplate = formTemplate.String
@@ -279,5 +279,5 @@ func clientArgs(c *store.Client) ([]any, error) {
 	return []any{c.TenantID, c.ClientID, c.Name, string(c.AppType), js[0], c.TokenEndpointAuthMethod, js[1], js[2],
 		js[3], js[4], js[5], c.IDTokenLifetime, js[6], micros(c.CreatedAt),
 		c.IsFirstParty, c.ThirdPartySecurityMode, c.RedirectionPolicy, nullBool(c.SkipNonVerifiableCallbackURIConfirmationPrompt), c.RequirePushedAuthorizationRequests, c.Origin,
-		c.OrganizationUsage, c.OrganizationRequireBehavior, discovery, c.InitiateLoginURI, mobile, authMethods, signedRO, exchange, native, jsonColumn{&c.TokenQuota}, c.RequireProofOfPossession, jsonColumn{&c.OIDCSupport}, jsonColumn{&c.OIDCLogout}, c.IDTokenAlg, jsonColumn{&c.Addons}, jsonColumn{&c.ClientAliases}, nullString(c.FormTemplate), jsonColumn{&c.External}}, nil
+		c.OrganizationUsage, c.OrganizationRequireBehavior, discovery, c.InitiateLoginURI, mobile, authMethods, signedRO, exchange, native, jsonColumn{&c.TokenQuota}, c.RequireProofOfPossession, jsonColumn{&c.OIDCSupport}, jsonColumn{&c.OIDCLogout}, c.IDTokenAlg, jsonColumn{&c.Addons}, jsonColumn{&c.ClientAliases}, nullString(c.FormTemplate), jsonColumn{&c.External}, jsonColumn{&c.AsyncApprovalNotificationChannels}}, nil
 }

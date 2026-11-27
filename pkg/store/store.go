@@ -23,6 +23,12 @@ type (
 	MyOrgSupporter                 = store.MyOrgSupporter
 	MyOrgStore                     = store.MyOrgStore
 	MyOrgClientConfig              = store.MyOrgClientConfig
+	CIBASupporter                  = store.CIBASupporter
+	CIBAStore                      = store.CIBAStore
+	CIBARequest                    = store.CIBARequest
+	CIBADecision                   = store.CIBADecision
+	CIBAStatus                     = store.CIBAStatus
+	CIBAPoll                       = store.CIBAPoll
 	ADHubStore                     = store.ADHubStore
 	ADProvisioning                 = store.ADProvisioning
 	ADHubSession                   = store.ADHubSession
@@ -517,3 +523,9 @@ var ErrMyOrgUnavailable = store.ErrMyOrgUnavailable
 
 // MyOrg returns s's My Organization store after checking my_org.v1.
 func MyOrg(ctx context.Context, s Store) (MyOrgStore, error) { return store.MyOrg(ctx, s) }
+
+// ErrCIBAUnavailable reports a plugin without ciba.v1 (Plan 41c).
+var ErrCIBAUnavailable = store.ErrCIBAUnavailable
+
+// CIBA returns s's CIBA store after checking ciba.v1.
+func CIBA(ctx context.Context, s Store) (CIBAStore, error) { return store.CIBA(ctx, s) }

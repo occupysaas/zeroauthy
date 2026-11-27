@@ -65,6 +65,8 @@ var (
 		"device_code":              parsePage("templates/layout.html", "templates/device_code.html"),
 		"device_confirm":           parsePage("templates/layout.html", "templates/device_confirm.html"),
 		"device_result":            parsePage("templates/layout.html", "templates/device_result.html"),
+		"ciba_confirm":             parsePage("templates/layout.html", "templates/ciba_confirm.html"),
+		"ciba_result":              parsePage("templates/layout.html", "templates/ciba_result.html"),
 		"passwordless_link":        parsePage("templates/layout.html", "templates/passwordless_link.html"),
 	}
 	formPost   = parsePage("templates/form_post.html")
@@ -669,6 +671,22 @@ func RenderDeviceCode(w http.ResponseWriter, status int, t Tenant, d DeviceCodeD
 // RenderDeviceConfirm asks the user to confirm the device's code.
 func RenderDeviceConfirm(w http.ResponseWriter, t Tenant, d DeviceConfirmData) {
 	render(w, http.StatusOK, "device_confirm", t, d, "'self'")
+}
+
+// CIBAConfirmData is the CIBA approval page (Plan 41c).
+type CIBAConfirmData struct {
+	State, CSRF, ClientName, BindingMessage string
+	Scopes                                  []string
+}
+
+// RenderCIBAConfirm asks the user to approve a backchannel request.
+func RenderCIBAConfirm(w http.ResponseWriter, t Tenant, d CIBAConfirmData) {
+	render(w, http.StatusOK, "ciba_confirm", t, d, "'self'")
+}
+
+// RenderCIBAResult tells the user the request was approved or denied.
+func RenderCIBAResult(w http.ResponseWriter, t Tenant, approved bool) {
+	render(w, http.StatusOK, "ciba_result", t, struct{ Approved bool }{approved}, "'none'")
 }
 
 // RenderDeviceResult tells the user whether the device was given access.

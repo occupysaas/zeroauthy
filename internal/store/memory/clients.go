@@ -87,6 +87,11 @@ func (r clients) Delete(_ context.Context, tenantID, clientID string) error {
 	r.s.cleanupOrgII(tenantID, orgIICleanup{client: clientID})
 	delete(r.s.clients, k)
 	delete(r.s.myOrgConfigs, k)
+	for ck, c := range r.s.cibaRequests {
+		if ck.tenant == tenantID && c.ClientID == clientID {
+			delete(r.s.cibaRequests, ck)
+		}
+	}
 	r.s.dropClientCredentials(tenantID, clientID)
 	for gk, g := range r.s.clientGrants {
 		if gk.tenant == tenantID && g.ClientID == clientID {

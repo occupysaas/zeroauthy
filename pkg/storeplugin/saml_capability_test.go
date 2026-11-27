@@ -40,6 +40,17 @@ func TestOpenedForwardsCIMDCapability(t *testing.T) {
 	}
 }
 
+// The process wrapper forwards ciba.v1 (Plan 41c) to the wrapped store.
+func TestOpenedForwardsCIBA(t *testing.T) {
+	var _ store.CIBASupporter = (*opened)(nil)
+	var _ store.CIBAStore = (*opened)(nil)
+	o := &opened{Store: memory.New()}
+	defer o.Store.Close()
+	if _, err := store.CIBA(context.Background(), o); err != nil {
+		t.Fatalf("wrapper over memory: %v", err)
+	}
+}
+
 // The process wrapper forwards ad_hub.v1 (Plan 38a) to the wrapped store.
 func TestOpenedForwardsADHub(t *testing.T) {
 	var _ store.ADHubSupporter = (*opened)(nil)

@@ -18,6 +18,7 @@ func cloneClient(c *store.Client) *store.Client {
 	out.OIDCLogout = c.OIDCLogout.Clone()
 	out.Addons = c.Addons.Clone()
 	out.ClientAliases = slices.Clone(c.ClientAliases)
+	out.AsyncApprovalNotificationChannels = slices.Clone(c.AsyncApprovalNotificationChannels)
 	if c.External != nil {
 		ext := *c.External
 		out.External = &ext

@@ -129,6 +129,7 @@ type state struct {
 	adProvisionings        map[key]*store.ADProvisioning       // by (tenant, connection)
 	adSessions             map[key]*store.ADHubSession         // by (tenant, connection\x00session)
 	myOrgConfigs           map[key]*store.MyOrgClientConfig    // by (tenant, client)
+	cibaRequests           map[key]*store.CIBARequest          // by (tenant, IDHash)
 	myOrgRoles             map[key]bool                        // visible roles by (tenant, role)
 	myOrgClaims            map[orgIIKey]time.Time              // domain claim times by (tenant, organization, domain)
 	assertionJTIs          map[key]time.Time                   // by (tenant, client\x00sha256(jti)); expiry
@@ -190,6 +191,7 @@ func New() *Store {
 		adSessions:             map[key]*store.ADHubSession{},
 		myOrgClaims:            map[orgIIKey]time.Time{},
 		myOrgConfigs:           map[key]*store.MyOrgClientConfig{},
+		cibaRequests:           map[key]*store.CIBARequest{},
 		myOrgRoles:             map[key]bool{},
 		exchangeProfiles:       map[key]*store.TokenExchangeProfile{},
 		deviceCodes:            map[key]*store.DeviceCode{},

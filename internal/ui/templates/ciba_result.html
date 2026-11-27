@@ -1,0 +1,6 @@
+{{define "doctitle"}}{{if .Data.Approved}}{{t .Tenant.L "zeroauthy.ciba.approvedTitle"}}{{else}}{{t .Tenant.L "zeroauthy.ciba.deniedTitle"}}{{end}}{{end}}
+{{define "title"}}{{if .Data.Approved}}{{t .Tenant.L "zeroauthy.ciba.approvedTitle"}}{{else}}{{t .Tenant.L "zeroauthy.ciba.deniedTitle"}}{{end}}{{end}}
+{{define "description"}}{{.Tenant.Name}}{{end}}
+{{define "content"}}
+<p role="status">{{if .Data.Approved}}{{t .Tenant.L "zeroauthy.ciba.approvedText"}}{{else}}{{t .Tenant.L "zeroauthy.ciba.deniedText"}}{{end}}</p>
+{{end}}

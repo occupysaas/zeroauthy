@@ -34,12 +34,13 @@ var grantHandlers = map[string]grantHandler{
 	clientrules.GrantMFARecoveryCode: (*Handlers).mfaRecoveryGrant,
 	clientrules.GrantPasswordlessOTP: (*Handlers).passwordlessOTPGrant,
 	GrantTokenExchange:               (*Handlers).tokenExchange,
+	clientrules.GrantCIBA:            (*Handlers).cibaGrant,
 }
 
 // orgLessGrants never carry an organization: they ignore the organization
 // parameter, and a client that requires one may not use them (D-0055), except
 // a trusted organization-bound passkey MFA continuation.
-var orgLessGrants = []string{"password", GrantPasswordRealm, GrantDeviceCode, clientrules.GrantMFAOTP, clientrules.GrantMFAOOB, clientrules.GrantMFARecoveryCode, clientrules.GrantPasswordlessOTP}
+var orgLessGrants = []string{"password", GrantPasswordRealm, GrantDeviceCode, clientrules.GrantCIBA, clientrules.GrantMFAOTP, clientrules.GrantMFAOOB, clientrules.GrantMFARecoveryCode, clientrules.GrantPasswordlessOTP}
 
 // OauthToken implements POST /oauth/token.
 func (h *Handlers) OauthToken(w http.ResponseWriter, r *http.Request) {

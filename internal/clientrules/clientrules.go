@@ -35,13 +35,22 @@ const (
 	GrantPasswordlessOTP = "http://auth0.com/oauth/grant-type/passwordless/otp"
 	// GrantPasskey exchanges a native WebAuthn assertion.
 	GrantPasskey = "urn:okta:params:oauth:grant-type:webauthn"
+	// GrantCIBA polls for a backchannel authentication request (Plan 41c).
+	GrantCIBA = "urn:openid:params:grant-type:ciba"
 )
+
+// AsyncApprovalChannels are the values of
+// async_approval_notification_channels; only ChannelEmail is delivered.
+var AsyncApprovalChannels = []string{ChannelEmail, "guardian-push", "my-account"}
+
+// ChannelEmail is the CIBA email channel.
+const ChannelEmail = "email"
 
 // GrantTypes lists every grant type a client may name.
 var GrantTypes = []string{
 	GrantAuthorizationCode, GrantImplicit, GrantRefreshToken, GrantClientCredentials,
 	GrantPassword, GrantPasswordRealm, GrantDeviceCode,
-	GrantMFAOOB, GrantMFAOTP, GrantMFARecoveryCode, GrantPasswordlessOTP, GrantPasskey,
+	GrantMFAOOB, GrantMFAOTP, GrantMFARecoveryCode, GrantPasswordlessOTP, GrantPasskey, GrantCIBA,
 }
 
 // AppTypes lists the application types.
@@ -100,6 +109,10 @@ type Spec struct {
 	RedirectionPolicy                              string
 	SkipNonVerifiableCallbackURIConfirmationPrompt *bool
 	RequirePushedAuthorizationRequests             bool
+
+	// AsyncApprovalNotificationChannels are the CIBA channels (Plan 41c);
+	// nil means unset.
+	AsyncApprovalNotificationChannels []string
 
 	// Organization settings (D-0055); empty and nil mean unset.
 	OrganizationUsage            string
@@ -274,6 +287,31 @@ func Normalize(s *Spec, parSupported bool) []error {
 			fail("grant type %q is not available to strict third-party applications", gt)
 		}
 	}
+	if s.AsyncApprovalNotificationChannels != nil {
+		seen := map[string]bool{}
+		if len(s.AsyncApprovalNotificationChannels) == 0 {
+			fail("async_approval_notification_channels must name at least one channel")
+		}
+		for _, ch := range s.AsyncApprovalNotificationChannels {
+			if !slices.Contains(AsyncApprovalChannels, ch) || seen[ch] {
+				fail("async_approval_notification_channels: %q must be one of %v, at most once", ch, AsyncApprovalChannels)
+			}
+			seen[ch] = true
+		}
+	}
+	if slices.Contains(s.GrantTypes, GrantCIBA) {
+		// Auth0: first-party, confidential, OIDC-conformant clients only.
+		if public {
+			fail("the CIBA grant requires a confidential application (token_endpoint_auth_method other than none)")
+		}
+		if !firstParty {
+			fail("the CIBA grant is not available to third-party applications")
+		}
+		if !slices.Contains(s.AsyncApprovalNotificationChannels, ChannelEmail) {
+			// LR41c-2: zeroauthy delivers CIBA requests by email only.
+			fail("the CIBA grant needs email in async_approval_notification_channels: guardian-push is not available")
+		}
+	}
 	if slices.Contains(s.GrantTypes, GrantDeviceCode) {
 		// Observed on Auth0: the Management API accepts the device grant
 		// only for first-party native public clients.
@@ -413,6 +451,7 @@ func CheckImmutable(c *store.Client, s *Spec) error {
 func Apply(c *store.Client, s *Spec) {
 	c.Addons = s.Addons.Clone()
 	c.ClientAliases = slices.Clone(s.ClientAliases)
+	c.AsyncApprovalNotificationChannels = slices.Clone(s.AsyncApprovalNotificationChannels)
 	c.FormTemplate = s.FormTemplate
 	c.OIDCLogout = s.OIDCLogout.Clone()
 	c.IDTokenAlg = s.IDTokenAlg
@@ -457,7 +496,7 @@ func Apply(c *store.Client, s *Spec) {
 func FromClient(c *store.Client) Spec {
 	firstParty := c.IsFirstParty
 	s := Spec{
-		Addons: c.Addons.Clone(), ClientAliases: slices.Clone(c.ClientAliases), FormTemplate: c.FormTemplate, OIDCLogout: c.OIDCLogout.Clone(), IDTokenAlg: c.IDTokenAlg, OIDCSupport: c.OIDCSupport.Clone(),
+		Addons: c.Addons.Clone(), ClientAliases: slices.Clone(c.ClientAliases), AsyncApprovalNotificationChannels: slices.Clone(c.AsyncApprovalNotificationChannels), FormTemplate: c.FormTemplate, OIDCLogout: c.OIDCLogout.Clone(), IDTokenAlg: c.IDTokenAlg, OIDCSupport: c.OIDCSupport.Clone(),
 		Mobile:            c.Mobile.Clone(),
 		TokenQuota:        cloneTokenQuota(c.TokenQuota),
 		NativeSocialLogin: maps.Clone(c.NativeSocialLogin),

@@ -148,6 +148,18 @@ func sweep(ctx context.Context, st store.Store, now time.Time, notifications ...
 		{st.AuthCodes().DeleteExpired, now.Add(-codeRetention)},
 		{st.PushedAuthRequests().DeleteExpired, now},
 		{st.DeviceCodes().DeleteExpired, now.Add(-deviceCodeRetention)},
+		// CIBA requests count towards the pending limit for 24 hours after
+		// they expire (Plan 41c).
+		{func(ctx context.Context, before time.Time) (int, error) {
+			repo, err := store.CIBA(ctx, st)
+			if errors.Is(err, store.ErrCIBAUnavailable) {
+				return 0, nil // an old storage plugin: no requests exist
+			}
+			if err != nil {
+				return 0, err
+			}
+			return repo.DeleteExpiredCIBARequests(ctx, before)
+		}, now.Add(-store.CIBAPendingWindow)},
 		{st.RefreshTokens().DeleteExpired, now},
 		{purgeRefreshII(st.TokenQuotas().PurgeBefore), now},
 		{purgeRefreshII(st.DPoP().PurgeBefore), now},

@@ -53,6 +53,8 @@ const (
 	KeyEmailResetSubject             = "zeroauthy.email-reset-password.subject"
 	KeyEmailVerifySubject            = "zeroauthy.email-verify-email.subject"
 	KeyEmailInvitationSubject        = "zeroauthy.email-invitation.subject"
+	KeyCIBAExpired                   = "zeroauthy.ciba.expiredText"
+	KeyCIBAWrongUser                 = "zeroauthy.ciba.wrongUserText"
 	KeyEmailWelcomeSubject           = "zeroauthy.email-welcome.subject"
 	KeyEmailWelcomeHeading           = "zeroauthy.email-welcome.heading"
 	KeyEmailWelcomeBody              = "zeroauthy.email-welcome.body"

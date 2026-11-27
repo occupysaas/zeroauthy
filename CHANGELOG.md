@@ -8,6 +8,13 @@ All notable changes to zeroauthy are recorded here. The format follows
 
 ### Added
 
+- CIBA with the email channel (Plan 41c): `POST /bc-authorize` lets a
+  first-party confidential application ask a user to approve a sign-in;
+  the user approves through the emailed `async_approval` link at
+  `/bc-verify` and the application polls `/oauth/token` with
+  `urn:openid:params:grant-type:ciba`. Clients gain
+  `async_approval_notification_channels`. Migration 0053 adds the request
+  store (storage plugins need `ciba.v1`). See [CIBA](docs/ciba.md).
 - Dynamic Client Registration and Client ID Metadata Documents (Plan 41b):
   open RFC 7591 registration at `/oidc/register` creates third-party `tpc_`
   applications; an HTTPS metadata document URL can be a `client_id`, with

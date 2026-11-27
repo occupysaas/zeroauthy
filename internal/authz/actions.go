@@ -105,7 +105,7 @@ func (h *Handlers) postLogin(w http.ResponseWriter, r *http.Request, res tenant.
 		TargetScopes:    fr.Scopes(),
 		ResourceServer:  in.API,
 		// A device approval cannot redirect.
-		CanRedirect: !fr.device() && !slices.Contains(fr.Prompts(), "none"),
+		CanRedirect: !fr.backchannel() && !slices.Contains(fr.Prompts(), "none"),
 	})
 	return h.postLoginResult(w, r, res, client, fr, result, err)
 }
@@ -162,7 +162,7 @@ func (h *Handlers) postLoginResult(w http.ResponseWriter, r *http.Request, res t
 // reference when the error is shown rather than redirected (D-0053). The
 // reference never reaches error_description.
 func (h *Handlers) actionsFailed(w http.ResponseWriter, r *http.Request, res tenant.Resolved, client *store.Client, fr flowReq, executionID string) {
-	if fr.device() || access.ShowErrorPage(client) {
+	if fr.backchannel() || access.ShowErrorPage(client) {
 		view := ui.RequestTenant(r, res.Tenant, i18n.ForRequest(res.Tenant, r, fr.UILocales))
 		ui.RenderErrorReference(w, http.StatusInternalServerError, view, view.L.T(i18n.KeyErrServer), executionID)
 		return
@@ -243,6 +243,8 @@ func actionProtocol(fr flowReq) string {
 		return actions.ProtocolSAMLP
 	case fr.device():
 		return actions.ProtocolDeviceCode
+	case fr.ciba():
+		return actions.ProtocolCIBA
 	}
 	return actions.ProtocolOIDCBasicProfile
 }

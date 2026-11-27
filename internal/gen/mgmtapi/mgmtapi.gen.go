@@ -849,6 +849,27 @@ func (e CimdPreviewExternalMetadataCreatedBy) Valid() bool {
 	}
 }
 
+// Defines values for ClientAsyncApprovalNotificationChannels.
+const (
+	ClientAsyncApprovalNotificationChannelsEmail        ClientAsyncApprovalNotificationChannels = "email"
+	ClientAsyncApprovalNotificationChannelsGuardianPush ClientAsyncApprovalNotificationChannels = "guardian-push"
+	ClientAsyncApprovalNotificationChannelsMyAccount    ClientAsyncApprovalNotificationChannels = "my-account"
+)
+
+// Valid indicates whether the value is a known member of the ClientAsyncApprovalNotificationChannels enum.
+func (e ClientAsyncApprovalNotificationChannels) Valid() bool {
+	switch e {
+	case ClientAsyncApprovalNotificationChannelsEmail:
+		return true
+	case ClientAsyncApprovalNotificationChannelsGuardianPush:
+		return true
+	case ClientAsyncApprovalNotificationChannelsMyAccount:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for ClientCallbackUrlTemplate.
 const (
 	ClientCallbackUrlTemplateFalse ClientCallbackUrlTemplate = false
@@ -1092,6 +1113,27 @@ func (e ClientAddonSAMLSignatureAlgorithm) Valid() bool {
 	case ClientAddonSAMLSignatureAlgorithmRsaSha1:
 		return true
 	case ClientAddonSAMLSignatureAlgorithmRsaSha256:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ClientCreateAsyncApprovalNotificationChannels.
+const (
+	ClientCreateAsyncApprovalNotificationChannelsEmail        ClientCreateAsyncApprovalNotificationChannels = "email"
+	ClientCreateAsyncApprovalNotificationChannelsGuardianPush ClientCreateAsyncApprovalNotificationChannels = "guardian-push"
+	ClientCreateAsyncApprovalNotificationChannelsMyAccount    ClientCreateAsyncApprovalNotificationChannels = "my-account"
+)
+
+// Valid indicates whether the value is a known member of the ClientCreateAsyncApprovalNotificationChannels enum.
+func (e ClientCreateAsyncApprovalNotificationChannels) Valid() bool {
+	switch e {
+	case ClientCreateAsyncApprovalNotificationChannelsEmail:
+		return true
+	case ClientCreateAsyncApprovalNotificationChannelsGuardianPush:
+		return true
+	case ClientCreateAsyncApprovalNotificationChannelsMyAccount:
 		return true
 	default:
 		return false
@@ -1578,6 +1620,27 @@ func (e ClientOIDCSupportAllowedScopes) Valid() bool {
 	}
 }
 
+// Defines values for ClientSettingsAsyncApprovalNotificationChannels.
+const (
+	ClientSettingsAsyncApprovalNotificationChannelsEmail        ClientSettingsAsyncApprovalNotificationChannels = "email"
+	ClientSettingsAsyncApprovalNotificationChannelsGuardianPush ClientSettingsAsyncApprovalNotificationChannels = "guardian-push"
+	ClientSettingsAsyncApprovalNotificationChannelsMyAccount    ClientSettingsAsyncApprovalNotificationChannels = "my-account"
+)
+
+// Valid indicates whether the value is a known member of the ClientSettingsAsyncApprovalNotificationChannels enum.
+func (e ClientSettingsAsyncApprovalNotificationChannels) Valid() bool {
+	switch e {
+	case ClientSettingsAsyncApprovalNotificationChannelsEmail:
+		return true
+	case ClientSettingsAsyncApprovalNotificationChannelsGuardianPush:
+		return true
+	case ClientSettingsAsyncApprovalNotificationChannelsMyAccount:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for ClientSettingsOrganizationDiscoveryMethods.
 const (
 	ClientSettingsOrganizationDiscoveryMethodsEmail            ClientSettingsOrganizationDiscoveryMethods = "email"
@@ -1671,6 +1734,27 @@ const (
 func (e ClientTokenExchangeAllowAnyProfileOfType) Valid() bool {
 	switch e {
 	case ClientTokenExchangeAllowAnyProfileOfTypeCustomAuthentication:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ClientUpdateAsyncApprovalNotificationChannels.
+const (
+	ClientUpdateAsyncApprovalNotificationChannelsEmail        ClientUpdateAsyncApprovalNotificationChannels = "email"
+	ClientUpdateAsyncApprovalNotificationChannelsGuardianPush ClientUpdateAsyncApprovalNotificationChannels = "guardian-push"
+	ClientUpdateAsyncApprovalNotificationChannelsMyAccount    ClientUpdateAsyncApprovalNotificationChannels = "my-account"
+)
+
+// Valid indicates whether the value is a known member of the ClientUpdateAsyncApprovalNotificationChannels enum.
+func (e ClientUpdateAsyncApprovalNotificationChannels) Valid() bool {
+	switch e {
+	case ClientUpdateAsyncApprovalNotificationChannelsEmail:
+		return true
+	case ClientUpdateAsyncApprovalNotificationChannelsGuardianPush:
+		return true
+	case ClientUpdateAsyncApprovalNotificationChannelsMyAccount:
 		return true
 	default:
 		return false
@@ -9102,9 +9186,15 @@ type Client struct {
 
 	// AppType `native` (mobile and desktop), `spa` (single-page), `regular_web`
 	// (server-side web) or `non_interactive` (machine to machine).
-	AppType             AppType                   `json:"app_type"`
-	CallbackUrlTemplate ClientCallbackUrlTemplate `json:"callback_url_template"`
-	Callbacks           []string                  `json:"callbacks"`
+	AppType AppType `json:"app_type"`
+
+	// AsyncApprovalNotificationChannels How a user is asked to approve a CIBA request (Plan 41c, D-0100).
+	// Only `email` is delivered; `guardian-push` and `my-account` are
+	// stored only, and a list without `email` is refused (LR41c-2).
+	// Absent, the application has no channel and cannot use CIBA.
+	AsyncApprovalNotificationChannels *[]ClientAsyncApprovalNotificationChannels `json:"async_approval_notification_channels,omitempty"`
+	CallbackUrlTemplate               ClientCallbackUrlTemplate                  `json:"callback_url_template"`
+	Callbacks                         []string                                   `json:"callbacks"`
 
 	// ClientAliases Realms (`wtrealm` values) and audiences accepted for the `wsfed`
 	// add-on, besides the client ID (Plan 37b). Each alias is unique
@@ -9213,6 +9303,9 @@ type Client struct {
 	TokenQuota *IITokenQuota `json:"token_quota,omitempty"`
 	WebOrigins []string      `json:"web_origins"`
 }
+
+// ClientAsyncApprovalNotificationChannels defines model for Client.AsyncApprovalNotificationChannels.
+type ClientAsyncApprovalNotificationChannels string
 
 // ClientCallbackUrlTemplate defines model for Client.CallbackUrlTemplate.
 type ClientCallbackUrlTemplate bool
@@ -9386,6 +9479,12 @@ type ClientCreate struct {
 	// (server-side web) or `non_interactive` (machine to machine).
 	AppType *AppType `json:"app_type,omitempty"`
 
+	// AsyncApprovalNotificationChannels How a user is asked to approve a CIBA request (Plan 41c, D-0100).
+	// Only `email` is delivered; `guardian-push` and `my-account` are
+	// stored only, and a list without `email` is refused (LR41c-2).
+	// Absent, the application has no channel and cannot use CIBA.
+	AsyncApprovalNotificationChannels *[]ClientCreateAsyncApprovalNotificationChannels `json:"async_approval_notification_channels,omitempty"`
+
 	// Callbacks Allowed redirect URIs.
 	Callbacks *[]string `json:"callbacks,omitempty"`
 
@@ -9430,7 +9529,9 @@ type ClientCreate struct {
 
 	// GrantTypes Grant types the application may use. zeroauthy serves
 	// authorization_code, refresh_token, client_credentials, password,
-	// password-realm and device_code; implicit and the MFA grants are
+	// password-realm, device_code and CIBA
+	// (`urn:openid:params:grant-type:ciba`: first-party, confidential,
+	// OIDC-conformant applications only, Plan 41c); implicit and the MFA grants are
 	// stored but not served. The native passkey grant is
 	// urn:okta:params:oauth:grant-type:webauthn.
 	GrantTypes *[]string `json:"grant_types,omitempty"`
@@ -9528,6 +9629,9 @@ type ClientCreate struct {
 	// WebOrigins Origins allowed for web message and silent authentication.
 	WebOrigins *[]string `json:"web_origins,omitempty"`
 }
+
+// ClientCreateAsyncApprovalNotificationChannels defines model for ClientCreate.AsyncApprovalNotificationChannels.
+type ClientCreateAsyncApprovalNotificationChannels string
 
 // ClientCreateOrganizationDiscoveryMethods defines model for ClientCreate.OrganizationDiscoveryMethods.
 type ClientCreateOrganizationDiscoveryMethods string
@@ -9870,6 +9974,12 @@ type ClientSettings struct {
 	// (server-side web) or `non_interactive` (machine to machine).
 	AppType *AppType `json:"app_type,omitempty"`
 
+	// AsyncApprovalNotificationChannels How a user is asked to approve a CIBA request (Plan 41c, D-0100).
+	// Only `email` is delivered; `guardian-push` and `my-account` are
+	// stored only, and a list without `email` is refused (LR41c-2).
+	// Absent, the application has no channel and cannot use CIBA.
+	AsyncApprovalNotificationChannels *[]ClientSettingsAsyncApprovalNotificationChannels `json:"async_approval_notification_channels,omitempty"`
+
 	// Callbacks Allowed redirect URIs.
 	Callbacks *[]string `json:"callbacks,omitempty"`
 
@@ -9914,7 +10024,9 @@ type ClientSettings struct {
 
 	// GrantTypes Grant types the application may use. zeroauthy serves
 	// authorization_code, refresh_token, client_credentials, password,
-	// password-realm and device_code; implicit and the MFA grants are
+	// password-realm, device_code and CIBA
+	// (`urn:openid:params:grant-type:ciba`: first-party, confidential,
+	// OIDC-conformant applications only, Plan 41c); implicit and the MFA grants are
 	// stored but not served. The native passkey grant is
 	// urn:okta:params:oauth:grant-type:webauthn.
 	GrantTypes *[]string `json:"grant_types,omitempty"`
@@ -10007,6 +10119,9 @@ type ClientSettings struct {
 	WebOrigins *[]string `json:"web_origins,omitempty"`
 }
 
+// ClientSettingsAsyncApprovalNotificationChannels defines model for ClientSettings.AsyncApprovalNotificationChannels.
+type ClientSettingsAsyncApprovalNotificationChannels string
+
 // ClientSettingsOrganizationDiscoveryMethods defines model for ClientSettings.OrganizationDiscoveryMethods.
 type ClientSettingsOrganizationDiscoveryMethods string
 
@@ -10057,6 +10172,12 @@ type ClientUpdate struct {
 	// (server-side web) or `non_interactive` (machine to machine).
 	AppType *AppType `json:"app_type,omitempty"`
 
+	// AsyncApprovalNotificationChannels How a user is asked to approve a CIBA request (Plan 41c, D-0100).
+	// Only `email` is delivered; `guardian-push` and `my-account` are
+	// stored only, and a list without `email` is refused (LR41c-2).
+	// Absent, the application has no channel and cannot use CIBA.
+	AsyncApprovalNotificationChannels *[]ClientUpdateAsyncApprovalNotificationChannels `json:"async_approval_notification_channels,omitempty"`
+
 	// Callbacks Allowed redirect URIs.
 	Callbacks *[]string `json:"callbacks,omitempty"`
 
@@ -10101,7 +10222,9 @@ type ClientUpdate struct {
 
 	// GrantTypes Grant types the application may use. zeroauthy serves
 	// authorization_code, refresh_token, client_credentials, password,
-	// password-realm and device_code; implicit and the MFA grants are
+	// password-realm, device_code and CIBA
+	// (`urn:openid:params:grant-type:ciba`: first-party, confidential,
+	// OIDC-conformant applications only, Plan 41c); implicit and the MFA grants are
 	// stored but not served. The native passkey grant is
 	// urn:okta:params:oauth:grant-type:webauthn.
 	GrantTypes *[]string `json:"grant_types,omitempty"`
@@ -10195,6 +10318,9 @@ type ClientUpdate struct {
 	// WebOrigins Origins allowed for web message and silent authentication.
 	WebOrigins *[]string `json:"web_origins,omitempty"`
 }
+
+// ClientUpdateAsyncApprovalNotificationChannels defines model for ClientUpdate.AsyncApprovalNotificationChannels.
+type ClientUpdateAsyncApprovalNotificationChannels string
 
 // ClientUpdateOrganizationDiscoveryMethods defines model for ClientUpdate.OrganizationDiscoveryMethods.
 type ClientUpdateOrganizationDiscoveryMethods string

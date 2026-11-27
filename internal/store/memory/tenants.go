@@ -179,6 +179,7 @@ func (r tenants) Delete(_ context.Context, id string) error {
 	purge(s.samlAssertions, id)
 	purge(s.adProvisionings, id)
 	purge(s.myOrgConfigs, id)
+	purge(s.cibaRequests, id)
 	purge(s.myOrgRoles, id)
 	purge(s.adSessions, id)
 	purge(s.exchangeProfiles, id)

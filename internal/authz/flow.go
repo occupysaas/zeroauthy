@@ -21,13 +21,17 @@ import (
 const (
 	ParamFlow     = store.TxnParamFlow
 	FlowDevice    = store.TxnFlowDevice
-	ParamDevice   = "za_device"    // device code hash
+	ParamDevice   = "za_device" // device code hash
+	FlowCIBA      = store.TxnFlowCIBA
+	ParamCIBA     = "za_ciba"      // CIBA request hash (Plan 41c)
+	ParamCIBAUser = "za_ciba_user" // the user the CIBA request is for
 	ParamUserCode = "za_user_code" // the formatted user code, for display
 	// ParamStage marks a transaction that is past login: the consent page,
 	// or the device entry and confirmation pages.
 	ParamStage         = "za_stage"
 	StageDeviceEntry   = "device-entry"
 	StageDeviceConfirm = "device-confirm"
+	StageCIBAConfirm   = "ciba-confirm"
 
 	stageConsent = "consent"
 	// sessionKey holds the ID of the session the consent transaction was
@@ -46,15 +50,26 @@ const deviceGrant = "urn:ietf:params:oauth:grant-type:device_code"
 type flowReq struct {
 	Request
 	DeviceCodeHash string
+	// CIBAHash and CIBAUserID are set for a CIBA approval (Plan 41c).
+	CIBAHash, CIBAUserID string
 }
 
 func (f flowReq) device() bool { return f.DeviceCodeHash != "" }
+
+// ciba reports a CIBA approval flow.
+func (f flowReq) ciba() bool { return f.CIBAHash != "" }
+
+// backchannel reports a flow that cannot redirect: device or CIBA.
+func (f flowReq) backchannel() bool { return f.device() || f.ciba() }
 
 // params is Request.Params plus ParamFlow and ParamDevice for the device flow.
 func (f flowReq) params() map[string]string {
 	p := f.Request.Params()
 	if f.device() {
 		p[ParamFlow], p[ParamDevice] = FlowDevice, f.DeviceCodeHash
+	}
+	if f.ciba() {
+		p[ParamFlow], p[ParamCIBA], p[ParamCIBAUser] = FlowCIBA, f.CIBAHash, f.CIBAUserID
 	}
 	return p
 }
@@ -63,6 +78,9 @@ func flowFromParams(p map[string]string) flowReq {
 	f := flowReq{Request: RequestFromParams(p)}
 	if p[ParamFlow] == FlowDevice {
 		f.DeviceCodeHash = p[ParamDevice]
+	}
+	if p[ParamFlow] == FlowCIBA {
+		f.CIBAHash, f.CIBAUserID = p[ParamCIBA], p[ParamCIBAUser]
 	}
 	return f
 }
@@ -76,6 +94,9 @@ var errCodeNotPending = errInvalidRequest("the device code is no longer pending"
 // grant and its code to be pending and unexpired. Device failures are never
 // redirectable.
 func (h *Handlers) validateFlow(ctx context.Context, res tenant.Resolved, fr *flowReq) (*store.Client, *Error, bool) {
+	if fr.ciba() {
+		return h.validateCIBA(ctx, res, fr)
+	}
 	if !fr.device() {
 		return ValidateRequestOn(ctx, h.Store, res, &fr.Request)
 	}
@@ -111,6 +132,10 @@ func (h *Handlers) flowError(w http.ResponseWriter, r *http.Request, res tenant.
 	switch {
 	case e == errCodeNotPending:
 		detail = view.L.T(i18n.KeyErrSessionExpired)
+	case e == errCIBANotPending:
+		detail = view.L.T(i18n.KeyCIBAExpired)
+	case e == errCIBAWrongUser:
+		detail = view.L.T(i18n.KeyCIBAWrongUser)
 	case e.Code == "server_error":
 		status, title, detail = http.StatusInternalServerError, i18n.KeyErrServer, ""
 	}
@@ -122,6 +147,12 @@ func (h *Handlers) flowError(w http.ResponseWriter, r *http.Request, res tenant.
 // eff are the post-login flow's effects, sealed onto the code or approval
 // for the token endpoint.
 func (h *Handlers) approve(w http.ResponseWriter, r *http.Request, res tenant.Resolved, client *store.Client, fr flowReq, sess *store.LoginSession, scopes []string, eff *actions.Effects) {
+	if fr.ciba() && sess.UserID != fr.CIBAUserID {
+		// Review Focus 2: only the user the request is for can decide it; the
+		// request stays pending.
+		h.flowError(w, r, res, fr, errCIBAWrongUser)
+		return
+	}
 	if h.requireMFA(w, r, res, client, fr, sess, eff) {
 		return
 	}
@@ -161,6 +192,19 @@ func (h *Handlers) approve(w http.ResponseWriter, r *http.Request, res tenant.Re
 			// A SAML response is built after the commit; no code is issued.
 			return nil
 		}
+		if fr.ciba() {
+			sealed, e := local.sealFor(res.Tenant.ID, actions.SealCIBA, fr.CIBAHash, eff)
+			if e != nil {
+				return e
+			}
+			repo, e := store.CIBA(ctx, tx)
+			if e != nil {
+				return e
+			}
+			_, e = repo.DecideCIBARequest(ctx, res.Tenant.ID, fr.CIBAHash, store.CIBADecision{Status: store.CIBAApproved, GrantedScopes: scopes,
+				ActionEffects: sealed, AuthTime: sess.AuthenticatedAt, MFAAt: sess.MFAAt})
+			return e
+		}
 		if !fr.device() {
 			var e error
 			code, e = local.createCode(ctx, res, client, fr.Request, sess, scopes, eff)
@@ -180,6 +224,10 @@ func (h *Handlers) approve(w http.ResponseWriter, r *http.Request, res tenant.Re
 		}
 		if fr.device() && (errors.Is(err, store.ErrAlreadyUsed) || errors.Is(err, store.ErrNotFound)) {
 			h.flowError(w, r, res, fr, errCodeNotPending)
+			return
+		}
+		if fr.ciba() && (errors.Is(err, store.ErrAlreadyUsed) || errors.Is(err, store.ErrNotFound)) {
+			h.flowError(w, r, res, fr, errCIBANotPending)
 			return
 		}
 		h.log().ErrorContext(r.Context(), "commit login authorization", "tenant", res.Tenant.ID, "err", err)
@@ -206,6 +254,10 @@ func (h *Handlers) approve(w http.ResponseWriter, r *http.Request, res tenant.Re
 		redirect(w, r, "/device/success")
 		return
 	}
+	if fr.ciba() {
+		redirect(w, r, "/bc-verify/approved")
+		return
+	}
 	params := url.Values{"code": {code}}
 	if fr.State != "" {
 		params.Set("state", fr.State)
@@ -227,10 +279,12 @@ func (h *Handlers) refuse(w http.ResponseWriter, r *http.Request, res tenant.Res
 		h.EndTxn(w, r, res, txn)
 	}
 	switch {
-	case !fr.device():
+	case !fr.backchannel():
 		h.deny(w, r, res, client, fr.Request, e)
 	case e.Code == "server_error":
 		h.flowError(w, r, res, fr, e)
+	case fr.ciba():
+		h.decideCIBA(w, r, res, fr, store.CIBADecision{Status: store.CIBADenied})
 	default:
 		h.decideDevice(w, r, res, fr, store.DeviceDecision{Status: store.DeviceCodeDenied}, "/device/denied")
 	}

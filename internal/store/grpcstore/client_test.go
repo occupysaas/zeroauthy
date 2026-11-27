@@ -561,6 +561,24 @@ func TestOldPluginCIMDUnavailable(t *testing.T) {
 	}
 }
 
+// A plugin without ciba.v1 (Plan 41c) has no CIBA store and cannot store
+// client channels: such calls fail before reaching it.
+func TestOldPluginCIBAUnavailable(t *testing.T) {
+	c := serveOldPlugin(t)
+	defer c.Close()
+	ctx := context.Background()
+	if _, err := store.CIBA(ctx, c); !errors.Is(err, store.ErrCIBAUnavailable) {
+		t.Fatalf("store.CIBA: %v", err)
+	}
+	if err := c.CreateCIBARequest(ctx, &store.CIBARequest{TenantID: "t", IDHash: "h"}); !errors.Is(err, store.ErrCIBAUnavailable) {
+		t.Fatalf("create: %v", err)
+	}
+	ch := &store.Client{TenantID: "t", ClientID: "c", AsyncApprovalNotificationChannels: []string{"email"}}
+	if err := c.Clients().Create(ctx, ch); !errors.Is(err, store.ErrCIBAUnavailable) {
+		t.Fatalf("client channels: %v", err)
+	}
+}
+
 // A plugin without ad_hub.v1 (Plan 38a) has no AD/LDAP store: store.ADHub
 // fails closed and the methods never reach it.
 func TestOldPluginADHubUnavailable(t *testing.T) {

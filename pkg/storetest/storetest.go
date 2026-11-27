@@ -44,6 +44,7 @@ var Suites = map[string]func(t *testing.T, newStore Factory){
 	"OIDCClientSettings":          testOIDCClientSettings,
 	"ClientAddons":                testClientAddons,
 	"ClientAliases":               testClientAliases,
+	"CIBA":                        testCIBA,
 	"ExternalClients":             testExternalClients,
 	"DefaultClientGrants":         testDefaultClientGrants,
 	"Directory":                   testDirectory,
@@ -99,7 +100,7 @@ var suiteOrder = []string{
 	"Connections", "PasswordHistories", "Users", "UserDelete", "UserList", "UserQueryMetadataTypes", "Sessions", "SessionExpirySnapshots", "SAMLSessionParticipants", "AuthTransactions", "AuthCodes",
 	"PushedAuthRequests",
 	"RefreshTokens", "RefreshTokensII", "DPoP", "TokenQuotas", "PasswordResetTickets", "EmailVerificationTickets", "Tx",
-	"DeviceCodes", "Operators", "Jobs", "TenantsDelete", "EmptyLists",
+	"DeviceCodes", "CIBA", "Operators", "Jobs", "TenantsDelete", "EmptyLists",
 	"Email", "HostedLogin", "HostedTransition", "Federation", "ClientCredentials", "Actions", "ActionsII", "ADHub", "MyOrg",
 }
 
@@ -113,7 +114,7 @@ var Areas = map[string][]string{
 		"UserQueryMetadataTypes", "Sessions", "AuthTransactions", "PasswordResetTickets", "EmailVerificationTickets",
 		"HostedLogin", "HostedTransition", "Federation", "SessionExpirySnapshots", "SAMLSessionParticipants", "ADHub"},
 	"oauth": {"Clients", "ResourceServers", "ClientGrants", "UserGrants", "SigningKeys", "CustomSigningKeys", "AuthCodes",
-		"PushedAuthRequests", "RefreshTokens", "RefreshTokensII", "DPoP", "TokenQuotas", "DeviceCodes", "ClientCredentials",
+		"PushedAuthRequests", "RefreshTokens", "RefreshTokensII", "DPoP", "TokenQuotas", "DeviceCodes", "CIBA", "ClientCredentials",
 		"OIDCClientSettings", "GlobalRevocationState", "ClientAddons", "ClientAliases", "ExternalClients", "DefaultClientGrants", "SAMLReplay"},
 	"orgs":    {"RBAC", "Organizations", "OrganizationsII", "Directory", "SelfService", "DirectorySync", "MyOrg"},
 	"runtime": {"Events", "Logs", "Jobs", "Email", "Actions", "ActionsII"},

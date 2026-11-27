@@ -203,6 +203,9 @@ func (a authAPI) GlobalTokenRevocation(w http.ResponseWriter, r *http.Request, n
 	a.oauth.GlobalTokenRevocation(w, r, name)
 }
 
+// BcAuthorize starts a CIBA request (Plan 41c).
+func (a authAPI) BcAuthorize(w http.ResponseWriter, r *http.Request) { a.oauth.BcAuthorize(w, r) }
+
 func (a authAPI) OauthRevoke(w http.ResponseWriter, r *http.Request) { a.oauth.OauthRevoke(w, r) }
 func (a authAPI) OauthPar(w http.ResponseWriter, r *http.Request, _ authapi.OauthParParams) {
 	a.oauth.OauthPar(w, r)
@@ -389,7 +392,7 @@ func New(d Deps) http.Handler {
 			ad:   d.AD,
 			dcr:  dcr.NewHandler(d.Store, d.Wrapper, d.Log),
 			oidc: &oidc.Handlers{UpstreamLogout: lg.UpstreamLogout, Wrapper: d.Wrapper, Compat: d.Compat, DPoP: proofService, Keys: d.Keys, Store: d.Store, Sessions: d.Sessions, Log: d.Log},
-			oauth: &oauth.Handlers{CIMD: cimdRegistrar, Compat: d.Compat, Logout: d.Logout,
+			oauth: &oauth.Handlers{CIBA: oauth.NewCIBAService(d.EmailService, nil), CIMD: cimdRegistrar, Compat: d.Compat, Logout: d.Logout,
 				DPoP:       proofService,
 				Federation: d.Federation,
 				MFA:        d.MFA,
@@ -479,6 +482,11 @@ func New(d Deps) http.Handler {
 		// Management API ticket links (U6).
 		tr.Get("/u/reset-verify", lg.ResetVerify)
 		tr.Get("/u/email-verification", lg.EmailVerificationPage)
+		// CIBA approval pages (Plan 41c), at Auth0's path.
+		tr.Get("/bc-verify", lg.CIBAVerify)
+		tr.Post("/bc-verify", lg.CIBAVerifySubmit)
+		tr.Get("/bc-verify/approved", lg.CIBAApproved)
+		tr.Get("/bc-verify/denied", lg.CIBADenied)
 		// Device flow pages, at the paths observed on Auth0.
 		tr.Get("/activate", lg.Activate)
 		tr.Post("/activate", lg.ActivateSubmit)

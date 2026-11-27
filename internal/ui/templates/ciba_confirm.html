@@ -1,0 +1,18 @@
+{{define "doctitle"}}{{t .Tenant.L "zeroauthy.ciba.pageTitle"}}{{end}}
+{{define "title"}}{{t .Tenant.L "zeroauthy.ciba.title"}}{{end}}
+{{define "content"}}
+<p>{{t .Tenant.L "zeroauthy.ciba.description" "clientName" .Data.ClientName}}</p>
+<label for="binding">{{t .Tenant.L "zeroauthy.ciba.bindingLabel"}}</label>
+<input id="binding" type="text" value="{{.Data.BindingMessage}}" readonly>
+<p>{{t .Tenant.L "zeroauthy.ciba.bindingText"}}</p>
+{{if .Data.Scopes}}<p>{{t .Tenant.L "zeroauthy.ciba.scopesLabel"}}</p>
+<ul class="scopes">
+{{range .Data.Scopes}}<li>{{.}}</li>
+{{end}}</ul>{{end}}
+<form method="post" action="/bc-verify">
+<input type="hidden" name="state" value="{{.Data.State}}">
+<input type="hidden" name="csrf" value="{{.Data.CSRF}}">
+<button type="submit" name="action" value="approve">{{t .Tenant.L "zeroauthy.ciba.approveButtonText"}}</button>
+<button type="submit" name="action" value="deny" class="secondary">{{t .Tenant.L "zeroauthy.ciba.denyButtonText"}}</button>
+</form>
+{{end}}

@@ -56,6 +56,11 @@ type Configuration struct {
 	RevocationEndpoint                 string   `json:"revocation_endpoint"`
 	DeviceAuthorizationEndpoint        string   `json:"device_authorization_endpoint,omitempty"`
 	PushedAuthorizationRequestEndpoint string   `json:"pushed_authorization_request_endpoint,omitempty"`
+	// The CIBA members (Plan 41c), present when the store holds CIBA requests.
+	BackchannelAuthenticationEndpoint                         string   `json:"backchannel_authentication_endpoint,omitempty"`
+	BackchannelTokenDeliveryModesSupported                    []string `json:"backchannel_token_delivery_modes_supported,omitempty"`
+	BackchannelUserCodeParameterSupported                     *bool    `json:"backchannel_user_code_parameter_supported,omitempty"`
+	BackchannelAuthenticationRequestSigningAlgValuesSupported []string `json:"backchannel_authentication_request_signing_alg_values_supported,omitempty"`
 	// RegistrationEndpoint is /oidc/register when the tenant enables
 	// Dynamic Client Registration (Plan 41b).
 	RegistrationEndpoint string `json:"registration_endpoint,omitempty"`
@@ -147,6 +152,15 @@ func (h *Handlers) Discovery(w http.ResponseWriter, r *http.Request) {
 		cfg.RegistrationEndpoint = base + "/oidc/register"
 	}
 	cfg.ClientIDMetadataDocumentSupported = tenantrules.ClientIDMetadataDocuments(res.Tenant)
+	if h.Store != nil {
+		if _, err := store.CIBA(r.Context(), h.Store); err == nil {
+			no := false
+			cfg.BackchannelAuthenticationEndpoint = base + "/bc-authorize"
+			cfg.BackchannelTokenDeliveryModesSupported = []string{"poll"}
+			cfg.BackchannelUserCodeParameterSupported = &no
+			cfg.BackchannelAuthenticationRequestSigningAlgValuesSupported = cfg.RequestObjectSigningAlgValuesSupported
+		}
+	}
 	if h.Store != nil && store.CheckRefreshTokensIISupport(r.Context(), h.Store) == nil {
 		cfg.DPoPSigningAlgValuesSupported = []string{"ES256", "RS256"}
 	}

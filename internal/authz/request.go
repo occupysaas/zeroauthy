@@ -441,3 +441,31 @@ func (r Request) MaxAgeSeconds() (int, bool) {
 	}
 	return n, true
 }
+
+// VerifySignedRequestObject verifies raw, a signed request object (JAR)
+// sent by client c outside /authorize (/bc-authorize, Plan 41c), with c's
+// signed_request_object credentials, and returns its parameters. Unsigned
+// objects and failures are errors whose text never contains raw.
+func VerifySignedRequestObject(ctx context.Context, st store.Store, t *store.Tenant, issuer string, now time.Time, c *store.Client, raw string) (url.Values, error) {
+	if len(raw) > maxRequestObjectBytes {
+		return nil, errors.New("request object too long")
+	}
+	if unsignedObject(raw) || !store.ClientCredentialsAvailable(ctx, st) {
+		return nil, errors.New("request object must be signed")
+	}
+	var creds []*store.ClientCredential
+	if sro := c.SignedRequestObject; sro != nil && len(sro.Credentials) > 0 {
+		all, err := st.ClientCredentials().List(ctx, t.ID, c.ClientID)
+		if err != nil {
+			return nil, err
+		}
+		for _, cr := range all {
+			if cr.ClientID == c.ClientID && slices.Contains(sro.Credentials, cr.ID) {
+				creds = append(creds, cr)
+			}
+		}
+	}
+	return verifyRequestObject(raw, c, creds, issuer, now, func(jti string, exp time.Time) error {
+		return st.ClientCredentials().UseJTI(ctx, t.ID, c.ClientID, jti, exp)
+	})
+}

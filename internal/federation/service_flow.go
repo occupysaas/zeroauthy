@@ -641,8 +641,11 @@ func (s *FlowService) eligible(ctx context.Context, st store.Store, a *store.Fed
 	// Recheck the grant before any local identity, token or session write.
 	// Authorization continuation also checks it, but runs after session commit.
 	grant := "authorization_code"
-	if txn.Params[store.TxnParamFlow] == store.TxnFlowDevice {
+	switch txn.Params[store.TxnParamFlow] {
+	case store.TxnFlowDevice:
 		grant = "urn:ietf:params:oauth:grant-type:device_code"
+	case store.TxnFlowCIBA:
+		grant = "urn:openid:params:grant-type:ciba"
 	}
 	if !slices.Contains(client.GrantTypes, grant) {
 		return nil, nil, nil, fmt.Errorf("%w: application grant disabled", ErrAttemptStale)

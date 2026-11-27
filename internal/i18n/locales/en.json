@@ -274,6 +274,22 @@
       "unableEnroll": "Unable to enroll this phone number",
       "factorLabel": "Phone (SMS or voice)",
       "countryLabel": "Country"
+    },
+    "ciba": {
+      "pageTitle": "Approve a request",
+      "title": "Approve a request",
+      "description": "${clientName} asks you to approve a sign-in.",
+      "bindingLabel": "Request code",
+      "bindingText": "Check that this code matches the one the application shows before you approve.",
+      "scopesLabel": "It will receive",
+      "approveButtonText": "Approve",
+      "denyButtonText": "Deny",
+      "approvedTitle": "Request approved",
+      "approvedText": "You can close this window and return to the application.",
+      "deniedTitle": "Request denied",
+      "deniedText": "The application was told that you denied the request.",
+      "expiredText": "This request has expired, was already answered or does not exist.",
+      "wrongUserText": "Sign in as the user this request is for."
     }
   },
   "login-id": {

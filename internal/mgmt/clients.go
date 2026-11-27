@@ -659,6 +659,13 @@ func (h *Handlers) clientView(ctx context.Context, tn *store.Tenant, c *store.Cl
 			v.ExternalMetadataStatus = &status
 		}
 	}
+	if c.AsyncApprovalNotificationChannels != nil {
+		channels := make([]mgmtapi.ClientAsyncApprovalNotificationChannels, len(c.AsyncApprovalNotificationChannels))
+		for i, ch := range c.AsyncApprovalNotificationChannels {
+			channels[i] = mgmtapi.ClientAsyncApprovalNotificationChannels(ch)
+		}
+		v.AsyncApprovalNotificationChannels = &channels
+	}
 	if c.Addons != nil {
 		raw, _ := json.Marshal(clientrules.PublicAddons(c.Addons))
 		var addons mgmtapi.ClientAddons
@@ -938,6 +945,16 @@ func readClientBody(body map[string]json.RawMessage, s *clientrules.Spec) (clien
 			}
 		case "client_aliases":
 			s.ClientAliases, err = clientrules.ParseClientAliases(raw)
+		case "async_approval_notification_channels":
+			// Null clears the channels (Auth0's PATCH schema allows it).
+			s.AsyncApprovalNotificationChannels = nil
+			if !isNull(raw) {
+				var channels []string
+				if err = decodeStrings(raw, &channels); err == nil && channels == nil {
+					channels = []string{}
+				}
+				s.AsyncApprovalNotificationChannels = channels
+			}
 		case "form_template":
 			s.FormTemplate, err = clientrules.ParseFormTemplate(raw)
 		case "oidc_support":
