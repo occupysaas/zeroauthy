@@ -2335,5 +2335,477 @@
   ],
   "source": "https://auth0.com/docs/authenticate/identity-providers/social-identity-providers/github",
   "local_rulings": "local:docs/superpowers/specs/2026-11-16-zeroauthy-github-connection-design.md"
+ },
+ "social_descriptors": {
+  "status": "Plan 39b Tier 1 contract (D-0180); runtime in internal/federation/providers descriptors; fixture verification only, no live provider or Auth0 observation (maintainer ruling 2026-11-27)",
+  "identity": "<strategy>|<provider user id>; identities[].user_id is the raw provider id; isSocial=true; never auto-link by email",
+  "email_rule": "email_verified is true only where the provider documents a verified email (rule always) or returns a verification field (rule field); otherwise false (SP-2)",
+  "scope_rule": "effective scope = base scopes + each true flag's scopes + freeform_scopes where Auth0's OpenAPI lists freeform_scopes; an input scope must equal it as a set",
+  "tier2": "later plan (maintainer ruling 2026-11-27)",
+  "strategies": {
+   "facebook": {
+    "id_format": "facebook|<id>",
+    "authorization_url": "https://www.facebook.com/v24.0/dialog/oauth",
+    "token_url": "https://graph.facebook.com/v24.0/oauth/access_token",
+    "profile_url": "https://graph.facebook.com/v24.0/me?fields=id,name,first_name,last_name,email,picture",
+    "token_auth": "client_secret_post",
+    "pkce": "S256",
+    "base_scopes": [],
+    "scope_flags": {
+     "ads_management": "ads_management",
+     "ads_read": "ads_read",
+     "business_management": "business_management",
+     "email": "email",
+     "groups_access_member_info": "groups_access_member_info",
+     "leads_retrieval": "leads_retrieval",
+     "manage_notifications": "manage_notifications",
+     "manage_pages": "manage_pages",
+     "pages_manage_cta": "pages_manage_cta",
+     "pages_manage_instant_articles": "pages_manage_instant_articles",
+     "pages_messaging": "pages_messaging",
+     "pages_messaging_phone_number": "pages_messaging_phone_number",
+     "pages_messaging_subscriptions": "pages_messaging_subscriptions",
+     "pages_show_list": "pages_show_list",
+     "public_profile": "public_profile",
+     "publish_actions": "publish_actions",
+     "publish_pages": "publish_pages",
+     "publish_to_groups": "publish_to_groups",
+     "publish_video": "publish_video",
+     "read_audience_network_insights": "read_audience_network_insights",
+     "read_insights": "read_insights",
+     "read_mailbox": "read_mailbox",
+     "read_page_mailboxes": "read_page_mailboxes",
+     "read_stream": "read_stream",
+     "user_age_range": "user_age_range",
+     "user_birthday": "user_birthday",
+     "user_events": "user_events",
+     "user_friends": "user_friends",
+     "user_gender": "user_gender",
+     "user_groups": "user_groups",
+     "user_hometown": "user_hometown",
+     "user_likes": "user_likes",
+     "user_link": "user_link",
+     "user_location": "user_location",
+     "user_managed_groups": "user_managed_groups",
+     "user_photos": "user_photos",
+     "user_posts": "user_posts",
+     "user_status": "user_status",
+     "user_tagged_places": "user_tagged_places",
+     "user_videos": "user_videos"
+    },
+    "freeform_scopes": true,
+    "user_id": "id",
+    "email": "email",
+    "email_verified": "always",
+    "source": [
+     "https://developers.facebook.com/docs/facebook-login/guides/advanced/manual-flow",
+     "https://developers.facebook.com/docs/graph-api/securing-requests",
+     "https://auth0.com/docs/authenticate/identity-providers/social-identity-providers/facebook",
+     "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
+    ],
+    "graph_version": "v24.0",
+    "appsecret_proof": "HMAC-SHA256(access_token, app secret), hex, on every Graph call",
+    "scope_separator": ",",
+    "default_flags": [
+     "public_profile"
+    ],
+    "stored_only": [
+     "allow_context_profile_field"
+    ]
+   },
+   "linkedin": {
+    "id_format": "linkedin|<sub>",
+    "authorization_url": "https://www.linkedin.com/oauth/v2/authorization",
+    "token_url": "https://www.linkedin.com/oauth/v2/accessToken",
+    "profile_url": "https://api.linkedin.com/v2/userinfo",
+    "token_auth": "client_secret_post",
+    "pkce": "none",
+    "base_scopes": [
+     "openid",
+     "profile"
+    ],
+    "scope_flags": {
+     "email": "email"
+    },
+    "freeform_scopes": true,
+    "user_id": "sub",
+    "email": "email",
+    "email_verified": "field:email_verified",
+    "source": [
+     "https://learn.microsoft.com/en-us/linkedin/consumer/integrations/self-serve/sign-in-with-linkedin-v2",
+     "https://auth0.com/docs/authenticate/identity-providers/social-identity-providers/linkedin",
+     "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
+    ],
+    "strategy_version": "3 (OpenID Connect, the default) is active; 1 and 2 are stored and refused at login (SP-8)",
+    "stored_only": [
+     "basic_profile",
+     "full_profile",
+     "network",
+     "openid",
+     "profile"
+    ]
+   },
+   "twitter": {
+    "id_format": "twitter|<data.id>",
+    "authorization_url": "https://x.com/i/oauth2/authorize",
+    "token_url": "https://api.x.com/2/oauth2/token",
+    "profile_url": "https://api.x.com/2/users/me?user.fields=id,name,username,profile_image_url",
+    "token_auth": "client_secret_basic",
+    "pkce": "S256",
+    "base_scopes": [],
+    "scope_flags": {
+     "tweet_read": "tweet.read",
+     "users_read": "users.read",
+     "offline_access": "offline.access"
+    },
+    "freeform_scopes": true,
+    "user_id": "data.id",
+    "email": null,
+    "email_verified": "never",
+    "source": [
+     "https://docs.x.com/resources/fundamentals/authentication/oauth-2-0/authorization-code",
+     "https://docs.x.com/resources/fundamentals/authentication/oauth-1-0a/obtaining-user-access-tokens",
+     "https://auth0.com/docs/authenticate/identity-providers/social-identity-providers/twitter",
+     "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
+    ],
+    "protocol": "oauth2 (default) or oauth1",
+    "default_flags": [
+     "tweet_read",
+     "users_read"
+    ],
+    "oauth1": {
+     "request_token_url": "https://api.x.com/oauth/request_token",
+     "authorization_url": "https://api.x.com/oauth/authenticate",
+     "access_token_url": "https://api.x.com/oauth/access_token",
+     "profile_url": "https://api.x.com/1.1/account/verify_credentials.json?include_email=true&skip_status=true",
+     "user_id": "id_str",
+     "email": "email (only with the app's elevated email permission, SP-7)",
+     "email_verified": "never"
+    }
+   },
+   "amazon": {
+    "id_format": "amazon|<user_id>",
+    "authorization_url": "https://www.amazon.com/ap/oa",
+    "token_url": "https://api.amazon.com/auth/o2/token",
+    "profile_url": "https://api.amazon.com/user/profile",
+    "token_auth": "client_secret_post",
+    "pkce": "S256",
+    "base_scopes": [
+     "profile"
+    ],
+    "scope_flags": {
+     "postal_code": "postal_code"
+    },
+    "freeform_scopes": true,
+    "user_id": "user_id",
+    "email": "email",
+    "email_verified": "never",
+    "source": [
+     "https://developer.amazon.com/docs/login-with-amazon/authorization-code-grant.html",
+     "https://developer.amazon.com/docs/login-with-amazon/obtain-customer-profile.html",
+     "https://auth0.com/docs/authenticate/identity-providers/social-identity-providers/amazon",
+     "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
+    ],
+    "stored_only": [
+     "profile"
+    ]
+   },
+   "paypal": {
+    "id_format": "paypal|<user_id>",
+    "authorization_url": "https://www.paypal.com/signin/authorize",
+    "token_url": "https://api-m.paypal.com/v1/oauth2/token",
+    "profile_url": "https://api-m.paypal.com/v1/identity/oauth2/userinfo?schema=paypalv1.1",
+    "token_auth": "client_secret_basic",
+    "pkce": "none",
+    "base_scopes": [
+     "openid"
+    ],
+    "scope_flags": {
+     "profile": "profile",
+     "email": "email",
+     "address": "address",
+     "phone": "phone"
+    },
+    "freeform_scopes": true,
+    "user_id": "user_id",
+    "email": "emails[?primary].value",
+    "email_verified": "field:emails[?primary].confirmed",
+    "source": [
+     "https://developer.paypal.com/docs/log-in-with-paypal/integrate/",
+     "https://auth0.com/docs/authenticate/identity-providers/social-identity-providers/paypal",
+     "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
+    ]
+   },
+   "paypal-sandbox": {
+    "id_format": "paypal-sandbox|<user_id>",
+    "authorization_url": "https://www.sandbox.paypal.com/signin/authorize",
+    "token_url": "https://api-m.sandbox.paypal.com/v1/oauth2/token",
+    "profile_url": "https://api-m.sandbox.paypal.com/v1/identity/oauth2/userinfo?schema=paypalv1.1",
+    "token_auth": "client_secret_basic",
+    "pkce": "none",
+    "base_scopes": [
+     "openid"
+    ],
+    "scope_flags": {
+     "profile": "profile",
+     "email": "email",
+     "address": "address",
+     "phone": "phone"
+    },
+    "freeform_scopes": true,
+    "user_id": "user_id",
+    "email": "emails[?primary].value",
+    "email_verified": "field:emails[?primary].confirmed",
+    "source": [
+     "https://developer.paypal.com/docs/log-in-with-paypal/integrate/",
+     "https://auth0.com/docs/authenticate/identity-providers/social-identity-providers/paypal",
+     "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
+    ],
+    "note": "strategy name per Auth0's strategy enum (SP-1)"
+   },
+   "salesforce": {
+    "id_format": "salesforce|<user_id>",
+    "authorization_url": "https://login.salesforce.com/services/oauth2/authorize",
+    "token_url": "https://login.salesforce.com/services/oauth2/token",
+    "profile_url": "token response id (identity URL), same host as the token endpoint",
+    "token_auth": "client_secret_post",
+    "pkce": "S256",
+    "base_scopes": [
+     "id"
+    ],
+    "scope_flags": {
+     "profile": "profile"
+    },
+    "freeform_scopes": true,
+    "user_id": "user_id",
+    "email": "email",
+    "email_verified": "field:email_verified",
+    "source": [
+     "https://help.salesforce.com/s/articleView?id=sf.remoteaccess_oauth_web_server_flow.htm",
+     "https://help.salesforce.com/s/articleView?id=sf.remoteaccess_using_openid.htm",
+     "https://auth0.com/docs/authenticate/identity-providers/social-identity-providers/salesforce",
+     "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
+    ],
+    "default_flags": [
+     "profile"
+    ]
+   },
+   "salesforce-sandbox": {
+    "id_format": "salesforce-sandbox|<user_id>",
+    "authorization_url": "https://test.salesforce.com/services/oauth2/authorize",
+    "token_url": "https://test.salesforce.com/services/oauth2/token",
+    "profile_url": "token response id (identity URL), same host as the token endpoint",
+    "token_auth": "client_secret_post",
+    "pkce": "S256",
+    "base_scopes": [
+     "id"
+    ],
+    "scope_flags": {
+     "profile": "profile"
+    },
+    "freeform_scopes": true,
+    "user_id": "user_id",
+    "email": "email",
+    "email_verified": "field:email_verified",
+    "source": [
+     "https://help.salesforce.com/s/articleView?id=sf.remoteaccess_oauth_web_server_flow.htm",
+     "https://auth0.com/docs/authenticate/identity-providers/social-identity-providers/salesforce",
+     "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
+    ],
+    "default_flags": [
+     "profile"
+    ]
+   },
+   "salesforce-community": {
+    "id_format": "salesforce-community|<user_id>",
+    "authorization_url": "<community_base_url>/services/oauth2/authorize",
+    "token_url": "<community_base_url>/services/oauth2/token",
+    "profile_url": "token response id (identity URL), same host as community_base_url",
+    "token_auth": "client_secret_post",
+    "pkce": "S256",
+    "base_scopes": [
+     "id"
+    ],
+    "scope_flags": {
+     "profile": "profile"
+    },
+    "freeform_scopes": true,
+    "user_id": "user_id",
+    "email": "email",
+    "email_verified": "field:email_verified",
+    "source": [
+     "https://help.salesforce.com/s/articleView?id=sf.networks_auth_configure_oauth.htm",
+     "https://auth0.com/docs/authenticate/identity-providers/social-identity-providers/salesforce",
+     "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
+    ],
+    "default_flags": [
+     "profile"
+    ],
+    "community_base_url": "required https URL without query or fragment; public host"
+   },
+   "yahoo": {
+    "id_format": "yahoo|<sub>",
+    "authorization_url": "https://api.login.yahoo.com/oauth2/request_auth",
+    "token_url": "https://api.login.yahoo.com/oauth2/get_token",
+    "profile_url": "https://api.login.yahoo.com/openid/v1/userinfo",
+    "token_auth": "client_secret_basic",
+    "pkce": "none",
+    "base_scopes": [
+     "openid",
+     "profile",
+     "email"
+    ],
+    "scope_flags": {},
+    "freeform_scopes": false,
+    "user_id": "sub",
+    "email": "email",
+    "email_verified": "field:email_verified",
+    "source": [
+     "https://developer.yahoo.com/oauth2/guide/openid_connect/",
+     "https://auth0.com/docs/authenticate/identity-providers/social-identity-providers/yahoo",
+     "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
+    ]
+   },
+   "line": {
+    "id_format": "line|<userId>",
+    "authorization_url": "https://access.line.me/oauth2/v2.1/authorize",
+    "token_url": "https://api.line.me/oauth2/v2.1/token",
+    "profile_url": "https://api.line.me/v2/profile",
+    "token_auth": "client_secret_post",
+    "pkce": "S256",
+    "base_scopes": [
+     "openid"
+    ],
+    "scope_flags": {
+     "profile": "profile",
+     "email": "email"
+    },
+    "freeform_scopes": true,
+    "user_id": "userId",
+    "email": "email (ID token claim, read through the verify endpoint)",
+    "email_verified": "never",
+    "source": [
+     "https://developers.line.biz/en/docs/line-login/integrate-line-login/",
+     "https://developers.line.biz/en/reference/line-login/#verify-id-token",
+     "https://auth0.com/docs/authenticate/identity-providers/social-identity-providers/line",
+     "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
+    ],
+    "default_flags": [
+     "profile"
+    ],
+    "verify_url": "https://api.line.me/oauth2/v2.1/verify"
+   },
+   "dropbox": {
+    "id_format": "dropbox|<account_id>",
+    "authorization_url": "https://www.dropbox.com/oauth2/authorize",
+    "token_url": "https://api.dropboxapi.com/oauth2/token",
+    "profile_url": "POST https://api.dropboxapi.com/2/users/get_current_account",
+    "token_auth": "client_secret_post",
+    "pkce": "S256",
+    "base_scopes": [
+     "account_info.read"
+    ],
+    "scope_flags": {},
+    "freeform_scopes": false,
+    "user_id": "account_id",
+    "email": "email",
+    "email_verified": "field:email_verified",
+    "source": [
+     "https://developers.dropbox.com/oauth-guide",
+     "https://www.dropbox.com/developers/documentation/http/documentation#users-get_current_account",
+     "https://auth0.com/docs/authenticate/identity-providers/social-identity-providers/dropbox",
+     "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
+    ]
+   },
+   "box": {
+    "id_format": "box|<id>",
+    "authorization_url": "https://account.box.com/api/oauth2/authorize",
+    "token_url": "https://api.box.com/oauth2/token",
+    "profile_url": "https://api.box.com/2.0/users/me",
+    "token_auth": "client_secret_post",
+    "pkce": "none",
+    "base_scopes": [],
+    "scope_flags": {},
+    "freeform_scopes": false,
+    "user_id": "id",
+    "email": "login",
+    "email_verified": "never",
+    "source": [
+     "https://developer.box.com/guides/authentication/oauth2/",
+     "https://developer.box.com/reference/get-users-me/",
+     "https://auth0.com/docs/authenticate/identity-providers/social-identity-providers/box",
+     "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
+    ]
+   },
+   "bitbucket": {
+    "id_format": "bitbucket|<uuid>",
+    "authorization_url": "https://bitbucket.org/site/oauth2/authorize",
+    "token_url": "https://bitbucket.org/site/oauth2/access_token",
+    "profile_url": "https://api.bitbucket.org/2.0/user",
+    "token_auth": "client_secret_basic",
+    "pkce": "none",
+    "base_scopes": [
+     "account",
+     "email"
+    ],
+    "scope_flags": {},
+    "freeform_scopes": true,
+    "user_id": "uuid",
+    "email": "values[?is_primary].email from https://api.bitbucket.org/2.0/user/emails",
+    "email_verified": "field:values[?is_primary].is_confirmed",
+    "source": [
+     "https://developer.atlassian.com/cloud/bitbucket/oauth-2/",
+     "https://developer.atlassian.com/cloud/bitbucket/rest/api-group-users/",
+     "https://auth0.com/docs/authenticate/identity-providers/social-identity-providers/bitbucket",
+     "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
+    ],
+    "default_flags": [
+     "profile"
+    ],
+    "stored_only": [
+     "profile"
+    ]
+   },
+   "shopify": {
+    "id_format": "shopify|<shop.id>",
+    "authorization_url": "https://<shop>.myshopify.com/admin/oauth/authorize",
+    "token_url": "https://<shop>.myshopify.com/admin/oauth/access_token",
+    "profile_url": "https://<shop>.myshopify.com/admin/api/2025-10/shop.json (X-Shopify-Access-Token)",
+    "token_auth": "client_secret_post",
+    "pkce": "none",
+    "base_scopes": [],
+    "scope_flags": {},
+    "freeform_scopes": false,
+    "user_id": "shop.id",
+    "email": "shop.email",
+    "email_verified": "never",
+    "source": [
+     "https://shopify.dev/docs/apps/build/authentication-authorization/access-tokens/authorization-code-grant",
+     "https://shopify.dev/docs/api/admin-rest/latest/resources/shop",
+     "https://auth0.com/docs/authenticate/identity-providers/social-identity-providers/shopify",
+     "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
+    ],
+    "shop": "from login_hint at /authorize: <name> or <name>.myshopify.com, lowercase letters, digits and hyphens; refused otherwise (SP-9)"
+   }
+  },
+  "oauth1": {
+   "options": [
+    "client_id",
+    "client_secret",
+    "requestTokenURL",
+    "accessTokenURL",
+    "userAuthorizationURL",
+    "signatureMethod",
+    "scripts.fetchUserProfile"
+   ],
+   "signature": "HMAC-SHA1 when signatureMethod is absent; RSA-SHA1 (client_secret is the PEM RSA private key) when set to RSA-SHA1, the only value Auth0's OpenAPI allows; PLAINTEXT and anything else refused",
+   "request_token_secret": "sealed in the attempt proof, never logged or returned",
+   "callback": "oauth_token must equal the sealed request token; oauth_verifier required",
+   "profile": "scripts.fetchUserProfile(token, tokenSecret, context, callback) with the Plan 24 script runner",
+   "source": [
+    "https://www.rfc-editor.org/rfc/rfc5849",
+    "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
+   ]
+  }
  }
 }
