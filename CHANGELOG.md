@@ -8,6 +8,13 @@ All notable changes to zeroauthy are recorded here. The format follows
 
 ### Added
 
+- CIBA with the email channel (Plan 41c): `POST /bc-authorize` lets a
+  first-party confidential application ask a user to approve a sign-in;
+  the user approves through the emailed `async_approval` link at
+  `/bc-verify` and the application polls `/oauth/token` with
+  `urn:openid:params:grant-type:ciba`. Clients gain
+  `async_approval_notification_channels`. Migration 0052 adds the request
+  store (storage plugins need `ciba.v1`). See [CIBA](docs/ciba.md).
 - My Organization API (Phase A): `/my-org/v1` lets organization
   administrators manage their organization's details, members, member
   roles and invitations, scoped by the token's organization. Activation

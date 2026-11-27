@@ -408,3 +408,26 @@ func TestSweepSAMLReplayState(t *testing.T) {
 		t.Fatalf("expired SAML replay state was not purged: %d left (%v)", n, err)
 	}
 }
+
+// CIBA requests are removed 24 hours after they expire (Plan 41c): the
+// pending limit counts them until then.
+func TestSweepCIBARequests(t *testing.T) {
+	ctx := context.Background()
+	now := time.Date(2026, 11, 26, 12, 0, 0, 0, time.UTC)
+	st := memory.New()
+	repo := store.CIBAStore(st)
+	for id, exp := range map[string]time.Time{"gone": now.Add(-25 * time.Hour), "counted": now.Add(-23 * time.Hour), "live": now.Add(time.Hour)} {
+		if err := repo.CreateCIBARequest(ctx, &store.CIBARequest{TenantID: "t", IDHash: id, TicketHash: "t" + id, ClientID: "c", Status: store.CIBAPending, ExpiresAt: exp}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if _, err := sweep(ctx, st, now); err != nil {
+		t.Fatal(err)
+	}
+	for id, want := range map[string]bool{"gone": false, "counted": true, "live": true} {
+		_, err := repo.GetCIBARequest(ctx, "t", id)
+		if (err == nil) != want {
+			t.Errorf("%s kept = %v, want %v", id, err == nil, want)
+		}
+	}
+}

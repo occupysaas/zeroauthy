@@ -53,6 +53,10 @@ func (h *Handlers) cibaGrant(ctx context.Context, res tenant.Resolved, c *store.
 		return nil, serverError()
 	}
 	hash := secrets.HashToken(id)
+	// The origin is checked before the poll, which may consume an approval.
+	if cur, err := repo.GetCIBARequest(ctx, tenantID, hash); err == nil && (cur.ClientID != c.ClientID || res.CheckOrigin(cur.Origin) != nil) {
+		return nil, cibaError("invalid_grant", "invalid auth_req_id")
+	}
 	// Another client's request is unknown to this client and does not move
 	// (Review Focus 4).
 	poll, rec, err := repo.PollCIBARequest(ctx, tenantID, hash, c.ClientID, h.now())
@@ -62,8 +66,6 @@ func (h *Handlers) cibaGrant(ctx context.Context, res tenant.Resolved, c *store.
 	case err != nil:
 		h.log().ErrorContext(ctx, "poll CIBA request", "tenant", tenantID, "err", err)
 		return nil, serverError()
-	case res.CheckOrigin(rec.Origin) != nil:
-		return nil, cibaError("invalid_grant", "invalid auth_req_id")
 	}
 	switch poll {
 	case store.CIBAPollPending:

@@ -183,3 +183,22 @@ func TestCIBAOtherClient(t *testing.T) {
 		t.Fatalf("owner after the intruder: %d", rec.Code)
 	}
 }
+
+// A request started on another host is refused before the poll, so an
+// approval is not consumed there.
+func TestCIBAOtherOrigin(t *testing.T) {
+	f := newPollFixture(t)
+	repo := f.st.(store.CIBAStore)
+	other := secrets.RandomString(43)
+	if err := repo.CreateCIBARequest(context.Background(), &store.CIBARequest{Origin: "https://other.example.test", TenantID: f.tid, IDHash: secrets.HashToken(other), TicketHash: "tother",
+		ClientID: "ciba-app", UserID: f.alice.UserID, Scopes: []string{"openid"}, Status: store.CIBAPending, Interval: 5, ExpiresAt: f.clock.Add(time.Hour), CreatedAt: f.clock}); err != nil {
+		t.Fatal(err)
+	}
+	f.decide(t, other, store.CIBAApproved, "openid")
+	if rec, out := f.poll(t, "ciba-app", "ciba-secret", other); rec.Code != 400 || out["error"] != "invalid_grant" {
+		t.Fatalf("other origin: %d %v", rec.Code, out)
+	}
+	if got, _ := repo.GetCIBARequest(context.Background(), f.tid, secrets.HashToken(other)); got.Status != store.CIBAApproved {
+		t.Fatalf("approval consumed on the wrong host: %s", got.Status)
+	}
+}

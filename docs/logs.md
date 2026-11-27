@@ -309,6 +309,10 @@ semantics before enabling a code.
 | `seccft` | A client-credentials request issued tokens. |
 | `secte` | A custom token grant issued tokens. |
 | `sede` | A device-code grant issued tokens. |
+| `ciba_start_succeeded` | A CIBA authentication request began (Plan 41c). |
+| `ciba_start_failed` | A CIBA authentication request could not begin (Plan 41c). |
+| `ciba_exchange_succeeded` | A CIBA token request issued tokens (Plan 41c). |
+| `ciba_exchange_failed` | A CIBA token request was refused (Plan 41c). |
 | `sepft` | A resource-owner password grant issued tokens. |
 | `sertft` | A refresh credential issued tokens. |
 | `si` | An organization invitation was accepted. |
@@ -405,10 +409,6 @@ remain deferred within Plan 31 because safe source classifications are absent.
 | `admin_update_launch` | A platform update was announced. | Plan 47 |
 | `api_limit_warning` | API request traffic approached its rate budget. | Plan 45 |
 | `appi` | An API peak-traffic performance interval began. | Plan 45 |
-| `ciba_exchange_failed` | A CIBA token request was refused. | Plan 41 |
-| `ciba_exchange_succeeded` | A CIBA token request issued tokens. | Plan 41 |
-| `ciba_start_failed` | A CIBA authentication request could not begin. | Plan 41 |
-| `ciba_start_succeeded` | A CIBA authentication request began. | Plan 41 |
 | `cls` | A passwordless sign-in message containing a link or code was dispatched. | Plan 34 |
 | `coff` | An AD/LDAP connector became unavailable. | Plan 36 |
 | `con` | An AD/LDAP connector became available. | Plan 36 |

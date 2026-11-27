@@ -1,6 +1,6 @@
 # Plan 41c — Client-Initiated Backchannel Authentication (CIBA), email channel
 
-**Date:** 2026-11-16. **Status:** design; not implemented.
+**Date:** 2026-11-16. **Status:** implemented on `plan-41c-ciba` (2026-11-26); see the [implementation record](../2026-11-16-plan-41c-implementation-record.md) and D-0100 for where the build departs from this design.
 
 **Roadmap entry:** [management roadmap, Plan 41](2026-10-19-zeroauthy-management-roadmap-design.md)
 (CIBA, `/bc-authorize`, the `async_approval` template stored since

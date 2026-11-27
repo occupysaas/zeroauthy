@@ -348,3 +348,18 @@ Verified with `@auth0/auth0-spa-js` 2.28.3 organization logins in Chromium. See 
 Verified in `make e2e-my-org` against a fixture DNS server and the
 production binary (SCIM user created with an issued token, then revoked).
 See D-0221 and the [Phase B record](../superpowers/2026-11-26-plan-42b-phase-b-implementation-record.md).
+
+## Plan 41c Client-Initiated Backchannel Authentication (email channel)
+
+| Surface | Behavior |
+| --- | --- |
+| `POST /bc-authorize` | First-party confidential clients with the CIBA grant and `email` in `async_approval_notification_channels`; client secret or `private_key_jwt`, optional signed request object; Auth0's `iss_sub` `login_hint`; `openid` required; `binding_message` required (1–64 letters, digits, `+-_.,:#`); `requested_expiry` 301–259200 s; identical answers for unknown and unverified users; 500/min and 5000 pending per tenant, 5/min per user. |
+| Approval | `async_approval` email to the verified address; `/bc-verify?consent=` shows the request, then sign-in as the hinted user (MFA, post-login Actions with `oidc-ciba-web-link`) and approve, or deny. No consent grant. |
+| Poll | `urn:openid:params:grant-type:ciba`: `authorization_pending`, `slow_down` (+5 s, `interval` in the body), `access_denied` (denied or expired), `invalid_grant` (unknown, redeemed, another client's); tokens once. |
+| Clients | `async_approval_notification_channels` (`email`; `guardian-push`, `my-account` stored only). |
+| Discovery | `backchannel_authentication_endpoint`, poll mode, no `user_code`, request object algorithms. |
+| Logs | `ciba_start_*`, `ciba_exchange_*`. |
+
+Verified in `make e2e-ciba` (email link approved and denied in Chromium,
+tokens polled once). See D-0100 and the
+[implementation record](../superpowers/2026-11-16-plan-41c-implementation-record.md).
