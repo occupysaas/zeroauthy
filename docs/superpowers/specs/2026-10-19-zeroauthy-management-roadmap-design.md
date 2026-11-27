@@ -17,7 +17,7 @@ the plans below, marked "(pre-1.0 review)".
 ### Designed 2026-11-16 (spec and plan merged; implementation status below)
 
 Every remaining parallel-paths item except X1 (maintainer-only) has a spec and
-an implementation plan. S1 / Plan 39a (Apple) is implemented and merged into `main` (2026-11-17, plan-branch CI green at `74752598`). O3 / Plan 45b is [implemented](../2026-11-16-plan-45b-implementation-record.md) (all 14 tasks). As of 2026-11-26, F1–F5, P2–P5, U1, U2 and S2's GitHub connection are merged too; the rows below say which. Rulings the maintainer still has to give are listed
+an implementation plan. S1 / Plan 39a (Apple) is implemented and merged into `main` (2026-11-17, plan-branch CI green at `74752598`). O3 / Plan 45b is [implemented](../2026-11-16-plan-45b-implementation-record.md) (all 14 tasks). As of 2026-11-27, F1–F5, P2–P5, U1, U2, S2's GitHub connection and S2 Tier 1 are merged too; the rows below say which. Rulings the maintainer still has to give are listed
 per item; items without rulings can start as soon as their track allows.
 
 | Item | Plan | Spec | Rulings needed before (parts of) implementation |
@@ -33,7 +33,7 @@ per item; items without rulings can start as soon as their track allows.
 | F4 | 37c SCIM, groups, self-service (**merged** 2026-11-24, PR #87) | [spec](2026-11-16-zeroauthy-scim-self-service-design.md) | none (ruled 2026-11-22: phases A → B → C; Phase C with fixture Directory API coverage, live check later) |
 | F5 | 38a AD/LDAP (**merged** 2026-11-24, PR #88) | [spec](2026-11-16-zeroauthy-ad-ldap-design.md) | none (ruled 2026-11-22, recommended options: Auth0 AD/LDAP Connector protocol, not a native LDAP bind; E2E pins the connector release with its mock LDAP server; replica forwarding over internal HTTPS) |
 | S1 | 39a Apple | [spec](2026-11-16-zeroauthy-apple-design.md) | **done** (merged 2026-11-17, [record](../2026-11-16-plan-39a-implementation-record.md)) |
-| S2 | 39b social providers (GitHub split out as 39c, **merged** 2026-11-19, PR #71; Tier 1, `oauth1` and native Google/Facebook implemented on `plan-39b-social-providers`, CI and approval pending; Tier 2 a later plan) | [spec](2026-11-16-zeroauthy-social-providers-design.md) | ruled 2026-11-27: Tier 1 order as listed, Tier 2 later, fixtures only |
+| S2 | 39b social providers (GitHub split out as 39c, **merged** 2026-11-19, PR #71; Tier 1, `oauth1` and native Google/Facebook **merged** 2026-11-27, PR #105; Tier 2 open as the next social batch, which also ports GitHub to a descriptor) | [spec](2026-11-16-zeroauthy-social-providers-design.md) | ruled 2026-11-27: Tier 1 order as listed, Tier 2 later, fixtures only; next batch ports GitHub |
 | A1 | 40 Actions III | [spec](2026-11-16-zeroauthy-actions-iii-design.md) | none |
 | A2 | 38b Forms and Flows | [spec](2026-11-16-zeroauthy-forms-flows-design.md) | console builder scope; vendor order |
 | U1 | 42a My Account API (**merged** 2026-11-26, PR #98) | [spec](2026-11-16-zeroauthy-my-account-api-design.md) | none (seed shorthand optional) |

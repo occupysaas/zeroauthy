@@ -1,6 +1,6 @@
 # Plan 39b — Remaining social providers, generic OAuth 1.0a, Google and Facebook native login
 
-**Date:** 2026-11-16. **Status:** Tier 1 implemented on `plan-39b-social-providers` (2026-11-27); see the [implementation record](../2026-11-16-plan-39b-implementation-record.md) and D-0180. §8 ruled 2026-11-27: Tier 1 in the listed order, Tier 2 in a later plan, fixtures only.
+**Date:** 2026-11-16. **Status:** Tier 1 merged 2026-11-27 (PR #105); Tier 2 and the GitHub descriptor port are the next social batch; see the [implementation record](../2026-11-16-plan-39b-implementation-record.md) and D-0180. §8 ruled 2026-11-27: Tier 1 in the listed order, Tier 2 in a later plan, fixtures only.
 
 **Roadmap entry:** [management roadmap, Plan 39](2026-10-19-zeroauthy-management-roadmap-design.md)
 ("short, Apple full"); [parallel paths](2026-11-13-zeroauthy-parallel-paths-design.md)
