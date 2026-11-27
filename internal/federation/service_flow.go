@@ -217,7 +217,14 @@ func (s *FlowService) Begin(ctx context.Context, in BeginInput) (*Begun, error) 
 		if !rules.IsDescriptorSocial(cfg.Strategy) {
 			return nil, ErrConnectionUnusable
 		}
-		if endpoints, err = s.Providers.SocialEndpoints(cfg, in.LoginHint); err != nil {
+		// The hosted login starts social connections without a hint; the
+		// transaction's login_hint names Shopify's shop. Descriptor
+		// strategies never forward it upstream.
+		hint := in.LoginHint
+		if hint == "" && in.Txn != nil {
+			hint = in.Txn.Params["login_hint"]
+		}
+		if endpoints, err = s.Providers.SocialEndpoints(cfg, hint); err != nil {
 			return nil, err
 		}
 	}

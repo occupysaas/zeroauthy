@@ -109,6 +109,15 @@ func run() error {
 			return fmt.Errorf("E2E_GITHUB_BASE must be https://%s/github", idpHost)
 		}
 	}
+	// Plan 39b: every descriptor strategy's stand-in lives under
+	// E2E_SOCIAL_BASE on the idp host (provider /social routes).
+	social := ""
+	if os.Getenv("E2E_M39B") == "1" {
+		social = os.Getenv("E2E_SOCIAL_BASE")
+		if u, err := url.Parse(social); err != nil || u.Scheme != "https" || u.Host != idpHost || u.Path != "/social" {
+			return fmt.Errorf("E2E_SOCIAL_BASE must be https://%s/social", idpHost)
+		}
+	}
 	var dnsMu sync.RWMutex
 	records := map[string][]string{}
 	dns := &dnsfixture.Server{A: [4]byte{8, 8, 8, 8}, TXT: func(name string) []string {
@@ -189,6 +198,9 @@ func run() error {
 		if apple != nil {
 			base := "https://apple.idp.test/apple"
 			ps.WithAppleFixture(federation.AppleOverride{Issuer: base, DiscoveryURL: base + "/.well-known/openid-configuration", Endpoints: federation.Endpoints{AuthorizationURL: base + "/authorize", TokenURL: base + "/token", JWKSURL: base + "/jwks", TokenAuthMethod: "client_secret_post"}})
+		}
+		if social != "" {
+			ps.WithSocialFixture(social)
 		}
 		if github != "" {
 			ps.WithGitHubFixture(federation.GitHubOverride{Endpoints: federation.Endpoints{AuthorizationURL: github + "/login/oauth/authorize", TokenURL: github + "/login/oauth/access_token"}, APIBase: github + "/api"})

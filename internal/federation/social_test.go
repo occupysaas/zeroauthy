@@ -378,3 +378,24 @@ func TestSocialBeginCapability(t *testing.T) {
 		t.Fatalf("begin on a store without social.v1: %v", err)
 	}
 }
+
+// TestShopifyLoginHintFromTransaction: a hosted login started from
+// /authorize?login_hint=<shop> reaches the Shopify hook through the
+// transaction (LR39b-8); the hint is never forwarded upstream.
+func TestShopifyLoginHintFromTransaction(t *testing.T) {
+	f := newSocFixture(t)
+	e := newSocFlowEnv(t, f, "shopify", nil)
+	txn := &store.AuthTransaction{ID: "txn-shop", TenantID: "ten", ClientID: "client", ExpiresAt: fixedTime.Add(time.Hour), Params: map[string]string{"login_hint": "my-shop"}}
+	if err := e.st.AuthTransactions().Create(e.ctx, txn); err != nil {
+		t.Fatal(err)
+	}
+	begun, err := e.svc.Begin(e.ctx, BeginInput{Tenant: &store.Tenant{ID: "ten"}, Origin: "https://login.example", Txn: txn,
+		Client: &store.Client{TenantID: "ten", ClientID: "client", IsFirstParty: true}, Connection: e.conn})
+	if err != nil {
+		t.Fatal(err)
+	}
+	u, _ := url.Parse(begun.URL)
+	if u.Path != "/shopify/admin/oauth/authorize" || u.Query().Has("login_hint") {
+		t.Fatalf("redirect %s", begun.URL)
+	}
+}
