@@ -1,6 +1,6 @@
 # Plan 41b implementation record
 
-Status: **implemented and verified locally**, on `plan-41b-dcr` (worktree
+Status: **merged** 2026-11-26 (PR #102), from `plan-41b-dcr` (worktree
 `/mnt/nvme2/code/zeroauthy-plan41b`), based on `main` after the roadmap
 update of PR #101. Plan-branch CI and maintainer approval govern
 integration.

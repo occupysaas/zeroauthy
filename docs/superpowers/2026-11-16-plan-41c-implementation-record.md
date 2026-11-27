@@ -1,6 +1,6 @@
 # Plan 41c implementation record
 
-Status: **implemented and verified locally**, on `plan-41c-ciba` (worktree
+Status: **merged** 2026-11-26 (PR #103), from `plan-41c-ciba` (worktree
 `/mnt/nvme2/code/zeroauthy-plan41c`), based on `main` after PR #101 and
 merged with `main` after Plan 41b (PR #102): the migration is renumbered
 0053 (41b is 0052), and the protobuf keeps 41b's client field 38 and this

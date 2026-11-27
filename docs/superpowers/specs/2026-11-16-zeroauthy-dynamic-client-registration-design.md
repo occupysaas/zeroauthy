@@ -1,6 +1,6 @@
 # Plan 41b — Dynamic Client Registration and Client ID Metadata Documents
 
-**Date:** 2026-11-16. **Status:** implemented on `plan-41b-dcr` (2026-11-26); see the [implementation record](../2026-11-16-plan-41b-implementation-record.md) and D-0090 for where the build departs from this design.
+**Date:** 2026-11-16. **Status:** merged 2026-11-26 (PR #102); see the [implementation record](../2026-11-16-plan-41b-implementation-record.md) and D-0090 for where the build departs from this design.
 
 **Roadmap entry:** [management roadmap, Plan 41](2026-10-19-zeroauthy-management-roadmap-design.md)
 (Dynamic Client Registration; Plan 35 moved "CIMD client registration"
