@@ -1,0 +1,53 @@
+{
+ "strategy": "twitter",
+ "display_name": "X (Twitter)",
+ "source": [
+  "https://docs.x.com/resources/fundamentals/authentication/oauth-2-0/authorization-code",
+  "https://docs.x.com/resources/fundamentals/authentication/oauth-2-0/user-access-token",
+  "https://docs.x.com/x-api/users/user-lookup-me",
+  "https://docs.x.com/resources/fundamentals/authentication/oauth-1-0a/obtaining-user-access-tokens",
+  "https://auth0.com/docs/authenticate/identity-providers/social-identity-providers/twitter"
+ ],
+ "authorization_url": "https://x.com/i/oauth2/authorize",
+ "token_url": "https://api.x.com/2/oauth2/token",
+ "profile_url": "https://api.x.com/2/users/me?user.fields=id,name,username,profile_image_url",
+ "token_auth": "client_secret_basic",
+ "pkce": "S256",
+ "base_scopes": [],
+ "flags": [
+  {
+   "option": "tweet_read",
+   "scopes": [
+    "tweet.read"
+   ],
+   "default": true
+  },
+  {
+   "option": "users_read",
+   "scopes": [
+    "users.read"
+   ],
+   "default": true
+  },
+  {
+   "option": "offline_access",
+   "scopes": [
+    "offline.access"
+   ]
+  }
+ ],
+ "stored_only": [
+  "profile"
+ ],
+ "freeform_scopes": true,
+ "profile": {
+  "user_id": "data.id",
+  "name": "data.name",
+  "nickname": "data.username",
+  "picture": "data.profile_image_url"
+ },
+ "email_verified": {
+  "rule": "never"
+ },
+ "hook": "twitter"
+}

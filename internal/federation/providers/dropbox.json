@@ -1,0 +1,32 @@
+{
+ "strategy": "dropbox",
+ "display_name": "Dropbox",
+ "source": [
+  "https://developers.dropbox.com/oauth-guide",
+  "https://www.dropbox.com/developers/documentation/http/documentation#users-get_current_account",
+  "https://auth0.com/docs/authenticate/identity-providers/social-identity-providers/dropbox"
+ ],
+ "authorization_url": "https://www.dropbox.com/oauth2/authorize",
+ "token_url": "https://api.dropboxapi.com/oauth2/token",
+ "profile_url": "https://api.dropboxapi.com/2/users/get_current_account",
+ "profile_method": "POST",
+ "token_auth": "client_secret_post",
+ "pkce": "S256",
+ "base_scopes": [
+  "account_info.read"
+ ],
+ "flags": [],
+ "freeform_scopes": false,
+ "profile": {
+  "user_id": "account_id",
+  "email": "email",
+  "name": "name.display_name",
+  "given_name": "name.given_name",
+  "family_name": "name.surname",
+  "picture": "profile_photo_url"
+ },
+ "email_verified": {
+  "rule": "field",
+  "path": "email_verified"
+ }
+}

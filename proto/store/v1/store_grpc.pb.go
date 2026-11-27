@@ -492,6 +492,7 @@ const (
 	StoreService_RefreshIIUserGrantsGet_FullMethodName                        = "/zeroauthy.store.v1.StoreService/RefreshIIUserGrantsGet"
 	StoreService_RefreshIISessionsGetForUpdate_FullMethodName                 = "/zeroauthy.store.v1.StoreService/RefreshIISessionsGetForUpdate"
 	StoreService_GitHubFederationSupported_FullMethodName                     = "/zeroauthy.store.v1.StoreService/GitHubFederationSupported"
+	StoreService_SocialFederationSupported_FullMethodName                     = "/zeroauthy.store.v1.StoreService/SocialFederationSupported"
 	StoreService_RefreshIISetCodeBinding_FullMethodName                       = "/zeroauthy.store.v1.StoreService/RefreshIISetCodeBinding"
 	StoreService_RefreshIISessionTokenOwners_FullMethodName                   = "/zeroauthy.store.v1.StoreService/RefreshIISessionTokenOwners"
 )
@@ -1085,6 +1086,8 @@ type StoreServiceClient interface {
 	// Plan 39c capability: github identities are indexed by canonical numeric ID.
 	// Plugins built earlier answer Unimplemented, and GitHub stays unavailable.
 	GitHubFederationSupported(ctx context.Context, in *GitHubFederationCapabilitiesRequest, opts ...grpc.CallOption) (*Result, error)
+	// social.v1 (Plan 39b): raw-subject identities of the descriptor social strategies.
+	SocialFederationSupported(ctx context.Context, in *SocialFederationCapabilitiesRequest, opts ...grpc.CallOption) (*Result, error)
 	RefreshIISetCodeBinding(ctx context.Context, in *CodeBindingRequest, opts ...grpc.CallOption) (*Result, error)
 	RefreshIISessionTokenOwners(ctx context.Context, in *ScopedKey, opts ...grpc.CallOption) (*SessionTokenOwnersResult, error)
 }
@@ -5848,6 +5851,16 @@ func (c *storeServiceClient) GitHubFederationSupported(ctx context.Context, in *
 	return out, nil
 }
 
+func (c *storeServiceClient) SocialFederationSupported(ctx context.Context, in *SocialFederationCapabilitiesRequest, opts ...grpc.CallOption) (*Result, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Result)
+	err := c.cc.Invoke(ctx, StoreService_SocialFederationSupported_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *storeServiceClient) RefreshIISetCodeBinding(ctx context.Context, in *CodeBindingRequest, opts ...grpc.CallOption) (*Result, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(Result)
@@ -6457,6 +6470,8 @@ type StoreServiceServer interface {
 	// Plan 39c capability: github identities are indexed by canonical numeric ID.
 	// Plugins built earlier answer Unimplemented, and GitHub stays unavailable.
 	GitHubFederationSupported(context.Context, *GitHubFederationCapabilitiesRequest) (*Result, error)
+	// social.v1 (Plan 39b): raw-subject identities of the descriptor social strategies.
+	SocialFederationSupported(context.Context, *SocialFederationCapabilitiesRequest) (*Result, error)
 	RefreshIISetCodeBinding(context.Context, *CodeBindingRequest) (*Result, error)
 	RefreshIISessionTokenOwners(context.Context, *ScopedKey) (*SessionTokenOwnersResult, error)
 	mustEmbedUnimplementedStoreServiceServer()
@@ -7887,6 +7902,9 @@ func (UnimplementedStoreServiceServer) RefreshIISessionsGetForUpdate(context.Con
 }
 func (UnimplementedStoreServiceServer) GitHubFederationSupported(context.Context, *GitHubFederationCapabilitiesRequest) (*Result, error) {
 	return nil, status.Error(codes.Unimplemented, "method GitHubFederationSupported not implemented")
+}
+func (UnimplementedStoreServiceServer) SocialFederationSupported(context.Context, *SocialFederationCapabilitiesRequest) (*Result, error) {
+	return nil, status.Error(codes.Unimplemented, "method SocialFederationSupported not implemented")
 }
 func (UnimplementedStoreServiceServer) RefreshIISetCodeBinding(context.Context, *CodeBindingRequest) (*Result, error) {
 	return nil, status.Error(codes.Unimplemented, "method RefreshIISetCodeBinding not implemented")
@@ -16404,6 +16422,24 @@ func _StoreService_GitHubFederationSupported_Handler(srv interface{}, ctx contex
 	return interceptor(ctx, in, info, handler)
 }
 
+func _StoreService_SocialFederationSupported_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SocialFederationCapabilitiesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).SocialFederationSupported(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_SocialFederationSupported_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).SocialFederationSupported(ctx, req.(*SocialFederationCapabilitiesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _StoreService_RefreshIISetCodeBinding_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(CodeBindingRequest)
 	if err := dec(in); err != nil {
@@ -18326,6 +18362,10 @@ var StoreService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GitHubFederationSupported",
 			Handler:    _StoreService_GitHubFederationSupported_Handler,
+		},
+		{
+			MethodName: "SocialFederationSupported",
+			Handler:    _StoreService_SocialFederationSupported_Handler,
 		},
 		{
 			MethodName: "RefreshIISetCodeBinding",

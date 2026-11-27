@@ -59,6 +59,8 @@ type Provider struct {
 	githubAccounts map[string]GitHubAccount
 	githubCodes    map[string]gitHubCode
 	githubTokens   map[string]gitHubToken
+	socialCodes    map[string]socialCode // Plan 39b descriptor strategies
+	socialTokens   map[string]socialToken
 }
 
 // New returns a provider for base.
@@ -67,7 +69,7 @@ func New(base string) (*Provider, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Provider{Base: strings.TrimSuffix(base, "/"), key: k, codes: map[string]code{}, tokens: map[string]string{}, Exchanges: map[string]int{}}, nil
+	return &Provider{Base: strings.TrimSuffix(base, "/"), key: k, codes: map[string]code{}, tokens: map[string]string{}, Exchanges: map[string]int{}, socialCodes: map[string]socialCode{}, socialTokens: map[string]socialToken{}}, nil
 }
 
 func random() string {
@@ -96,6 +98,10 @@ func (p *Provider) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	if strings.HasPrefix(r.URL.Path, "/github/") {
 		p.serveGitHub(w, r)
+		return
+	}
+	if strings.HasPrefix(r.URL.Path, "/social/") {
+		p.serveSocial(w, r)
 		return
 	}
 	parts := strings.SplitN(strings.TrimPrefix(r.URL.Path, "/"), "/", 2)

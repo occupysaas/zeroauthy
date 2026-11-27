@@ -19,6 +19,7 @@ const (
 	StrategyWAAD        = rules.WAAD
 	StrategyGoogle      = rules.Google
 	StrategyGitHub      = rules.GitHub
+	StrategyOAuth1      = rules.OAuth1
 	StrategyOAuth2      = rules.OAuth2
 	StrategyOIDC        = rules.OIDC
 	StrategyOkta        = rules.Okta
@@ -72,6 +73,12 @@ type ExchangeInput struct {
 	CodeVerifier string
 	Nonce        string
 	ClientSecret string
+	// OAuth1Token and OAuth1Secret are the sealed request token and its
+	// secret (OAuth 1.0a); Code is then the oauth_verifier.
+	OAuth1Token, OAuth1Secret string
+	// GoogleNative verifies a native Google ID token (Plan 39b): no nonce,
+	// and aud alone binds it to the connection (an Android azp is allowed).
+	GoogleNative bool
 	// AppleNative permits nonce-free exchange only for StrategyApple.
 	AppleNative bool
 	// AppleUser carries bounded posted names, after attempt validation.
@@ -86,7 +93,9 @@ type TokenSet struct {
 	IDToken      string
 	TokenType    string
 	Scope        string
-	ExpiresIn    int64
+	// TokenSecret is the OAuth 1.0a token secret; empty for OAuth 2.0.
+	TokenSecret string
+	ExpiresIn   int64
 	// ExpiresAt is derived from ExpiresIn at exchange time; zero if unknown.
 	ExpiresAt time.Time
 }

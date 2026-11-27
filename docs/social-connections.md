@@ -3,7 +3,9 @@
 For complete enterprise OIDC/Okta configuration, connection keys and home realm
 discovery, see [enterprise connections](enterprise-connections.md).
 
-Plan 24 adds the federation core; Plan 39a adds Apple web and native login:
+Plan 24 adds the federation core; Plan 39a adds Apple web and native login;
+Plan 39c adds GitHub; Plan 39b adds the remaining Tier 1 social providers,
+generic OAuth 1.0a and native Google and Facebook sign-in:
 
 | Strategy | Kind | Identity key | Public user ID |
 |---|---|---|---|
@@ -11,6 +13,22 @@ Plan 24 adds the federation core; Plan 39a adds Apple web and native login:
 | `github` | social (`isSocial: true`) | GitHub numeric user `id` | `github|<id>` |
 | `google-oauth2` | social (`isSocial: true`) | Google `sub` | `google-oauth2|<sub>` |
 | `oauth2` | social (`isSocial: true`) | `user_id` returned by the profile script | `oauth2|<connection>|<subject>` |
+| `oauth1` | social (`isSocial: true`) | `user_id` returned by the profile script | `oauth1|<connection>|<subject>` |
+| `amazon` | social (`isSocial: true`) | Amazon `user_id` | `amazon|<id>` |
+| `bitbucket` | social (`isSocial: true`) | Bitbucket `uuid` | `bitbucket|<id>` |
+| `box` | social (`isSocial: true`) | Box user `id` | `box|<id>` |
+| `dropbox` | social (`isSocial: true`) | Dropbox `account_id` | `dropbox|<id>` |
+| `facebook` | social (`isSocial: true`) | Facebook user `id` | `facebook|<id>` |
+| `line` | social (`isSocial: true`) | LINE `userId` | `line|<id>` |
+| `linkedin` | social (`isSocial: true`) | LinkedIn OpenID `sub` | `linkedin|<id>` |
+| `paypal` | social (`isSocial: true`) | PayPal `user_id` | `paypal|<id>` |
+| `paypal-sandbox` | social (`isSocial: true`) | PayPal sandbox `user_id` | `paypal-sandbox|<id>` |
+| `salesforce` | social (`isSocial: true`) | Salesforce `user_id` | `salesforce|<id>` |
+| `salesforce-community` | social (`isSocial: true`) | Salesforce `user_id` | `salesforce-community|<id>` |
+| `salesforce-sandbox` | social (`isSocial: true`) | Salesforce `user_id` | `salesforce-sandbox|<id>` |
+| `shopify` | social (`isSocial: true`) | the shop's `id` | `shopify|<id>` |
+| `twitter` | social (`isSocial: true`) | X user `id` (`id_str` on OAuth 1.0a) | `twitter|<id>` |
+| `yahoo` | social (`isSocial: true`) | Yahoo `sub` | `yahoo|<id>` |
 | `oidc` (front or back channel) | enterprise (`isSocial: false`) | ID token `sub` | `oidc|<connection>|<sub>` |
 
 The frozen option inventory is `internal/federation/inventory.json`; the
@@ -191,7 +209,7 @@ secret reinjection and post-import logins; see
 ## Not included
 
 Microsoft accounts (see [email-account-connections.md](email-account-connections.md)),
-the remaining social providers (Plan 39b; GitHub is covered below), One Tap, Google/Facebook native token exchange, automatic linking,
+the Tier 2 social providers (a later plan), One Tap, automatic linking,
 provider-initiated login, federated logout or revocation, organizations, MFA,
 Actions, Token Vault, development keys, arbitrary upstream parameter
 forwarding, front-channel OIDC and the remaining enterprise OIDC features (Plan
@@ -410,3 +428,106 @@ revocation, `connected_accounts`, and an application-supplied `redirect_uri`.
 Chromium logins through a real code exchange, the email-required refusals,
 token access rules and the Deploy CLI 9.1.0 YAML and directory round trips. No
 live GitHub account is used.
+
+## Tier 1 social providers (Plan 39b)
+
+`amazon`, `bitbucket`, `box`, `dropbox`, `facebook`, `line`, `linkedin`,
+`paypal`, `paypal-sandbox`, `salesforce`, `salesforce-community`,
+`salesforce-sandbox`, `shopify`, `twitter` and `yahoo` each run on a JSON
+descriptor (`internal/federation/providers/*.json`): fixed endpoints, client
+authentication, PKCE use, the permission flags, the profile map and the email
+rule, with the provider documentation each comes from. D-0180 records the
+rulings. Tier 2 (Baidu, Evernote, Instagram, …) follows in a later plan.
+
+Create one with `client_id` and `client_secret` of your app at the provider;
+the secret is sealed and never returned, `client_id` cannot change, and
+endpoint or script overrides are refused. Register
+`https://<host>/login/callback` for every host users sign in on.
+
+| Strategy | Scope | `email_verified` | Notes |
+|---|---|---|---|
+| `facebook` | `public_profile` plus one permission per true flag, comma-separated | true when Facebook returns an email | Graph API v24.0; every Graph call carries `appsecret_proof` |
+| `linkedin` | `openid profile`, plus `email` | from LinkedIn's `email_verified` | `strategy_version` 3 (default); 1 and 2 are stored but sign-in is refused |
+| `twitter` | `tweet.read users.read` (flags), plus `offline.access` | never (no email on OAuth 2.0) | `protocol: oauth1` uses OAuth 1.0a and reads `include_email` (needs X's elevated access) |
+| `amazon` | `profile`, plus `postal_code` | false | |
+| `paypal`, `paypal-sandbox` | `openid`, plus `profile`, `email`, `address`, `phone` | from the primary email's `confirmed` | sandbox hosts for `paypal-sandbox` |
+| `salesforce`, `salesforce-sandbox`, `salesforce-community` | `id`, plus `profile` (default on) | from Salesforce's `email_verified` | the profile is read from the token response's identity URL, only on the token endpoint's host; `salesforce-community` requires `community_base_url` (https, public host) |
+| `yahoo` | `openid profile email` | from Yahoo's `email_verified` | |
+| `line` | `openid`, plus `profile` (default on) and `email` | false | the email comes from the ID token through LINE's verify endpoint |
+| `dropbox` | `account_info.read` | from Dropbox's `email_verified` | |
+| `box` | none | false | the email is Box's login |
+| `bitbucket` | `account email` | from the primary address's `is_confirmed` | |
+| `shopify` | none | false | the user is the shop; send the shop (`my-shop` or `my-shop.myshopify.com`) as `login_hint` on `/authorize`, or sign-in is refused |
+
+`scope` is returned on read as the effective scope: the base scopes, the
+scope of each true flag, then `freeform_scopes` (at most 20) where the
+strategy accepts them (not Box, Dropbox, Shopify or Yahoo). An input `scope`
+must equal it as a set. Users are never linked by email. A storage plugin
+must declare the `social.v1` capability before these strategies (and
+`oauth1`) are written; an older plugin refuses them instead of storing
+unindexed identities.
+
+### Providers from the Auth0 Marketplace
+
+Discord, Slack, Twitch and other providers Auth0 offers only through its
+Marketplace use the generic `oauth2` strategy with a `fetchUserProfile`
+script (LR39b-1). Discord, for example:
+
+```json
+{
+  "strategy": "oauth2",
+  "name": "discord",
+  "options": {
+    "client_id": "<Discord application ID>",
+    "client_secret": "<Discord client secret>",
+    "authorizationURL": "https://discord.com/oauth2/authorize",
+    "tokenURL": "https://discord.com/api/oauth2/token",
+    "scope": "identify email",
+    "scripts": {
+      "fetchUserProfile": "function fetchUserProfile(accessToken, context, callback) { request.get({url: 'https://discord.com/api/users/@me', headers: {Authorization: 'Bearer ' + accessToken}, json: true}, function (err, resp, body) { if (err || resp.statusCode !== 200) return callback(new Error('profile')); callback(null, {user_id: body.id, nickname: body.username, email: body.email, email_verified: body.verified === true}); }); }"
+    }
+  }
+}
+```
+
+Twitch is the same with `https://id.twitch.tv/oauth2/authorize`,
+`https://id.twitch.tv/oauth2/token`, scope `user:read:email` and
+`https://api.twitch.tv/helix/users` (with the `Client-Id` header) in the
+script; Slack uses its OpenID Connect endpoints through the `oidc` strategy.
+
+### Generic OAuth 1.0a (`oauth1`)
+
+Requires `requestTokenURL`, `accessTokenURL` and `userAuthorizationURL`
+(https, public hosts) and `scripts.fetchUserProfile`. Requests are signed
+with HMAC-SHA1, or with RSA-SHA1 when `signatureMethod` is `RSA-SHA1` and
+`client_secret` is a PEM RSA private key of at least 2048 bits; PLAINTEXT is
+refused. The request-token secret stays sealed in the login attempt. The
+script is called as `fetchUserProfile(token, tokenSecret, context, callback)`
+with the access-token response's other fields in `context`; a
+`request.get({url, oauth: true}, …)` (or Auth0's `oauth: {…}` object, whose
+values are ignored) is signed by zeroauthy with the connection's consumer
+credentials, which never reach the script. The token secret is returned as
+`identities[].access_token_secret` beside `access_token` under
+`read:user_idp_tokens`. The console lists `oauth1` connections; create and
+change them through the Management API.
+
+### Native Google and Facebook
+
+With the application's `native_social_login.google.enabled` and an enabled
+`google-oauth2` connection, a native app exchanges a Google ID token at
+`/oauth/token` (`grant_type=urn:ietf:params:oauth:grant-type:token-exchange`,
+`subject_token_type=http://auth0.com/oauth/token-type/google-id-token`). Auth0
+documents no Google type, so this URN is zeroauthy's (SP-3). The token must be
+signed by a key from Google's JWKS, issued by Google, unexpired, and its
+`aud` must be the connection's `client_id` (an Android `azp` beside it is
+fine).
+
+With `native_social_login.facebook.enabled` and an enabled `facebook`
+connection, the app exchanges a Facebook session-info token
+(`subject_token_type=http://auth0.com/oauth/token-type/facebook-info-session-access-token`)
+with an optional `user_profile` JSON. zeroauthy checks the token with Graph's
+`debug_token` for the connection's app and uses its `user_id`; `user_profile`
+must name the same user and its email is never marked verified.
+
+Both run post-login Actions and MFA like Apple native login, and with the
+switch off the request is `400 invalid_request` before any provider call.

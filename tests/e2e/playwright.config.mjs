@@ -18,6 +18,7 @@ export default defineConfig({
     ...(process.env.E2E_M41B === '1' ? [] : ['m41b-dcr.spec.mjs']),
     ...(process.env.E2E_M39A === '1' ? [] : ['m39a-apple.spec.mjs']),
     ...(process.env.E2E_M39C === '1' ? [] : ['m39c-github.spec.mjs']),
+    ...(process.env.E2E_M39B === '1' ? [] : ['m39b-social.spec.mjs']),
   ],
   timeout: 60_000,
   workers: 1,

@@ -413,3 +413,6 @@ func (s *Store) MicrosoftFederationSupported(context.Context) error { return nil
 
 // GitHubFederationSupported reports support for canonical GitHub identities.
 func (s *Store) GitHubFederationSupported(context.Context) error { return nil }
+
+// SocialFederationSupported reports social.v1 (Plan 39b descriptor identities).
+func (s *Store) SocialFederationSupported(context.Context) error { return nil }

@@ -3630,6 +3630,39 @@ records the scope and evidence, including the DPoP extension authorized on
 | R7 | The local organization quota refusal description is `Organization quota exceeded`. |
 | R8 | Quota warning descriptions use local wording. |
 
+## D-0180 — Plan 39b remaining social providers (2026-11-27)
+
+**Status:** implemented on `plan-39b-social-providers` (2026-11-27); plan-branch CI
+and approval pending. Record: [implementation record](../superpowers/2026-11-16-plan-39b-implementation-record.md).
+
+**Authority:** [Plan 39b design](../superpowers/specs/2026-11-16-zeroauthy-social-providers-design.md),
+Auth0's Management OpenAPI (`ConnectionOptions*` schemas), Auth0's social
+connection pages and each provider's public developer documentation, cited
+per strategy in `internal/federation/inventory.json` (`social_descriptors`)
+and in each descriptor's `source`. Only public documentation was read; no
+live Auth0 or provider call was made.
+
+**Maintainer rulings (2026-11-27):** Tier 1 is built in the listed order
+(facebook, linkedin, twitter, amazon, paypal, salesforce, yahoo, line,
+dropbox, box, bitbucket, shopify); Tier 2 ships in a later plan; verification
+uses local fixture providers only, with no live checks.
+
+| Ruling | Contract |
+|---|---|
+| LR39b-1 | Providers Auth0 offers only through the Marketplace (Discord, Slack, Twitch, …) use the generic `oauth2` strategy; the docs give `fetchUserProfile` examples. |
+| LR39b-2 Descriptors | Each Tier 1 strategy is a JSON descriptor (endpoints, client authentication, PKCE, scope table, profile map, email rule) run by one generic provider. Provider quirks are named Go hooks (Facebook `appsecret_proof`, Salesforce identity URL, Shopify shop, LINE ID-token email, LinkedIn versions). Google, Microsoft, Apple and GitHub keep their adapters. |
+| LR39b-3 Scope | Effective scope = base scopes, then each true flag's scopes, then `freeform_scopes` where Auth0's OpenAPI lists that field for the strategy. An input `scope` must equal it as a set. Unknown flags are stored only. |
+| LR39b-4 Email | `email_verified` is true only where the provider documents verified emails (Facebook) or returns a verification field (LinkedIn, PayPal, Salesforce, Yahoo, Dropbox, Bitbucket); false otherwise (Amazon, Box, LINE, Shopify, Twitter). Never linked by email. |
+| LR39b-5 Identity | `identities[].user_id` is the raw provider ID; the public ID is `<strategy>|<id>`. A store plugin must declare the `social.v1` capability before these strategies are written. |
+| LR39b-6 LinkedIn | `strategy_version` 3 (OpenID Connect, the default) is active through the userinfo endpoint. Versions 1 and 2 are stored but refused at login. |
+| LR39b-7 Salesforce | The profile is read from the token response's identity URL only when it is https on the token endpoint's host. |
+| LR39b-8 Shopify | The shop comes from `login_hint` (`<name>` or `<name>.myshopify.com`); a login without a valid shop is refused. The shop's endpoints are sealed in the attempt. The identity is the shop. |
+| LR39b-9 OAuth 1.0a | HMAC-SHA1 by default, RSA-SHA1 when `signatureMethod` says so; PLAINTEXT refused. The request-token secret is sealed in the attempt; the callback's `oauth_token` must equal it and `oauth_verifier` is required. |
+| LR39b-10 Twitter | `protocol` `oauth2` (default, S256 PKCE) or `oauth1`. OAuth 2.0 users have no email; OAuth 1.0a reads `include_email` (needs elevated access). |
+| LR39b-11 Native | Google ID tokens are verified with Google's JWKS and `aud` must be the connection's `client_id` or one of the client's allowed native audiences. Facebook tokens are checked with `debug_token` for the connection's app. |
+
+Observation points SP-1…9 are listed in `docs/superpowers/plan-1-followups.md`.
+
 ## D-0181 — Plan 39c GitHub social connection (2026-11-18)
 
 **Status:** implemented on `plan-39-github-social`; final review done, plan-branch CI pending.

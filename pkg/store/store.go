@@ -171,6 +171,7 @@ type (
 	UnimplementedHostedLogins    = store.UnimplementedHostedLogins
 	MicrosoftFederationSupporter = store.MicrosoftFederationSupporter
 	GitHubFederationSupporter    = store.GitHubFederationSupporter
+	SocialFederationSupporter    = store.SocialFederationSupporter
 	Federation                   = store.Federation
 	FederationAttempt            = store.FederationAttempt
 	FederationEndpoints          = store.FederationEndpoints

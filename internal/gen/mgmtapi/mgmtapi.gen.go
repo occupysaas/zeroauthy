@@ -1865,21 +1865,37 @@ func (e ClientUpdateThirdPartySecurityMode) Valid() bool {
 
 // Defines values for ConnectionCreateStrategy.
 const (
-	ConnectionCreateStrategyAd           ConnectionCreateStrategy = "ad"
-	ConnectionCreateStrategyAdfs         ConnectionCreateStrategy = "adfs"
-	ConnectionCreateStrategyApple        ConnectionCreateStrategy = "apple"
-	ConnectionCreateStrategyAuth0        ConnectionCreateStrategy = "auth0"
-	ConnectionCreateStrategyEmail        ConnectionCreateStrategy = "email"
-	ConnectionCreateStrategyGithub       ConnectionCreateStrategy = "github"
-	ConnectionCreateStrategyGoogleApps   ConnectionCreateStrategy = "google-apps"
-	ConnectionCreateStrategyGoogleOauth2 ConnectionCreateStrategy = "google-oauth2"
-	ConnectionCreateStrategyOauth2       ConnectionCreateStrategy = "oauth2"
-	ConnectionCreateStrategyOidc         ConnectionCreateStrategy = "oidc"
-	ConnectionCreateStrategyOkta         ConnectionCreateStrategy = "okta"
-	ConnectionCreateStrategySamlp        ConnectionCreateStrategy = "samlp"
-	ConnectionCreateStrategySms          ConnectionCreateStrategy = "sms"
-	ConnectionCreateStrategyWaad         ConnectionCreateStrategy = "waad"
-	ConnectionCreateStrategyWindowslive  ConnectionCreateStrategy = "windowslive"
+	ConnectionCreateStrategyAd                  ConnectionCreateStrategy = "ad"
+	ConnectionCreateStrategyAdfs                ConnectionCreateStrategy = "adfs"
+	ConnectionCreateStrategyAmazon              ConnectionCreateStrategy = "amazon"
+	ConnectionCreateStrategyApple               ConnectionCreateStrategy = "apple"
+	ConnectionCreateStrategyAuth0               ConnectionCreateStrategy = "auth0"
+	ConnectionCreateStrategyBitbucket           ConnectionCreateStrategy = "bitbucket"
+	ConnectionCreateStrategyBox                 ConnectionCreateStrategy = "box"
+	ConnectionCreateStrategyDropbox             ConnectionCreateStrategy = "dropbox"
+	ConnectionCreateStrategyEmail               ConnectionCreateStrategy = "email"
+	ConnectionCreateStrategyFacebook            ConnectionCreateStrategy = "facebook"
+	ConnectionCreateStrategyGithub              ConnectionCreateStrategy = "github"
+	ConnectionCreateStrategyGoogleApps          ConnectionCreateStrategy = "google-apps"
+	ConnectionCreateStrategyGoogleOauth2        ConnectionCreateStrategy = "google-oauth2"
+	ConnectionCreateStrategyLine                ConnectionCreateStrategy = "line"
+	ConnectionCreateStrategyLinkedin            ConnectionCreateStrategy = "linkedin"
+	ConnectionCreateStrategyOauth1              ConnectionCreateStrategy = "oauth1"
+	ConnectionCreateStrategyOauth2              ConnectionCreateStrategy = "oauth2"
+	ConnectionCreateStrategyOidc                ConnectionCreateStrategy = "oidc"
+	ConnectionCreateStrategyOkta                ConnectionCreateStrategy = "okta"
+	ConnectionCreateStrategyPaypal              ConnectionCreateStrategy = "paypal"
+	ConnectionCreateStrategyPaypalSandbox       ConnectionCreateStrategy = "paypal-sandbox"
+	ConnectionCreateStrategySalesforce          ConnectionCreateStrategy = "salesforce"
+	ConnectionCreateStrategySalesforceCommunity ConnectionCreateStrategy = "salesforce-community"
+	ConnectionCreateStrategySalesforceSandbox   ConnectionCreateStrategy = "salesforce-sandbox"
+	ConnectionCreateStrategySamlp               ConnectionCreateStrategy = "samlp"
+	ConnectionCreateStrategyShopify             ConnectionCreateStrategy = "shopify"
+	ConnectionCreateStrategySms                 ConnectionCreateStrategy = "sms"
+	ConnectionCreateStrategyTwitter             ConnectionCreateStrategy = "twitter"
+	ConnectionCreateStrategyWaad                ConnectionCreateStrategy = "waad"
+	ConnectionCreateStrategyWindowslive         ConnectionCreateStrategy = "windowslive"
+	ConnectionCreateStrategyYahoo               ConnectionCreateStrategy = "yahoo"
 )
 
 // Valid indicates whether the value is a known member of the ConnectionCreateStrategy enum.
@@ -1889,11 +1905,21 @@ func (e ConnectionCreateStrategy) Valid() bool {
 		return true
 	case ConnectionCreateStrategyAdfs:
 		return true
+	case ConnectionCreateStrategyAmazon:
+		return true
 	case ConnectionCreateStrategyApple:
 		return true
 	case ConnectionCreateStrategyAuth0:
 		return true
+	case ConnectionCreateStrategyBitbucket:
+		return true
+	case ConnectionCreateStrategyBox:
+		return true
+	case ConnectionCreateStrategyDropbox:
+		return true
 	case ConnectionCreateStrategyEmail:
+		return true
+	case ConnectionCreateStrategyFacebook:
 		return true
 	case ConnectionCreateStrategyGithub:
 		return true
@@ -1901,19 +1927,41 @@ func (e ConnectionCreateStrategy) Valid() bool {
 		return true
 	case ConnectionCreateStrategyGoogleOauth2:
 		return true
+	case ConnectionCreateStrategyLine:
+		return true
+	case ConnectionCreateStrategyLinkedin:
+		return true
+	case ConnectionCreateStrategyOauth1:
+		return true
 	case ConnectionCreateStrategyOauth2:
 		return true
 	case ConnectionCreateStrategyOidc:
 		return true
 	case ConnectionCreateStrategyOkta:
 		return true
+	case ConnectionCreateStrategyPaypal:
+		return true
+	case ConnectionCreateStrategyPaypalSandbox:
+		return true
+	case ConnectionCreateStrategySalesforce:
+		return true
+	case ConnectionCreateStrategySalesforceCommunity:
+		return true
+	case ConnectionCreateStrategySalesforceSandbox:
+		return true
 	case ConnectionCreateStrategySamlp:
 		return true
+	case ConnectionCreateStrategyShopify:
+		return true
 	case ConnectionCreateStrategySms:
+		return true
+	case ConnectionCreateStrategyTwitter:
 		return true
 	case ConnectionCreateStrategyWaad:
 		return true
 	case ConnectionCreateStrategyWindowslive:
+		return true
+	case ConnectionCreateStrategyYahoo:
 		return true
 	default:
 		return false
@@ -1998,6 +2046,27 @@ func (e ConnectionOptionsADFSShouldTrustEmailVerifiedConnection) Valid() bool {
 	}
 }
 
+// Defines values for ConnectionOptionsAmazonSetUserRootAttributes.
+const (
+	ConnectionOptionsAmazonSetUserRootAttributesNeverOnLogin ConnectionOptionsAmazonSetUserRootAttributes = "never_on_login"
+	ConnectionOptionsAmazonSetUserRootAttributesOnEachLogin  ConnectionOptionsAmazonSetUserRootAttributes = "on_each_login"
+	ConnectionOptionsAmazonSetUserRootAttributesOnFirstLogin ConnectionOptionsAmazonSetUserRootAttributes = "on_first_login"
+)
+
+// Valid indicates whether the value is a known member of the ConnectionOptionsAmazonSetUserRootAttributes enum.
+func (e ConnectionOptionsAmazonSetUserRootAttributes) Valid() bool {
+	switch e {
+	case ConnectionOptionsAmazonSetUserRootAttributesNeverOnLogin:
+		return true
+	case ConnectionOptionsAmazonSetUserRootAttributesOnEachLogin:
+		return true
+	case ConnectionOptionsAmazonSetUserRootAttributesOnFirstLogin:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for ConnectionOptionsAppleFreeformScopes.
 const (
 	ConnectionOptionsAppleFreeformScopesEmail ConnectionOptionsAppleFreeformScopes = "email"
@@ -2037,6 +2106,27 @@ func (e ConnectionOptionsAppleSetUserRootAttributes) Valid() bool {
 	}
 }
 
+// Defines values for ConnectionOptionsBitbucketSetUserRootAttributes.
+const (
+	ConnectionOptionsBitbucketSetUserRootAttributesNeverOnLogin ConnectionOptionsBitbucketSetUserRootAttributes = "never_on_login"
+	ConnectionOptionsBitbucketSetUserRootAttributesOnEachLogin  ConnectionOptionsBitbucketSetUserRootAttributes = "on_each_login"
+	ConnectionOptionsBitbucketSetUserRootAttributesOnFirstLogin ConnectionOptionsBitbucketSetUserRootAttributes = "on_first_login"
+)
+
+// Valid indicates whether the value is a known member of the ConnectionOptionsBitbucketSetUserRootAttributes enum.
+func (e ConnectionOptionsBitbucketSetUserRootAttributes) Valid() bool {
+	switch e {
+	case ConnectionOptionsBitbucketSetUserRootAttributesNeverOnLogin:
+		return true
+	case ConnectionOptionsBitbucketSetUserRootAttributesOnEachLogin:
+		return true
+	case ConnectionOptionsBitbucketSetUserRootAttributesOnFirstLogin:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for ConnectionOptionsEmailEmailSyntax.
 const (
 	ConnectionOptionsEmailEmailSyntaxLiquid ConnectionOptionsEmailEmailSyntax = "liquid"
@@ -2046,6 +2136,27 @@ const (
 func (e ConnectionOptionsEmailEmailSyntax) Valid() bool {
 	switch e {
 	case ConnectionOptionsEmailEmailSyntaxLiquid:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ConnectionOptionsFacebookSetUserRootAttributes.
+const (
+	ConnectionOptionsFacebookSetUserRootAttributesNeverOnLogin ConnectionOptionsFacebookSetUserRootAttributes = "never_on_login"
+	ConnectionOptionsFacebookSetUserRootAttributesOnEachLogin  ConnectionOptionsFacebookSetUserRootAttributes = "on_each_login"
+	ConnectionOptionsFacebookSetUserRootAttributesOnFirstLogin ConnectionOptionsFacebookSetUserRootAttributes = "on_first_login"
+)
+
+// Valid indicates whether the value is a known member of the ConnectionOptionsFacebookSetUserRootAttributes enum.
+func (e ConnectionOptionsFacebookSetUserRootAttributes) Valid() bool {
+	switch e {
+	case ConnectionOptionsFacebookSetUserRootAttributesNeverOnLogin:
+		return true
+	case ConnectionOptionsFacebookSetUserRootAttributesOnEachLogin:
+		return true
+	case ConnectionOptionsFacebookSetUserRootAttributesOnFirstLogin:
 		return true
 	default:
 		return false
@@ -2088,6 +2199,105 @@ func (e ConnectionOptionsGoogleAppsSetUserRootAttributes) Valid() bool {
 	case ConnectionOptionsGoogleAppsSetUserRootAttributesOnEachLogin:
 		return true
 	case ConnectionOptionsGoogleAppsSetUserRootAttributesOnFirstLogin:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ConnectionOptionsLineSetUserRootAttributes.
+const (
+	ConnectionOptionsLineSetUserRootAttributesNeverOnLogin ConnectionOptionsLineSetUserRootAttributes = "never_on_login"
+	ConnectionOptionsLineSetUserRootAttributesOnEachLogin  ConnectionOptionsLineSetUserRootAttributes = "on_each_login"
+	ConnectionOptionsLineSetUserRootAttributesOnFirstLogin ConnectionOptionsLineSetUserRootAttributes = "on_first_login"
+)
+
+// Valid indicates whether the value is a known member of the ConnectionOptionsLineSetUserRootAttributes enum.
+func (e ConnectionOptionsLineSetUserRootAttributes) Valid() bool {
+	switch e {
+	case ConnectionOptionsLineSetUserRootAttributesNeverOnLogin:
+		return true
+	case ConnectionOptionsLineSetUserRootAttributesOnEachLogin:
+		return true
+	case ConnectionOptionsLineSetUserRootAttributesOnFirstLogin:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ConnectionOptionsLinkedinSetUserRootAttributes.
+const (
+	ConnectionOptionsLinkedinSetUserRootAttributesNeverOnLogin ConnectionOptionsLinkedinSetUserRootAttributes = "never_on_login"
+	ConnectionOptionsLinkedinSetUserRootAttributesOnEachLogin  ConnectionOptionsLinkedinSetUserRootAttributes = "on_each_login"
+	ConnectionOptionsLinkedinSetUserRootAttributesOnFirstLogin ConnectionOptionsLinkedinSetUserRootAttributes = "on_first_login"
+)
+
+// Valid indicates whether the value is a known member of the ConnectionOptionsLinkedinSetUserRootAttributes enum.
+func (e ConnectionOptionsLinkedinSetUserRootAttributes) Valid() bool {
+	switch e {
+	case ConnectionOptionsLinkedinSetUserRootAttributesNeverOnLogin:
+		return true
+	case ConnectionOptionsLinkedinSetUserRootAttributesOnEachLogin:
+		return true
+	case ConnectionOptionsLinkedinSetUserRootAttributesOnFirstLogin:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ConnectionOptionsLinkedinStrategyVersion.
+const (
+	N1 ConnectionOptionsLinkedinStrategyVersion = 1
+	N2 ConnectionOptionsLinkedinStrategyVersion = 2
+	N3 ConnectionOptionsLinkedinStrategyVersion = 3
+)
+
+// Valid indicates whether the value is a known member of the ConnectionOptionsLinkedinStrategyVersion enum.
+func (e ConnectionOptionsLinkedinStrategyVersion) Valid() bool {
+	switch e {
+	case N1:
+		return true
+	case N2:
+		return true
+	case N3:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ConnectionOptionsOAuth1SetUserRootAttributes.
+const (
+	ConnectionOptionsOAuth1SetUserRootAttributesNeverOnLogin ConnectionOptionsOAuth1SetUserRootAttributes = "never_on_login"
+	ConnectionOptionsOAuth1SetUserRootAttributesOnEachLogin  ConnectionOptionsOAuth1SetUserRootAttributes = "on_each_login"
+	ConnectionOptionsOAuth1SetUserRootAttributesOnFirstLogin ConnectionOptionsOAuth1SetUserRootAttributes = "on_first_login"
+)
+
+// Valid indicates whether the value is a known member of the ConnectionOptionsOAuth1SetUserRootAttributes enum.
+func (e ConnectionOptionsOAuth1SetUserRootAttributes) Valid() bool {
+	switch e {
+	case ConnectionOptionsOAuth1SetUserRootAttributesNeverOnLogin:
+		return true
+	case ConnectionOptionsOAuth1SetUserRootAttributesOnEachLogin:
+		return true
+	case ConnectionOptionsOAuth1SetUserRootAttributesOnFirstLogin:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ConnectionOptionsOAuth1SignatureMethod.
+const (
+	RSASHA1 ConnectionOptionsOAuth1SignatureMethod = "RSA-SHA1"
+)
+
+// Valid indicates whether the value is a known member of the ConnectionOptionsOAuth1SignatureMethod enum.
+func (e ConnectionOptionsOAuth1SignatureMethod) Valid() bool {
+	switch e {
+	case RSASHA1:
 		return true
 	default:
 		return false
@@ -2421,6 +2631,27 @@ func (e ConnectionOptionsOktaType) Valid() bool {
 	}
 }
 
+// Defines values for ConnectionOptionsPaypalSetUserRootAttributes.
+const (
+	ConnectionOptionsPaypalSetUserRootAttributesNeverOnLogin ConnectionOptionsPaypalSetUserRootAttributes = "never_on_login"
+	ConnectionOptionsPaypalSetUserRootAttributesOnEachLogin  ConnectionOptionsPaypalSetUserRootAttributes = "on_each_login"
+	ConnectionOptionsPaypalSetUserRootAttributesOnFirstLogin ConnectionOptionsPaypalSetUserRootAttributes = "on_first_login"
+)
+
+// Valid indicates whether the value is a known member of the ConnectionOptionsPaypalSetUserRootAttributes enum.
+func (e ConnectionOptionsPaypalSetUserRootAttributes) Valid() bool {
+	switch e {
+	case ConnectionOptionsPaypalSetUserRootAttributesNeverOnLogin:
+		return true
+	case ConnectionOptionsPaypalSetUserRootAttributesOnEachLogin:
+		return true
+	case ConnectionOptionsPaypalSetUserRootAttributesOnFirstLogin:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for ConnectionOptionsSAMLDigestAlgorithm.
 const (
 	ConnectionOptionsSAMLDigestAlgorithmSha1   ConnectionOptionsSAMLDigestAlgorithm = "sha1"
@@ -2547,6 +2778,87 @@ func (e ConnectionOptionsSMSSyntax) Valid() bool {
 	case ConnectionOptionsSMSSyntaxLiquid:
 		return true
 	case ConnectionOptionsSMSSyntaxMdWithMacros:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ConnectionOptionsSalesforceSetUserRootAttributes.
+const (
+	ConnectionOptionsSalesforceSetUserRootAttributesNeverOnLogin ConnectionOptionsSalesforceSetUserRootAttributes = "never_on_login"
+	ConnectionOptionsSalesforceSetUserRootAttributesOnEachLogin  ConnectionOptionsSalesforceSetUserRootAttributes = "on_each_login"
+	ConnectionOptionsSalesforceSetUserRootAttributesOnFirstLogin ConnectionOptionsSalesforceSetUserRootAttributes = "on_first_login"
+)
+
+// Valid indicates whether the value is a known member of the ConnectionOptionsSalesforceSetUserRootAttributes enum.
+func (e ConnectionOptionsSalesforceSetUserRootAttributes) Valid() bool {
+	switch e {
+	case ConnectionOptionsSalesforceSetUserRootAttributesNeverOnLogin:
+		return true
+	case ConnectionOptionsSalesforceSetUserRootAttributesOnEachLogin:
+		return true
+	case ConnectionOptionsSalesforceSetUserRootAttributesOnFirstLogin:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ConnectionOptionsSocialSetUserRootAttributes.
+const (
+	ConnectionOptionsSocialSetUserRootAttributesNeverOnLogin ConnectionOptionsSocialSetUserRootAttributes = "never_on_login"
+	ConnectionOptionsSocialSetUserRootAttributesOnEachLogin  ConnectionOptionsSocialSetUserRootAttributes = "on_each_login"
+	ConnectionOptionsSocialSetUserRootAttributesOnFirstLogin ConnectionOptionsSocialSetUserRootAttributes = "on_first_login"
+)
+
+// Valid indicates whether the value is a known member of the ConnectionOptionsSocialSetUserRootAttributes enum.
+func (e ConnectionOptionsSocialSetUserRootAttributes) Valid() bool {
+	switch e {
+	case ConnectionOptionsSocialSetUserRootAttributesNeverOnLogin:
+		return true
+	case ConnectionOptionsSocialSetUserRootAttributesOnEachLogin:
+		return true
+	case ConnectionOptionsSocialSetUserRootAttributesOnFirstLogin:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ConnectionOptionsTwitterProtocol.
+const (
+	ConnectionOptionsTwitterProtocolOauth1 ConnectionOptionsTwitterProtocol = "oauth1"
+	ConnectionOptionsTwitterProtocolOauth2 ConnectionOptionsTwitterProtocol = "oauth2"
+)
+
+// Valid indicates whether the value is a known member of the ConnectionOptionsTwitterProtocol enum.
+func (e ConnectionOptionsTwitterProtocol) Valid() bool {
+	switch e {
+	case ConnectionOptionsTwitterProtocolOauth1:
+		return true
+	case ConnectionOptionsTwitterProtocolOauth2:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ConnectionOptionsTwitterSetUserRootAttributes.
+const (
+	ConnectionOptionsTwitterSetUserRootAttributesNeverOnLogin ConnectionOptionsTwitterSetUserRootAttributes = "never_on_login"
+	ConnectionOptionsTwitterSetUserRootAttributesOnEachLogin  ConnectionOptionsTwitterSetUserRootAttributes = "on_each_login"
+	ConnectionOptionsTwitterSetUserRootAttributesOnFirstLogin ConnectionOptionsTwitterSetUserRootAttributes = "on_first_login"
+)
+
+// Valid indicates whether the value is a known member of the ConnectionOptionsTwitterSetUserRootAttributes enum.
+func (e ConnectionOptionsTwitterSetUserRootAttributes) Valid() bool {
+	switch e {
+	case ConnectionOptionsTwitterSetUserRootAttributesNeverOnLogin:
+		return true
+	case ConnectionOptionsTwitterSetUserRootAttributesOnEachLogin:
+		return true
+	case ConnectionOptionsTwitterSetUserRootAttributesOnFirstLogin:
 		return true
 	default:
 		return false
@@ -9259,10 +9571,11 @@ type Client struct {
 	MyOrganizationConfiguration *ClientMyOrganizationConfiguration `json:"my_organization_configuration,omitempty"`
 	Name                        string                             `json:"name"`
 
-	// NativeSocialLogin Stored native social switches; Apple is enforced (Plan 39a, D-0170).
-	// Apple exchange additionally requires
-	// mobile.ios.app_bundle_identifier and an enabled Apple connection.
-	// Facebook and Google enforcement belongs to Plan 39b.
+	// NativeSocialLogin Native social switches, each enforced at the token exchange: Apple
+	// (Plan 39a, D-0170) additionally requires
+	// mobile.ios.app_bundle_identifier and an enabled Apple connection;
+	// Google and Facebook (Plan 39b, D-0180) require an enabled
+	// google-oauth2 or facebook connection.
 	NativeSocialLogin *NativeSocialLogin   `json:"native_social_login,omitempty"`
 	OidcConformant    ClientOidcConformant `json:"oidc_conformant"`
 	OidcLogout        *ClientOIDCLogout    `json:"oidc_logout,omitempty"`
@@ -9560,10 +9873,11 @@ type ClientCreate struct {
 	// Name The application's name.
 	Name string `json:"name"`
 
-	// NativeSocialLogin Stored native social switches; Apple is enforced (Plan 39a, D-0170).
-	// Apple exchange additionally requires
-	// mobile.ios.app_bundle_identifier and an enabled Apple connection.
-	// Facebook and Google enforcement belongs to Plan 39b.
+	// NativeSocialLogin Native social switches, each enforced at the token exchange: Apple
+	// (Plan 39a, D-0170) additionally requires
+	// mobile.ios.app_bundle_identifier and an enabled Apple connection;
+	// Google and Facebook (Plan 39b, D-0180) require an enabled
+	// google-oauth2 or facebook connection.
 	NativeSocialLogin *NativeSocialLogin `json:"native_social_login,omitempty"`
 
 	// OidcConformant zeroauthy is always OIDC-conformant; `false` is refused.
@@ -10052,10 +10366,11 @@ type ClientSettings struct {
 	// Name The application's name.
 	Name *string `json:"name,omitempty"`
 
-	// NativeSocialLogin Stored native social switches; Apple is enforced (Plan 39a, D-0170).
-	// Apple exchange additionally requires
-	// mobile.ios.app_bundle_identifier and an enabled Apple connection.
-	// Facebook and Google enforcement belongs to Plan 39b.
+	// NativeSocialLogin Native social switches, each enforced at the token exchange: Apple
+	// (Plan 39a, D-0170) additionally requires
+	// mobile.ios.app_bundle_identifier and an enabled Apple connection;
+	// Google and Facebook (Plan 39b, D-0180) require an enabled
+	// google-oauth2 or facebook connection.
 	NativeSocialLogin *NativeSocialLogin `json:"native_social_login,omitempty"`
 
 	// OidcConformant zeroauthy is always OIDC-conformant; `false` is refused.
@@ -10251,10 +10566,11 @@ type ClientUpdate struct {
 	// Name The application's name.
 	Name *string `json:"name,omitempty"`
 
-	// NativeSocialLogin Stored native social switches; Apple is enforced (Plan 39a, D-0170).
-	// Apple exchange additionally requires
-	// mobile.ios.app_bundle_identifier and an enabled Apple connection.
-	// Facebook and Google enforcement belongs to Plan 39b.
+	// NativeSocialLogin Native social switches, each enforced at the token exchange: Apple
+	// (Plan 39a, D-0170) additionally requires
+	// mobile.ios.app_bundle_identifier and an enabled Apple connection;
+	// Google and Facebook (Plan 39b, D-0180) require an enabled
+	// google-oauth2 or facebook connection.
 	NativeSocialLogin *NativeSocialLogin `json:"native_social_login,omitempty"`
 
 	// OidcConformant zeroauthy is always OIDC-conformant; `false` is refused.
@@ -10430,11 +10746,11 @@ type ConnectionCreate struct {
 	Realms       *[]string               `json:"realms,omitempty"`
 	ShowAsButton *bool                   `json:"show_as_button,omitempty"`
 
-	// Strategy `samlp` follows ConnectionOptionsSAML (Plan 37a). `adfs` follows ConnectionOptionsADFS (Plan 37b). `google-apps` follows ConnectionOptionsGoogleApps (Plan 37c). `ad` follows ConnectionOptionsAD (Plan 38a): users sign in through Auth0's AD/LDAP Connector, provisioned with the connection's `provisioning_ticket_url`. `email` and `sms` are passwordless connections whose name must equal the strategy; options follow ConnectionOptionsEmail and ConnectionOptionsSMS (Plan 34). `apple` follows ConnectionOptionsApple; web/native login is active (D-0170). `github` follows ConnectionOptionsGitHub (Plan 39c).
+	// Strategy `samlp` follows ConnectionOptionsSAML (Plan 37a). `adfs` follows ConnectionOptionsADFS (Plan 37b). `google-apps` follows ConnectionOptionsGoogleApps (Plan 37c). `ad` follows ConnectionOptionsAD (Plan 38a): users sign in through Auth0's AD/LDAP Connector, provisioned with the connection's `provisioning_ticket_url`. `email` and `sms` are passwordless connections whose name must equal the strategy; options follow ConnectionOptionsEmail and ConnectionOptionsSMS (Plan 34). `apple` follows ConnectionOptionsApple; web/native login is active (D-0170). `github` follows ConnectionOptionsGitHub (Plan 39c). The Plan 39b social strategies follow ConnectionOptionsSocial and their strategy schema (D-0180); `oauth1` follows ConnectionOptionsOAuth1.
 	Strategy ConnectionCreateStrategy `json:"strategy"`
 }
 
-// ConnectionCreateStrategy `samlp` follows ConnectionOptionsSAML (Plan 37a). `adfs` follows ConnectionOptionsADFS (Plan 37b). `google-apps` follows ConnectionOptionsGoogleApps (Plan 37c). `ad` follows ConnectionOptionsAD (Plan 38a): users sign in through Auth0's AD/LDAP Connector, provisioned with the connection's `provisioning_ticket_url`. `email` and `sms` are passwordless connections whose name must equal the strategy; options follow ConnectionOptionsEmail and ConnectionOptionsSMS (Plan 34). `apple` follows ConnectionOptionsApple; web/native login is active (D-0170). `github` follows ConnectionOptionsGitHub (Plan 39c).
+// ConnectionCreateStrategy `samlp` follows ConnectionOptionsSAML (Plan 37a). `adfs` follows ConnectionOptionsADFS (Plan 37b). `google-apps` follows ConnectionOptionsGoogleApps (Plan 37c). `ad` follows ConnectionOptionsAD (Plan 38a): users sign in through Auth0's AD/LDAP Connector, provisioned with the connection's `provisioning_ticket_url`. `email` and `sms` are passwordless connections whose name must equal the strategy; options follow ConnectionOptionsEmail and ConnectionOptionsSMS (Plan 34). `apple` follows ConnectionOptionsApple; web/native login is active (D-0170). `github` follows ConnectionOptionsGitHub (Plan 39c). The Plan 39b social strategies follow ConnectionOptionsSocial and their strategy schema (D-0180); `oauth1` follows ConnectionOptionsOAuth1.
 type ConnectionCreateStrategy string
 
 // ConnectionDeleted defines model for ConnectionDeleted.
@@ -10589,6 +10905,45 @@ type ConnectionOptionsADFSSetUserRootAttributes string
 // ConnectionOptionsADFSShouldTrustEmailVerifiedConnection defines model for ConnectionOptionsADFS.ShouldTrustEmailVerifiedConnection.
 type ConnectionOptionsADFSShouldTrustEmailVerifiedConnection string
 
+// ConnectionOptionsAmazon `amazon`. Scope `profile`, plus `postal_code` when that flag is on. `profile` is stored only.
+type ConnectionOptionsAmazon struct {
+	// ClientId Provider client ID; immutable after creation.
+	ClientId *string `json:"client_id,omitempty"`
+
+	// ClientSecret Sealed at write and never returned, logged or exported.
+	ClientSecret *string `json:"client_secret,omitempty"`
+
+	// FreeformScopes Extra provider scopes, appended to the effective scope. Only absent or empty is accepted for box, dropbox, shopify and yahoo.
+	FreeformScopes *[]string `json:"freeform_scopes,omitempty"`
+
+	// NonPersistentAttrs Stored only.
+	NonPersistentAttrs *[]string `json:"non_persistent_attrs,omitempty"`
+	PostalCode         *bool     `json:"postal_code,omitempty"`
+	Profile            *bool     `json:"profile,omitempty"`
+
+	// Scope Effective scope computed from the flags. Input must equal it as a set (a comma- or space-separated string is accepted).
+	Scope                 *ConnectionOptionsAmazon_Scope                `json:"scope,omitempty"`
+	SetUserRootAttributes *ConnectionOptionsAmazonSetUserRootAttributes `json:"set_user_root_attributes,omitempty"`
+
+	// UpstreamParams Stored only; never sent upstream.
+	UpstreamParams       *map[string]interface{} `json:"upstream_params,omitempty"`
+	AdditionalProperties map[string]interface{}  `json:"-"`
+}
+
+// ConnectionOptionsAmazonScope0 defines model for ConnectionOptionsAmazon.Scope.0.
+type ConnectionOptionsAmazonScope0 = []string
+
+// ConnectionOptionsAmazonScope1 defines model for ConnectionOptionsAmazon.Scope.1.
+type ConnectionOptionsAmazonScope1 = string
+
+// ConnectionOptionsAmazon_Scope Effective scope computed from the flags. Input must equal it as a set (a comma- or space-separated string is accepted).
+type ConnectionOptionsAmazon_Scope struct {
+	union json.RawMessage
+}
+
+// ConnectionOptionsAmazonSetUserRootAttributes defines model for ConnectionOptionsAmazon.SetUserRootAttributes.
+type ConnectionOptionsAmazonSetUserRootAttributes string
+
 // ConnectionOptionsApple Apple web and native connection contract (D-0170). Create requires client_id (Services ID), team_id, kid and
 // app_secret; no developer credentials are supplied. The Services ID
 // is immutable. PATCH omitting app_secret preserves the sealed key;
@@ -10634,6 +10989,44 @@ type ConnectionOptionsAppleFreeformScopes string
 // ConnectionOptionsAppleSetUserRootAttributes Apple names are preserved after the first login regardless of this setting (LR39a-10).
 type ConnectionOptionsAppleSetUserRootAttributes string
 
+// ConnectionOptionsBitbucket `bitbucket`. Scope `account email`; the primary email is read from `/2.0/user/emails`. `profile` is stored only.
+type ConnectionOptionsBitbucket struct {
+	// ClientId Provider client ID; immutable after creation.
+	ClientId *string `json:"client_id,omitempty"`
+
+	// ClientSecret Sealed at write and never returned, logged or exported.
+	ClientSecret *string `json:"client_secret,omitempty"`
+
+	// FreeformScopes Extra provider scopes, appended to the effective scope. Only absent or empty is accepted for box, dropbox, shopify and yahoo.
+	FreeformScopes *[]string `json:"freeform_scopes,omitempty"`
+
+	// NonPersistentAttrs Stored only.
+	NonPersistentAttrs *[]string `json:"non_persistent_attrs,omitempty"`
+	Profile            *bool     `json:"profile,omitempty"`
+
+	// Scope Effective scope computed from the flags. Input must equal it as a set (a comma- or space-separated string is accepted).
+	Scope                 *ConnectionOptionsBitbucket_Scope                `json:"scope,omitempty"`
+	SetUserRootAttributes *ConnectionOptionsBitbucketSetUserRootAttributes `json:"set_user_root_attributes,omitempty"`
+
+	// UpstreamParams Stored only; never sent upstream.
+	UpstreamParams       *map[string]interface{} `json:"upstream_params,omitempty"`
+	AdditionalProperties map[string]interface{}  `json:"-"`
+}
+
+// ConnectionOptionsBitbucketScope0 defines model for ConnectionOptionsBitbucket.Scope.0.
+type ConnectionOptionsBitbucketScope0 = []string
+
+// ConnectionOptionsBitbucketScope1 defines model for ConnectionOptionsBitbucket.Scope.1.
+type ConnectionOptionsBitbucketScope1 = string
+
+// ConnectionOptionsBitbucket_Scope Effective scope computed from the flags. Input must equal it as a set (a comma- or space-separated string is accepted).
+type ConnectionOptionsBitbucket_Scope struct {
+	union json.RawMessage
+}
+
+// ConnectionOptionsBitbucketSetUserRootAttributes defines model for ConnectionOptionsBitbucket.SetUserRootAttributes.
+type ConnectionOptionsBitbucketSetUserRootAttributes string
+
 // ConnectionOptionsEmail Options of the `email` passwordless connection (name `email`).
 // `authParams` is a JSON object encoded as a string, merged into magic
 // links. `email.body` is Liquid with `code`, `link`, `application.name`,
@@ -10656,6 +11049,52 @@ type ConnectionOptionsEmail struct {
 
 // ConnectionOptionsEmailEmailSyntax defines model for ConnectionOptionsEmail.Email.Syntax.
 type ConnectionOptionsEmailEmailSyntax string
+
+// ConnectionOptionsFacebook `facebook` (Graph API v24.0, SP-6). Every permission flag requests the
+// Facebook permission of the same name; `public_profile` defaults to true,
+// every other flag to false. The scope is sent comma-separated. Graph
+// calls carry `appsecret_proof`. `email_verified` is true when Facebook
+// returns an email. `allow_context_profile_field` is stored only.
+type ConnectionOptionsFacebook struct {
+	// AllowContextProfileField Stored only (deprecated by Facebook).
+	AllowContextProfileField *bool `json:"allow_context_profile_field,omitempty"`
+
+	// ClientId Provider client ID; immutable after creation.
+	ClientId *string `json:"client_id,omitempty"`
+
+	// ClientSecret Sealed at write and never returned, logged or exported.
+	ClientSecret *string `json:"client_secret,omitempty"`
+	Email        *bool   `json:"email,omitempty"`
+
+	// FreeformScopes Extra provider scopes, appended to the effective scope. Only absent or empty is accepted for box, dropbox, shopify and yahoo.
+	FreeformScopes *[]string `json:"freeform_scopes,omitempty"`
+
+	// NonPersistentAttrs Stored only.
+	NonPersistentAttrs *[]string `json:"non_persistent_attrs,omitempty"`
+	PublicProfile      *bool     `json:"public_profile,omitempty"`
+
+	// Scope Effective scope computed from the flags. Input must equal it as a set (a comma- or space-separated string is accepted).
+	Scope                 *ConnectionOptionsFacebook_Scope                `json:"scope,omitempty"`
+	SetUserRootAttributes *ConnectionOptionsFacebookSetUserRootAttributes `json:"set_user_root_attributes,omitempty"`
+
+	// UpstreamParams Stored only; never sent upstream.
+	UpstreamParams       *map[string]interface{} `json:"upstream_params,omitempty"`
+	AdditionalProperties map[string]bool         `json:"-"`
+}
+
+// ConnectionOptionsFacebookScope0 defines model for ConnectionOptionsFacebook.Scope.0.
+type ConnectionOptionsFacebookScope0 = []string
+
+// ConnectionOptionsFacebookScope1 defines model for ConnectionOptionsFacebook.Scope.1.
+type ConnectionOptionsFacebookScope1 = string
+
+// ConnectionOptionsFacebook_Scope Effective scope computed from the flags. Input must equal it as a set (a comma- or space-separated string is accepted).
+type ConnectionOptionsFacebook_Scope struct {
+	union json.RawMessage
+}
+
+// ConnectionOptionsFacebookSetUserRootAttributes defines model for ConnectionOptionsFacebook.SetUserRootAttributes.
+type ConnectionOptionsFacebookSetUserRootAttributes string
 
 // ConnectionOptionsGitHub GitHub connection contract (Plan 39c, D-0181). Create requires client_id and
 // client_secret of a GitHub OAuth App; the secret is sealed and never
@@ -10801,6 +11240,129 @@ type ConnectionOptionsGoogleApps struct {
 // ConnectionOptionsGoogleAppsSetUserRootAttributes defines model for ConnectionOptionsGoogleApps.SetUserRootAttributes.
 type ConnectionOptionsGoogleAppsSetUserRootAttributes string
 
+// ConnectionOptionsLine `line`. Scope `openid`, plus `profile` (default true) and `email` per flag. The email is read from the ID token through LINE's verify endpoint.
+type ConnectionOptionsLine struct {
+	// ClientId Provider client ID; immutable after creation.
+	ClientId *string `json:"client_id,omitempty"`
+
+	// ClientSecret Sealed at write and never returned, logged or exported.
+	ClientSecret *string `json:"client_secret,omitempty"`
+	Email        *bool   `json:"email,omitempty"`
+
+	// FreeformScopes Extra provider scopes, appended to the effective scope. Only absent or empty is accepted for box, dropbox, shopify and yahoo.
+	FreeformScopes *[]string `json:"freeform_scopes,omitempty"`
+
+	// NonPersistentAttrs Stored only.
+	NonPersistentAttrs *[]string `json:"non_persistent_attrs,omitempty"`
+	Profile            *bool     `json:"profile,omitempty"`
+
+	// Scope Effective scope computed from the flags. Input must equal it as a set (a comma- or space-separated string is accepted).
+	Scope                 *ConnectionOptionsLine_Scope                `json:"scope,omitempty"`
+	SetUserRootAttributes *ConnectionOptionsLineSetUserRootAttributes `json:"set_user_root_attributes,omitempty"`
+
+	// UpstreamParams Stored only; never sent upstream.
+	UpstreamParams       *map[string]interface{} `json:"upstream_params,omitempty"`
+	AdditionalProperties map[string]interface{}  `json:"-"`
+}
+
+// ConnectionOptionsLineScope0 defines model for ConnectionOptionsLine.Scope.0.
+type ConnectionOptionsLineScope0 = []string
+
+// ConnectionOptionsLineScope1 defines model for ConnectionOptionsLine.Scope.1.
+type ConnectionOptionsLineScope1 = string
+
+// ConnectionOptionsLine_Scope Effective scope computed from the flags. Input must equal it as a set (a comma- or space-separated string is accepted).
+type ConnectionOptionsLine_Scope struct {
+	union json.RawMessage
+}
+
+// ConnectionOptionsLineSetUserRootAttributes defines model for ConnectionOptionsLine.SetUserRootAttributes.
+type ConnectionOptionsLineSetUserRootAttributes string
+
+// ConnectionOptionsLinkedin `linkedin`. `strategy_version` 3 (the default) signs in with LinkedIn's
+// OpenID Connect product: scope `openid profile`, plus `email` when the
+// `email` flag is on. Versions 1 and 2 are accepted and stored but login
+// is refused, because LinkedIn retired those APIs (SP-8).
+// `basic_profile`, `full_profile`, `network`, `openid` and `profile` are
+// stored only.
+type ConnectionOptionsLinkedin struct {
+	BasicProfile *bool `json:"basic_profile,omitempty"`
+
+	// ClientId Provider client ID; immutable after creation.
+	ClientId *string `json:"client_id,omitempty"`
+
+	// ClientSecret Sealed at write and never returned, logged or exported.
+	ClientSecret *string `json:"client_secret,omitempty"`
+	Email        *bool   `json:"email,omitempty"`
+
+	// FreeformScopes Extra provider scopes, appended to the effective scope. Only absent or empty is accepted for box, dropbox, shopify and yahoo.
+	FreeformScopes *[]string `json:"freeform_scopes,omitempty"`
+	FullProfile    *bool     `json:"full_profile,omitempty"`
+	Network        *bool     `json:"network,omitempty"`
+
+	// NonPersistentAttrs Stored only.
+	NonPersistentAttrs *[]string `json:"non_persistent_attrs,omitempty"`
+	Openid             *bool     `json:"openid,omitempty"`
+	Profile            *bool     `json:"profile,omitempty"`
+
+	// Scope Effective scope computed from the flags. Input must equal it as a set (a comma- or space-separated string is accepted).
+	Scope                 *ConnectionOptionsLinkedin_Scope                `json:"scope,omitempty"`
+	SetUserRootAttributes *ConnectionOptionsLinkedinSetUserRootAttributes `json:"set_user_root_attributes,omitempty"`
+	StrategyVersion       *ConnectionOptionsLinkedinStrategyVersion       `json:"strategy_version,omitempty"`
+
+	// UpstreamParams Stored only; never sent upstream.
+	UpstreamParams       *map[string]interface{} `json:"upstream_params,omitempty"`
+	AdditionalProperties map[string]interface{}  `json:"-"`
+}
+
+// ConnectionOptionsLinkedinScope0 defines model for ConnectionOptionsLinkedin.Scope.0.
+type ConnectionOptionsLinkedinScope0 = []string
+
+// ConnectionOptionsLinkedinScope1 defines model for ConnectionOptionsLinkedin.Scope.1.
+type ConnectionOptionsLinkedinScope1 = string
+
+// ConnectionOptionsLinkedin_Scope Effective scope computed from the flags. Input must equal it as a set (a comma- or space-separated string is accepted).
+type ConnectionOptionsLinkedin_Scope struct {
+	union json.RawMessage
+}
+
+// ConnectionOptionsLinkedinSetUserRootAttributes defines model for ConnectionOptionsLinkedin.SetUserRootAttributes.
+type ConnectionOptionsLinkedinSetUserRootAttributes string
+
+// ConnectionOptionsLinkedinStrategyVersion defines model for ConnectionOptionsLinkedin.StrategyVersion.
+type ConnectionOptionsLinkedinStrategyVersion int
+
+// ConnectionOptionsOAuth1 Generic OAuth 1.0a connection (`oauth1`, D-0180). The three endpoint
+// URLs are required, https and public. `signatureMethod` absent signs
+// with HMAC-SHA1; `RSA-SHA1` signs with the RSA private key given as
+// client_secret (PEM). Any other value is refused. The request-token
+// secret is sealed in the login attempt and never returned or logged.
+// `scripts.fetchUserProfile(token, tokenSecret, context, callback)`
+// is required and runs in the Plan 24 script runner.
+type ConnectionOptionsOAuth1 struct {
+	AccessTokenURL string `json:"accessTokenURL"`
+
+	// ClientId Consumer key.
+	ClientId string `json:"client_id"`
+
+	// ClientSecret Consumer secret or PEM RSA private key; sealed.
+	ClientSecret    *string `json:"client_secret,omitempty"`
+	RequestTokenURL string  `json:"requestTokenURL"`
+	Scripts         *struct {
+		FetchUserProfile string `json:"fetchUserProfile"`
+	} `json:"scripts,omitempty"`
+	SetUserRootAttributes *ConnectionOptionsOAuth1SetUserRootAttributes `json:"set_user_root_attributes,omitempty"`
+	SignatureMethod       *ConnectionOptionsOAuth1SignatureMethod       `json:"signatureMethod,omitempty"`
+	UserAuthorizationURL  string                                        `json:"userAuthorizationURL"`
+	AdditionalProperties  map[string]interface{}                        `json:"-"`
+}
+
+// ConnectionOptionsOAuth1SetUserRootAttributes defines model for ConnectionOptionsOAuth1.SetUserRootAttributes.
+type ConnectionOptionsOAuth1SetUserRootAttributes string
+
+// ConnectionOptionsOAuth1SignatureMethod defines model for ConnectionOptionsOAuth1.SignatureMethod.
+type ConnectionOptionsOAuth1SignatureMethod string
+
 // ConnectionOptionsOIDC defines model for ConnectionOptionsOIDC.
 type ConnectionOptionsOIDC struct {
 	AttributeMap *struct {
@@ -10924,6 +11486,48 @@ type ConnectionOptionsOktaTokenEndpointJwtcaAudFormat string
 
 // ConnectionOptionsOktaType defines model for ConnectionOptionsOkta.Type.
 type ConnectionOptionsOktaType string
+
+// ConnectionOptionsPaypal `paypal` and `paypal-sandbox` (sandbox hosts, SP-1). Scope `openid`, plus `profile`, `email`, `address` and `phone` per flag.
+type ConnectionOptionsPaypal struct {
+	Address *bool `json:"address,omitempty"`
+
+	// ClientId Provider client ID; immutable after creation.
+	ClientId *string `json:"client_id,omitempty"`
+
+	// ClientSecret Sealed at write and never returned, logged or exported.
+	ClientSecret *string `json:"client_secret,omitempty"`
+	Email        *bool   `json:"email,omitempty"`
+
+	// FreeformScopes Extra provider scopes, appended to the effective scope. Only absent or empty is accepted for box, dropbox, shopify and yahoo.
+	FreeformScopes *[]string `json:"freeform_scopes,omitempty"`
+
+	// NonPersistentAttrs Stored only.
+	NonPersistentAttrs *[]string `json:"non_persistent_attrs,omitempty"`
+	Phone              *bool     `json:"phone,omitempty"`
+	Profile            *bool     `json:"profile,omitempty"`
+
+	// Scope Effective scope computed from the flags. Input must equal it as a set (a comma- or space-separated string is accepted).
+	Scope                 *ConnectionOptionsPaypal_Scope                `json:"scope,omitempty"`
+	SetUserRootAttributes *ConnectionOptionsPaypalSetUserRootAttributes `json:"set_user_root_attributes,omitempty"`
+
+	// UpstreamParams Stored only; never sent upstream.
+	UpstreamParams       *map[string]interface{} `json:"upstream_params,omitempty"`
+	AdditionalProperties map[string]interface{}  `json:"-"`
+}
+
+// ConnectionOptionsPaypalScope0 defines model for ConnectionOptionsPaypal.Scope.0.
+type ConnectionOptionsPaypalScope0 = []string
+
+// ConnectionOptionsPaypalScope1 defines model for ConnectionOptionsPaypal.Scope.1.
+type ConnectionOptionsPaypalScope1 = string
+
+// ConnectionOptionsPaypal_Scope Effective scope computed from the flags. Input must equal it as a set (a comma- or space-separated string is accepted).
+type ConnectionOptionsPaypal_Scope struct {
+	union json.RawMessage
+}
+
+// ConnectionOptionsPaypalSetUserRootAttributes defines model for ConnectionOptionsPaypal.SetUserRootAttributes.
+type ConnectionOptionsPaypalSetUserRootAttributes string
 
 // ConnectionOptionsSAML SAML service-provider connection (`samlp`, Plan 37a, D-0130). The
 // identity provider is configured from `metadataUrl` (fetched through
@@ -11103,6 +11707,152 @@ type ConnectionOptionsSMSProvider string
 
 // ConnectionOptionsSMSSyntax defines model for ConnectionOptionsSMS.Syntax.
 type ConnectionOptionsSMSSyntax string
+
+// ConnectionOptionsSalesforce `salesforce` (login.salesforce.com), `salesforce-sandbox` (test.salesforce.com) and `salesforce-community`. Scope `id`, plus `profile` when that flag is on (default true). The profile is read from the token response's identity URL, which must be on the token endpoint's host.
+type ConnectionOptionsSalesforce struct {
+	// ClientId Provider client ID; immutable after creation.
+	ClientId *string `json:"client_id,omitempty"`
+
+	// ClientSecret Sealed at write and never returned, logged or exported.
+	ClientSecret *string `json:"client_secret,omitempty"`
+
+	// CommunityBaseUrl Required for `salesforce-community` only: the https community URL; endpoints are built under it.
+	CommunityBaseUrl *string `json:"community_base_url,omitempty"`
+
+	// FreeformScopes Extra provider scopes, appended to the effective scope. Only absent or empty is accepted for box, dropbox, shopify and yahoo.
+	FreeformScopes *[]string `json:"freeform_scopes,omitempty"`
+
+	// NonPersistentAttrs Stored only.
+	NonPersistentAttrs *[]string `json:"non_persistent_attrs,omitempty"`
+	Profile            *bool     `json:"profile,omitempty"`
+
+	// Scope Effective scope computed from the flags. Input must equal it as a set (a comma- or space-separated string is accepted).
+	Scope                 *ConnectionOptionsSalesforce_Scope                `json:"scope,omitempty"`
+	SetUserRootAttributes *ConnectionOptionsSalesforceSetUserRootAttributes `json:"set_user_root_attributes,omitempty"`
+
+	// UpstreamParams Stored only; never sent upstream.
+	UpstreamParams       *map[string]interface{} `json:"upstream_params,omitempty"`
+	AdditionalProperties map[string]interface{}  `json:"-"`
+}
+
+// ConnectionOptionsSalesforceScope0 defines model for ConnectionOptionsSalesforce.Scope.0.
+type ConnectionOptionsSalesforceScope0 = []string
+
+// ConnectionOptionsSalesforceScope1 defines model for ConnectionOptionsSalesforce.Scope.1.
+type ConnectionOptionsSalesforceScope1 = string
+
+// ConnectionOptionsSalesforce_Scope Effective scope computed from the flags. Input must equal it as a set (a comma- or space-separated string is accepted).
+type ConnectionOptionsSalesforce_Scope struct {
+	union json.RawMessage
+}
+
+// ConnectionOptionsSalesforceSetUserRootAttributes defines model for ConnectionOptionsSalesforce.SetUserRootAttributes.
+type ConnectionOptionsSalesforceSetUserRootAttributes string
+
+// ConnectionOptionsSocial Common contract of the Plan 39b descriptor-driven social strategies
+// (D-0180): amazon, bitbucket, box, dropbox, facebook, line, linkedin,
+// paypal, paypal-sandbox, salesforce, salesforce-community,
+// salesforce-sandbox, shopify, twitter and yahoo. Create requires
+// client_id and client_secret; the secret is sealed and never returned.
+// PATCH omitting client_secret preserves it; empty or null is refused.
+// client_id is immutable. Endpoints are fixed per strategy (see the
+// strategy schemas and `internal/federation/inventory.json`
+// `social_descriptors`); endpoint overrides are refused.
+// The requested scope is computed: the strategy's base scopes, then the
+// scope of each true flag, then `freeform_scopes` where the strategy
+// accepts them. `scope` is returned on read as that effective scope. An
+// input `scope` is accepted only when it equals it as a set. Flags not in
+// a strategy's table are stored and returned as sent.
+// `email_verified` is true only where the provider documents verified
+// emails or returns a verification field. Users are never linked by email.
+// Rotating client_secret or changing the scope increments FederationRevision.
+type ConnectionOptionsSocial struct {
+	// ClientId Provider client ID; immutable after creation.
+	ClientId *string `json:"client_id,omitempty"`
+
+	// ClientSecret Sealed at write and never returned, logged or exported.
+	ClientSecret *string `json:"client_secret,omitempty"`
+
+	// FreeformScopes Extra provider scopes, appended to the effective scope. Only absent or empty is accepted for box, dropbox, shopify and yahoo.
+	FreeformScopes *[]string `json:"freeform_scopes,omitempty"`
+
+	// NonPersistentAttrs Stored only.
+	NonPersistentAttrs *[]string `json:"non_persistent_attrs,omitempty"`
+
+	// Scope Effective scope computed from the flags. Input must equal it as a set (a comma- or space-separated string is accepted).
+	Scope                 *ConnectionOptionsSocial_Scope                `json:"scope,omitempty"`
+	SetUserRootAttributes *ConnectionOptionsSocialSetUserRootAttributes `json:"set_user_root_attributes,omitempty"`
+
+	// UpstreamParams Stored only; never sent upstream.
+	UpstreamParams       *map[string]interface{} `json:"upstream_params,omitempty"`
+	AdditionalProperties map[string]interface{}  `json:"-"`
+}
+
+// ConnectionOptionsSocialScope0 defines model for ConnectionOptionsSocial.Scope.0.
+type ConnectionOptionsSocialScope0 = []string
+
+// ConnectionOptionsSocialScope1 defines model for ConnectionOptionsSocial.Scope.1.
+type ConnectionOptionsSocialScope1 = string
+
+// ConnectionOptionsSocial_Scope Effective scope computed from the flags. Input must equal it as a set (a comma- or space-separated string is accepted).
+type ConnectionOptionsSocial_Scope struct {
+	union json.RawMessage
+}
+
+// ConnectionOptionsSocialSetUserRootAttributes defines model for ConnectionOptionsSocial.SetUserRootAttributes.
+type ConnectionOptionsSocialSetUserRootAttributes string
+
+// ConnectionOptionsTwitter `twitter` (X). `protocol` `oauth2` (the default) uses OAuth 2.0 with
+// S256 PKCE and the flags `tweet_read` (tweet.read), `users_read`
+// (users.read) and `offline_access` (offline.access); `tweet_read` and
+// `users_read` default to true. `oauth1` uses OAuth 1.0a with HMAC-SHA1;
+// its email needs the app's elevated email permission (SP-7). Users have
+// no `email_verified` true.
+type ConnectionOptionsTwitter struct {
+	// ClientId Provider client ID; immutable after creation.
+	ClientId *string `json:"client_id,omitempty"`
+
+	// ClientSecret Sealed at write and never returned, logged or exported.
+	ClientSecret *string `json:"client_secret,omitempty"`
+
+	// FreeformScopes Extra provider scopes, appended to the effective scope. Only absent or empty is accepted for box, dropbox, shopify and yahoo.
+	FreeformScopes *[]string `json:"freeform_scopes,omitempty"`
+
+	// NonPersistentAttrs Stored only.
+	NonPersistentAttrs *[]string `json:"non_persistent_attrs,omitempty"`
+	OfflineAccess      *bool     `json:"offline_access,omitempty"`
+
+	// Profile Stored only.
+	Profile  *bool                             `json:"profile,omitempty"`
+	Protocol *ConnectionOptionsTwitterProtocol `json:"protocol,omitempty"`
+
+	// Scope Effective scope computed from the flags. Input must equal it as a set (a comma- or space-separated string is accepted).
+	Scope                 *ConnectionOptionsTwitter_Scope                `json:"scope,omitempty"`
+	SetUserRootAttributes *ConnectionOptionsTwitterSetUserRootAttributes `json:"set_user_root_attributes,omitempty"`
+	TweetRead             *bool                                          `json:"tweet_read,omitempty"`
+
+	// UpstreamParams Stored only; never sent upstream.
+	UpstreamParams       *map[string]interface{} `json:"upstream_params,omitempty"`
+	UsersRead            *bool                   `json:"users_read,omitempty"`
+	AdditionalProperties map[string]interface{}  `json:"-"`
+}
+
+// ConnectionOptionsTwitterProtocol defines model for ConnectionOptionsTwitter.Protocol.
+type ConnectionOptionsTwitterProtocol string
+
+// ConnectionOptionsTwitterScope0 defines model for ConnectionOptionsTwitter.Scope.0.
+type ConnectionOptionsTwitterScope0 = []string
+
+// ConnectionOptionsTwitterScope1 defines model for ConnectionOptionsTwitter.Scope.1.
+type ConnectionOptionsTwitterScope1 = string
+
+// ConnectionOptionsTwitter_Scope Effective scope computed from the flags. Input must equal it as a set (a comma- or space-separated string is accepted).
+type ConnectionOptionsTwitter_Scope struct {
+	union json.RawMessage
+}
+
+// ConnectionOptionsTwitterSetUserRootAttributes defines model for ConnectionOptionsTwitter.SetUserRootAttributes.
+type ConnectionOptionsTwitterSetUserRootAttributes string
 
 // ConnectionPage A page of connections with `include_totals=true`.
 type ConnectionPage struct {
@@ -14562,10 +15312,11 @@ type ManagementError struct {
 	StatusCode int `json:"statusCode"`
 }
 
-// NativeSocialLogin Stored native social switches; Apple is enforced (Plan 39a, D-0170).
-// Apple exchange additionally requires
-// mobile.ios.app_bundle_identifier and an enabled Apple connection.
-// Facebook and Google enforcement belongs to Plan 39b.
+// NativeSocialLogin Native social switches, each enforced at the token exchange: Apple
+// (Plan 39a, D-0170) additionally requires
+// mobile.ios.app_bundle_identifier and an enabled Apple connection;
+// Google and Facebook (Plan 39b, D-0180) require an enabled
+// google-oauth2 or facebook connection.
 type NativeSocialLogin struct {
 	Apple    *NativeSocialLoginApple    `json:"apple,omitempty"`
 	Facebook *NativeSocialLoginFacebook `json:"facebook,omitempty"`
@@ -14580,13 +15331,13 @@ type NativeSocialLoginApple struct {
 
 // NativeSocialLoginFacebook defines model for NativeSocialLoginFacebook.
 type NativeSocialLoginFacebook struct {
-	// Enabled Stored by Plan 39a; native enforcement is deferred to Plan 39b.
+	// Enabled Allows the Facebook session-info token exchange (subject_token_type http://auth0.com/oauth/token-type/facebook-info-session-access-token) through an enabled facebook connection (Plan 39b, D-0180).
 	Enabled *bool `json:"enabled,omitempty"`
 }
 
 // NativeSocialLoginGoogle defines model for NativeSocialLoginGoogle.
 type NativeSocialLoginGoogle struct {
-	// Enabled Stored by Plan 39a; native enforcement is deferred to Plan 39b.
+	// Enabled Allows the Google ID-token exchange (subject_token_type http://auth0.com/oauth/token-type/google-id-token, a local URN) through an enabled google-oauth2 connection; the token's aud must be that connection's client_id (Plan 39b, D-0180).
 	Enabled *bool `json:"enabled,omitempty"`
 }
 
@@ -19757,6 +20508,194 @@ func (a ConnectionOptionsADFS) MarshalJSON() ([]byte, error) {
 	return json.Marshal(object)
 }
 
+// Getter for additional properties for ConnectionOptionsAmazon. Returns the specified
+// element and whether it was found
+func (a ConnectionOptionsAmazon) Get(fieldName string) (value interface{}, found bool) {
+	if a.AdditionalProperties != nil {
+		value, found = a.AdditionalProperties[fieldName]
+	}
+	return
+}
+
+// Setter for additional properties for ConnectionOptionsAmazon
+func (a *ConnectionOptionsAmazon) Set(fieldName string, value interface{}) {
+	if a.AdditionalProperties == nil {
+		a.AdditionalProperties = make(map[string]interface{})
+	}
+	a.AdditionalProperties[fieldName] = value
+}
+
+// Override default JSON handling for ConnectionOptionsAmazon to handle AdditionalProperties
+func (a *ConnectionOptionsAmazon) UnmarshalJSON(b []byte) error {
+	object := make(map[string]json.RawMessage)
+	err := json.Unmarshal(b, &object)
+	if err != nil {
+		return err
+	}
+
+	if raw, found := object["client_id"]; found {
+		err = json.Unmarshal(raw, &a.ClientId)
+		if err != nil {
+			return fmt.Errorf("error reading 'client_id': %w", err)
+		}
+		delete(object, "client_id")
+	}
+
+	if raw, found := object["client_secret"]; found {
+		err = json.Unmarshal(raw, &a.ClientSecret)
+		if err != nil {
+			return fmt.Errorf("error reading 'client_secret': %w", err)
+		}
+		delete(object, "client_secret")
+	}
+
+	if raw, found := object["freeform_scopes"]; found {
+		err = json.Unmarshal(raw, &a.FreeformScopes)
+		if err != nil {
+			return fmt.Errorf("error reading 'freeform_scopes': %w", err)
+		}
+		delete(object, "freeform_scopes")
+	}
+
+	if raw, found := object["non_persistent_attrs"]; found {
+		err = json.Unmarshal(raw, &a.NonPersistentAttrs)
+		if err != nil {
+			return fmt.Errorf("error reading 'non_persistent_attrs': %w", err)
+		}
+		delete(object, "non_persistent_attrs")
+	}
+
+	if raw, found := object["postal_code"]; found {
+		err = json.Unmarshal(raw, &a.PostalCode)
+		if err != nil {
+			return fmt.Errorf("error reading 'postal_code': %w", err)
+		}
+		delete(object, "postal_code")
+	}
+
+	if raw, found := object["profile"]; found {
+		err = json.Unmarshal(raw, &a.Profile)
+		if err != nil {
+			return fmt.Errorf("error reading 'profile': %w", err)
+		}
+		delete(object, "profile")
+	}
+
+	if raw, found := object["scope"]; found {
+		err = json.Unmarshal(raw, &a.Scope)
+		if err != nil {
+			return fmt.Errorf("error reading 'scope': %w", err)
+		}
+		delete(object, "scope")
+	}
+
+	if raw, found := object["set_user_root_attributes"]; found {
+		err = json.Unmarshal(raw, &a.SetUserRootAttributes)
+		if err != nil {
+			return fmt.Errorf("error reading 'set_user_root_attributes': %w", err)
+		}
+		delete(object, "set_user_root_attributes")
+	}
+
+	if raw, found := object["upstream_params"]; found {
+		err = json.Unmarshal(raw, &a.UpstreamParams)
+		if err != nil {
+			return fmt.Errorf("error reading 'upstream_params': %w", err)
+		}
+		delete(object, "upstream_params")
+	}
+
+	if len(object) != 0 {
+		a.AdditionalProperties = make(map[string]interface{})
+		for fieldName, fieldBuf := range object {
+			var fieldVal interface{}
+			err := json.Unmarshal(fieldBuf, &fieldVal)
+			if err != nil {
+				return fmt.Errorf("error unmarshaling field %s: %w", fieldName, err)
+			}
+			a.AdditionalProperties[fieldName] = fieldVal
+		}
+	}
+	return nil
+}
+
+// Override default JSON handling for ConnectionOptionsAmazon to handle AdditionalProperties
+func (a ConnectionOptionsAmazon) MarshalJSON() ([]byte, error) {
+	var err error
+	object := make(map[string]json.RawMessage)
+
+	if a.ClientId != nil {
+		object["client_id"], err = json.Marshal(a.ClientId)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'client_id': %w", err)
+		}
+	}
+
+	if a.ClientSecret != nil {
+		object["client_secret"], err = json.Marshal(a.ClientSecret)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'client_secret': %w", err)
+		}
+	}
+
+	if a.FreeformScopes != nil {
+		object["freeform_scopes"], err = json.Marshal(a.FreeformScopes)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'freeform_scopes': %w", err)
+		}
+	}
+
+	if a.NonPersistentAttrs != nil {
+		object["non_persistent_attrs"], err = json.Marshal(a.NonPersistentAttrs)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'non_persistent_attrs': %w", err)
+		}
+	}
+
+	if a.PostalCode != nil {
+		object["postal_code"], err = json.Marshal(a.PostalCode)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'postal_code': %w", err)
+		}
+	}
+
+	if a.Profile != nil {
+		object["profile"], err = json.Marshal(a.Profile)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'profile': %w", err)
+		}
+	}
+
+	if a.Scope != nil {
+		object["scope"], err = json.Marshal(a.Scope)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'scope': %w", err)
+		}
+	}
+
+	if a.SetUserRootAttributes != nil {
+		object["set_user_root_attributes"], err = json.Marshal(a.SetUserRootAttributes)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'set_user_root_attributes': %w", err)
+		}
+	}
+
+	if a.UpstreamParams != nil {
+		object["upstream_params"], err = json.Marshal(a.UpstreamParams)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'upstream_params': %w", err)
+		}
+	}
+
+	for fieldName, field := range a.AdditionalProperties {
+		object[fieldName], err = json.Marshal(field)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling '%s': %w", fieldName, err)
+		}
+	}
+	return json.Marshal(object)
+}
+
 // Getter for additional properties for ConnectionOptionsApple. Returns the specified
 // element and whether it was found
 func (a ConnectionOptionsApple) Get(fieldName string) (value interface{}, found bool) {
@@ -19975,6 +20914,179 @@ func (a ConnectionOptionsApple) MarshalJSON() ([]byte, error) {
 	return json.Marshal(object)
 }
 
+// Getter for additional properties for ConnectionOptionsBitbucket. Returns the specified
+// element and whether it was found
+func (a ConnectionOptionsBitbucket) Get(fieldName string) (value interface{}, found bool) {
+	if a.AdditionalProperties != nil {
+		value, found = a.AdditionalProperties[fieldName]
+	}
+	return
+}
+
+// Setter for additional properties for ConnectionOptionsBitbucket
+func (a *ConnectionOptionsBitbucket) Set(fieldName string, value interface{}) {
+	if a.AdditionalProperties == nil {
+		a.AdditionalProperties = make(map[string]interface{})
+	}
+	a.AdditionalProperties[fieldName] = value
+}
+
+// Override default JSON handling for ConnectionOptionsBitbucket to handle AdditionalProperties
+func (a *ConnectionOptionsBitbucket) UnmarshalJSON(b []byte) error {
+	object := make(map[string]json.RawMessage)
+	err := json.Unmarshal(b, &object)
+	if err != nil {
+		return err
+	}
+
+	if raw, found := object["client_id"]; found {
+		err = json.Unmarshal(raw, &a.ClientId)
+		if err != nil {
+			return fmt.Errorf("error reading 'client_id': %w", err)
+		}
+		delete(object, "client_id")
+	}
+
+	if raw, found := object["client_secret"]; found {
+		err = json.Unmarshal(raw, &a.ClientSecret)
+		if err != nil {
+			return fmt.Errorf("error reading 'client_secret': %w", err)
+		}
+		delete(object, "client_secret")
+	}
+
+	if raw, found := object["freeform_scopes"]; found {
+		err = json.Unmarshal(raw, &a.FreeformScopes)
+		if err != nil {
+			return fmt.Errorf("error reading 'freeform_scopes': %w", err)
+		}
+		delete(object, "freeform_scopes")
+	}
+
+	if raw, found := object["non_persistent_attrs"]; found {
+		err = json.Unmarshal(raw, &a.NonPersistentAttrs)
+		if err != nil {
+			return fmt.Errorf("error reading 'non_persistent_attrs': %w", err)
+		}
+		delete(object, "non_persistent_attrs")
+	}
+
+	if raw, found := object["profile"]; found {
+		err = json.Unmarshal(raw, &a.Profile)
+		if err != nil {
+			return fmt.Errorf("error reading 'profile': %w", err)
+		}
+		delete(object, "profile")
+	}
+
+	if raw, found := object["scope"]; found {
+		err = json.Unmarshal(raw, &a.Scope)
+		if err != nil {
+			return fmt.Errorf("error reading 'scope': %w", err)
+		}
+		delete(object, "scope")
+	}
+
+	if raw, found := object["set_user_root_attributes"]; found {
+		err = json.Unmarshal(raw, &a.SetUserRootAttributes)
+		if err != nil {
+			return fmt.Errorf("error reading 'set_user_root_attributes': %w", err)
+		}
+		delete(object, "set_user_root_attributes")
+	}
+
+	if raw, found := object["upstream_params"]; found {
+		err = json.Unmarshal(raw, &a.UpstreamParams)
+		if err != nil {
+			return fmt.Errorf("error reading 'upstream_params': %w", err)
+		}
+		delete(object, "upstream_params")
+	}
+
+	if len(object) != 0 {
+		a.AdditionalProperties = make(map[string]interface{})
+		for fieldName, fieldBuf := range object {
+			var fieldVal interface{}
+			err := json.Unmarshal(fieldBuf, &fieldVal)
+			if err != nil {
+				return fmt.Errorf("error unmarshaling field %s: %w", fieldName, err)
+			}
+			a.AdditionalProperties[fieldName] = fieldVal
+		}
+	}
+	return nil
+}
+
+// Override default JSON handling for ConnectionOptionsBitbucket to handle AdditionalProperties
+func (a ConnectionOptionsBitbucket) MarshalJSON() ([]byte, error) {
+	var err error
+	object := make(map[string]json.RawMessage)
+
+	if a.ClientId != nil {
+		object["client_id"], err = json.Marshal(a.ClientId)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'client_id': %w", err)
+		}
+	}
+
+	if a.ClientSecret != nil {
+		object["client_secret"], err = json.Marshal(a.ClientSecret)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'client_secret': %w", err)
+		}
+	}
+
+	if a.FreeformScopes != nil {
+		object["freeform_scopes"], err = json.Marshal(a.FreeformScopes)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'freeform_scopes': %w", err)
+		}
+	}
+
+	if a.NonPersistentAttrs != nil {
+		object["non_persistent_attrs"], err = json.Marshal(a.NonPersistentAttrs)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'non_persistent_attrs': %w", err)
+		}
+	}
+
+	if a.Profile != nil {
+		object["profile"], err = json.Marshal(a.Profile)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'profile': %w", err)
+		}
+	}
+
+	if a.Scope != nil {
+		object["scope"], err = json.Marshal(a.Scope)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'scope': %w", err)
+		}
+	}
+
+	if a.SetUserRootAttributes != nil {
+		object["set_user_root_attributes"], err = json.Marshal(a.SetUserRootAttributes)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'set_user_root_attributes': %w", err)
+		}
+	}
+
+	if a.UpstreamParams != nil {
+		object["upstream_params"], err = json.Marshal(a.UpstreamParams)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'upstream_params': %w", err)
+		}
+	}
+
+	for fieldName, field := range a.AdditionalProperties {
+		object[fieldName], err = json.Marshal(field)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling '%s': %w", fieldName, err)
+		}
+	}
+	return json.Marshal(object)
+}
+
 // Getter for additional properties for ConnectionOptionsEmail. Returns the specified
 // element and whether it was found
 func (a ConnectionOptionsEmail) Get(fieldName string) (value interface{}, found bool) {
@@ -20121,6 +21233,209 @@ func (a ConnectionOptionsEmail) MarshalJSON() ([]byte, error) {
 		object["totp"], err = json.Marshal(a.Totp)
 		if err != nil {
 			return nil, fmt.Errorf("error marshaling 'totp': %w", err)
+		}
+	}
+
+	for fieldName, field := range a.AdditionalProperties {
+		object[fieldName], err = json.Marshal(field)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling '%s': %w", fieldName, err)
+		}
+	}
+	return json.Marshal(object)
+}
+
+// Getter for additional properties for ConnectionOptionsFacebook. Returns the specified
+// element and whether it was found
+func (a ConnectionOptionsFacebook) Get(fieldName string) (value bool, found bool) {
+	if a.AdditionalProperties != nil {
+		value, found = a.AdditionalProperties[fieldName]
+	}
+	return
+}
+
+// Setter for additional properties for ConnectionOptionsFacebook
+func (a *ConnectionOptionsFacebook) Set(fieldName string, value bool) {
+	if a.AdditionalProperties == nil {
+		a.AdditionalProperties = make(map[string]bool)
+	}
+	a.AdditionalProperties[fieldName] = value
+}
+
+// Override default JSON handling for ConnectionOptionsFacebook to handle AdditionalProperties
+func (a *ConnectionOptionsFacebook) UnmarshalJSON(b []byte) error {
+	object := make(map[string]json.RawMessage)
+	err := json.Unmarshal(b, &object)
+	if err != nil {
+		return err
+	}
+
+	if raw, found := object["allow_context_profile_field"]; found {
+		err = json.Unmarshal(raw, &a.AllowContextProfileField)
+		if err != nil {
+			return fmt.Errorf("error reading 'allow_context_profile_field': %w", err)
+		}
+		delete(object, "allow_context_profile_field")
+	}
+
+	if raw, found := object["client_id"]; found {
+		err = json.Unmarshal(raw, &a.ClientId)
+		if err != nil {
+			return fmt.Errorf("error reading 'client_id': %w", err)
+		}
+		delete(object, "client_id")
+	}
+
+	if raw, found := object["client_secret"]; found {
+		err = json.Unmarshal(raw, &a.ClientSecret)
+		if err != nil {
+			return fmt.Errorf("error reading 'client_secret': %w", err)
+		}
+		delete(object, "client_secret")
+	}
+
+	if raw, found := object["email"]; found {
+		err = json.Unmarshal(raw, &a.Email)
+		if err != nil {
+			return fmt.Errorf("error reading 'email': %w", err)
+		}
+		delete(object, "email")
+	}
+
+	if raw, found := object["freeform_scopes"]; found {
+		err = json.Unmarshal(raw, &a.FreeformScopes)
+		if err != nil {
+			return fmt.Errorf("error reading 'freeform_scopes': %w", err)
+		}
+		delete(object, "freeform_scopes")
+	}
+
+	if raw, found := object["non_persistent_attrs"]; found {
+		err = json.Unmarshal(raw, &a.NonPersistentAttrs)
+		if err != nil {
+			return fmt.Errorf("error reading 'non_persistent_attrs': %w", err)
+		}
+		delete(object, "non_persistent_attrs")
+	}
+
+	if raw, found := object["public_profile"]; found {
+		err = json.Unmarshal(raw, &a.PublicProfile)
+		if err != nil {
+			return fmt.Errorf("error reading 'public_profile': %w", err)
+		}
+		delete(object, "public_profile")
+	}
+
+	if raw, found := object["scope"]; found {
+		err = json.Unmarshal(raw, &a.Scope)
+		if err != nil {
+			return fmt.Errorf("error reading 'scope': %w", err)
+		}
+		delete(object, "scope")
+	}
+
+	if raw, found := object["set_user_root_attributes"]; found {
+		err = json.Unmarshal(raw, &a.SetUserRootAttributes)
+		if err != nil {
+			return fmt.Errorf("error reading 'set_user_root_attributes': %w", err)
+		}
+		delete(object, "set_user_root_attributes")
+	}
+
+	if raw, found := object["upstream_params"]; found {
+		err = json.Unmarshal(raw, &a.UpstreamParams)
+		if err != nil {
+			return fmt.Errorf("error reading 'upstream_params': %w", err)
+		}
+		delete(object, "upstream_params")
+	}
+
+	if len(object) != 0 {
+		a.AdditionalProperties = make(map[string]bool)
+		for fieldName, fieldBuf := range object {
+			var fieldVal bool
+			err := json.Unmarshal(fieldBuf, &fieldVal)
+			if err != nil {
+				return fmt.Errorf("error unmarshaling field %s: %w", fieldName, err)
+			}
+			a.AdditionalProperties[fieldName] = fieldVal
+		}
+	}
+	return nil
+}
+
+// Override default JSON handling for ConnectionOptionsFacebook to handle AdditionalProperties
+func (a ConnectionOptionsFacebook) MarshalJSON() ([]byte, error) {
+	var err error
+	object := make(map[string]json.RawMessage)
+
+	if a.AllowContextProfileField != nil {
+		object["allow_context_profile_field"], err = json.Marshal(a.AllowContextProfileField)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'allow_context_profile_field': %w", err)
+		}
+	}
+
+	if a.ClientId != nil {
+		object["client_id"], err = json.Marshal(a.ClientId)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'client_id': %w", err)
+		}
+	}
+
+	if a.ClientSecret != nil {
+		object["client_secret"], err = json.Marshal(a.ClientSecret)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'client_secret': %w", err)
+		}
+	}
+
+	if a.Email != nil {
+		object["email"], err = json.Marshal(a.Email)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'email': %w", err)
+		}
+	}
+
+	if a.FreeformScopes != nil {
+		object["freeform_scopes"], err = json.Marshal(a.FreeformScopes)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'freeform_scopes': %w", err)
+		}
+	}
+
+	if a.NonPersistentAttrs != nil {
+		object["non_persistent_attrs"], err = json.Marshal(a.NonPersistentAttrs)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'non_persistent_attrs': %w", err)
+		}
+	}
+
+	if a.PublicProfile != nil {
+		object["public_profile"], err = json.Marshal(a.PublicProfile)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'public_profile': %w", err)
+		}
+	}
+
+	if a.Scope != nil {
+		object["scope"], err = json.Marshal(a.Scope)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'scope': %w", err)
+		}
+	}
+
+	if a.SetUserRootAttributes != nil {
+		object["set_user_root_attributes"], err = json.Marshal(a.SetUserRootAttributes)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'set_user_root_attributes': %w", err)
+		}
+	}
+
+	if a.UpstreamParams != nil {
+		object["upstream_params"], err = json.Marshal(a.UpstreamParams)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'upstream_params': %w", err)
 		}
 	}
 
@@ -20898,6 +22213,840 @@ func (a ConnectionOptionsGoogleApps) MarshalJSON() ([]byte, error) {
 		object["tenant_domain"], err = json.Marshal(a.TenantDomain)
 		if err != nil {
 			return nil, fmt.Errorf("error marshaling 'tenant_domain': %w", err)
+		}
+	}
+
+	for fieldName, field := range a.AdditionalProperties {
+		object[fieldName], err = json.Marshal(field)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling '%s': %w", fieldName, err)
+		}
+	}
+	return json.Marshal(object)
+}
+
+// Getter for additional properties for ConnectionOptionsLine. Returns the specified
+// element and whether it was found
+func (a ConnectionOptionsLine) Get(fieldName string) (value interface{}, found bool) {
+	if a.AdditionalProperties != nil {
+		value, found = a.AdditionalProperties[fieldName]
+	}
+	return
+}
+
+// Setter for additional properties for ConnectionOptionsLine
+func (a *ConnectionOptionsLine) Set(fieldName string, value interface{}) {
+	if a.AdditionalProperties == nil {
+		a.AdditionalProperties = make(map[string]interface{})
+	}
+	a.AdditionalProperties[fieldName] = value
+}
+
+// Override default JSON handling for ConnectionOptionsLine to handle AdditionalProperties
+func (a *ConnectionOptionsLine) UnmarshalJSON(b []byte) error {
+	object := make(map[string]json.RawMessage)
+	err := json.Unmarshal(b, &object)
+	if err != nil {
+		return err
+	}
+
+	if raw, found := object["client_id"]; found {
+		err = json.Unmarshal(raw, &a.ClientId)
+		if err != nil {
+			return fmt.Errorf("error reading 'client_id': %w", err)
+		}
+		delete(object, "client_id")
+	}
+
+	if raw, found := object["client_secret"]; found {
+		err = json.Unmarshal(raw, &a.ClientSecret)
+		if err != nil {
+			return fmt.Errorf("error reading 'client_secret': %w", err)
+		}
+		delete(object, "client_secret")
+	}
+
+	if raw, found := object["email"]; found {
+		err = json.Unmarshal(raw, &a.Email)
+		if err != nil {
+			return fmt.Errorf("error reading 'email': %w", err)
+		}
+		delete(object, "email")
+	}
+
+	if raw, found := object["freeform_scopes"]; found {
+		err = json.Unmarshal(raw, &a.FreeformScopes)
+		if err != nil {
+			return fmt.Errorf("error reading 'freeform_scopes': %w", err)
+		}
+		delete(object, "freeform_scopes")
+	}
+
+	if raw, found := object["non_persistent_attrs"]; found {
+		err = json.Unmarshal(raw, &a.NonPersistentAttrs)
+		if err != nil {
+			return fmt.Errorf("error reading 'non_persistent_attrs': %w", err)
+		}
+		delete(object, "non_persistent_attrs")
+	}
+
+	if raw, found := object["profile"]; found {
+		err = json.Unmarshal(raw, &a.Profile)
+		if err != nil {
+			return fmt.Errorf("error reading 'profile': %w", err)
+		}
+		delete(object, "profile")
+	}
+
+	if raw, found := object["scope"]; found {
+		err = json.Unmarshal(raw, &a.Scope)
+		if err != nil {
+			return fmt.Errorf("error reading 'scope': %w", err)
+		}
+		delete(object, "scope")
+	}
+
+	if raw, found := object["set_user_root_attributes"]; found {
+		err = json.Unmarshal(raw, &a.SetUserRootAttributes)
+		if err != nil {
+			return fmt.Errorf("error reading 'set_user_root_attributes': %w", err)
+		}
+		delete(object, "set_user_root_attributes")
+	}
+
+	if raw, found := object["upstream_params"]; found {
+		err = json.Unmarshal(raw, &a.UpstreamParams)
+		if err != nil {
+			return fmt.Errorf("error reading 'upstream_params': %w", err)
+		}
+		delete(object, "upstream_params")
+	}
+
+	if len(object) != 0 {
+		a.AdditionalProperties = make(map[string]interface{})
+		for fieldName, fieldBuf := range object {
+			var fieldVal interface{}
+			err := json.Unmarshal(fieldBuf, &fieldVal)
+			if err != nil {
+				return fmt.Errorf("error unmarshaling field %s: %w", fieldName, err)
+			}
+			a.AdditionalProperties[fieldName] = fieldVal
+		}
+	}
+	return nil
+}
+
+// Override default JSON handling for ConnectionOptionsLine to handle AdditionalProperties
+func (a ConnectionOptionsLine) MarshalJSON() ([]byte, error) {
+	var err error
+	object := make(map[string]json.RawMessage)
+
+	if a.ClientId != nil {
+		object["client_id"], err = json.Marshal(a.ClientId)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'client_id': %w", err)
+		}
+	}
+
+	if a.ClientSecret != nil {
+		object["client_secret"], err = json.Marshal(a.ClientSecret)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'client_secret': %w", err)
+		}
+	}
+
+	if a.Email != nil {
+		object["email"], err = json.Marshal(a.Email)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'email': %w", err)
+		}
+	}
+
+	if a.FreeformScopes != nil {
+		object["freeform_scopes"], err = json.Marshal(a.FreeformScopes)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'freeform_scopes': %w", err)
+		}
+	}
+
+	if a.NonPersistentAttrs != nil {
+		object["non_persistent_attrs"], err = json.Marshal(a.NonPersistentAttrs)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'non_persistent_attrs': %w", err)
+		}
+	}
+
+	if a.Profile != nil {
+		object["profile"], err = json.Marshal(a.Profile)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'profile': %w", err)
+		}
+	}
+
+	if a.Scope != nil {
+		object["scope"], err = json.Marshal(a.Scope)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'scope': %w", err)
+		}
+	}
+
+	if a.SetUserRootAttributes != nil {
+		object["set_user_root_attributes"], err = json.Marshal(a.SetUserRootAttributes)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'set_user_root_attributes': %w", err)
+		}
+	}
+
+	if a.UpstreamParams != nil {
+		object["upstream_params"], err = json.Marshal(a.UpstreamParams)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'upstream_params': %w", err)
+		}
+	}
+
+	for fieldName, field := range a.AdditionalProperties {
+		object[fieldName], err = json.Marshal(field)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling '%s': %w", fieldName, err)
+		}
+	}
+	return json.Marshal(object)
+}
+
+// Getter for additional properties for ConnectionOptionsLinkedin. Returns the specified
+// element and whether it was found
+func (a ConnectionOptionsLinkedin) Get(fieldName string) (value interface{}, found bool) {
+	if a.AdditionalProperties != nil {
+		value, found = a.AdditionalProperties[fieldName]
+	}
+	return
+}
+
+// Setter for additional properties for ConnectionOptionsLinkedin
+func (a *ConnectionOptionsLinkedin) Set(fieldName string, value interface{}) {
+	if a.AdditionalProperties == nil {
+		a.AdditionalProperties = make(map[string]interface{})
+	}
+	a.AdditionalProperties[fieldName] = value
+}
+
+// Override default JSON handling for ConnectionOptionsLinkedin to handle AdditionalProperties
+func (a *ConnectionOptionsLinkedin) UnmarshalJSON(b []byte) error {
+	object := make(map[string]json.RawMessage)
+	err := json.Unmarshal(b, &object)
+	if err != nil {
+		return err
+	}
+
+	if raw, found := object["basic_profile"]; found {
+		err = json.Unmarshal(raw, &a.BasicProfile)
+		if err != nil {
+			return fmt.Errorf("error reading 'basic_profile': %w", err)
+		}
+		delete(object, "basic_profile")
+	}
+
+	if raw, found := object["client_id"]; found {
+		err = json.Unmarshal(raw, &a.ClientId)
+		if err != nil {
+			return fmt.Errorf("error reading 'client_id': %w", err)
+		}
+		delete(object, "client_id")
+	}
+
+	if raw, found := object["client_secret"]; found {
+		err = json.Unmarshal(raw, &a.ClientSecret)
+		if err != nil {
+			return fmt.Errorf("error reading 'client_secret': %w", err)
+		}
+		delete(object, "client_secret")
+	}
+
+	if raw, found := object["email"]; found {
+		err = json.Unmarshal(raw, &a.Email)
+		if err != nil {
+			return fmt.Errorf("error reading 'email': %w", err)
+		}
+		delete(object, "email")
+	}
+
+	if raw, found := object["freeform_scopes"]; found {
+		err = json.Unmarshal(raw, &a.FreeformScopes)
+		if err != nil {
+			return fmt.Errorf("error reading 'freeform_scopes': %w", err)
+		}
+		delete(object, "freeform_scopes")
+	}
+
+	if raw, found := object["full_profile"]; found {
+		err = json.Unmarshal(raw, &a.FullProfile)
+		if err != nil {
+			return fmt.Errorf("error reading 'full_profile': %w", err)
+		}
+		delete(object, "full_profile")
+	}
+
+	if raw, found := object["network"]; found {
+		err = json.Unmarshal(raw, &a.Network)
+		if err != nil {
+			return fmt.Errorf("error reading 'network': %w", err)
+		}
+		delete(object, "network")
+	}
+
+	if raw, found := object["non_persistent_attrs"]; found {
+		err = json.Unmarshal(raw, &a.NonPersistentAttrs)
+		if err != nil {
+			return fmt.Errorf("error reading 'non_persistent_attrs': %w", err)
+		}
+		delete(object, "non_persistent_attrs")
+	}
+
+	if raw, found := object["openid"]; found {
+		err = json.Unmarshal(raw, &a.Openid)
+		if err != nil {
+			return fmt.Errorf("error reading 'openid': %w", err)
+		}
+		delete(object, "openid")
+	}
+
+	if raw, found := object["profile"]; found {
+		err = json.Unmarshal(raw, &a.Profile)
+		if err != nil {
+			return fmt.Errorf("error reading 'profile': %w", err)
+		}
+		delete(object, "profile")
+	}
+
+	if raw, found := object["scope"]; found {
+		err = json.Unmarshal(raw, &a.Scope)
+		if err != nil {
+			return fmt.Errorf("error reading 'scope': %w", err)
+		}
+		delete(object, "scope")
+	}
+
+	if raw, found := object["set_user_root_attributes"]; found {
+		err = json.Unmarshal(raw, &a.SetUserRootAttributes)
+		if err != nil {
+			return fmt.Errorf("error reading 'set_user_root_attributes': %w", err)
+		}
+		delete(object, "set_user_root_attributes")
+	}
+
+	if raw, found := object["strategy_version"]; found {
+		err = json.Unmarshal(raw, &a.StrategyVersion)
+		if err != nil {
+			return fmt.Errorf("error reading 'strategy_version': %w", err)
+		}
+		delete(object, "strategy_version")
+	}
+
+	if raw, found := object["upstream_params"]; found {
+		err = json.Unmarshal(raw, &a.UpstreamParams)
+		if err != nil {
+			return fmt.Errorf("error reading 'upstream_params': %w", err)
+		}
+		delete(object, "upstream_params")
+	}
+
+	if len(object) != 0 {
+		a.AdditionalProperties = make(map[string]interface{})
+		for fieldName, fieldBuf := range object {
+			var fieldVal interface{}
+			err := json.Unmarshal(fieldBuf, &fieldVal)
+			if err != nil {
+				return fmt.Errorf("error unmarshaling field %s: %w", fieldName, err)
+			}
+			a.AdditionalProperties[fieldName] = fieldVal
+		}
+	}
+	return nil
+}
+
+// Override default JSON handling for ConnectionOptionsLinkedin to handle AdditionalProperties
+func (a ConnectionOptionsLinkedin) MarshalJSON() ([]byte, error) {
+	var err error
+	object := make(map[string]json.RawMessage)
+
+	if a.BasicProfile != nil {
+		object["basic_profile"], err = json.Marshal(a.BasicProfile)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'basic_profile': %w", err)
+		}
+	}
+
+	if a.ClientId != nil {
+		object["client_id"], err = json.Marshal(a.ClientId)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'client_id': %w", err)
+		}
+	}
+
+	if a.ClientSecret != nil {
+		object["client_secret"], err = json.Marshal(a.ClientSecret)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'client_secret': %w", err)
+		}
+	}
+
+	if a.Email != nil {
+		object["email"], err = json.Marshal(a.Email)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'email': %w", err)
+		}
+	}
+
+	if a.FreeformScopes != nil {
+		object["freeform_scopes"], err = json.Marshal(a.FreeformScopes)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'freeform_scopes': %w", err)
+		}
+	}
+
+	if a.FullProfile != nil {
+		object["full_profile"], err = json.Marshal(a.FullProfile)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'full_profile': %w", err)
+		}
+	}
+
+	if a.Network != nil {
+		object["network"], err = json.Marshal(a.Network)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'network': %w", err)
+		}
+	}
+
+	if a.NonPersistentAttrs != nil {
+		object["non_persistent_attrs"], err = json.Marshal(a.NonPersistentAttrs)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'non_persistent_attrs': %w", err)
+		}
+	}
+
+	if a.Openid != nil {
+		object["openid"], err = json.Marshal(a.Openid)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'openid': %w", err)
+		}
+	}
+
+	if a.Profile != nil {
+		object["profile"], err = json.Marshal(a.Profile)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'profile': %w", err)
+		}
+	}
+
+	if a.Scope != nil {
+		object["scope"], err = json.Marshal(a.Scope)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'scope': %w", err)
+		}
+	}
+
+	if a.SetUserRootAttributes != nil {
+		object["set_user_root_attributes"], err = json.Marshal(a.SetUserRootAttributes)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'set_user_root_attributes': %w", err)
+		}
+	}
+
+	if a.StrategyVersion != nil {
+		object["strategy_version"], err = json.Marshal(a.StrategyVersion)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'strategy_version': %w", err)
+		}
+	}
+
+	if a.UpstreamParams != nil {
+		object["upstream_params"], err = json.Marshal(a.UpstreamParams)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'upstream_params': %w", err)
+		}
+	}
+
+	for fieldName, field := range a.AdditionalProperties {
+		object[fieldName], err = json.Marshal(field)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling '%s': %w", fieldName, err)
+		}
+	}
+	return json.Marshal(object)
+}
+
+// Getter for additional properties for ConnectionOptionsOAuth1. Returns the specified
+// element and whether it was found
+func (a ConnectionOptionsOAuth1) Get(fieldName string) (value interface{}, found bool) {
+	if a.AdditionalProperties != nil {
+		value, found = a.AdditionalProperties[fieldName]
+	}
+	return
+}
+
+// Setter for additional properties for ConnectionOptionsOAuth1
+func (a *ConnectionOptionsOAuth1) Set(fieldName string, value interface{}) {
+	if a.AdditionalProperties == nil {
+		a.AdditionalProperties = make(map[string]interface{})
+	}
+	a.AdditionalProperties[fieldName] = value
+}
+
+// Override default JSON handling for ConnectionOptionsOAuth1 to handle AdditionalProperties
+func (a *ConnectionOptionsOAuth1) UnmarshalJSON(b []byte) error {
+	object := make(map[string]json.RawMessage)
+	err := json.Unmarshal(b, &object)
+	if err != nil {
+		return err
+	}
+
+	if raw, found := object["accessTokenURL"]; found {
+		err = json.Unmarshal(raw, &a.AccessTokenURL)
+		if err != nil {
+			return fmt.Errorf("error reading 'accessTokenURL': %w", err)
+		}
+		delete(object, "accessTokenURL")
+	}
+
+	if raw, found := object["client_id"]; found {
+		err = json.Unmarshal(raw, &a.ClientId)
+		if err != nil {
+			return fmt.Errorf("error reading 'client_id': %w", err)
+		}
+		delete(object, "client_id")
+	}
+
+	if raw, found := object["client_secret"]; found {
+		err = json.Unmarshal(raw, &a.ClientSecret)
+		if err != nil {
+			return fmt.Errorf("error reading 'client_secret': %w", err)
+		}
+		delete(object, "client_secret")
+	}
+
+	if raw, found := object["requestTokenURL"]; found {
+		err = json.Unmarshal(raw, &a.RequestTokenURL)
+		if err != nil {
+			return fmt.Errorf("error reading 'requestTokenURL': %w", err)
+		}
+		delete(object, "requestTokenURL")
+	}
+
+	if raw, found := object["scripts"]; found {
+		err = json.Unmarshal(raw, &a.Scripts)
+		if err != nil {
+			return fmt.Errorf("error reading 'scripts': %w", err)
+		}
+		delete(object, "scripts")
+	}
+
+	if raw, found := object["set_user_root_attributes"]; found {
+		err = json.Unmarshal(raw, &a.SetUserRootAttributes)
+		if err != nil {
+			return fmt.Errorf("error reading 'set_user_root_attributes': %w", err)
+		}
+		delete(object, "set_user_root_attributes")
+	}
+
+	if raw, found := object["signatureMethod"]; found {
+		err = json.Unmarshal(raw, &a.SignatureMethod)
+		if err != nil {
+			return fmt.Errorf("error reading 'signatureMethod': %w", err)
+		}
+		delete(object, "signatureMethod")
+	}
+
+	if raw, found := object["userAuthorizationURL"]; found {
+		err = json.Unmarshal(raw, &a.UserAuthorizationURL)
+		if err != nil {
+			return fmt.Errorf("error reading 'userAuthorizationURL': %w", err)
+		}
+		delete(object, "userAuthorizationURL")
+	}
+
+	if len(object) != 0 {
+		a.AdditionalProperties = make(map[string]interface{})
+		for fieldName, fieldBuf := range object {
+			var fieldVal interface{}
+			err := json.Unmarshal(fieldBuf, &fieldVal)
+			if err != nil {
+				return fmt.Errorf("error unmarshaling field %s: %w", fieldName, err)
+			}
+			a.AdditionalProperties[fieldName] = fieldVal
+		}
+	}
+	return nil
+}
+
+// Override default JSON handling for ConnectionOptionsOAuth1 to handle AdditionalProperties
+func (a ConnectionOptionsOAuth1) MarshalJSON() ([]byte, error) {
+	var err error
+	object := make(map[string]json.RawMessage)
+
+	object["accessTokenURL"], err = json.Marshal(a.AccessTokenURL)
+	if err != nil {
+		return nil, fmt.Errorf("error marshaling 'accessTokenURL': %w", err)
+	}
+
+	object["client_id"], err = json.Marshal(a.ClientId)
+	if err != nil {
+		return nil, fmt.Errorf("error marshaling 'client_id': %w", err)
+	}
+
+	if a.ClientSecret != nil {
+		object["client_secret"], err = json.Marshal(a.ClientSecret)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'client_secret': %w", err)
+		}
+	}
+
+	object["requestTokenURL"], err = json.Marshal(a.RequestTokenURL)
+	if err != nil {
+		return nil, fmt.Errorf("error marshaling 'requestTokenURL': %w", err)
+	}
+
+	if a.Scripts != nil {
+		object["scripts"], err = json.Marshal(a.Scripts)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'scripts': %w", err)
+		}
+	}
+
+	if a.SetUserRootAttributes != nil {
+		object["set_user_root_attributes"], err = json.Marshal(a.SetUserRootAttributes)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'set_user_root_attributes': %w", err)
+		}
+	}
+
+	if a.SignatureMethod != nil {
+		object["signatureMethod"], err = json.Marshal(a.SignatureMethod)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'signatureMethod': %w", err)
+		}
+	}
+
+	object["userAuthorizationURL"], err = json.Marshal(a.UserAuthorizationURL)
+	if err != nil {
+		return nil, fmt.Errorf("error marshaling 'userAuthorizationURL': %w", err)
+	}
+
+	for fieldName, field := range a.AdditionalProperties {
+		object[fieldName], err = json.Marshal(field)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling '%s': %w", fieldName, err)
+		}
+	}
+	return json.Marshal(object)
+}
+
+// Getter for additional properties for ConnectionOptionsPaypal. Returns the specified
+// element and whether it was found
+func (a ConnectionOptionsPaypal) Get(fieldName string) (value interface{}, found bool) {
+	if a.AdditionalProperties != nil {
+		value, found = a.AdditionalProperties[fieldName]
+	}
+	return
+}
+
+// Setter for additional properties for ConnectionOptionsPaypal
+func (a *ConnectionOptionsPaypal) Set(fieldName string, value interface{}) {
+	if a.AdditionalProperties == nil {
+		a.AdditionalProperties = make(map[string]interface{})
+	}
+	a.AdditionalProperties[fieldName] = value
+}
+
+// Override default JSON handling for ConnectionOptionsPaypal to handle AdditionalProperties
+func (a *ConnectionOptionsPaypal) UnmarshalJSON(b []byte) error {
+	object := make(map[string]json.RawMessage)
+	err := json.Unmarshal(b, &object)
+	if err != nil {
+		return err
+	}
+
+	if raw, found := object["address"]; found {
+		err = json.Unmarshal(raw, &a.Address)
+		if err != nil {
+			return fmt.Errorf("error reading 'address': %w", err)
+		}
+		delete(object, "address")
+	}
+
+	if raw, found := object["client_id"]; found {
+		err = json.Unmarshal(raw, &a.ClientId)
+		if err != nil {
+			return fmt.Errorf("error reading 'client_id': %w", err)
+		}
+		delete(object, "client_id")
+	}
+
+	if raw, found := object["client_secret"]; found {
+		err = json.Unmarshal(raw, &a.ClientSecret)
+		if err != nil {
+			return fmt.Errorf("error reading 'client_secret': %w", err)
+		}
+		delete(object, "client_secret")
+	}
+
+	if raw, found := object["email"]; found {
+		err = json.Unmarshal(raw, &a.Email)
+		if err != nil {
+			return fmt.Errorf("error reading 'email': %w", err)
+		}
+		delete(object, "email")
+	}
+
+	if raw, found := object["freeform_scopes"]; found {
+		err = json.Unmarshal(raw, &a.FreeformScopes)
+		if err != nil {
+			return fmt.Errorf("error reading 'freeform_scopes': %w", err)
+		}
+		delete(object, "freeform_scopes")
+	}
+
+	if raw, found := object["non_persistent_attrs"]; found {
+		err = json.Unmarshal(raw, &a.NonPersistentAttrs)
+		if err != nil {
+			return fmt.Errorf("error reading 'non_persistent_attrs': %w", err)
+		}
+		delete(object, "non_persistent_attrs")
+	}
+
+	if raw, found := object["phone"]; found {
+		err = json.Unmarshal(raw, &a.Phone)
+		if err != nil {
+			return fmt.Errorf("error reading 'phone': %w", err)
+		}
+		delete(object, "phone")
+	}
+
+	if raw, found := object["profile"]; found {
+		err = json.Unmarshal(raw, &a.Profile)
+		if err != nil {
+			return fmt.Errorf("error reading 'profile': %w", err)
+		}
+		delete(object, "profile")
+	}
+
+	if raw, found := object["scope"]; found {
+		err = json.Unmarshal(raw, &a.Scope)
+		if err != nil {
+			return fmt.Errorf("error reading 'scope': %w", err)
+		}
+		delete(object, "scope")
+	}
+
+	if raw, found := object["set_user_root_attributes"]; found {
+		err = json.Unmarshal(raw, &a.SetUserRootAttributes)
+		if err != nil {
+			return fmt.Errorf("error reading 'set_user_root_attributes': %w", err)
+		}
+		delete(object, "set_user_root_attributes")
+	}
+
+	if raw, found := object["upstream_params"]; found {
+		err = json.Unmarshal(raw, &a.UpstreamParams)
+		if err != nil {
+			return fmt.Errorf("error reading 'upstream_params': %w", err)
+		}
+		delete(object, "upstream_params")
+	}
+
+	if len(object) != 0 {
+		a.AdditionalProperties = make(map[string]interface{})
+		for fieldName, fieldBuf := range object {
+			var fieldVal interface{}
+			err := json.Unmarshal(fieldBuf, &fieldVal)
+			if err != nil {
+				return fmt.Errorf("error unmarshaling field %s: %w", fieldName, err)
+			}
+			a.AdditionalProperties[fieldName] = fieldVal
+		}
+	}
+	return nil
+}
+
+// Override default JSON handling for ConnectionOptionsPaypal to handle AdditionalProperties
+func (a ConnectionOptionsPaypal) MarshalJSON() ([]byte, error) {
+	var err error
+	object := make(map[string]json.RawMessage)
+
+	if a.Address != nil {
+		object["address"], err = json.Marshal(a.Address)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'address': %w", err)
+		}
+	}
+
+	if a.ClientId != nil {
+		object["client_id"], err = json.Marshal(a.ClientId)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'client_id': %w", err)
+		}
+	}
+
+	if a.ClientSecret != nil {
+		object["client_secret"], err = json.Marshal(a.ClientSecret)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'client_secret': %w", err)
+		}
+	}
+
+	if a.Email != nil {
+		object["email"], err = json.Marshal(a.Email)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'email': %w", err)
+		}
+	}
+
+	if a.FreeformScopes != nil {
+		object["freeform_scopes"], err = json.Marshal(a.FreeformScopes)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'freeform_scopes': %w", err)
+		}
+	}
+
+	if a.NonPersistentAttrs != nil {
+		object["non_persistent_attrs"], err = json.Marshal(a.NonPersistentAttrs)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'non_persistent_attrs': %w", err)
+		}
+	}
+
+	if a.Phone != nil {
+		object["phone"], err = json.Marshal(a.Phone)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'phone': %w", err)
+		}
+	}
+
+	if a.Profile != nil {
+		object["profile"], err = json.Marshal(a.Profile)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'profile': %w", err)
+		}
+	}
+
+	if a.Scope != nil {
+		object["scope"], err = json.Marshal(a.Scope)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'scope': %w", err)
+		}
+	}
+
+	if a.SetUserRootAttributes != nil {
+		object["set_user_root_attributes"], err = json.Marshal(a.SetUserRootAttributes)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'set_user_root_attributes': %w", err)
+		}
+	}
+
+	if a.UpstreamParams != nil {
+		object["upstream_params"], err = json.Marshal(a.UpstreamParams)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'upstream_params': %w", err)
 		}
 	}
 
@@ -21816,6 +23965,585 @@ func (a ConnectionOptionsSMS_GatewayAuthentication) MarshalJSON() ([]byte, error
 		object["subject"], err = json.Marshal(a.Subject)
 		if err != nil {
 			return nil, fmt.Errorf("error marshaling 'subject': %w", err)
+		}
+	}
+
+	for fieldName, field := range a.AdditionalProperties {
+		object[fieldName], err = json.Marshal(field)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling '%s': %w", fieldName, err)
+		}
+	}
+	return json.Marshal(object)
+}
+
+// Getter for additional properties for ConnectionOptionsSalesforce. Returns the specified
+// element and whether it was found
+func (a ConnectionOptionsSalesforce) Get(fieldName string) (value interface{}, found bool) {
+	if a.AdditionalProperties != nil {
+		value, found = a.AdditionalProperties[fieldName]
+	}
+	return
+}
+
+// Setter for additional properties for ConnectionOptionsSalesforce
+func (a *ConnectionOptionsSalesforce) Set(fieldName string, value interface{}) {
+	if a.AdditionalProperties == nil {
+		a.AdditionalProperties = make(map[string]interface{})
+	}
+	a.AdditionalProperties[fieldName] = value
+}
+
+// Override default JSON handling for ConnectionOptionsSalesforce to handle AdditionalProperties
+func (a *ConnectionOptionsSalesforce) UnmarshalJSON(b []byte) error {
+	object := make(map[string]json.RawMessage)
+	err := json.Unmarshal(b, &object)
+	if err != nil {
+		return err
+	}
+
+	if raw, found := object["client_id"]; found {
+		err = json.Unmarshal(raw, &a.ClientId)
+		if err != nil {
+			return fmt.Errorf("error reading 'client_id': %w", err)
+		}
+		delete(object, "client_id")
+	}
+
+	if raw, found := object["client_secret"]; found {
+		err = json.Unmarshal(raw, &a.ClientSecret)
+		if err != nil {
+			return fmt.Errorf("error reading 'client_secret': %w", err)
+		}
+		delete(object, "client_secret")
+	}
+
+	if raw, found := object["community_base_url"]; found {
+		err = json.Unmarshal(raw, &a.CommunityBaseUrl)
+		if err != nil {
+			return fmt.Errorf("error reading 'community_base_url': %w", err)
+		}
+		delete(object, "community_base_url")
+	}
+
+	if raw, found := object["freeform_scopes"]; found {
+		err = json.Unmarshal(raw, &a.FreeformScopes)
+		if err != nil {
+			return fmt.Errorf("error reading 'freeform_scopes': %w", err)
+		}
+		delete(object, "freeform_scopes")
+	}
+
+	if raw, found := object["non_persistent_attrs"]; found {
+		err = json.Unmarshal(raw, &a.NonPersistentAttrs)
+		if err != nil {
+			return fmt.Errorf("error reading 'non_persistent_attrs': %w", err)
+		}
+		delete(object, "non_persistent_attrs")
+	}
+
+	if raw, found := object["profile"]; found {
+		err = json.Unmarshal(raw, &a.Profile)
+		if err != nil {
+			return fmt.Errorf("error reading 'profile': %w", err)
+		}
+		delete(object, "profile")
+	}
+
+	if raw, found := object["scope"]; found {
+		err = json.Unmarshal(raw, &a.Scope)
+		if err != nil {
+			return fmt.Errorf("error reading 'scope': %w", err)
+		}
+		delete(object, "scope")
+	}
+
+	if raw, found := object["set_user_root_attributes"]; found {
+		err = json.Unmarshal(raw, &a.SetUserRootAttributes)
+		if err != nil {
+			return fmt.Errorf("error reading 'set_user_root_attributes': %w", err)
+		}
+		delete(object, "set_user_root_attributes")
+	}
+
+	if raw, found := object["upstream_params"]; found {
+		err = json.Unmarshal(raw, &a.UpstreamParams)
+		if err != nil {
+			return fmt.Errorf("error reading 'upstream_params': %w", err)
+		}
+		delete(object, "upstream_params")
+	}
+
+	if len(object) != 0 {
+		a.AdditionalProperties = make(map[string]interface{})
+		for fieldName, fieldBuf := range object {
+			var fieldVal interface{}
+			err := json.Unmarshal(fieldBuf, &fieldVal)
+			if err != nil {
+				return fmt.Errorf("error unmarshaling field %s: %w", fieldName, err)
+			}
+			a.AdditionalProperties[fieldName] = fieldVal
+		}
+	}
+	return nil
+}
+
+// Override default JSON handling for ConnectionOptionsSalesforce to handle AdditionalProperties
+func (a ConnectionOptionsSalesforce) MarshalJSON() ([]byte, error) {
+	var err error
+	object := make(map[string]json.RawMessage)
+
+	if a.ClientId != nil {
+		object["client_id"], err = json.Marshal(a.ClientId)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'client_id': %w", err)
+		}
+	}
+
+	if a.ClientSecret != nil {
+		object["client_secret"], err = json.Marshal(a.ClientSecret)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'client_secret': %w", err)
+		}
+	}
+
+	if a.CommunityBaseUrl != nil {
+		object["community_base_url"], err = json.Marshal(a.CommunityBaseUrl)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'community_base_url': %w", err)
+		}
+	}
+
+	if a.FreeformScopes != nil {
+		object["freeform_scopes"], err = json.Marshal(a.FreeformScopes)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'freeform_scopes': %w", err)
+		}
+	}
+
+	if a.NonPersistentAttrs != nil {
+		object["non_persistent_attrs"], err = json.Marshal(a.NonPersistentAttrs)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'non_persistent_attrs': %w", err)
+		}
+	}
+
+	if a.Profile != nil {
+		object["profile"], err = json.Marshal(a.Profile)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'profile': %w", err)
+		}
+	}
+
+	if a.Scope != nil {
+		object["scope"], err = json.Marshal(a.Scope)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'scope': %w", err)
+		}
+	}
+
+	if a.SetUserRootAttributes != nil {
+		object["set_user_root_attributes"], err = json.Marshal(a.SetUserRootAttributes)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'set_user_root_attributes': %w", err)
+		}
+	}
+
+	if a.UpstreamParams != nil {
+		object["upstream_params"], err = json.Marshal(a.UpstreamParams)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'upstream_params': %w", err)
+		}
+	}
+
+	for fieldName, field := range a.AdditionalProperties {
+		object[fieldName], err = json.Marshal(field)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling '%s': %w", fieldName, err)
+		}
+	}
+	return json.Marshal(object)
+}
+
+// Getter for additional properties for ConnectionOptionsSocial. Returns the specified
+// element and whether it was found
+func (a ConnectionOptionsSocial) Get(fieldName string) (value interface{}, found bool) {
+	if a.AdditionalProperties != nil {
+		value, found = a.AdditionalProperties[fieldName]
+	}
+	return
+}
+
+// Setter for additional properties for ConnectionOptionsSocial
+func (a *ConnectionOptionsSocial) Set(fieldName string, value interface{}) {
+	if a.AdditionalProperties == nil {
+		a.AdditionalProperties = make(map[string]interface{})
+	}
+	a.AdditionalProperties[fieldName] = value
+}
+
+// Override default JSON handling for ConnectionOptionsSocial to handle AdditionalProperties
+func (a *ConnectionOptionsSocial) UnmarshalJSON(b []byte) error {
+	object := make(map[string]json.RawMessage)
+	err := json.Unmarshal(b, &object)
+	if err != nil {
+		return err
+	}
+
+	if raw, found := object["client_id"]; found {
+		err = json.Unmarshal(raw, &a.ClientId)
+		if err != nil {
+			return fmt.Errorf("error reading 'client_id': %w", err)
+		}
+		delete(object, "client_id")
+	}
+
+	if raw, found := object["client_secret"]; found {
+		err = json.Unmarshal(raw, &a.ClientSecret)
+		if err != nil {
+			return fmt.Errorf("error reading 'client_secret': %w", err)
+		}
+		delete(object, "client_secret")
+	}
+
+	if raw, found := object["freeform_scopes"]; found {
+		err = json.Unmarshal(raw, &a.FreeformScopes)
+		if err != nil {
+			return fmt.Errorf("error reading 'freeform_scopes': %w", err)
+		}
+		delete(object, "freeform_scopes")
+	}
+
+	if raw, found := object["non_persistent_attrs"]; found {
+		err = json.Unmarshal(raw, &a.NonPersistentAttrs)
+		if err != nil {
+			return fmt.Errorf("error reading 'non_persistent_attrs': %w", err)
+		}
+		delete(object, "non_persistent_attrs")
+	}
+
+	if raw, found := object["scope"]; found {
+		err = json.Unmarshal(raw, &a.Scope)
+		if err != nil {
+			return fmt.Errorf("error reading 'scope': %w", err)
+		}
+		delete(object, "scope")
+	}
+
+	if raw, found := object["set_user_root_attributes"]; found {
+		err = json.Unmarshal(raw, &a.SetUserRootAttributes)
+		if err != nil {
+			return fmt.Errorf("error reading 'set_user_root_attributes': %w", err)
+		}
+		delete(object, "set_user_root_attributes")
+	}
+
+	if raw, found := object["upstream_params"]; found {
+		err = json.Unmarshal(raw, &a.UpstreamParams)
+		if err != nil {
+			return fmt.Errorf("error reading 'upstream_params': %w", err)
+		}
+		delete(object, "upstream_params")
+	}
+
+	if len(object) != 0 {
+		a.AdditionalProperties = make(map[string]interface{})
+		for fieldName, fieldBuf := range object {
+			var fieldVal interface{}
+			err := json.Unmarshal(fieldBuf, &fieldVal)
+			if err != nil {
+				return fmt.Errorf("error unmarshaling field %s: %w", fieldName, err)
+			}
+			a.AdditionalProperties[fieldName] = fieldVal
+		}
+	}
+	return nil
+}
+
+// Override default JSON handling for ConnectionOptionsSocial to handle AdditionalProperties
+func (a ConnectionOptionsSocial) MarshalJSON() ([]byte, error) {
+	var err error
+	object := make(map[string]json.RawMessage)
+
+	if a.ClientId != nil {
+		object["client_id"], err = json.Marshal(a.ClientId)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'client_id': %w", err)
+		}
+	}
+
+	if a.ClientSecret != nil {
+		object["client_secret"], err = json.Marshal(a.ClientSecret)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'client_secret': %w", err)
+		}
+	}
+
+	if a.FreeformScopes != nil {
+		object["freeform_scopes"], err = json.Marshal(a.FreeformScopes)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'freeform_scopes': %w", err)
+		}
+	}
+
+	if a.NonPersistentAttrs != nil {
+		object["non_persistent_attrs"], err = json.Marshal(a.NonPersistentAttrs)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'non_persistent_attrs': %w", err)
+		}
+	}
+
+	if a.Scope != nil {
+		object["scope"], err = json.Marshal(a.Scope)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'scope': %w", err)
+		}
+	}
+
+	if a.SetUserRootAttributes != nil {
+		object["set_user_root_attributes"], err = json.Marshal(a.SetUserRootAttributes)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'set_user_root_attributes': %w", err)
+		}
+	}
+
+	if a.UpstreamParams != nil {
+		object["upstream_params"], err = json.Marshal(a.UpstreamParams)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'upstream_params': %w", err)
+		}
+	}
+
+	for fieldName, field := range a.AdditionalProperties {
+		object[fieldName], err = json.Marshal(field)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling '%s': %w", fieldName, err)
+		}
+	}
+	return json.Marshal(object)
+}
+
+// Getter for additional properties for ConnectionOptionsTwitter. Returns the specified
+// element and whether it was found
+func (a ConnectionOptionsTwitter) Get(fieldName string) (value interface{}, found bool) {
+	if a.AdditionalProperties != nil {
+		value, found = a.AdditionalProperties[fieldName]
+	}
+	return
+}
+
+// Setter for additional properties for ConnectionOptionsTwitter
+func (a *ConnectionOptionsTwitter) Set(fieldName string, value interface{}) {
+	if a.AdditionalProperties == nil {
+		a.AdditionalProperties = make(map[string]interface{})
+	}
+	a.AdditionalProperties[fieldName] = value
+}
+
+// Override default JSON handling for ConnectionOptionsTwitter to handle AdditionalProperties
+func (a *ConnectionOptionsTwitter) UnmarshalJSON(b []byte) error {
+	object := make(map[string]json.RawMessage)
+	err := json.Unmarshal(b, &object)
+	if err != nil {
+		return err
+	}
+
+	if raw, found := object["client_id"]; found {
+		err = json.Unmarshal(raw, &a.ClientId)
+		if err != nil {
+			return fmt.Errorf("error reading 'client_id': %w", err)
+		}
+		delete(object, "client_id")
+	}
+
+	if raw, found := object["client_secret"]; found {
+		err = json.Unmarshal(raw, &a.ClientSecret)
+		if err != nil {
+			return fmt.Errorf("error reading 'client_secret': %w", err)
+		}
+		delete(object, "client_secret")
+	}
+
+	if raw, found := object["freeform_scopes"]; found {
+		err = json.Unmarshal(raw, &a.FreeformScopes)
+		if err != nil {
+			return fmt.Errorf("error reading 'freeform_scopes': %w", err)
+		}
+		delete(object, "freeform_scopes")
+	}
+
+	if raw, found := object["non_persistent_attrs"]; found {
+		err = json.Unmarshal(raw, &a.NonPersistentAttrs)
+		if err != nil {
+			return fmt.Errorf("error reading 'non_persistent_attrs': %w", err)
+		}
+		delete(object, "non_persistent_attrs")
+	}
+
+	if raw, found := object["offline_access"]; found {
+		err = json.Unmarshal(raw, &a.OfflineAccess)
+		if err != nil {
+			return fmt.Errorf("error reading 'offline_access': %w", err)
+		}
+		delete(object, "offline_access")
+	}
+
+	if raw, found := object["profile"]; found {
+		err = json.Unmarshal(raw, &a.Profile)
+		if err != nil {
+			return fmt.Errorf("error reading 'profile': %w", err)
+		}
+		delete(object, "profile")
+	}
+
+	if raw, found := object["protocol"]; found {
+		err = json.Unmarshal(raw, &a.Protocol)
+		if err != nil {
+			return fmt.Errorf("error reading 'protocol': %w", err)
+		}
+		delete(object, "protocol")
+	}
+
+	if raw, found := object["scope"]; found {
+		err = json.Unmarshal(raw, &a.Scope)
+		if err != nil {
+			return fmt.Errorf("error reading 'scope': %w", err)
+		}
+		delete(object, "scope")
+	}
+
+	if raw, found := object["set_user_root_attributes"]; found {
+		err = json.Unmarshal(raw, &a.SetUserRootAttributes)
+		if err != nil {
+			return fmt.Errorf("error reading 'set_user_root_attributes': %w", err)
+		}
+		delete(object, "set_user_root_attributes")
+	}
+
+	if raw, found := object["tweet_read"]; found {
+		err = json.Unmarshal(raw, &a.TweetRead)
+		if err != nil {
+			return fmt.Errorf("error reading 'tweet_read': %w", err)
+		}
+		delete(object, "tweet_read")
+	}
+
+	if raw, found := object["upstream_params"]; found {
+		err = json.Unmarshal(raw, &a.UpstreamParams)
+		if err != nil {
+			return fmt.Errorf("error reading 'upstream_params': %w", err)
+		}
+		delete(object, "upstream_params")
+	}
+
+	if raw, found := object["users_read"]; found {
+		err = json.Unmarshal(raw, &a.UsersRead)
+		if err != nil {
+			return fmt.Errorf("error reading 'users_read': %w", err)
+		}
+		delete(object, "users_read")
+	}
+
+	if len(object) != 0 {
+		a.AdditionalProperties = make(map[string]interface{})
+		for fieldName, fieldBuf := range object {
+			var fieldVal interface{}
+			err := json.Unmarshal(fieldBuf, &fieldVal)
+			if err != nil {
+				return fmt.Errorf("error unmarshaling field %s: %w", fieldName, err)
+			}
+			a.AdditionalProperties[fieldName] = fieldVal
+		}
+	}
+	return nil
+}
+
+// Override default JSON handling for ConnectionOptionsTwitter to handle AdditionalProperties
+func (a ConnectionOptionsTwitter) MarshalJSON() ([]byte, error) {
+	var err error
+	object := make(map[string]json.RawMessage)
+
+	if a.ClientId != nil {
+		object["client_id"], err = json.Marshal(a.ClientId)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'client_id': %w", err)
+		}
+	}
+
+	if a.ClientSecret != nil {
+		object["client_secret"], err = json.Marshal(a.ClientSecret)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'client_secret': %w", err)
+		}
+	}
+
+	if a.FreeformScopes != nil {
+		object["freeform_scopes"], err = json.Marshal(a.FreeformScopes)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'freeform_scopes': %w", err)
+		}
+	}
+
+	if a.NonPersistentAttrs != nil {
+		object["non_persistent_attrs"], err = json.Marshal(a.NonPersistentAttrs)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'non_persistent_attrs': %w", err)
+		}
+	}
+
+	if a.OfflineAccess != nil {
+		object["offline_access"], err = json.Marshal(a.OfflineAccess)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'offline_access': %w", err)
+		}
+	}
+
+	if a.Profile != nil {
+		object["profile"], err = json.Marshal(a.Profile)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'profile': %w", err)
+		}
+	}
+
+	if a.Protocol != nil {
+		object["protocol"], err = json.Marshal(a.Protocol)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'protocol': %w", err)
+		}
+	}
+
+	if a.Scope != nil {
+		object["scope"], err = json.Marshal(a.Scope)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'scope': %w", err)
+		}
+	}
+
+	if a.SetUserRootAttributes != nil {
+		object["set_user_root_attributes"], err = json.Marshal(a.SetUserRootAttributes)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'set_user_root_attributes': %w", err)
+		}
+	}
+
+	if a.TweetRead != nil {
+		object["tweet_read"], err = json.Marshal(a.TweetRead)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'tweet_read': %w", err)
+		}
+	}
+
+	if a.UpstreamParams != nil {
+		object["upstream_params"], err = json.Marshal(a.UpstreamParams)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'upstream_params': %w", err)
+		}
+	}
+
+	if a.UsersRead != nil {
+		object["users_read"], err = json.Marshal(a.UsersRead)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'users_read': %w", err)
 		}
 	}
 
@@ -24160,6 +26888,378 @@ func (t *ClientAddonSAML_Mappings_AdditionalProperties) UnmarshalJSON(b []byte) 
 	return err
 }
 
+// AsConnectionOptionsAmazonScope0 returns the union data inside the ConnectionOptionsAmazon_Scope as a ConnectionOptionsAmazonScope0
+func (t ConnectionOptionsAmazon_Scope) AsConnectionOptionsAmazonScope0() (ConnectionOptionsAmazonScope0, error) {
+	var body ConnectionOptionsAmazonScope0
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromConnectionOptionsAmazonScope0 overwrites any union data inside the ConnectionOptionsAmazon_Scope as the provided ConnectionOptionsAmazonScope0
+func (t *ConnectionOptionsAmazon_Scope) FromConnectionOptionsAmazonScope0(v ConnectionOptionsAmazonScope0) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeConnectionOptionsAmazonScope0 performs a merge with any union data inside the ConnectionOptionsAmazon_Scope, using the provided ConnectionOptionsAmazonScope0
+func (t *ConnectionOptionsAmazon_Scope) MergeConnectionOptionsAmazonScope0(v ConnectionOptionsAmazonScope0) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsConnectionOptionsAmazonScope1 returns the union data inside the ConnectionOptionsAmazon_Scope as a ConnectionOptionsAmazonScope1
+func (t ConnectionOptionsAmazon_Scope) AsConnectionOptionsAmazonScope1() (ConnectionOptionsAmazonScope1, error) {
+	var body ConnectionOptionsAmazonScope1
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromConnectionOptionsAmazonScope1 overwrites any union data inside the ConnectionOptionsAmazon_Scope as the provided ConnectionOptionsAmazonScope1
+func (t *ConnectionOptionsAmazon_Scope) FromConnectionOptionsAmazonScope1(v ConnectionOptionsAmazonScope1) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeConnectionOptionsAmazonScope1 performs a merge with any union data inside the ConnectionOptionsAmazon_Scope, using the provided ConnectionOptionsAmazonScope1
+func (t *ConnectionOptionsAmazon_Scope) MergeConnectionOptionsAmazonScope1(v ConnectionOptionsAmazonScope1) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t ConnectionOptionsAmazon_Scope) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *ConnectionOptionsAmazon_Scope) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
+// AsConnectionOptionsBitbucketScope0 returns the union data inside the ConnectionOptionsBitbucket_Scope as a ConnectionOptionsBitbucketScope0
+func (t ConnectionOptionsBitbucket_Scope) AsConnectionOptionsBitbucketScope0() (ConnectionOptionsBitbucketScope0, error) {
+	var body ConnectionOptionsBitbucketScope0
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromConnectionOptionsBitbucketScope0 overwrites any union data inside the ConnectionOptionsBitbucket_Scope as the provided ConnectionOptionsBitbucketScope0
+func (t *ConnectionOptionsBitbucket_Scope) FromConnectionOptionsBitbucketScope0(v ConnectionOptionsBitbucketScope0) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeConnectionOptionsBitbucketScope0 performs a merge with any union data inside the ConnectionOptionsBitbucket_Scope, using the provided ConnectionOptionsBitbucketScope0
+func (t *ConnectionOptionsBitbucket_Scope) MergeConnectionOptionsBitbucketScope0(v ConnectionOptionsBitbucketScope0) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsConnectionOptionsBitbucketScope1 returns the union data inside the ConnectionOptionsBitbucket_Scope as a ConnectionOptionsBitbucketScope1
+func (t ConnectionOptionsBitbucket_Scope) AsConnectionOptionsBitbucketScope1() (ConnectionOptionsBitbucketScope1, error) {
+	var body ConnectionOptionsBitbucketScope1
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromConnectionOptionsBitbucketScope1 overwrites any union data inside the ConnectionOptionsBitbucket_Scope as the provided ConnectionOptionsBitbucketScope1
+func (t *ConnectionOptionsBitbucket_Scope) FromConnectionOptionsBitbucketScope1(v ConnectionOptionsBitbucketScope1) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeConnectionOptionsBitbucketScope1 performs a merge with any union data inside the ConnectionOptionsBitbucket_Scope, using the provided ConnectionOptionsBitbucketScope1
+func (t *ConnectionOptionsBitbucket_Scope) MergeConnectionOptionsBitbucketScope1(v ConnectionOptionsBitbucketScope1) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t ConnectionOptionsBitbucket_Scope) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *ConnectionOptionsBitbucket_Scope) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
+// AsConnectionOptionsFacebookScope0 returns the union data inside the ConnectionOptionsFacebook_Scope as a ConnectionOptionsFacebookScope0
+func (t ConnectionOptionsFacebook_Scope) AsConnectionOptionsFacebookScope0() (ConnectionOptionsFacebookScope0, error) {
+	var body ConnectionOptionsFacebookScope0
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromConnectionOptionsFacebookScope0 overwrites any union data inside the ConnectionOptionsFacebook_Scope as the provided ConnectionOptionsFacebookScope0
+func (t *ConnectionOptionsFacebook_Scope) FromConnectionOptionsFacebookScope0(v ConnectionOptionsFacebookScope0) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeConnectionOptionsFacebookScope0 performs a merge with any union data inside the ConnectionOptionsFacebook_Scope, using the provided ConnectionOptionsFacebookScope0
+func (t *ConnectionOptionsFacebook_Scope) MergeConnectionOptionsFacebookScope0(v ConnectionOptionsFacebookScope0) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsConnectionOptionsFacebookScope1 returns the union data inside the ConnectionOptionsFacebook_Scope as a ConnectionOptionsFacebookScope1
+func (t ConnectionOptionsFacebook_Scope) AsConnectionOptionsFacebookScope1() (ConnectionOptionsFacebookScope1, error) {
+	var body ConnectionOptionsFacebookScope1
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromConnectionOptionsFacebookScope1 overwrites any union data inside the ConnectionOptionsFacebook_Scope as the provided ConnectionOptionsFacebookScope1
+func (t *ConnectionOptionsFacebook_Scope) FromConnectionOptionsFacebookScope1(v ConnectionOptionsFacebookScope1) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeConnectionOptionsFacebookScope1 performs a merge with any union data inside the ConnectionOptionsFacebook_Scope, using the provided ConnectionOptionsFacebookScope1
+func (t *ConnectionOptionsFacebook_Scope) MergeConnectionOptionsFacebookScope1(v ConnectionOptionsFacebookScope1) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t ConnectionOptionsFacebook_Scope) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *ConnectionOptionsFacebook_Scope) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
+// AsConnectionOptionsLineScope0 returns the union data inside the ConnectionOptionsLine_Scope as a ConnectionOptionsLineScope0
+func (t ConnectionOptionsLine_Scope) AsConnectionOptionsLineScope0() (ConnectionOptionsLineScope0, error) {
+	var body ConnectionOptionsLineScope0
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromConnectionOptionsLineScope0 overwrites any union data inside the ConnectionOptionsLine_Scope as the provided ConnectionOptionsLineScope0
+func (t *ConnectionOptionsLine_Scope) FromConnectionOptionsLineScope0(v ConnectionOptionsLineScope0) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeConnectionOptionsLineScope0 performs a merge with any union data inside the ConnectionOptionsLine_Scope, using the provided ConnectionOptionsLineScope0
+func (t *ConnectionOptionsLine_Scope) MergeConnectionOptionsLineScope0(v ConnectionOptionsLineScope0) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsConnectionOptionsLineScope1 returns the union data inside the ConnectionOptionsLine_Scope as a ConnectionOptionsLineScope1
+func (t ConnectionOptionsLine_Scope) AsConnectionOptionsLineScope1() (ConnectionOptionsLineScope1, error) {
+	var body ConnectionOptionsLineScope1
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromConnectionOptionsLineScope1 overwrites any union data inside the ConnectionOptionsLine_Scope as the provided ConnectionOptionsLineScope1
+func (t *ConnectionOptionsLine_Scope) FromConnectionOptionsLineScope1(v ConnectionOptionsLineScope1) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeConnectionOptionsLineScope1 performs a merge with any union data inside the ConnectionOptionsLine_Scope, using the provided ConnectionOptionsLineScope1
+func (t *ConnectionOptionsLine_Scope) MergeConnectionOptionsLineScope1(v ConnectionOptionsLineScope1) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t ConnectionOptionsLine_Scope) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *ConnectionOptionsLine_Scope) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
+// AsConnectionOptionsLinkedinScope0 returns the union data inside the ConnectionOptionsLinkedin_Scope as a ConnectionOptionsLinkedinScope0
+func (t ConnectionOptionsLinkedin_Scope) AsConnectionOptionsLinkedinScope0() (ConnectionOptionsLinkedinScope0, error) {
+	var body ConnectionOptionsLinkedinScope0
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromConnectionOptionsLinkedinScope0 overwrites any union data inside the ConnectionOptionsLinkedin_Scope as the provided ConnectionOptionsLinkedinScope0
+func (t *ConnectionOptionsLinkedin_Scope) FromConnectionOptionsLinkedinScope0(v ConnectionOptionsLinkedinScope0) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeConnectionOptionsLinkedinScope0 performs a merge with any union data inside the ConnectionOptionsLinkedin_Scope, using the provided ConnectionOptionsLinkedinScope0
+func (t *ConnectionOptionsLinkedin_Scope) MergeConnectionOptionsLinkedinScope0(v ConnectionOptionsLinkedinScope0) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsConnectionOptionsLinkedinScope1 returns the union data inside the ConnectionOptionsLinkedin_Scope as a ConnectionOptionsLinkedinScope1
+func (t ConnectionOptionsLinkedin_Scope) AsConnectionOptionsLinkedinScope1() (ConnectionOptionsLinkedinScope1, error) {
+	var body ConnectionOptionsLinkedinScope1
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromConnectionOptionsLinkedinScope1 overwrites any union data inside the ConnectionOptionsLinkedin_Scope as the provided ConnectionOptionsLinkedinScope1
+func (t *ConnectionOptionsLinkedin_Scope) FromConnectionOptionsLinkedinScope1(v ConnectionOptionsLinkedinScope1) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeConnectionOptionsLinkedinScope1 performs a merge with any union data inside the ConnectionOptionsLinkedin_Scope, using the provided ConnectionOptionsLinkedinScope1
+func (t *ConnectionOptionsLinkedin_Scope) MergeConnectionOptionsLinkedinScope1(v ConnectionOptionsLinkedinScope1) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t ConnectionOptionsLinkedin_Scope) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *ConnectionOptionsLinkedin_Scope) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
+// AsConnectionOptionsPaypalScope0 returns the union data inside the ConnectionOptionsPaypal_Scope as a ConnectionOptionsPaypalScope0
+func (t ConnectionOptionsPaypal_Scope) AsConnectionOptionsPaypalScope0() (ConnectionOptionsPaypalScope0, error) {
+	var body ConnectionOptionsPaypalScope0
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromConnectionOptionsPaypalScope0 overwrites any union data inside the ConnectionOptionsPaypal_Scope as the provided ConnectionOptionsPaypalScope0
+func (t *ConnectionOptionsPaypal_Scope) FromConnectionOptionsPaypalScope0(v ConnectionOptionsPaypalScope0) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeConnectionOptionsPaypalScope0 performs a merge with any union data inside the ConnectionOptionsPaypal_Scope, using the provided ConnectionOptionsPaypalScope0
+func (t *ConnectionOptionsPaypal_Scope) MergeConnectionOptionsPaypalScope0(v ConnectionOptionsPaypalScope0) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsConnectionOptionsPaypalScope1 returns the union data inside the ConnectionOptionsPaypal_Scope as a ConnectionOptionsPaypalScope1
+func (t ConnectionOptionsPaypal_Scope) AsConnectionOptionsPaypalScope1() (ConnectionOptionsPaypalScope1, error) {
+	var body ConnectionOptionsPaypalScope1
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromConnectionOptionsPaypalScope1 overwrites any union data inside the ConnectionOptionsPaypal_Scope as the provided ConnectionOptionsPaypalScope1
+func (t *ConnectionOptionsPaypal_Scope) FromConnectionOptionsPaypalScope1(v ConnectionOptionsPaypalScope1) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeConnectionOptionsPaypalScope1 performs a merge with any union data inside the ConnectionOptionsPaypal_Scope, using the provided ConnectionOptionsPaypalScope1
+func (t *ConnectionOptionsPaypal_Scope) MergeConnectionOptionsPaypalScope1(v ConnectionOptionsPaypalScope1) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t ConnectionOptionsPaypal_Scope) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *ConnectionOptionsPaypal_Scope) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
 // AsConnectionOptionsSAMLFieldsMap0 returns the union data inside the ConnectionOptionsSAML_FieldsMap_AdditionalProperties as a ConnectionOptionsSAMLFieldsMap0
 func (t ConnectionOptionsSAML_FieldsMap_AdditionalProperties) AsConnectionOptionsSAMLFieldsMap0() (ConnectionOptionsSAMLFieldsMap0, error) {
 	var body ConnectionOptionsSAMLFieldsMap0
@@ -24218,6 +27318,192 @@ func (t ConnectionOptionsSAML_FieldsMap_AdditionalProperties) MarshalJSON() ([]b
 }
 
 func (t *ConnectionOptionsSAML_FieldsMap_AdditionalProperties) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
+// AsConnectionOptionsSalesforceScope0 returns the union data inside the ConnectionOptionsSalesforce_Scope as a ConnectionOptionsSalesforceScope0
+func (t ConnectionOptionsSalesforce_Scope) AsConnectionOptionsSalesforceScope0() (ConnectionOptionsSalesforceScope0, error) {
+	var body ConnectionOptionsSalesforceScope0
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromConnectionOptionsSalesforceScope0 overwrites any union data inside the ConnectionOptionsSalesforce_Scope as the provided ConnectionOptionsSalesforceScope0
+func (t *ConnectionOptionsSalesforce_Scope) FromConnectionOptionsSalesforceScope0(v ConnectionOptionsSalesforceScope0) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeConnectionOptionsSalesforceScope0 performs a merge with any union data inside the ConnectionOptionsSalesforce_Scope, using the provided ConnectionOptionsSalesforceScope0
+func (t *ConnectionOptionsSalesforce_Scope) MergeConnectionOptionsSalesforceScope0(v ConnectionOptionsSalesforceScope0) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsConnectionOptionsSalesforceScope1 returns the union data inside the ConnectionOptionsSalesforce_Scope as a ConnectionOptionsSalesforceScope1
+func (t ConnectionOptionsSalesforce_Scope) AsConnectionOptionsSalesforceScope1() (ConnectionOptionsSalesforceScope1, error) {
+	var body ConnectionOptionsSalesforceScope1
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromConnectionOptionsSalesforceScope1 overwrites any union data inside the ConnectionOptionsSalesforce_Scope as the provided ConnectionOptionsSalesforceScope1
+func (t *ConnectionOptionsSalesforce_Scope) FromConnectionOptionsSalesforceScope1(v ConnectionOptionsSalesforceScope1) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeConnectionOptionsSalesforceScope1 performs a merge with any union data inside the ConnectionOptionsSalesforce_Scope, using the provided ConnectionOptionsSalesforceScope1
+func (t *ConnectionOptionsSalesforce_Scope) MergeConnectionOptionsSalesforceScope1(v ConnectionOptionsSalesforceScope1) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t ConnectionOptionsSalesforce_Scope) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *ConnectionOptionsSalesforce_Scope) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
+// AsConnectionOptionsSocialScope0 returns the union data inside the ConnectionOptionsSocial_Scope as a ConnectionOptionsSocialScope0
+func (t ConnectionOptionsSocial_Scope) AsConnectionOptionsSocialScope0() (ConnectionOptionsSocialScope0, error) {
+	var body ConnectionOptionsSocialScope0
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromConnectionOptionsSocialScope0 overwrites any union data inside the ConnectionOptionsSocial_Scope as the provided ConnectionOptionsSocialScope0
+func (t *ConnectionOptionsSocial_Scope) FromConnectionOptionsSocialScope0(v ConnectionOptionsSocialScope0) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeConnectionOptionsSocialScope0 performs a merge with any union data inside the ConnectionOptionsSocial_Scope, using the provided ConnectionOptionsSocialScope0
+func (t *ConnectionOptionsSocial_Scope) MergeConnectionOptionsSocialScope0(v ConnectionOptionsSocialScope0) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsConnectionOptionsSocialScope1 returns the union data inside the ConnectionOptionsSocial_Scope as a ConnectionOptionsSocialScope1
+func (t ConnectionOptionsSocial_Scope) AsConnectionOptionsSocialScope1() (ConnectionOptionsSocialScope1, error) {
+	var body ConnectionOptionsSocialScope1
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromConnectionOptionsSocialScope1 overwrites any union data inside the ConnectionOptionsSocial_Scope as the provided ConnectionOptionsSocialScope1
+func (t *ConnectionOptionsSocial_Scope) FromConnectionOptionsSocialScope1(v ConnectionOptionsSocialScope1) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeConnectionOptionsSocialScope1 performs a merge with any union data inside the ConnectionOptionsSocial_Scope, using the provided ConnectionOptionsSocialScope1
+func (t *ConnectionOptionsSocial_Scope) MergeConnectionOptionsSocialScope1(v ConnectionOptionsSocialScope1) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t ConnectionOptionsSocial_Scope) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *ConnectionOptionsSocial_Scope) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
+// AsConnectionOptionsTwitterScope0 returns the union data inside the ConnectionOptionsTwitter_Scope as a ConnectionOptionsTwitterScope0
+func (t ConnectionOptionsTwitter_Scope) AsConnectionOptionsTwitterScope0() (ConnectionOptionsTwitterScope0, error) {
+	var body ConnectionOptionsTwitterScope0
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromConnectionOptionsTwitterScope0 overwrites any union data inside the ConnectionOptionsTwitter_Scope as the provided ConnectionOptionsTwitterScope0
+func (t *ConnectionOptionsTwitter_Scope) FromConnectionOptionsTwitterScope0(v ConnectionOptionsTwitterScope0) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeConnectionOptionsTwitterScope0 performs a merge with any union data inside the ConnectionOptionsTwitter_Scope, using the provided ConnectionOptionsTwitterScope0
+func (t *ConnectionOptionsTwitter_Scope) MergeConnectionOptionsTwitterScope0(v ConnectionOptionsTwitterScope0) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsConnectionOptionsTwitterScope1 returns the union data inside the ConnectionOptionsTwitter_Scope as a ConnectionOptionsTwitterScope1
+func (t ConnectionOptionsTwitter_Scope) AsConnectionOptionsTwitterScope1() (ConnectionOptionsTwitterScope1, error) {
+	var body ConnectionOptionsTwitterScope1
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromConnectionOptionsTwitterScope1 overwrites any union data inside the ConnectionOptionsTwitter_Scope as the provided ConnectionOptionsTwitterScope1
+func (t *ConnectionOptionsTwitter_Scope) FromConnectionOptionsTwitterScope1(v ConnectionOptionsTwitterScope1) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeConnectionOptionsTwitterScope1 performs a merge with any union data inside the ConnectionOptionsTwitter_Scope, using the provided ConnectionOptionsTwitterScope1
+func (t *ConnectionOptionsTwitter_Scope) MergeConnectionOptionsTwitterScope1(v ConnectionOptionsTwitterScope1) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t ConnectionOptionsTwitter_Scope) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *ConnectionOptionsTwitter_Scope) UnmarshalJSON(b []byte) error {
 	err := t.union.UnmarshalJSON(b)
 	return err
 }

@@ -1,0 +1,33 @@
+{
+ "strategy": "yahoo",
+ "display_name": "Yahoo",
+ "source": [
+  "https://developer.yahoo.com/oauth2/guide/openid_connect/",
+  "https://auth0.com/docs/authenticate/identity-providers/social-identity-providers/yahoo"
+ ],
+ "authorization_url": "https://api.login.yahoo.com/oauth2/request_auth",
+ "token_url": "https://api.login.yahoo.com/oauth2/get_token",
+ "profile_url": "https://api.login.yahoo.com/openid/v1/userinfo",
+ "token_auth": "client_secret_basic",
+ "pkce": "none",
+ "base_scopes": [
+  "openid",
+  "profile",
+  "email"
+ ],
+ "flags": [],
+ "freeform_scopes": false,
+ "profile": {
+  "user_id": "sub",
+  "email": "email",
+  "name": "name",
+  "given_name": "given_name",
+  "family_name": "family_name",
+  "nickname": "nickname",
+  "picture": "picture"
+ },
+ "email_verified": {
+  "rule": "field",
+  "path": "email_verified"
+ }
+}

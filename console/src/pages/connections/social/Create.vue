@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { ApiError, type Client, type ConnectionCreate } from '../../../api/client'
@@ -11,7 +11,8 @@ import Field from '../../../ui/Field.vue'
 import ScriptEditor from './ScriptEditor.vue'
 import MicrosoftOptions from './MicrosoftOptions.vue'
 import GitHubOptions from './GitHubOptions.vue'
-import { adfsCallback, adfsRealm, applePEM, githubFlagOptions, samlACS, samlCertificate, APPLE_IDENTIFIER, callbackURLs, defaultScript, httpsURL, MAX_SCRIPT_BYTES, NAME, socialStrategies, enterpriseStrategies, MICROSOFT_GUID, microsoftTenant, utf8Bytes, type Options, type FederatedStrategy } from './social'
+import DescriptorOptions from './DescriptorOptions.vue'
+import { adfsCallback, adfsRealm, applePEM, githubFlagOptions, samlACS, samlCertificate, APPLE_IDENTIFIER, callbackURLs, defaultScript, httpsURL, MAX_SCRIPT_BYTES, NAME, socialStrategies, enterpriseStrategies, MICROSOFT_GUID, microsoftTenant, utf8Bytes, descriptorFlagsOf, descriptorOf, descriptorOptions, freeformList, type Options, type FederatedStrategy } from './social'
 
 const { t } = useI18n()
 const { api } = useServices()
@@ -53,6 +54,15 @@ const draft = reactive({
   adfsSource: 'server' as 'server' | 'xml',
   adfsServer: '',
   adfsXML: '',
+  descFlags: {} as Record<string, boolean>,
+  freeform: '',
+  community: '',
+  protocol: 'oauth2',
+})
+const descriptor = computed(() => descriptorOf(draft.strategy))
+watch(() => draft.strategy, () => {
+  const d = descriptor.value
+  if (d) draft.descFlags = descriptorFlagsOf(d, {})
 })
 const errors = reactive<Record<string, string>>({})
 const general = ref('')
@@ -125,6 +135,9 @@ function validate(): boolean {
     if (!draft.scopes.split(/\s+/).includes('openid')) errors.scopes = t('social.openidRequired')
   }
   if (draft.strategy === 'google-apps' && (!draft.workspaceDomain.includes('.') || draft.workspaceDomain.length > 253 || !draft.workspaceDomain.toLowerCase().split('.').every(label => /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(label)))) errors.workspaceDomain = 'Enter the primary Google Workspace domain, such as example.com.'
+  const d = descriptor.value
+  if (d?.fields.includes('community_base_url') && !httpsURL(draft.community.trim())) errors.community = t('social.httpsRequired')
+  if (d?.freeform_scopes && (freeformList(draft.freeform).length > 20 || freeformList(draft.freeform).some((s) => s.length > 128))) errors.freeform = t('social.freeformScopesInvalid')
   if (draft.strategy === 'okta' && (!draft.oktaDomain || draft.oktaDomain.length > 253 || !draft.oktaDomain.toLowerCase().split('.').every(label => /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(label)))) errors.oktaDomain = 'Enter a DNS host name without a scheme, port or path.'
   return Object.keys(errors).length === 0
 }
@@ -173,6 +186,8 @@ function body(): ConnectionCreate {
     case 'okta':
       Object.assign(options, { type: 'back_channel', domain: draft.oktaDomain.toLowerCase(), scope: draft.scopes.trim() })
       break
+    default:
+      if (descriptor.value) Object.assign(options, descriptorOptions(descriptor.value, draft.descFlags, draft.freeform, { community: draft.community, protocol: draft.protocol }))
   }
   const b: Record<string, unknown> = { name: draft.name.trim(), strategy: draft.strategy, options, enabled_clients: chosen.value }
   if (draft.displayName.trim()) b.display_name = draft.displayName.trim()
@@ -262,6 +277,7 @@ function describedBy(id: string, key: string, hint = false): string {
         <label class="check"><input id="apple-email" v-model="draft.email" type="checkbox" /> {{ t('social.googleEmail') }}</label>
       </template>
       <GitHubOptions v-if="draft.strategy === 'github'" v-model:email="draft.email" v-model:flags="draft.githubFlags" />
+      <DescriptorOptions v-if="descriptor" v-model:flags="draft.descFlags" v-model:freeform="draft.freeform" v-model:community="draft.community" v-model:protocol="draft.protocol" :descriptor="descriptor" :community-error="errors.community" :freeform-error="errors.freeform" />
       <template v-if="draft.strategy === 'google-oauth2'">
         <label class="check"><input v-model="draft.email" type="checkbox" /> <span>{{ t('social.googleEmail') }}</span></label>
         <label class="check"><input v-model="draft.profile" type="checkbox" /> <span>{{ t('social.googleProfile') }}</span></label>

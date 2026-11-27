@@ -376,6 +376,9 @@ func (h *Handlers) addIDPTokens(r *http.Request, u *store.User, view map[string]
 		if t.RefreshToken != "" {
 			ids[i]["refresh_token"] = t.RefreshToken
 		}
+		if t.TokenSecret != "" {
+			ids[i]["access_token_secret"] = t.TokenSecret // OAuth 1.0a (Plan 39b)
+		}
 	}
 	return nil
 }

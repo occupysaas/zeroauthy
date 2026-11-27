@@ -1,0 +1,38 @@
+{
+ "strategy": "bitbucket",
+ "display_name": "Bitbucket",
+ "source": [
+  "https://developer.atlassian.com/cloud/bitbucket/oauth-2/",
+  "https://developer.atlassian.com/cloud/bitbucket/rest/api-group-users/",
+  "https://auth0.com/docs/authenticate/identity-providers/social-identity-providers/bitbucket"
+ ],
+ "authorization_url": "https://bitbucket.org/site/oauth2/authorize",
+ "token_url": "https://bitbucket.org/site/oauth2/access_token",
+ "profile_url": "https://api.bitbucket.org/2.0/user",
+ "email_url": "https://api.bitbucket.org/2.0/user/emails",
+ "token_auth": "client_secret_basic",
+ "pkce": "none",
+ "base_scopes": [
+  "account",
+  "email"
+ ],
+ "flags": [],
+ "stored_only": [
+  "profile"
+ ],
+ "freeform_scopes": true,
+ "profile": {
+  "user_id": "uuid",
+  "email": "values[?is_primary].email",
+  "name": "display_name",
+  "nickname": "nickname",
+  "picture": "links.avatar.href",
+  "provider_data": [
+   "account_id"
+  ]
+ },
+ "email_verified": {
+  "rule": "field",
+  "path": "values[?is_primary].is_confirmed"
+ }
+}

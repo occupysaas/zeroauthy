@@ -1,0 +1,46 @@
+{
+ "strategy": "linkedin",
+ "display_name": "LinkedIn",
+ "source": [
+  "https://learn.microsoft.com/en-us/linkedin/consumer/integrations/self-serve/sign-in-with-linkedin-v2",
+  "https://auth0.com/docs/authenticate/identity-providers/social-identity-providers/linkedin"
+ ],
+ "authorization_url": "https://www.linkedin.com/oauth/v2/authorization",
+ "token_url": "https://www.linkedin.com/oauth/v2/accessToken",
+ "profile_url": "https://api.linkedin.com/v2/userinfo",
+ "token_auth": "client_secret_post",
+ "pkce": "none",
+ "base_scopes": [
+  "openid",
+  "profile"
+ ],
+ "flags": [
+  {
+   "option": "email",
+   "scopes": [
+    "email"
+   ]
+  }
+ ],
+ "stored_only": [
+  "basic_profile",
+  "full_profile",
+  "network",
+  "openid",
+  "profile"
+ ],
+ "freeform_scopes": true,
+ "profile": {
+  "user_id": "sub",
+  "email": "email",
+  "name": "name",
+  "given_name": "given_name",
+  "family_name": "family_name",
+  "picture": "picture"
+ },
+ "email_verified": {
+  "rule": "field",
+  "path": "email_verified"
+ },
+ "hook": "linkedin"
+}

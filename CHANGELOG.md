@@ -8,6 +8,13 @@ All notable changes to zeroauthy are recorded here. The format follows
 
 ### Added
 
+- Remaining social providers, Tier 1 (Plan 39b): Facebook, LinkedIn, X
+  (Twitter, OAuth 2.0 or 1.0a), Amazon, PayPal (and sandbox), Salesforce
+  (and sandbox and community), Yahoo, LINE, Dropbox, Box, Bitbucket and
+  Shopify, each from a provider descriptor with Auth0's option flags; the
+  generic `oauth1` strategy; native Google ID-token and Facebook
+  session-info token exchanges. Storage plugins need `social.v1`. See
+  [social connections](docs/social-connections.md).
 - CIBA with the email channel (Plan 41c): `POST /bc-authorize` lets a
   first-party confidential application ask a user to approve a sign-in;
   the user approves through the emailed `async_approval` link at

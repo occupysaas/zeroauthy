@@ -1,0 +1,45 @@
+{
+ "strategy": "salesforce-sandbox",
+ "display_name": "Salesforce (sandbox)",
+ "source": [
+  "https://help.salesforce.com/s/articleView?id=sf.remoteaccess_oauth_web_server_flow.htm",
+  "https://help.salesforce.com/s/articleView?id=sf.remoteaccess_using_openid.htm",
+  "https://auth0.com/docs/authenticate/identity-providers/social-identity-providers/salesforce"
+ ],
+ "authorization_url": "https://test.salesforce.com/services/oauth2/authorize",
+ "token_url": "https://test.salesforce.com/services/oauth2/token",
+ "profile_url": "https://test.salesforce.com/services/oauth2/userinfo",
+ "token_auth": "client_secret_post",
+ "pkce": "S256",
+ "base_scopes": [
+  "id"
+ ],
+ "flags": [
+  {
+   "option": "profile",
+   "scopes": [
+    "profile"
+   ],
+   "default": true
+  }
+ ],
+ "freeform_scopes": true,
+ "profile": {
+  "user_id": "user_id",
+  "email": "email",
+  "name": "display_name",
+  "given_name": "first_name",
+  "family_name": "last_name",
+  "nickname": "nick_name",
+  "picture": "photos.picture",
+  "provider_data": [
+   "organization_id",
+   "username"
+  ]
+ },
+ "email_verified": {
+  "rule": "field",
+  "path": "email_verified"
+ },
+ "hook": "salesforce"
+}

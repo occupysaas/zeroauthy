@@ -30,6 +30,13 @@ type GitHubFederationSupporter interface {
 	GitHubFederationSupported(context.Context) error
 }
 
+// SocialFederationSupporter is the optional social.v1 capability probe (Plan
+// 39b, LR39b-5). A driver must index identities of every descriptor social
+// strategy by their raw provider subject.
+type SocialFederationSupporter interface {
+	SocialFederationSupported(context.Context) error
+}
+
 var canonicalMicrosoftGUID = regexp.MustCompile(`^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$`)
 
 // Federation attempt states.
@@ -210,7 +217,7 @@ func (id *Identity) FederatedSubject() (string, bool, error) {
 // rawSubjectProvider reports whether a provider's identity user_id is the bare
 // upstream subject rather than "<connection>|<subject>".
 func rawSubjectProvider(provider string) bool {
-	return provider == rules.Google || provider == rules.GoogleApps || provider == rules.WindowsLive || provider == rules.Apple || provider == rules.GitHub
+	return provider == rules.Google || provider == rules.GoogleApps || provider == rules.WindowsLive || provider == rules.Apple || provider == rules.GitHub || rules.IsDescriptorSocial(provider)
 }
 
 // FederatedPublicID returns the local public user ID of a federated identity:

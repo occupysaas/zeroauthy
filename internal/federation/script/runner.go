@@ -14,6 +14,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/zeroauthy/zeroauthy/internal/federation/oauth1sig"
 	"io"
 	"os"
 	"os/exec"
@@ -44,6 +45,12 @@ type Request struct {
 	ConnectionID string
 	Source       string
 	AccessToken  string
+	// TokenSecret is the OAuth 1.0a token secret (oauth1 connections).
+	TokenSecret string
+	// OAuth1, when set, makes this an OAuth 1.0a script: it is called as
+	// fetchUserProfile(token, tokenSecret, context, callback) and its
+	// requests may ask the broker to sign them with these credentials.
+	OAuth1 *oauth1sig.Credentials
 	// Context is the bounded JSON context (allowlisted token-response
 	// scalars).
 	Context map[string]any
@@ -226,6 +233,8 @@ type wireMessage struct {
 	Body        *string         `json:"body,omitempty"`
 	Source      string          `json:"source,omitempty"`
 	AccessToken string          `json:"accessToken,omitempty"`
+	TokenSecret string          `json:"tokenSecret,omitempty"`
+	OAuth1      bool            `json:"oauth1,omitempty"`
 	Context     map[string]any  `json:"context,omitempty"`
 }
 
@@ -254,7 +263,7 @@ func (r *Runner) Execute(ctx context.Context, req Request) (json.RawMessage, err
 
 	id := make([]byte, 16)
 	_, _ = rand.Read(id)
-	ex := &execution{id: hex.EncodeToString(id), tenantID: req.TenantID, connectionID: req.ConnectionID}
+	ex := &execution{id: hex.EncodeToString(id), tenantID: req.TenantID, connectionID: req.ConnectionID, oauth1: req.OAuth1}
 
 	cmd := exec.Command(r.cfg.Node, "--permission", "--allow-fs-read="+filepath.Join(r.dir, "runner.mjs"),
 		"--disallow-code-generation-from-strings", fmt.Sprintf("--max-old-space-size=%d", r.cfg.HeapMiB),
@@ -294,7 +303,7 @@ func (r *Runner) Execute(ctx context.Context, req Request) (json.RawMessage, err
 		defer encMu.Unlock()
 		return enc.Encode(m)
 	}
-	if err := send(wireMessage{Exec: ex.id, Source: req.Source, AccessToken: req.AccessToken, Context: req.Context}); err != nil {
+	if err := send(wireMessage{Exec: ex.id, Source: req.Source, AccessToken: req.AccessToken, TokenSecret: req.TokenSecret, OAuth1: req.OAuth1 != nil, Context: req.Context}); err != nil {
 		return nil, r.classify(ctx, fmt.Errorf("%w: runner did not accept the request", ErrProtocol))
 	}
 	sc := bufio.NewScanner(stdout)

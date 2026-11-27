@@ -82,6 +82,12 @@ func (s *capture) MicrosoftFederationSupported(ctx context.Context) error {
 func (s *capture) CheckRefreshTokensIISupport(ctx context.Context) error {
 	return store.CheckRefreshTokensIISupport(ctx, s.Store)
 }
+func (s *capture) SocialFederationSupported(ctx context.Context) error {
+	if p, ok := s.Store.(store.SocialFederationSupporter); ok {
+		return p.SocialFederationSupported(ctx)
+	}
+	return store.ErrFederationUnavailable
+}
 func (s *capture) GitHubFederationSupported(ctx context.Context) error {
 	if p, ok := s.Store.(store.GitHubFederationSupporter); ok {
 		return p.GitHubFederationSupported(ctx)

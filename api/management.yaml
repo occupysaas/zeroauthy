@@ -4752,6 +4752,9 @@ paths:
         authorization-code login are active (D-0170).
         Plan 39c implements `github` options in `ConnectionOptionsGitHub`:
         `client_secret` is sealed and write-only and `scope` follows the flags.
+        Plan 39b implements the remaining Tier 1 social strategies in
+        `ConnectionOptionsSocial` and their strategy schemas, and `oauth1` in
+        `ConnectionOptionsOAuth1` (D-0180).
       x-source:
         - https://auth0.com/docs/api/management/v2/connections/post-connections
         - https://auth0.com/docs/authenticate/identity-providers/social-identity-providers/github
@@ -18427,6 +18430,180 @@ components:
           maxItems: 96
           items: {type: string, maxLength: 255}
           description: Stored only.
+    ConnectionOptionsSocial:
+      type: object
+      description: |
+        Common contract of the Plan 39b descriptor-driven social strategies
+        (D-0180): amazon, bitbucket, box, dropbox, facebook, line, linkedin,
+        paypal, paypal-sandbox, salesforce, salesforce-community,
+        salesforce-sandbox, shopify, twitter and yahoo. Create requires
+        client_id and client_secret; the secret is sealed and never returned.
+        PATCH omitting client_secret preserves it; empty or null is refused.
+        client_id is immutable. Endpoints are fixed per strategy (see the
+        strategy schemas and `internal/federation/inventory.json`
+        `social_descriptors`); endpoint overrides are refused.
+        The requested scope is computed: the strategy's base scopes, then the
+        scope of each true flag, then `freeform_scopes` where the strategy
+        accepts them. `scope` is returned on read as that effective scope. An
+        input `scope` is accepted only when it equals it as a set. Flags not in
+        a strategy's table are stored and returned as sent.
+        `email_verified` is true only where the provider documents verified
+        emails or returns a verification field. Users are never linked by email.
+        Rotating client_secret or changing the scope increments FederationRevision.
+      x-source:
+        - https://auth0.com/docs/authenticate/identity-providers/social-identity-providers
+        - https://auth0.com/docs/oas/management/v2/management-api-oas.json
+      additionalProperties: true
+      properties:
+        client_id: {type: string, minLength: 1, maxLength: 255, description: Provider client ID; immutable after creation.}
+        client_secret:
+          type: string
+          minLength: 1
+          maxLength: 5120
+          writeOnly: true
+          description: Sealed at write and never returned, logged or exported.
+        scope:
+          oneOf:
+            - type: array
+              items: {type: string}
+            - type: string
+          description: Effective scope computed from the flags. Input must equal it as a set (a comma- or space-separated string is accepted).
+        freeform_scopes:
+          type: array
+          maxItems: 20
+          items: {type: string, minLength: 1, maxLength: 128}
+          description: Extra provider scopes, appended to the effective scope. Only absent or empty is accepted for box, dropbox, shopify and yahoo.
+        set_user_root_attributes:
+          type: string
+          enum: [on_each_login, on_first_login, never_on_login]
+          default: on_each_login
+        upstream_params: {type: object, description: Stored only; never sent upstream.}
+        non_persistent_attrs:
+          type: array
+          maxItems: 96
+          items: {type: string, maxLength: 255}
+          description: Stored only.
+    ConnectionOptionsFacebook:
+      description: |
+        `facebook` (Graph API v24.0, SP-6). Every permission flag requests the
+        Facebook permission of the same name; `public_profile` defaults to true,
+        every other flag to false. The scope is sent comma-separated. Graph
+        calls carry `appsecret_proof`. `email_verified` is true when Facebook
+        returns an email. `allow_context_profile_field` is stored only.
+      allOf:
+        - $ref: "#/components/schemas/ConnectionOptionsSocial"
+        - type: object
+          properties:
+            public_profile: {type: boolean, default: true}
+            email: {type: boolean, default: false}
+            allow_context_profile_field: {type: boolean, default: false, description: Stored only (deprecated by Facebook).}
+          additionalProperties: {type: boolean, description: "Any other Facebook permission flag from Auth0's OpenAPI, e.g. `user_birthday`; default false."}
+    ConnectionOptionsLinkedin:
+      description: |
+        `linkedin`. `strategy_version` 3 (the default) signs in with LinkedIn's
+        OpenID Connect product: scope `openid profile`, plus `email` when the
+        `email` flag is on. Versions 1 and 2 are accepted and stored but login
+        is refused, because LinkedIn retired those APIs (SP-8).
+        `basic_profile`, `full_profile`, `network`, `openid` and `profile` are
+        stored only.
+      allOf:
+        - $ref: "#/components/schemas/ConnectionOptionsSocial"
+        - type: object
+          properties:
+            strategy_version: {type: integer, enum: [1, 2, 3], default: 3}
+            email: {type: boolean, default: false}
+            basic_profile: {type: boolean, default: false}
+            full_profile: {type: boolean, default: false}
+            network: {type: boolean, default: false}
+            openid: {type: boolean}
+            profile: {type: boolean}
+    ConnectionOptionsTwitter:
+      description: |
+        `twitter` (X). `protocol` `oauth2` (the default) uses OAuth 2.0 with
+        S256 PKCE and the flags `tweet_read` (tweet.read), `users_read`
+        (users.read) and `offline_access` (offline.access); `tweet_read` and
+        `users_read` default to true. `oauth1` uses OAuth 1.0a with HMAC-SHA1;
+        its email needs the app's elevated email permission (SP-7). Users have
+        no `email_verified` true.
+      allOf:
+        - $ref: "#/components/schemas/ConnectionOptionsSocial"
+        - type: object
+          properties:
+            protocol: {type: string, enum: [oauth1, oauth2], default: oauth2}
+            tweet_read: {type: boolean, default: true}
+            users_read: {type: boolean, default: true}
+            offline_access: {type: boolean, default: false}
+            profile: {type: boolean, description: Stored only.}
+    ConnectionOptionsAmazon:
+      description: "`amazon`. Scope `profile`, plus `postal_code` when that flag is on. `profile` is stored only."
+      allOf:
+        - $ref: "#/components/schemas/ConnectionOptionsSocial"
+        - type: object
+          properties:
+            postal_code: {type: boolean, default: false}
+            profile: {type: boolean}
+    ConnectionOptionsPaypal:
+      description: "`paypal` and `paypal-sandbox` (sandbox hosts, SP-1). Scope `openid`, plus `profile`, `email`, `address` and `phone` per flag."
+      allOf:
+        - $ref: "#/components/schemas/ConnectionOptionsSocial"
+        - type: object
+          properties:
+            profile: {type: boolean, default: false}
+            email: {type: boolean, default: false}
+            address: {type: boolean, default: false}
+            phone: {type: boolean, default: false}
+    ConnectionOptionsSalesforce:
+      description: "`salesforce` (login.salesforce.com), `salesforce-sandbox` (test.salesforce.com) and `salesforce-community`. Scope `id`, plus `profile` when that flag is on (default true). The profile is read from the token response's identity URL, which must be on the token endpoint's host."
+      allOf:
+        - $ref: "#/components/schemas/ConnectionOptionsSocial"
+        - type: object
+          properties:
+            profile: {type: boolean, default: true}
+            community_base_url: {type: string, format: uri, maxLength: 2048, description: "Required for `salesforce-community` only: the https community URL; endpoints are built under it."}
+    ConnectionOptionsLine:
+      description: "`line`. Scope `openid`, plus `profile` (default true) and `email` per flag. The email is read from the ID token through LINE's verify endpoint."
+      allOf:
+        - $ref: "#/components/schemas/ConnectionOptionsSocial"
+        - type: object
+          properties:
+            profile: {type: boolean, default: true}
+            email: {type: boolean, default: false}
+    ConnectionOptionsBitbucket:
+      description: "`bitbucket`. Scope `account email`; the primary email is read from `/2.0/user/emails`. `profile` is stored only."
+      allOf:
+        - $ref: "#/components/schemas/ConnectionOptionsSocial"
+        - type: object
+          properties:
+            profile: {type: boolean, default: true}
+    ConnectionOptionsOAuth1:
+      type: object
+      description: |
+        Generic OAuth 1.0a connection (`oauth1`, D-0180). The three endpoint
+        URLs are required, https and public. `signatureMethod` absent signs
+        with HMAC-SHA1; `RSA-SHA1` signs with the RSA private key given as
+        client_secret (PEM). Any other value is refused. The request-token
+        secret is sealed in the login attempt and never returned or logged.
+        `scripts.fetchUserProfile(token, tokenSecret, context, callback)`
+        is required and runs in the Plan 24 script runner.
+      additionalProperties: true
+      required: [client_id, requestTokenURL, accessTokenURL, userAuthorizationURL]
+      properties:
+        client_id: {type: string, minLength: 1, maxLength: 255, description: Consumer key.}
+        client_secret: {type: string, minLength: 1, maxLength: 5120, writeOnly: true, description: Consumer secret or PEM RSA private key; sealed.}
+        requestTokenURL: {type: string, format: uri, maxLength: 2048}
+        accessTokenURL: {type: string, format: uri, maxLength: 2048}
+        userAuthorizationURL: {type: string, format: uri, maxLength: 2048}
+        signatureMethod: {type: string, enum: [RSA-SHA1]}
+        scripts:
+          type: object
+          additionalProperties: false
+          required: [fetchUserProfile]
+          properties:
+            fetchUserProfile: {type: string, maxLength: 102400}
+        set_user_root_attributes:
+          type: string
+          enum: [on_each_login, on_first_login, never_on_login]
+          default: on_each_login
     ConnectionOptionsAD:
       type: object
       description: |
@@ -26942,22 +27119,23 @@ components:
       minProperties: 1
       x-source: [https://auth0.com/docs/oas/management/v2/management-api-oas.json]
       properties:
-        enabled: {type: boolean, default: false, description: Stored by Plan 39a; native enforcement is deferred to Plan 39b.}
+        enabled: {type: boolean, default: false, description: "Allows the Facebook session-info token exchange (subject_token_type http://auth0.com/oauth/token-type/facebook-info-session-access-token) through an enabled facebook connection (Plan 39b, D-0180)."}
     NativeSocialLoginGoogle:
       type: object
       additionalProperties: false
       minProperties: 1
       x-source: [https://auth0.com/docs/oas/management/v2/management-api-oas.json]
       properties:
-        enabled: {type: boolean, default: false, description: Stored by Plan 39a; native enforcement is deferred to Plan 39b.}
+        enabled: {type: boolean, default: false, description: "Allows the Google ID-token exchange (subject_token_type http://auth0.com/oauth/token-type/google-id-token, a local URN) through an enabled google-oauth2 connection; the token's aud must be that connection's client_id (Plan 39b, D-0180)."}
     NativeSocialLogin:
       type: object
       additionalProperties: false
       description: |
-        Stored native social switches; Apple is enforced (Plan 39a, D-0170).
-        Apple exchange additionally requires
-        mobile.ios.app_bundle_identifier and an enabled Apple connection.
-        Facebook and Google enforcement belongs to Plan 39b.
+        Native social switches, each enforced at the token exchange: Apple
+        (Plan 39a, D-0170) additionally requires
+        mobile.ios.app_bundle_identifier and an enabled Apple connection;
+        Google and Facebook (Plan 39b, D-0180) require an enabled
+        google-oauth2 or facebook connection.
       x-source: [https://auth0.com/docs/oas/management/v2/management-api-oas.json]
       properties:
         apple: {$ref: "#/components/schemas/NativeSocialLoginApple"}
@@ -27764,7 +27942,7 @@ components:
           required: [name, strategy]
           properties:
             name: {type: string, minLength: 1, maxLength: 128, description: "Letters and digits with single hyphens between them."}
-            strategy: {type: string, enum: [auth0, google-oauth2, oauth2, oidc, windowslive, waad, email, sms, apple, github, okta, samlp, adfs, google-apps, ad], description: "`samlp` follows ConnectionOptionsSAML (Plan 37a). `adfs` follows ConnectionOptionsADFS (Plan 37b). `google-apps` follows ConnectionOptionsGoogleApps (Plan 37c). `ad` follows ConnectionOptionsAD (Plan 38a): users sign in through Auth0's AD/LDAP Connector, provisioned with the connection's `provisioning_ticket_url`. `email` and `sms` are passwordless connections whose name must equal the strategy; options follow ConnectionOptionsEmail and ConnectionOptionsSMS (Plan 34). `apple` follows ConnectionOptionsApple; web/native login is active (D-0170). `github` follows ConnectionOptionsGitHub (Plan 39c)."}
+            strategy: {type: string, enum: [auth0, google-oauth2, oauth2, oidc, windowslive, waad, email, sms, apple, github, okta, samlp, adfs, google-apps, ad, facebook, linkedin, twitter, amazon, paypal, paypal-sandbox, salesforce, salesforce-community, salesforce-sandbox, yahoo, line, dropbox, box, bitbucket, shopify, oauth1], description: "`samlp` follows ConnectionOptionsSAML (Plan 37a). `adfs` follows ConnectionOptionsADFS (Plan 37b). `google-apps` follows ConnectionOptionsGoogleApps (Plan 37c). `ad` follows ConnectionOptionsAD (Plan 38a): users sign in through Auth0's AD/LDAP Connector, provisioned with the connection's `provisioning_ticket_url`. `email` and `sms` are passwordless connections whose name must equal the strategy; options follow ConnectionOptionsEmail and ConnectionOptionsSMS (Plan 34). `apple` follows ConnectionOptionsApple; web/native login is active (D-0170). `github` follows ConnectionOptionsGitHub (Plan 39c). The Plan 39b social strategies follow ConnectionOptionsSocial and their strategy schema (D-0180); `oauth1` follows ConnectionOptionsOAuth1."}
             enabled_clients:
               type: array
               items: {type: string}

@@ -67,6 +67,9 @@ func (s *Service) resolveIdentity(ctx context.Context, tx store.Store, conn *sto
 			return nil, false, err
 		}
 	}
+	if err := RequireSocialConnection(ctx, tx, conn); err != nil {
+		return nil, false, err
+	}
 	created := false
 	p := res.Profile
 	if err := ValidateSubject(p.Subject); err != nil {
@@ -108,7 +111,7 @@ func (s *Service) resolveIdentity(ctx context.Context, tx store.Store, conn *sto
 // identityUserID is the identity's user_id: Apple, GitHub, Google and Microsoft
 // personal and Google Workspace use the raw subject; OAuth2, OIDC and Entra use "<connection>|<subject>".
 func identityUserID(conn *store.Connection, sub string) string {
-	if conn.Strategy == rules.Google || conn.Strategy == rules.GoogleApps || conn.Strategy == rules.WindowsLive || conn.Strategy == rules.Apple || conn.Strategy == rules.GitHub {
+	if conn.Strategy == rules.Google || conn.Strategy == rules.GoogleApps || conn.Strategy == rules.WindowsLive || conn.Strategy == rules.Apple || conn.Strategy == rules.GitHub || rules.IsDescriptorSocial(conn.Strategy) {
 		return sub
 	}
 	return conn.Name + "|" + sub

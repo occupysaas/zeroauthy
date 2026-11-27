@@ -1,0 +1,31 @@
+{
+ "strategy": "shopify",
+ "display_name": "Shopify",
+ "source": [
+  "https://shopify.dev/docs/apps/build/authentication-authorization/access-tokens/authorization-code-grant",
+  "https://shopify.dev/docs/api/admin-rest/latest/resources/shop",
+  "https://auth0.com/docs/authenticate/identity-providers/social-identity-providers/shopify"
+ ],
+ "authorization_url": "https://{shop}/admin/oauth/authorize",
+ "token_url": "https://{shop}/admin/oauth/access_token",
+ "profile_url": "https://{shop}/admin/api/2025-10/shop.json",
+ "profile_auth": "header:X-Shopify-Access-Token",
+ "token_auth": "client_secret_post",
+ "pkce": "none",
+ "token_type_optional": true,
+ "base_scopes": [],
+ "flags": [],
+ "freeform_scopes": false,
+ "profile": {
+  "user_id": "shop.id",
+  "email": "shop.email",
+  "name": "shop.name",
+  "provider_data": [
+   "shop.myshopify_domain"
+  ]
+ },
+ "email_verified": {
+  "rule": "never"
+ },
+ "hook": "shopify"
+}

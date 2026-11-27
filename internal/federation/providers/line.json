@@ -1,0 +1,44 @@
+{
+ "strategy": "line",
+ "display_name": "LINE",
+ "source": [
+  "https://developers.line.biz/en/docs/line-login/integrate-line-login/",
+  "https://developers.line.biz/en/reference/line-login/#verify-id-token",
+  "https://developers.line.biz/en/reference/line-login/#get-user-profile",
+  "https://auth0.com/docs/authenticate/identity-providers/social-identity-providers/line"
+ ],
+ "authorization_url": "https://access.line.me/oauth2/v2.1/authorize",
+ "token_url": "https://api.line.me/oauth2/v2.1/token",
+ "profile_url": "https://api.line.me/v2/profile",
+ "verify_url": "https://api.line.me/oauth2/v2.1/verify",
+ "token_auth": "client_secret_post",
+ "pkce": "S256",
+ "base_scopes": [
+  "openid"
+ ],
+ "flags": [
+  {
+   "option": "profile",
+   "scopes": [
+    "profile"
+   ],
+   "default": true
+  },
+  {
+   "option": "email",
+   "scopes": [
+    "email"
+   ]
+  }
+ ],
+ "freeform_scopes": true,
+ "profile": {
+  "user_id": "userId",
+  "name": "displayName",
+  "picture": "pictureUrl"
+ },
+ "email_verified": {
+  "rule": "never"
+ },
+ "hook": "line"
+}

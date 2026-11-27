@@ -3,6 +3,7 @@ package grpcstore
 import (
 	"context"
 	"errors"
+	"github.com/zeroauthy/zeroauthy/internal/federation/rules"
 	"time"
 
 	"github.com/zeroauthy/zeroauthy/internal/store"
@@ -320,6 +321,35 @@ func requireGitHubBacking(ctx context.Context, st store.Store) error {
 func (s *Server) GitHubFederationSupported(ctx context.Context, r *storev1.GitHubFederationCapabilitiesRequest) (*storev1.Result, error) {
 	return exec(s, r.TxId, func(st store.Store) error { return requireGitHubBacking(ctx, st) }), nil
 }
+
+// SocialFederationSupported verifies social.v1 (Plan 39b): the plugin and its
+// backing transaction view index descriptor social identities by raw subject.
+// A plugin built before this RPC answers Unimplemented: unavailable.
+func (c *Client) SocialFederationSupported(ctx context.Context) error {
+	r, err := c.rpc.SocialFederationSupported(ctx, &storev1.SocialFederationCapabilitiesRequest{TxId: c.txID})
+	return do("SocialFederationSupported", r, fedErr(err))
+}
+func requireSocialBacking(ctx context.Context, st store.Store) error {
+	capability, ok := st.(store.SocialFederationSupporter)
+	if !ok {
+		return store.ErrFederationUnavailable
+	}
+	return capability.SocialFederationSupported(ctx)
+}
+func (s *Server) SocialFederationSupported(ctx context.Context, r *storev1.SocialFederationCapabilitiesRequest) (*storev1.Result, error) {
+	return exec(s, r.TxId, func(st store.Store) error { return requireSocialBacking(ctx, st) }), nil
+}
+func socialStrategy(strategy string) bool { return rules.NeedsSocialCapability(strategy) }
+func socialUser(u *store.User) bool {
+	if u != nil {
+		for _, id := range u.Identities {
+			if socialStrategy(id.Provider) {
+				return true
+			}
+		}
+	}
+	return false
+}
 func githubStrategy(strategy string) bool { return strategy == "github" }
 func githubUser(u *store.User) bool {
 	if u != nil {
@@ -340,6 +370,8 @@ func requireStrategyBacking(ctx context.Context, st store.Store, strategy string
 		return requireMicrosoftBacking(ctx, st)
 	case githubStrategy(strategy):
 		return requireGitHubBacking(ctx, st)
+	case socialStrategy(strategy):
+		return requireSocialBacking(ctx, st)
 	}
 	return nil
 }
@@ -352,7 +384,12 @@ func requireUserBacking(ctx context.Context, st store.Store, u *store.User) erro
 		}
 	}
 	if githubUser(u) {
-		return requireGitHubBacking(ctx, st)
+		if err := requireGitHubBacking(ctx, st); err != nil {
+			return err
+		}
+	}
+	if socialUser(u) {
+		return requireSocialBacking(ctx, st)
 	}
 	return nil
 }

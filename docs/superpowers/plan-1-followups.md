@@ -983,3 +983,16 @@ Dynamic Client Registration and Client ID Metadata Documents (D-0090).
 - **R41-6** The tenant log event type of a registration (zeroauthy: none, LR41b-9).
 - **R41-7** Behaviour when a CIMD document becomes unreachable (zeroauthy: cached until 24 hours after the last good fetch).
 - **R41-8** Resolved 2026-11-26: Auth0's default third-party permissions are client grants with `default_for: third_party_clients` (LR41b-4).
+## Plan 39b observation points
+
+Remaining social providers (D-0180).
+
+- **SP-1** Auth0's sandbox strategy names (zeroauthy: `paypal-sandbox`, `salesforce-sandbox` from the OpenAPI strategy enum).
+- **SP-2** `email_verified` per provider (zeroauthy: LR39b-4).
+- **SP-3** The Google native `subject_token_type` and accepted audiences.
+- **SP-4** The Facebook native `subject_token_type` and token validation.
+- **SP-5** Auth0's documented profile fields per provider (zeroauthy: the descriptor profile maps).
+- **SP-6** The Graph API version Auth0 uses (zeroauthy: v24.0).
+- **SP-7** Twitter email (zeroauthy: none on OAuth 2.0; `include_email` on OAuth 1.0a).
+- **SP-8** Whether Auth0 still serves LinkedIn versions 1 and 2 (zeroauthy: refused at login).
+- **SP-9** Shopify shop selection (zeroauthy: `login_hint`).

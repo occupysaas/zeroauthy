@@ -25,6 +25,7 @@ const (
 	WAAD        = "waad"
 	Google      = "google-oauth2"
 	GitHub      = "github"
+	OAuth1      = "oauth1"
 	OAuth2      = "oauth2"
 	OIDC        = "oidc"
 )
@@ -60,13 +61,13 @@ const (
 
 // IsFederated reports whether strategy is one of the federated strategies.
 func IsFederated(strategy string) bool {
-	return strategy == Apple || strategy == WindowsLive || strategy == WAAD || strategy == Google || strategy == GitHub || strategy == OAuth2 || strategy == OIDC || strategy == Okta || strategy == SAMLP || strategy == ADFS || strategy == GoogleApps || strategy == AD
+	return strategy == Apple || strategy == WindowsLive || strategy == WAAD || strategy == Google || strategy == GitHub || strategy == OAuth2 || strategy == OIDC || strategy == Okta || strategy == SAMLP || strategy == ADFS || strategy == GoogleApps || strategy == AD || strategy == OAuth1 || IsDescriptorSocial(strategy)
 }
 
 // IsSocial reports whether identities of strategy are social (isSocial).
 // OIDC is an enterprise strategy.
 func IsSocial(strategy string) bool {
-	return strategy == Apple || strategy == WindowsLive || strategy == Google || strategy == GitHub || strategy == OAuth2
+	return strategy == Apple || strategy == WindowsLive || strategy == Google || strategy == GitHub || strategy == OAuth2 || strategy == OAuth1 || IsDescriptorSocial(strategy)
 }
 
 // RejectedKeys are the upstream parameter names that no inert map may target
@@ -167,6 +168,10 @@ type Settings struct {
 	Script               string
 	ProfileSync          string
 	AuthenticationActive bool
+	// OAuth1 is set for oauth1 and Twitter's oauth1 protocol (Plan 39b).
+	OAuth1 *OAuth1Settings
+	// Social is set for the Plan 39b descriptor strategies.
+	Social *SocialSettings
 	// SAML is set for the samlp strategy (Plan 37a).
 	SAML *SAMLSettings
 	// ADFS is set for the adfs strategy (Plan 37b).
@@ -228,7 +233,8 @@ func Parse(in Input) (Settings, []error) {
 		switch {
 		case !ok || s == "":
 			fail("options.client_secret must be a nonempty string")
-		case len(s) > maxSecretBytes || !cleanText(s):
+		case len(s) > maxSecretBytes || !cleanText(s) && !(in.Strategy == OAuth1 && o["signatureMethod"] == "RSA-SHA1"):
+			// An RSA-SHA1 oauth1 secret is a PEM key; parseOAuth1 checks it.
 			fail("options.client_secret is invalid")
 		default:
 			out.HasPlainSecret = true
@@ -262,7 +268,7 @@ func Parse(in Input) (Settings, []error) {
 	}
 
 	for _, k := range slices.Sorted(maps.Keys(rejectedOptions)) {
-		if _, ok := o[k]; ok && !((in.Strategy == OIDC || in.Strategy == Okta) && enterpriseOption(k) && (k != "domain" || in.Strategy == Okta)) && !((in.Strategy == WAAD || in.Strategy == GoogleApps) && (k == "domain" || k == "tenant_domain" || k == "domain_aliases")) && !((in.Strategy == Apple || in.Strategy == GitHub) && k == "freeform_scopes") {
+		if _, ok := o[k]; ok && !((in.Strategy == OIDC || in.Strategy == Okta) && enterpriseOption(k) && (k != "domain" || in.Strategy == Okta)) && !((in.Strategy == WAAD || in.Strategy == GoogleApps) && (k == "domain" || k == "tenant_domain" || k == "domain_aliases")) && !((in.Strategy == Apple || in.Strategy == GitHub || IsDescriptorSocial(in.Strategy)) && k == "freeform_scopes") {
 			fail("options.%s: %s", k, rejectedOptions[k])
 		}
 	}
@@ -305,8 +311,14 @@ func Parse(in Input) (Settings, []error) {
 		errs = append(errs, parseGitHub(o, in.ConnectedAccounts, &out)...)
 	case OAuth2:
 		errs = append(errs, parseOAuth2(o, &out)...)
+	case OAuth1:
+		errs = append(errs, parseOAuth1(o, &out, in.HasSealedSecret)...)
 	case OIDC, Okta:
 		errs = append(errs, parseOIDC(o, &out)...)
+	default:
+		if IsDescriptorSocial(in.Strategy) {
+			errs = append(errs, parseSocial(in.Strategy, o, in.ConnectedAccounts, &out)...)
+		}
 	}
 	if v, ok := o["domain_aliases"]; ok && IsEnterprise(in.Strategy) {
 		var err error
@@ -385,10 +397,16 @@ func parseOAuth2(o map[string]any, out *Settings) []error {
 	default:
 		fail("options.scope must be a space-delimited string")
 	}
+	parseScript(o, out, fail)
+	return errs
+}
+
+// parseScript reads the required scripts.fetchUserProfile.
+func parseScript(o map[string]any, out *Settings, fail func(string, ...any)) {
 	scripts, ok := o["scripts"].(map[string]any)
 	if !ok {
 		fail("options.scripts.fetchUserProfile is required")
-		return errs
+		return
 	}
 	src, ok := scripts["fetchUserProfile"].(string)
 	switch {
@@ -404,7 +422,6 @@ func parseOAuth2(o map[string]any, out *Settings) []error {
 			fail("options.scripts.%s must be a string", k)
 		}
 	}
-	return errs
 }
 
 // endpoint validates the absolute HTTPS URL option k.

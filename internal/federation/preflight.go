@@ -121,6 +121,26 @@ func RequireGitHubConnection(ctx context.Context, st store.Store, c *store.Conne
 	return nil
 }
 
+// RequireSocialFederation probes the backing store for social.v1 on every
+// call (Plan 39b). A store without it fails closed, so descriptor identities
+// are never stored unindexed.
+func RequireSocialFederation(ctx context.Context, st store.Store) error {
+	supporter, ok := st.(store.SocialFederationSupporter)
+	if !ok {
+		return store.ErrFederationUnavailable
+	}
+	return supporter.SocialFederationSupported(ctx)
+}
+
+// RequireSocialConnection checks social.v1 for a descriptor connection before
+// any attempt is created.
+func RequireSocialConnection(ctx context.Context, st store.Store, c *store.Connection) error {
+	if c != nil && rules.NeedsSocialCapability(c.Strategy) {
+		return RequireSocialFederation(ctx, st)
+	}
+	return nil
+}
+
 // RequireMicrosoftUser checks every identity, including linked Microsoft accounts.
 func RequireMicrosoftUser(ctx context.Context, st store.Store, u *store.User) error {
 	if u != nil {

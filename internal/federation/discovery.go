@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/zeroauthy/zeroauthy/internal/federation/providers"
 	"net/http"
 	"net/url"
 	"slices"
@@ -89,6 +90,7 @@ type Providers struct {
 	googleFix     *GoogleOverride
 	microsoftFix  *MicrosoftOverride
 	githubFix     *GitHubOverride
+	socialFix     string // Plan 39b descriptor fixture base (tests, E2E harness)
 	appleSecretMu sync.Mutex
 	appleSecrets  *ttlCache[appleSecretEntry]
 }
@@ -160,6 +162,9 @@ func (ps *Providers) HTTPClient() *http.Client { return ps.client }
 
 // For returns the adapter of cfg's strategy.
 func (ps *Providers) For(cfg Config) Provider {
+	if cfg.OAuth1 != nil {
+		return oauth1Provider{ps}
+	}
 	switch cfg.Strategy {
 	case StrategyApple:
 		return appleProvider{ps}
@@ -172,6 +177,9 @@ func (ps *Providers) For(cfg Config) Provider {
 	case StrategyOIDC, StrategyOkta, StrategyGoogle, StrategyGoogleApps:
 		return oidcProvider{ps}
 	default:
+		if d, ok := providers.Get(cfg.Strategy); ok {
+			return socialProvider{ps: ps, d: d}
+		}
 		return unsupportedProvider{}
 	}
 }

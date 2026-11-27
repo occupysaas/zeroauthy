@@ -20,6 +20,7 @@ type tokenRecord struct {
 	TokenType    string    `json:"token_type,omitempty"`
 	Scope        string    `json:"scope,omitempty"`
 	ExpiresAt    time.Time `json:"expires_at,omitzero"`
+	TokenSecret  string    `json:"token_secret,omitempty"`
 }
 
 // SealTokens encrypts the latest upstream tokens of one identity. The ID
@@ -28,7 +29,7 @@ func SealTokens(w keys.Wrapper, key store.FederatedIdentityKey, t TokenSet) ([]b
 	if t.AccessToken == "" {
 		return nil, errors.New("federation: no access token to seal")
 	}
-	plain, err := json.Marshal(tokenRecord{AccessToken: t.AccessToken, RefreshToken: t.RefreshToken, TokenType: t.TokenType, Scope: t.Scope, ExpiresAt: t.ExpiresAt})
+	plain, err := json.Marshal(tokenRecord{AccessToken: t.AccessToken, RefreshToken: t.RefreshToken, TokenType: t.TokenType, Scope: t.Scope, ExpiresAt: t.ExpiresAt, TokenSecret: t.TokenSecret})
 	if err != nil {
 		return nil, errors.New("federation: encode tokens")
 	}
@@ -45,5 +46,5 @@ func OpenTokens(w keys.Wrapper, key store.FederatedIdentityKey, sealed []byte) (
 	if err := json.Unmarshal(plain, &r); err != nil || r.AccessToken == "" {
 		return TokenSet{}, errors.New("federation: malformed token record")
 	}
-	return TokenSet{AccessToken: r.AccessToken, RefreshToken: r.RefreshToken, TokenType: r.TokenType, Scope: r.Scope, ExpiresAt: r.ExpiresAt}, nil
+	return TokenSet{AccessToken: r.AccessToken, RefreshToken: r.RefreshToken, TokenType: r.TokenType, Scope: r.Scope, ExpiresAt: r.ExpiresAt, TokenSecret: r.TokenSecret}, nil
 }
