@@ -24,7 +24,11 @@ const version=spawnSync(bin,['--version'],{encoding:'utf8'});assert.equal(versio
 const tier1=[['facebook',{email:true},'public_profile,email'],['linkedin',{email:true},['openid','profile','email']],['twitter',{},['tweet.read','users.read']],
  ['amazon',{postal_code:true},['profile','postal_code']],['paypal',{email:true},['openid','email']],['paypal-sandbox',{},['openid']],['salesforce',{},['id','profile']],
  ['salesforce-sandbox',{},['id','profile']],['salesforce-community',{community_base_url:'https://community.example'},['id','profile']],['yahoo',{},['openid','profile','email']],
- ['line',{email:true},['openid','profile','email']],['dropbox',{},['account_info.read']],['box',{},[]],['bitbucket',{},['account','email']],['shopify',{},[]]];
+ ['line',{email:true},['openid','profile','email']],['dropbox',{},['account_info.read']],['box',{},[]],['bitbucket',{},['account','email']],['shopify',{},[]],
+ // Tier 2 (Plan 39d): a free scope is returned as stored; Exact and Evernote have none.
+ ['baidu',{scope:['basic']},['basic']],['bitly',{},undefined],['daccount',{},undefined],['dwolla',{},undefined],['evernote',{},undefined],['evernote-sandbox',{},undefined],
+ ['exact',{baseUrl:'https://start.exactonline.nl'},undefined],['fitbit',{},undefined],['instagram',{},undefined],['planningcenter',{},undefined],['soundcloud',{},undefined],
+ ['thirtysevensignals',{},undefined],['untappd',{},undefined],['vkontakte',{},undefined],['weibo',{},undefined],['wordpress',{scope:['global']},['global']],['yandex',{},undefined]];
 const names=tier1.map(([s])=>`dep-${s}`);
 const scopeOf=Object.fromEntries(tier1.map(([s,,sc])=>[`dep-${s}`,sc]));
 const tenant=(name,host)=>({AUTH0_DOMAIN:host,AUTH0_CLIENT_ID:`${name}-admin`,AUTH0_CLIENT_SECRET:`${name}-admin-secret-not-for-production`,
@@ -143,4 +147,4 @@ try{
   assert.equal(u.identities[0].connection,`dep-${strategy}`);
  }
 }finally{await browser.close();}
-console.log(`Social providers deploy ${format}: pinned 9.1.0 export/import/reimport/export of ${tier1.length} Tier 1 connections, explicit reinjection, edited-scope refusal and logins passed`);
+console.log(`Social providers deploy ${format}: pinned 9.1.0 export/import/reimport/export of ${tier1.length} Tier 1 and Tier 2 connections, explicit reinjection, edited-scope refusal and logins passed`);

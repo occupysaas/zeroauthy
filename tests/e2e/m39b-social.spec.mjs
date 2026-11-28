@@ -1,4 +1,4 @@
-// Plan 39b: every Tier 1 descriptor strategy through a browser login with
+// Plans 39b and 39d: every live Tier 1 and Tier 2 descriptor strategy through a browser login with
 // an actual code exchange against its local stand-in (provider /social).
 import {test,expect} from '@playwright/test';
 import {authorization,complete} from './social/browser.mjs';
@@ -25,9 +25,25 @@ const cases=[
  ['box',{},null,false],
  ['bitbucket',{},'account email',true],
  ['shopify',{},null,false],
+ // Tier 2 (Plan 39d). redirect is the provider's redirect parameter name.
+ ['baidu',{},'basic',null],
+ ['bitly',{},null,true],
+ ['daccount',{},'openid',null],
+ ['dwolla',{},'AccountInfoFull',null],
+ ['exact',{baseUrl:'https://start.exactonline.nl'},null,false],
+ ['planningcenter',{},'people',null],
+ ['soundcloud',{},null,null],
+ ['thirtysevensignals',{},null,false],
+ ['untappd',{},null,false,'redirect_url'],
+ ['vkontakte',{},null,false],
+ ['weibo',{},null,null],
+ ['wordpress',{},'auth',true],
+ ['yandex',{},null,false],
+ ['evernote',{},null,null,'oauth1'],
+ ['evernote-sandbox',{},null,null,'oauth1'],
 ];
 
-for(const [strategy,extra,scope,verified] of cases){
+for(const [strategy,extra,scope,verified,redirect='redirect_uri'] of cases){
  test(`${strategy}: create, sign in, identity ${strategy}|<id>`,async({page})=>{
   const name=`soc-${strategy}`;
   const created=await api('connections','POST',{name,strategy,enabled_clients:['m24-spa'],options:{client_id:upstream.id,client_secret:upstream.secret,...extra}});
@@ -41,7 +57,8 @@ for(const [strategy,extra,scope,verified] of cases){
   const up=new URL(page.url());
   expect(up.origin).toBe('https://idp.e2e.test');
   expect(up.pathname.startsWith(`/social/${strategy}/`)).toBe(true);
-  expect(up.searchParams.get('redirect_uri')).toBe('https://sdk.e2e.test/login/callback');
+  if(redirect!=='oauth1')expect(up.searchParams.get(redirect)).toBe('https://sdk.e2e.test/login/callback');
+  else expect(up.searchParams.get('oauth_token')).toBeTruthy();
   expect(up.searchParams.get('scope')).toBe(scope);
   expect(up.searchParams.has('nonce')).toBe(false);
   const sub=`acct-${strategy}`;
@@ -67,6 +84,16 @@ test('a denied upstream consent ends the login without a user',async({page})=>{
  await callback;
  expect(page.url()).not.toContain('callback.e2e.test');
  expect((await api('users/'+encodeURIComponent('amazon|denied-user'))).status).toBe(404);
+});
+
+test('retired Fitbit and Instagram are stored but sign-in is refused before any upstream call',async({page})=>{
+ for(const strategy of ['fitbit','instagram']){
+  const created=await api('connections','POST',{name:`soc-${strategy}`,strategy,enabled_clients:['m24-spa'],options:{client_id:upstream.id,client_secret:upstream.secret}});
+  expect(created.status,JSON.stringify(created.body)).toBe(201);
+  await page.context().clearCookies();
+  await page.goto(authorization({connection:`soc-${strategy}`}).url);
+  expect(new URL(page.url()).hostname).not.toBe('idp.e2e.test');
+ }
 });
 
 test('Shopify without a shop in login_hint is refused before any upstream call',async({page})=>{

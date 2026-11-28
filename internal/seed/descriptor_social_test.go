@@ -57,3 +57,44 @@ func TestSeedDescriptorSocial(t *testing.T) {
 		}
 	}
 }
+
+const tier2Seed = `
+tenants:
+ - name: acme
+   domains: [acme.test]
+   connections:
+    - name: wordpress
+      strategy: wordpress
+      options: {client_id: wp, client_secret: wp-throwaway-secret, scope: [global]}
+    - name: exact
+      strategy: exact
+      options: {client_id: ex, client_secret: ex-throwaway-secret, baseUrl: "https://start.exactonline.nl"}
+    - name: fitbit
+      strategy: fitbit
+      options: {client_id: fb, client_secret: fb-throwaway-secret}
+    - name: evernote
+      strategy: evernote
+      options: {client_id: en, client_secret: en-throwaway-secret}
+`
+
+// TestSeedTier2 seeds Plan 39d strategies, the retired Fitbit included.
+func TestSeedTier2(t *testing.T) {
+	ctx := context.Background()
+	st := memory.New()
+	f, err := Parse([]byte(tier2Seed))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := Apply(ctx, st, f, fixedNow, testWrapper(t)); err != nil {
+		t.Fatal(err)
+	}
+	tn, _ := st.Tenants().GetByName(ctx, "acme")
+	for _, name := range []string{"wordpress", "exact", "fitbit", "evernote"} {
+		if c, err := st.Connections().GetByName(ctx, tn.ID, name); err != nil || len(c.FederationSecretsSealed) == 0 {
+			t.Fatalf("%s: %+v %v", name, c, err)
+		}
+	}
+	if _, err := Parse([]byte(strings.Replace(tier2Seed, `baseUrl: "https://start.exactonline.nl"`, `baseUrl: "https://evil.example"`, 1))); err == nil {
+		t.Fatal("bad Exact baseUrl accepted")
+	}
+}

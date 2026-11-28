@@ -8,6 +8,12 @@ All notable changes to zeroauthy are recorded here. The format follows
 
 ### Added
 
+- Tier 2 social providers (Plan 39d): Baidu, Bitly, d Account, Dwolla,
+  Evernote (and sandbox, OAuth 1.0a), Exact Online, Planning Center,
+  SoundCloud, 37signals, Untappd, VK, Weibo, WordPress.com and Yandex.
+  Fitbit and Instagram connections are stored and exported but sign-in is
+  refused, because those providers retired the APIs. See
+  [social connections](docs/social-connections.md).
 - Remaining social providers, Tier 1 (Plan 39b): Facebook, LinkedIn, X
   (Twitter, OAuth 2.0 or 1.0a), Amazon, PayPal (and sandbox), Salesforce
   (and sandbox and community), Yahoo, LINE, Dropbox, Box, Bitbucket and
