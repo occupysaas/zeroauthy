@@ -1,8 +1,9 @@
 # Plan 39d implementation record
 
-Status: **implemented and verified locally**, on `plan-39d-social-tier2`
-(worktree `/mnt/nvme2/code/zeroauthy-plan39d`), based on `main` after PR #106.
-Plan-branch CI and maintainer approval pending.
+Status: **merged** 2026-11-28 (PR #107, merge commit `bffaac2e`), from
+`plan-39d-social-tier2`, based on `main` after PR #106. Plan-branch CI green
+(run 46094178117; one rerun of an unrelated `internal/adhub` timing flake,
+recorded on the PR).
 
 Plan: [Plan 39d](plans/2026-11-28-zeroauthy-plan-39d-social-tier2.md). Spec:
 [Tier 2 social providers](specs/2026-11-28-zeroauthy-social-tier2-design.md).

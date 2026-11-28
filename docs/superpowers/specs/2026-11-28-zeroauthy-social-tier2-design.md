@@ -1,6 +1,6 @@
 # Plan 39d — Tier 2 social providers
 
-**Date:** 2026-11-28. **Status:** implemented on `plan-39d-social-tier2` (2026-11-28); see the [implementation record](../2026-11-28-plan-39d-implementation-record.md) and D-0182.
+**Date:** 2026-11-28. **Status:** merged 2026-11-28 (PR #107); see the [implementation record](../2026-11-28-plan-39d-implementation-record.md) and D-0182.
 
 **Roadmap entry:** S2 (Plan 39b design, §1 "Tier 2"); the maintainer ruled
 on 2026-11-27 that Tier 2 ships in a later plan, with fixture providers only.
