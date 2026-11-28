@@ -19,6 +19,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/resourceview"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/tenant"
+	"github.com/zeroauthy/zeroauthy/internal/userlink"
 )
 
 // Account linking (U7, D-0043). Linking moves the secondary user's identity,
@@ -181,7 +182,7 @@ func identityHeld(ctx context.Context, st store.Store, tenantID, provider, userI
 }
 
 func holdsIdentity(u *store.User, provider, userID string) bool {
-	return slices.ContainsFunc(u.Identities, func(id store.Identity) bool { return id.Provider == provider && id.UserID == userID })
+	return userlink.HoldsIdentity(u, provider, userID)
 }
 
 // LinkUserIdentity links a secondary account to the user (U7).
@@ -293,40 +294,13 @@ func (h *Handlers) LinkUserIdentity(w http.ResponseWriter, r *http.Request, id s
 				return err
 			}
 		}
-		moved := store.Identity{Connection: own.Connection, Provider: own.Provider, UserID: own.UserID, PasswordHash: own.PasswordHash, ImportedHash: own.ImportedHash,
-			ProfileData: map[string]any{"email": sec.Email, "email_verified": sec.EmailVerified}, ProviderData: maps.Clone(own.ProviderData)}
-		if sec.Username != "" {
-			moved.ProfileData["username"] = sec.Username
-		}
-		// Move credentials before user deletion cascades remove the secondary's MFA.
 		available, err := webAuthnAvailable(ctx, h.Store)
 		if err != nil {
 			return err
 		}
-		if available {
-			if err = tx.WebAuthn().MovePasskeys(ctx, tn.ID, secondary, id, ""); err != nil {
-				return err
-			}
-		}
-		// The secondary goes first, so its logins are free for the primary.
-		// It gives its identity up before it is deleted: a federated
-		// identity's index entry moves to the primary in this transaction,
-		// and its sealed token record (keyed by identity) stays (Plan 24).
-		sec.Identities = nil
-		if err := tx.Users().Update(ctx, sec); err != nil {
-			return err
-		}
-		if err := tx.Users().Delete(ctx, tn.ID, secondary); err != nil {
-			return err
-		}
-		p.Identities = append(p.Identities, moved)
-		p.UpdatedAt = now
-		if err := tx.Users().Update(ctx, p); errors.Is(err, store.ErrConflict) {
+		if err := userlink.Move(ctx, tx, p, sec, own, available, now); errors.Is(err, userlink.ErrIdentityHeld) {
 			return errIdentityConflict
 		} else if err != nil {
-			return err
-		}
-		if _, err := tx.Users().BumpVersion(ctx, tn.ID, id); err != nil {
 			return err
 		}
 		out, err = tx.Users().Get(ctx, tn.ID, id)

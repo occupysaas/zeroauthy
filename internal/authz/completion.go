@@ -274,6 +274,19 @@ func (h *Handlers) commitLogin(w http.ResponseWriter, r *http.Request, res tenan
 			return err
 		}
 		txn.HostedState.Revision++
+		if eff != nil && eff.PrimaryUserID != "" {
+			if err = h.linkPrimary(ctx, res, sess, eff.PrimaryUserID, false); err != nil {
+				return err
+			}
+		}
+		if eff != nil && len(eff.RecordedMethods) > 0 {
+			// The session is created below with the external methods.
+			now := h.now()
+			for _, m := range eff.RecordedMethods {
+				sess.AuthMethods = append(sess.AuthMethods, store.AuthMethod{Name: m, At: now})
+			}
+			sess.MFAAt = now
+		}
 		token := secrets.RandomString(43)
 		sess.TokenHash = secrets.HashToken(token)
 		var opts []session.CommitOption
@@ -296,6 +309,16 @@ func (h *Handlers) commitLogin(w http.ResponseWriter, r *http.Request, res tenan
 		txn, _ = ctx.Value(completionTxnKey{}).(*store.AuthTransaction)
 		if eff != nil && eff.Session != nil {
 			if err = h.applySessionEffects(ctx, w, r, res, sess, eff.Session); err != nil {
+				return err
+			}
+		}
+		if eff != nil && eff.PrimaryUserID != "" {
+			if err = h.linkPrimary(ctx, res, sess, eff.PrimaryUserID, true); err != nil {
+				return err
+			}
+		}
+		if eff != nil && len(eff.RecordedMethods) > 0 {
+			if err = h.recordMethods(ctx, res, sess, eff.RecordedMethods); err != nil {
 				return err
 			}
 		}

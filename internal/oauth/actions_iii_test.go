@@ -76,3 +76,15 @@ func TestRefreshSessionRevoke(t *testing.T) {
 		t.Fatal("session survives api.session.revoke")
 	}
 }
+
+// TestSetPrimaryUserTokenGrantRefused: account linking from an Action runs
+// only in the browser flow; a token grant asking for it is refused rather
+// than silently issuing for the secondary.
+func TestSetPrimaryUserTokenGrantRefused(t *testing.T) {
+	f := newActionsFixture(t)
+	f.actions.PostLogin(t, f.tid, "link", `exports.onExecutePostLogin = async (event, api) => { api.authentication.setPrimaryUser("auth0|someone"); };`)
+	status, body := f.token(t, pw("ropg", "ropg-secret", "alice@acme.test", "alice password 1", "audience", acmeAPI, "scope", "openid"))
+	if status != 403 || body["error"] != "access_denied" {
+		t.Fatalf("password grant: %d %v", status, body)
+	}
+}

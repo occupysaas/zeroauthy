@@ -222,6 +222,11 @@ func (h *Handlers) approve(w http.ResponseWriter, r *http.Request, res tenant.Re
 			h.refuse(w, r, res, client, fr, policyError)
 			return
 		}
+		var lr *linkRefused
+		if errors.As(err, &lr) {
+			h.refuse(w, r, res, client, fr, errAccessDenied(lr.reason))
+			return
+		}
 		if fr.device() && (errors.Is(err, store.ErrAlreadyUsed) || errors.Is(err, store.ErrNotFound)) {
 			h.flowError(w, r, res, fr, errCodeNotPending)
 			return

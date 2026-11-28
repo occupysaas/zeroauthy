@@ -119,6 +119,12 @@ func (h *Handlers) postLogin(ctx context.Context, res tenant.Resolved, c *store.
 	if d := result.Denied; d != nil {
 		return nil, &Error{Status: http.StatusForbidden, Code: d.Code, Description: d.Reason}
 	}
+	if result.Effects.PrimaryUserID != "" {
+		// Account linking from an Action needs the browser flow's session
+		// (Plan 40); a token grant is refused rather than issuing for the
+		// secondary.
+		return nil, &Error{Status: http.StatusForbidden, Code: "access_denied", Description: "setPrimaryUser is not supported on this grant"}
+	}
 	if se := result.Effects.Session; se != nil && se.Revoke != nil {
 		// api.session.revoke on a token grant ends the grant's session (Plan 40).
 		if f.session != nil {
