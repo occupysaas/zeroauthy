@@ -58,6 +58,8 @@ const draft = reactive({
   freeform: '',
   community: '',
   protocol: 'oauth2',
+  freeScope: '',
+  baseUrl: '',
 })
 const descriptor = computed(() => descriptorOf(draft.strategy))
 watch(() => draft.strategy, () => {
@@ -137,6 +139,8 @@ function validate(): boolean {
   if (draft.strategy === 'google-apps' && (!draft.workspaceDomain.includes('.') || draft.workspaceDomain.length > 253 || !draft.workspaceDomain.toLowerCase().split('.').every(label => /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(label)))) errors.workspaceDomain = 'Enter the primary Google Workspace domain, such as example.com.'
   const d = descriptor.value
   if (d?.fields.includes('community_base_url') && !httpsURL(draft.community.trim())) errors.community = t('social.httpsRequired')
+  if (d?.base_url_hosts.length && !d.base_url_hosts.some((h) => draft.baseUrl === `https://${h}`)) errors.baseUrl = t('social.exactRegionRequired')
+  if (d?.free_scope && (freeformList(draft.freeScope).length > 20 || freeformList(draft.freeScope).some((s) => s.length > 128))) errors.freeform = t('social.freeformScopesInvalid')
   if (d?.freeform_scopes && (freeformList(draft.freeform).length > 20 || freeformList(draft.freeform).some((s) => s.length > 128))) errors.freeform = t('social.freeformScopesInvalid')
   if (draft.strategy === 'okta' && (!draft.oktaDomain || draft.oktaDomain.length > 253 || !draft.oktaDomain.toLowerCase().split('.').every(label => /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(label)))) errors.oktaDomain = 'Enter a DNS host name without a scheme, port or path.'
   return Object.keys(errors).length === 0
@@ -187,7 +191,7 @@ function body(): ConnectionCreate {
       Object.assign(options, { type: 'back_channel', domain: draft.oktaDomain.toLowerCase(), scope: draft.scopes.trim() })
       break
     default:
-      if (descriptor.value) Object.assign(options, descriptorOptions(descriptor.value, draft.descFlags, draft.freeform, { community: draft.community, protocol: draft.protocol }))
+      if (descriptor.value) Object.assign(options, descriptorOptions(descriptor.value, draft.descFlags, draft.freeform, { community: draft.community, protocol: draft.protocol, scope: draft.freeScope, baseUrl: draft.baseUrl }))
   }
   const b: Record<string, unknown> = { name: draft.name.trim(), strategy: draft.strategy, options, enabled_clients: chosen.value }
   if (draft.displayName.trim()) b.display_name = draft.displayName.trim()
@@ -277,7 +281,7 @@ function describedBy(id: string, key: string, hint = false): string {
         <label class="check"><input id="apple-email" v-model="draft.email" type="checkbox" /> {{ t('social.googleEmail') }}</label>
       </template>
       <GitHubOptions v-if="draft.strategy === 'github'" v-model:email="draft.email" v-model:flags="draft.githubFlags" />
-      <DescriptorOptions v-if="descriptor" v-model:flags="draft.descFlags" v-model:freeform="draft.freeform" v-model:community="draft.community" v-model:protocol="draft.protocol" :descriptor="descriptor" :community-error="errors.community" :freeform-error="errors.freeform" />
+      <DescriptorOptions v-if="descriptor" v-model:flags="draft.descFlags" v-model:freeform="draft.freeform" v-model:community="draft.community" v-model:protocol="draft.protocol" v-model:scope="draft.freeScope" v-model:base-url="draft.baseUrl" :descriptor="descriptor" :community-error="errors.community" :freeform-error="errors.freeform" :base-url-error="errors.baseUrl" />
       <template v-if="draft.strategy === 'google-oauth2'">
         <label class="check"><input v-model="draft.email" type="checkbox" /> <span>{{ t('social.googleEmail') }}</span></label>
         <label class="check"><input v-model="draft.profile" type="checkbox" /> <span>{{ t('social.googleProfile') }}</span></label>

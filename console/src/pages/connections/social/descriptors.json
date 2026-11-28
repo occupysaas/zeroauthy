@@ -15,7 +15,10 @@
       }
     ],
     "freeform_scopes": true,
-    "fields": []
+    "fields": [],
+    "free_scope": false,
+    "base_url_hosts": [],
+    "retired": ""
   },
   {
     "strategy": "baidu",
@@ -26,7 +29,10 @@
     ],
     "flags": [],
     "freeform_scopes": false,
-    "fields": []
+    "fields": [],
+    "free_scope": true,
+    "base_url_hosts": [],
+    "retired": ""
   },
   {
     "strategy": "bitbucket",
@@ -38,7 +44,10 @@
     ],
     "flags": [],
     "freeform_scopes": true,
-    "fields": []
+    "fields": [],
+    "free_scope": false,
+    "base_url_hosts": [],
+    "retired": ""
   },
   {
     "strategy": "bitly",
@@ -47,7 +56,10 @@
     "base_scopes": [],
     "flags": [],
     "freeform_scopes": false,
-    "fields": []
+    "fields": [],
+    "free_scope": true,
+    "base_url_hosts": [],
+    "retired": ""
   },
   {
     "strategy": "box",
@@ -56,7 +68,10 @@
     "base_scopes": [],
     "flags": [],
     "freeform_scopes": false,
-    "fields": []
+    "fields": [],
+    "free_scope": false,
+    "base_url_hosts": [],
+    "retired": ""
   },
   {
     "strategy": "daccount",
@@ -67,7 +82,10 @@
     ],
     "flags": [],
     "freeform_scopes": false,
-    "fields": []
+    "fields": [],
+    "free_scope": true,
+    "base_url_hosts": [],
+    "retired": ""
   },
   {
     "strategy": "dropbox",
@@ -78,7 +96,10 @@
     ],
     "flags": [],
     "freeform_scopes": false,
-    "fields": []
+    "fields": [],
+    "free_scope": false,
+    "base_url_hosts": [],
+    "retired": ""
   },
   {
     "strategy": "dwolla",
@@ -89,7 +110,10 @@
     ],
     "flags": [],
     "freeform_scopes": false,
-    "fields": []
+    "fields": [],
+    "free_scope": true,
+    "base_url_hosts": [],
+    "retired": ""
   },
   {
     "strategy": "evernote",
@@ -98,7 +122,10 @@
     "base_scopes": [],
     "flags": [],
     "freeform_scopes": false,
-    "fields": []
+    "fields": [],
+    "free_scope": false,
+    "base_url_hosts": [],
+    "retired": ""
   },
   {
     "strategy": "evernote-sandbox",
@@ -107,7 +134,10 @@
     "base_scopes": [],
     "flags": [],
     "freeform_scopes": false,
-    "fields": []
+    "fields": [],
+    "free_scope": false,
+    "base_url_hosts": [],
+    "retired": ""
   },
   {
     "strategy": "exact",
@@ -116,7 +146,18 @@
     "base_scopes": [],
     "flags": [],
     "freeform_scopes": false,
-    "fields": []
+    "fields": [],
+    "free_scope": false,
+    "base_url_hosts": [
+      "start.exactonline.nl",
+      "start.exactonline.be",
+      "start.exactonline.co.uk",
+      "start.exactonline.com",
+      "start.exactonline.de",
+      "start.exactonline.fr",
+      "start.exactonline.es"
+    ],
+    "retired": ""
   },
   {
     "strategy": "facebook",
@@ -367,7 +408,10 @@
       }
     ],
     "freeform_scopes": true,
-    "fields": []
+    "fields": [],
+    "free_scope": false,
+    "base_url_hosts": [],
+    "retired": ""
   },
   {
     "strategy": "fitbit",
@@ -378,7 +422,10 @@
     ],
     "flags": [],
     "freeform_scopes": false,
-    "fields": []
+    "fields": [],
+    "free_scope": true,
+    "base_url_hosts": [],
+    "retired": "Fitbit turned off its legacy Web API and OAuth endpoints; sign-in moved to the Google Health API"
   },
   {
     "strategy": "instagram",
@@ -389,7 +436,10 @@
     ],
     "flags": [],
     "freeform_scopes": false,
-    "fields": []
+    "fields": [],
+    "free_scope": true,
+    "base_url_hosts": [],
+    "retired": "Meta shut down the Instagram Basic Display API"
   },
   {
     "strategy": "line",
@@ -414,7 +464,10 @@
       }
     ],
     "freeform_scopes": true,
-    "fields": []
+    "fields": [],
+    "free_scope": false,
+    "base_url_hosts": [],
+    "retired": ""
   },
   {
     "strategy": "linkedin",
@@ -433,7 +486,10 @@
       }
     ],
     "freeform_scopes": true,
-    "fields": []
+    "fields": [],
+    "free_scope": false,
+    "base_url_hosts": [],
+    "retired": ""
   },
   {
     "strategy": "paypal",
@@ -469,7 +525,10 @@
       }
     ],
     "freeform_scopes": true,
-    "fields": []
+    "fields": [],
+    "free_scope": false,
+    "base_url_hosts": [],
+    "retired": ""
   },
   {
     "strategy": "paypal-sandbox",
@@ -505,7 +564,10 @@
       }
     ],
     "freeform_scopes": true,
-    "fields": []
+    "fields": [],
+    "free_scope": false,
+    "base_url_hosts": [],
+    "retired": ""
   },
   {
     "strategy": "planningcenter",
@@ -516,7 +578,10 @@
     ],
     "flags": [],
     "freeform_scopes": false,
-    "fields": []
+    "fields": [],
+    "free_scope": true,
+    "base_url_hosts": [],
+    "retired": ""
   },
   {
     "strategy": "salesforce",
@@ -535,7 +600,10 @@
       }
     ],
     "freeform_scopes": true,
-    "fields": []
+    "fields": [],
+    "free_scope": false,
+    "base_url_hosts": [],
+    "retired": ""
   },
   {
     "strategy": "salesforce-community",
@@ -556,7 +624,10 @@
     "freeform_scopes": true,
     "fields": [
       "community_base_url"
-    ]
+    ],
+    "free_scope": false,
+    "base_url_hosts": [],
+    "retired": ""
   },
   {
     "strategy": "salesforce-sandbox",
@@ -575,7 +646,10 @@
       }
     ],
     "freeform_scopes": true,
-    "fields": []
+    "fields": [],
+    "free_scope": false,
+    "base_url_hosts": [],
+    "retired": ""
   },
   {
     "strategy": "shopify",
@@ -586,7 +660,10 @@
     "freeform_scopes": false,
     "fields": [
       "login_hint"
-    ]
+    ],
+    "free_scope": false,
+    "base_url_hosts": [],
+    "retired": ""
   },
   {
     "strategy": "soundcloud",
@@ -595,7 +672,10 @@
     "base_scopes": [],
     "flags": [],
     "freeform_scopes": false,
-    "fields": []
+    "fields": [],
+    "free_scope": true,
+    "base_url_hosts": [],
+    "retired": ""
   },
   {
     "strategy": "thirtysevensignals",
@@ -604,7 +684,10 @@
     "base_scopes": [],
     "flags": [],
     "freeform_scopes": false,
-    "fields": []
+    "fields": [],
+    "free_scope": true,
+    "base_url_hosts": [],
+    "retired": ""
   },
   {
     "strategy": "twitter",
@@ -636,7 +719,10 @@
     "freeform_scopes": true,
     "fields": [
       "protocol"
-    ]
+    ],
+    "free_scope": false,
+    "base_url_hosts": [],
+    "retired": ""
   },
   {
     "strategy": "untappd",
@@ -645,7 +731,10 @@
     "base_scopes": [],
     "flags": [],
     "freeform_scopes": false,
-    "fields": []
+    "fields": [],
+    "free_scope": true,
+    "base_url_hosts": [],
+    "retired": ""
   },
   {
     "strategy": "vkontakte",
@@ -654,7 +743,10 @@
     "base_scopes": [],
     "flags": [],
     "freeform_scopes": false,
-    "fields": []
+    "fields": [],
+    "free_scope": true,
+    "base_url_hosts": [],
+    "retired": ""
   },
   {
     "strategy": "weibo",
@@ -663,7 +755,10 @@
     "base_scopes": [],
     "flags": [],
     "freeform_scopes": false,
-    "fields": []
+    "fields": [],
+    "free_scope": true,
+    "base_url_hosts": [],
+    "retired": ""
   },
   {
     "strategy": "wordpress",
@@ -674,7 +769,10 @@
     ],
     "flags": [],
     "freeform_scopes": false,
-    "fields": []
+    "fields": [],
+    "free_scope": true,
+    "base_url_hosts": [],
+    "retired": ""
   },
   {
     "strategy": "yahoo",
@@ -687,7 +785,10 @@
     ],
     "flags": [],
     "freeform_scopes": false,
-    "fields": []
+    "fields": [],
+    "free_scope": false,
+    "base_url_hosts": [],
+    "retired": ""
   },
   {
     "strategy": "yandex",
@@ -696,6 +797,9 @@
     "base_scopes": [],
     "flags": [],
     "freeform_scopes": false,
-    "fields": []
+    "fields": [],
+    "free_scope": true,
+    "base_url_hosts": [],
+    "retired": ""
   }
 ]

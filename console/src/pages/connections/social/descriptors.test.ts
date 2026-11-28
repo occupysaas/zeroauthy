@@ -104,3 +104,61 @@ describe('Descriptor connection settings', () => {
     wrapper.unmount()
   })
 })
+
+describe('Plan 39d Tier 2 descriptors', () => {
+  async function fill(wrapper: Awaited<ReturnType<typeof open>>['wrapper'], strategy: string) {
+    await wrapper.find(`input[value="${strategy}"]`).setValue(true)
+    await wrapper.find('#social-name').setValue(strategy)
+    await wrapper.find('#social-client-id').setValue('client-1')
+    await wrapper.find('#social-client-secret').setValue('fixture-secret')
+  }
+
+  it('sends a typed free scope as an array and shows it as the effective scope', async () => {
+    const { wrapper, calls } = await open()
+    await fill(wrapper, 'wordpress')
+    expect(wrapper.find<HTMLInputElement>('#descriptor-effective').element.value).toBe('auth')
+    await wrapper.find('#descriptor-scope').setValue('global auth')
+    expect(wrapper.find<HTMLInputElement>('#descriptor-effective').element.value).toBe('global auth')
+    await wrapper.find('form').trigger('submit'); await flushPromises()
+    expect((calls.find((c) => c.method === 'POST')?.body as { options: Record<string, unknown> }).options).toEqual({ client_id: 'client-1', client_secret: 'fixture-secret', scope: ['global', 'auth'] })
+    wrapper.unmount()
+  })
+
+  it('refuses more than 20 free scopes', async () => {
+    const { wrapper, calls } = await open()
+    await fill(wrapper, 'yandex')
+    await wrapper.find('#descriptor-scope').setValue(Array.from({ length: 21 }, (_, i) => `s${i}`).join(' '))
+    await wrapper.find('form').trigger('submit'); await flushPromises()
+    expect(calls.some((c) => c.method === 'POST')).toBe(false)
+    wrapper.unmount()
+  })
+
+  it('requires an Exact region and sends it as baseUrl', async () => {
+    const { wrapper, calls } = await open()
+    await fill(wrapper, 'exact')
+    await wrapper.find('form').trigger('submit'); await flushPromises()
+    expect(wrapper.find('#descriptor-base-url-error').exists()).toBe(true)
+    await wrapper.find('#descriptor-base-url').setValue('https://start.exactonline.be')
+    await wrapper.find('form').trigger('submit'); await flushPromises()
+    expect((calls.find((c) => c.method === 'POST')?.body as { options: Record<string, unknown> }).options.baseUrl).toBe('https://start.exactonline.be')
+    wrapper.unmount()
+  })
+
+  it('warns that Fitbit and Instagram sign-in is retired but still allows saving', async () => {
+    const { wrapper } = await open()
+    for (const s of ['fitbit', 'instagram']) {
+      await wrapper.find(`input[value="${s}"]`).setValue(true)
+      expect(wrapper.find('[data-testid="descriptor-retired"]').text()).toMatch(/retired|shut down|turned off/i)
+    }
+    wrapper.unmount()
+  })
+
+  it('creates Evernote with only the consumer key and secret', async () => {
+    const { wrapper, calls } = await open()
+    await fill(wrapper, 'evernote')
+    expect(wrapper.find('#descriptor-scope').exists()).toBe(false)
+    await wrapper.find('form').trigger('submit'); await flushPromises()
+    expect((calls.find((c) => c.method === 'POST')?.body as { options: Record<string, unknown> }).options).toEqual({ client_id: 'client-1', client_secret: 'fixture-secret' })
+    wrapper.unmount()
+  })
+})
