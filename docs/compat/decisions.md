@@ -3663,8 +3663,7 @@ records the scope and evidence, including the DPoP extension authorized on
 
 ## D-0182 — Plan 39d Tier 2 social providers (2026-11-28)
 
-**Status:** implemented on `plan-39d-social-tier2` (2026-11-28); plan-branch CI
-and approval pending.
+**Status:** merged 2026-11-28 (PR #107).
 
 **Authority:** [Plan 39d design](../superpowers/specs/2026-11-28-zeroauthy-social-tier2-design.md),
 Auth0's Management OpenAPI (`ConnectionOptions*` for the Tier 2 strategies),
