@@ -21,7 +21,7 @@
     "express-openid-connect": "3.4.0",
     "express-rate-limit": "8.7.5",
     "jwks-rsa": "4.1.0",
-    "next": "15.5.27",
+    "next": "16.4.6",
     "react": "19.3.1",
     "react-dom": "19.3.1",
     "samlify": "2.15.1",
