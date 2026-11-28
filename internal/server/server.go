@@ -272,7 +272,11 @@ func New(d Deps) http.Handler {
 					return err
 				}
 			}
-			return d.Logout.WithStore(tx).SessionsEnded(ctx, ended.TenantID, []*store.LoginSession{ended}, logout.RPLogout)
+			why := logout.RPLogout
+			if session.EndReason(ctx) == string(logout.SessionRevoked) {
+				why = logout.SessionRevoked
+			}
+			return d.Logout.WithStore(tx).SessionsEnded(ctx, ended.TenantID, []*store.LoginSession{ended}, why)
 		}
 		d.Sessions = &sessions
 	}

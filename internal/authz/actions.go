@@ -65,6 +65,9 @@ func (h *Handlers) postLogin(w http.ResponseWriter, r *http.Request, res tenant.
 		// Actions pays only the bindings read.
 		Prepare: func(ctx context.Context, in *actions.PostLoginInput) error {
 			user, err := h.Store.Users().Get(ctx, res.Tenant.ID, sess.UserID)
+			if errors.Is(err, store.ErrNotFound) {
+				return errPrincipalGone
+			}
 			if err != nil {
 				return err
 			}
@@ -126,8 +129,20 @@ func (h *Handlers) postLoginResult(w http.ResponseWriter, r *http.Request, res t
 	if result != nil {
 		logs.AddExecution(r.Context(), result.ExecutionID)
 	}
+	// A link winner may remove this authenticated principal while the
+	// losing flow is running or committing metadata. Confirm disappearance;
+	// unrelated storage failures retain their server_error mapping.
+	if err != nil && (errors.Is(err, store.ErrNotFound) || errors.Is(err, errPrincipalGone)) {
+		if _, lookup := h.Store.Users().Get(r.Context(), res.Tenant.ID, sess.UserID); errors.Is(lookup, store.ErrNotFound) {
+			h.refuse(w, r, res, client, fr, errAccessDenied("the authenticated account no longer exists"))
+			return nil, false
+		}
+	}
 	var fe *actions.ErrFlow
 	switch {
+	case errors.Is(err, errPrincipalGone):
+		h.refuse(w, r, res, client, fr, errAccessDenied("the authenticated account no longer exists"))
+		return nil, false
 	case errors.Is(err, actions.ErrRedirectNotAllowed) && slices.Contains(fr.Prompts(), "none"):
 		h.refuse(w, r, res, client, fr, &Error{Code: "interaction_required", Description: "the Action requires interaction"})
 		return nil, false
@@ -141,11 +156,7 @@ func (h *Handlers) postLoginResult(w http.ResponseWriter, r *http.Request, res t
 		h.log().ErrorContext(r.Context(), "run post-login Actions", "tenant", res.Tenant.ID, "err", err)
 		h.actionsFailed(w, r, res, client, fr, "")
 		return nil, false
-	case result.Denied != nil:
-		event.Description = result.Denied.Reason
-		logs.RecordEvent(r.Context(), logs.RecorderFromContext(r.Context()), event)
-		h.refuse(w, r, res, client, fr, &Error{Code: result.Denied.Code, Description: result.Denied.Reason})
-		return nil, false
+
 	}
 	// api.session.revoke ends the session and the login even when a later
 	// Action redirected (Review Focus 3): no code or token follows.
@@ -162,6 +173,12 @@ func (h *Handlers) postLoginResult(w http.ResponseWriter, r *http.Request, res t
 		event.Description = reason
 		logs.RecordEvent(r.Context(), logs.RecorderFromContext(r.Context()), event)
 		h.refuse(w, r, res, client, fr, &Error{Code: "access_denied", Description: reason})
+		return nil, false
+	}
+	if result.Denied != nil {
+		event.Description = result.Denied.Reason
+		logs.RecordEvent(r.Context(), logs.RecorderFromContext(r.Context()), event)
+		h.refuse(w, r, res, client, fr, &Error{Code: result.Denied.Code, Description: result.Denied.Reason})
 		return nil, false
 	}
 	if result.Redirect != nil {
@@ -209,7 +226,7 @@ const ranEmpty = "-"
 // sealConsent seals eff for consent transaction txnID of sessionID and
 // client; a flow without effects is only marked as run.
 func (h *Handlers) sealConsent(tenantID, txnID, sessionID, clientID string, eff *actions.Effects) (string, error) {
-	if !eff.HasTokenEffects() && eff.Target == nil && eff.MFA == nil && !hasMetadataDeletion(eff) {
+	if !eff.HasTokenEffects() && eff.Target == nil && eff.MFA == nil && eff.Session == nil && eff.PrimaryUserID == "" && len(eff.RecordedMethods) == 0 && !hasMetadataDeletion(eff) {
 		return ranEmpty, nil
 	}
 	b, err := actions.SealEffects(h.Wrapper, tenantID, actions.SealConsent, eff, txnID, sessionID, clientID)
@@ -228,7 +245,7 @@ func (h *Handlers) consentEffects(tenantID string, txn *store.AuthTransaction) (
 	case !ok:
 		return nil, nil
 	case raw == ranEmpty:
-		return &actions.Effects{}, nil
+		return &actions.Effects{FlowExecuted: true}, nil
 	}
 	b, err := base64.RawURLEncoding.DecodeString(raw)
 	if err != nil {
@@ -283,37 +300,11 @@ func (h *Handlers) revokeSession(ctx context.Context, w http.ResponseWriter, res
 	if sess == nil {
 		return nil
 	}
-	tid := res.Tenant.ID
-	err := h.Store.WithTx(ctx, func(tx store.Store) error {
-		if _, err := tx.Tenants().Get(ctx, tid); err != nil {
-			return err
-		}
-		current, err := tx.Sessions().GetForUpdate(ctx, tid, sess.ID)
-		if errors.Is(err, store.ErrNotFound) {
-			return nil
-		}
-		if err != nil {
-			return err
-		}
-		if _, err := tx.Users().GetForUpdate(ctx, tid, current.UserID); err != nil && !errors.Is(err, store.ErrNotFound) {
-			return err
-		}
-		if !preserve {
-			if _, err := tx.RefreshTokens().RevokeBySession(ctx, tid, current.ID, h.now()); err != nil {
-				return err
-			}
-		}
-		if _, err := tx.Users().BumpVersion(ctx, tid, current.UserID); err != nil && !errors.Is(err, store.ErrNotFound) {
-			return err
-		}
-		if err := tx.Sessions().Delete(ctx, tid, current.ID); err != nil {
-			return err
-		}
-		if h.Sessions != nil && h.Sessions.OnEnd != nil {
-			return h.Sessions.OnEnd(ctx, tx, current)
-		}
-		return nil
-	})
+	var onEnd func(context.Context, store.Store, *store.LoginSession) error
+	if h.Sessions != nil {
+		onEnd = h.Sessions.OnEnd
+	}
+	err := session.RevokeFromAction(ctx, h.Store, sess, preserve, h.now(), onEnd)
 	if err != nil {
 		return err
 	}

@@ -660,6 +660,7 @@ func (h *Handlers) finish(w http.ResponseWriter, r *http.Request, res tenant.Res
 		return
 	case d.Consent && fr.ciba():
 	case d.Consent: // accepted
+		r = r.WithContext(context.WithValue(r.Context(), consentScopesKey{}, append([]string(nil), d.Scopes...)))
 		now := h.now()
 		existing := []string(nil)
 		if in.UserGrant != nil {

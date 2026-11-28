@@ -161,6 +161,7 @@ func (h *Handlers) passkeyGrant(ctx context.Context, res tenant.Resolved, c *sto
 		if h.Database == nil {
 			return nil, serverError()
 		}
+		originalUserID := state.User.UserID
 		err = h.Database.CreateWithCredential(ctx, conn, callbacks, state.User, func(ctx context.Context, tx store.Store, u *store.User) error {
 			current, e := tx.Connections().Get(ctx, tid, conn.ID)
 			if e != nil {
@@ -174,7 +175,7 @@ func (h *Handlers) passkeyGrant(ctx context.Context, res tenant.Resolved, c *sto
 			bound := *h.Passkeys
 			bound.Store = tx
 			var e2 error
-			user, _, e2 = bound.Signup(ctx, tid, u, []byte(form.Get("authn_response")), taken, requestInfoFrom(ctx).UserAgent)
+			user, _, e2 = bound.SignupWithSubject(ctx, tid, u, originalUserID, []byte(form.Get("authn_response")), taken, requestInfoFrom(ctx).UserAgent)
 			return e2
 		})
 		if err != nil {

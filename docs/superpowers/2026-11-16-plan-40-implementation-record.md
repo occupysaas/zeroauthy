@@ -2,8 +2,8 @@
 
 Branch: `plan-40-actions-iii`, worktree `/mnt/nvme2/code/zeroauthy-plan40`.
 Base: `bffaac2`; previous Tasks 1–5 ended at `dea97ca`.
-Status: Tasks 1–9 committed; Task 10 implementation complete, final verification
-and whole-branch review pending. Nothing has been pushed. No approval to merge
+Status: all ten tasks implemented; whole-branch review and its author fix pass
+complete. Final local verification passed; ready for the branch CI handoff. No approval to merge
 this branch or PR #108 has been inferred.
 
 ## Implementation
@@ -19,7 +19,7 @@ this branch or PR #108 has been inferred.
 | 7 userinfo | Per-session/client custom claims across memory, SQL and gRPC; access tokens carry sid (`33a80d3`) |
 | 8 signup/context | Admitted ulp fields, validation regression, custom signup IDs, frozen organization script context (`098cdab`) |
 | 9 carried items | Persistent console limit, stronger sandbox probes, branch/expiry/counting-store checks (`96158c3`) |
-| 10 acceptance | Requested operation names in console, new browser scenarios, guides and this record; verification pending |
+| 10 acceptance | Requested operation names in console, new browser scenarios, guides and this record; local verification passed, CI pending |
 
 Migration `0054_actions_iii.sql` adds session userinfo-claim JSON in SQLite,
 PostgreSQL and MySQL. Cookie mode already existed. Protobuf adds an optional
@@ -66,8 +66,8 @@ bounded headers, claim filtering and log-value omission.
 - First E2E attempt: SDK checks passed; nine browser cases failed at launch
   because pinned Chromium was absent. Installed the pinned shell; rerun passed all nine browser cases, SDK checks
   and Auth0 CLI 1.37.0 checks (exit 0).
-- Extended browser acceptance, final fast Go tier, vulnerability scan and
-  whole-branch review: pending below.
+- Post-review browser acceptance and final fast Go tier passed; vulnerability
+  scan and whole-branch review completed (details below).
 
 Final commands keep actual logs and exit codes in this plan's ignored workspace
 until handoff; only completed runs will be reported as passing. GitHub Actions
@@ -81,7 +81,7 @@ Task 1: Ruling: no Actions type-definition (.d.ts) file exists in the console or
 Task 3: Ruling: api.session.revoke ends the flow like access.deny (no later Action runs, no redirect suspends it); Auth0 documents revocation 'after the flow' without saying later Actions are skipped — cost if wrong: later Actions' side effects (metadata) are not committed after a revoke.
 Task 4: Ruling: event.session now appears on offline refresh exchanges while the family's session is live (spec §6 'where a session exists'), so api.session effects reach refresh grants — cost if wrong: Actions that test event.session to detect browser logins see it on refreshes too.
 Task 5: Ruling: setPrimaryUser on token grants (ROPG, refresh, etc.) is refused with access_denied — linking needs the browser session to move; Auth0's token-grant behaviour is not documented here — cost if wrong: an Action that links on ROPG fails instead of linking.
-Task 5: Ruling: the race loser is refused with server_error when its flow already finds the secondary gone (access_denied only when it reaches the link step); test accepts any refusal with one winner — cost if wrong: clients see server_error instead of access_denied in a rare race.
+Task 5: Superseded ruling: the linking race loser now consistently receives access_denied when the secondary has disappeared; unrelated storage errors remain server errors. The strengthened race check passed ten repetitions.
 Task 5: Ruling: "link log" is a server info log ("linked account from post-login Action"), as the Management link logs details; no tenant log type is documented for Action linking — cost if wrong: no tenant log entry for Action links.
 Task 5: Ruling: amr is checked through the code's MFAAt (the minter emits amr=mfa from it); "next login's event.authentication.methods" is covered by the session's AuthMethods, which feed that member — cost if wrong: none expected.
 Task 6: Ruling: trusted_ja3_header and trusted_ja4_header are top-level configuration keys, preserving the spec's ZEROAUTHY_TRUSTED_JA3_HEADER / ZEROAUTHY_TRUSTED_JA4_HEADER environment variables with the standard loader — cost if wrong: deployment config uses top-level rather than server keys.
@@ -120,5 +120,42 @@ claim writes, updating the unsupported-method fixture and extending the codec
 and migration expectations. A new stale-claims regression also passed after
 ensuring the no-runtime path clears previous client claims.
 Original full log: `.superpowers/sdd/2026-11-16-zeroauthy-plan-40-actions-iii/fast-go-07d4096b.log`.
-Final aggregate rerun, whole-branch review and CI remain pending. No merge
-readiness is claimed.
+The whole-branch review completed once, followed by one author fix pass for
+all 13 required findings. Regression coverage now checks final-subject grants,
+consent completion, concurrent linking refusal, current lifetime policy,
+online refresh effects, transactional refresh/session updates, live-session
+claim serving, plugin compatibility, total claim bounds, cross-Action metadata
+accounting, revocation, passkey signup/next login and reset organization context.
+Native passkey and reset tests were also checked against reverted fixes and
+failed as expected before restoration. Review detail stays in the private local
+workspace. The initial focused review suite had two expectation failures after
+tightening cookie policy and consent marker handling; corrected checks pass.
+Final aggregate and post-review E2E results are recorded below when completed.
+CI remains pending. No merge readiness is claimed.
+
+Additional rulings: the complete stored session-claims map is bounded to
+1,000,000 serialized JSON bytes; each client remains bounded to 100,000 bytes,
+and empty replacements delete entries. Cost: an unusually large number of
+clients with claims on one session can refuse a flow at the total limit.
+Database script context uses explicit positional arity; default/rest parameters
+do not opt in. Cost: those scripts must declare context before callback.
+Earlier documented decisions about stopping subsequent Actions after revoke,
+refusing token-grant linking, local risk/legacy MFA names and the one-way
+context option stand. Native-provider exact parity has not been observed;
+PostgreSQL/MySQL and independent remote-driver verification remain CI work.
+
+Deferred review minors: move the linking info log after outer transaction
+commit (it can currently describe an attempted link that is rolled back);
+tenant-readable linking outcomes and editor hints; stronger minted-amr and
+next-login-method assertions; true client-credentials/sessionless E2E and a
+second-client-after-refresh scenario. Costs: diagnostics may need correlation
+with the final login result, and these acceptance assertions remain narrower
+than the underlying focused coverage. These are not claimed complete.
+
+Final post-review verification: `GOTOOLCHAIN=go1.26.11 TMPDIR=/dev/shm/za40
+GOTMPDIR=/dev/shm/za40 go test -p 4 ./...` exited 0, and
+`make e2e-actions` with the same environment exited 0 (nine browser cases,
+SDK and CLI checks). Logs `fast-go-review-final.log/.exit` and
+`e2e-actions-review-final.log/.exit` are retained in the ignored plan workspace,
+alongside earlier failures and review regression evidence. Console code was
+unchanged by the review pass; the two verified matching builds remain current.

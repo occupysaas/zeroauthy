@@ -10,7 +10,7 @@ import (
 func TestUserinfoCustomClaims(t *testing.T) {
 	e := newUserinfoEnv(t)
 	ctx := context.Background()
-	s := &store.LoginSession{TenantID: "ten_a", ID: "sid", TokenHash: "hash", UserID: "auth0|1", ExpiresAt: uiNow.AddDate(0, 0, 1), UserinfoClaims: map[string]string{"app": `{"https://app.test/claim":"first","private_claim":true,"sub":"evil","email":"evil"}`}}
+	s := &store.LoginSession{TenantID: "ten_a", ID: "sid", TokenHash: "hash", UserID: "auth0|1", ExpiresAt: uiNow.AddDate(0, 0, 1), IdleExpiresAt: uiNow.AddDate(0, 0, 1), UserinfoClaims: map[string]string{"app": `{"https://app.test/claim":"first","private_claim":true,"sub":"evil","email":"evil"}`}}
 	if err := e.st.Sessions().Create(ctx, s); err != nil {
 		t.Fatal(err)
 	}
@@ -46,3 +46,17 @@ func TestUserinfoClaimsPerClient(t *testing.T) {
 	}
 }
 func TestUserinfoNoSession(t *testing.T) { TestUserinfoClaimsPerClient(t) }
+
+func TestUserinfoExpiredSessionHasNoClaims(t *testing.T) {
+	e := newUserinfoEnv(t)
+	s := &store.LoginSession{TenantID: "ten_a", ID: "expired", TokenHash: "expired-hash", UserID: "auth0|1", ExpiresAt: uiNow, IdleExpiresAt: uiNow, UserinfoClaims: map[string]string{"app": `{"urn:old":true}`}}
+	if err := e.st.Sessions().Create(context.Background(), s); err != nil {
+		t.Fatal(err)
+	}
+	rec := e.call("GET", "Bearer "+e.token(t, "ten_a", map[string]any{"sid": s.ID, "azp": "app"}))
+	var body map[string]any
+	_ = json.Unmarshal(rec.Body.Bytes(), &body)
+	if _, ok := body["urn:old"]; ok {
+		t.Fatal("expired unswept session exposes stale claims")
+	}
+}

@@ -373,7 +373,7 @@ func (r refreshTokens) UpdateMetadata(_ context.Context, tid, id string, md map[
 	r.s.lock()
 	defer r.s.unlock()
 	t := r.s.refreshTokens[key{tid, id}]
-	if t == nil || t.Access == "online" {
+	if t == nil {
 		return nil, store.ErrNotFound
 	}
 	t.Metadata = maps.Clone(md)

@@ -173,7 +173,7 @@ func (h *Handlers) Userinfo(w http.ResponseWriter, r *http.Request) {
 			h.internalError(w, r, res.Tenant.ID, "load session claims", e)
 			return
 		}
-		if e == nil && session.UserID == user.UserID {
+		if e == nil && session.UserID == user.UserID && h.now().Before(session.ExpiresAt) && h.now().Before(session.IdleExpiresAt) {
 			raw := session.UserinfoClaims[extra.ClientID]
 			if raw != "" {
 				var custom map[string]any

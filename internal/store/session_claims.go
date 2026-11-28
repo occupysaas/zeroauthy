@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"maps"
 )
 
 // SessionClaimsSetter updates one client's claims without replacing the others.
@@ -47,4 +48,31 @@ func SetSessionClaims(ctx context.Context, st Store, tid, id, client, raw string
 		return nil, ErrSessionLimitsUnavailable
 	}
 	return repo.SetClaims(ctx, tid, id, client, raw)
+}
+
+// MergeSessionClaims bounds the entire serialized row below the plugin's
+// message ceiling, including escaping and client keys. Empty flows remove entries.
+func MergeSessionClaims(current map[string]string, client, raw string) (map[string]string, error) {
+	if err := ValidateSessionClaims(raw); err != nil {
+		return nil, err
+	}
+	out := maps.Clone(current)
+	if out == nil {
+		out = map[string]string{}
+	}
+	var claims map[string]any
+	_ = json.Unmarshal([]byte(raw), &claims)
+	if len(claims) == 0 {
+		delete(out, client)
+	} else {
+		out[client] = raw
+	}
+	encoded, err := json.Marshal(out)
+	if err != nil {
+		return nil, err
+	}
+	if len(encoded) > 1000000 {
+		return nil, fmt.Errorf("store: total session claims exceed 1000000 bytes")
+	}
+	return out, nil
 }

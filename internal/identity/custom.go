@@ -384,10 +384,6 @@ func (d *Database) customSignup(ctx context.Context, conn *store.Connection, in 
 		return nil, d.scriptErr(ctx, conn, store.ScriptLogin, err)
 	}
 	u := d.profileUser(conn, p)
-	if prospective.UserID != "" {
-		u.UserID = prospective.UserID
-		u.Identities[0].UserID = prospective.Identities[0].UserID
-	}
 	u.UserMetadata = mergeSignupMetadata(u.UserMetadata, prospective.UserMetadata)
 	u.AppMetadata = mergeSignupMetadata(u.AppMetadata, prospective.AppMetadata)
 	var historyHash string

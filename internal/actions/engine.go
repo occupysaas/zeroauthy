@@ -295,6 +295,7 @@ func (e *Engine) PostLogin(ctx context.Context, in PostLoginInput) (*Result, err
 		}
 		f.acc.eff.RBAC = &RBACSnapshot{Audience: in.ResourceServer.Identifier, Permissions: append([]string{}, snapshot.Permissions...)}
 	}
+	f.acc.eff.FlowExecuted = true
 	f.acc.customizeMFA, _ = in.Tenant.Tenant.SettingsExtra["customize_mfa_in_postlogin_action"].(bool)
 	f.event = func() map[string]any { return postLoginEvent(&in, names, f.acc) }
 	return e.run(ctx, f, in.User)
@@ -664,6 +665,25 @@ func (e *Engine) step(ctx context.Context, f *flow, u unit, event map[string]any
 		Secrets: vals, Modules: modules, Cache: f.cache.snapshot(e.now()), Roles: f.roles, Groups: f.groups,
 		API: triggerSpecs[f.trigger].API, UnsupportedAPI: triggerSpecs[f.trigger].unsupported,
 		State: map[string]any{"canRedirect": f.acc.canRedirect, "state": f.state}, Hostname: f.hostname}
+	// Each runner call starts fresh; carry metadata accounting from prior
+	// Actions without mutating the public event snapshot.
+	for name, ops := range map[string][]MetadataOp{"session": nil, "refresh_token": nil} {
+		if name == "session" && f.acc.eff.Session != nil {
+			ops = f.acc.eff.Session.Metadata
+		}
+		if name == "refresh_token" && f.acc.eff.RefreshToken != nil {
+			ops = f.acc.eff.RefreshToken.Metadata
+		}
+		if obj, ok := event[name].(map[string]any); ok {
+			initial, _ := obj["metadata"].(map[string]string)
+			md, e := ApplyMetadataOps(initial, ops)
+			if e != nil {
+				return nil, e
+			}
+			req.State[name+"_metadata"] = md
+		}
+	}
+
 	if req.Roles == nil {
 		req.Roles = []roleJSON{}
 	}

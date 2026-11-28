@@ -245,3 +245,41 @@ func TestOrganizationPasswordChangeContextHostedRequest(t *testing.T) {
 		t.Fatalf("reset performed %d membership/role writes", spy.writes)
 	}
 }
+
+func TestLegacyResetScriptOrganizationContext(t *testing.T) {
+	le := newLegacyResetEnv(t)
+	b := le.browser("acme.example.test")
+	_ = le.requestLegacyReset(t, b)
+	ctx := t.Context()
+	tn := mustTenant(t, le.env, "acme")
+	conn, err := le.st.Connections().GetByName(ctx, tn.ID, "Legacy-DB")
+	if err != nil {
+		t.Fatal(err)
+	}
+	conn.Extra = map[string]any{"enable_script_context": true}
+	if err = le.st.Connections().Update(ctx, conn); err != nil {
+		t.Fatal(err)
+	}
+	org := &store.Organization{TenantID: tn.ID, ID: "org_0000000000000040", Name: "script-org"}
+	if err = le.st.Organizations().Create(ctx, org, []store.OrganizationConnection{{TenantID: tn.ID, OrganizationID: org.ID, ConnectionID: conn.ID, ShowAsButton: true}}); err != nil {
+		t.Fatal(err)
+	}
+	raw, err := dbconn.IssueResetTicket(ctx, le.st, store.PasswordResetTicket{TenantID: tn.ID, UserID: "auth0|42", Connection: conn.Name, ClientID: "legacy", OrganizationID: org.ID}, 43, fixedNow(), time.Hour)
+	if err != nil {
+		t.Fatal(err)
+	}
+	rec := completeReset(t, b, raw, "new legacy pw 1")
+	if rec.Code != 200 || !strings.Contains(rec.Body.String(), "Password changed") {
+		t.Fatalf("%d %s", rec.Code, rec.Body.String())
+	}
+	found := false
+	for _, req := range le.scripts.Requests() {
+		if req.Script == store.ScriptChangePassword {
+			m, _ := req.Context["organization"].(map[string]any)
+			found = m["id"] == org.ID
+		}
+	}
+	if !found {
+		t.Fatal("reset script lost verified organization")
+	}
+}

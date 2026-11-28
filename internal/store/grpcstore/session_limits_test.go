@@ -2,6 +2,10 @@ package grpcstore
 
 import (
 	"context"
+	"github.com/zeroauthy/zeroauthy/internal/store/memory"
+	pb "github.com/zeroauthy/zeroauthy/proto/store/v1"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"testing"
 	"time"
 
@@ -60,5 +64,23 @@ func TestSessionClaims(t *testing.T) {
 				t.Fatal("cross tenant write")
 			}
 		})
+	}
+}
+
+type oldClaimsServer struct{ *Server }
+
+func (s oldClaimsServer) SessionsSetClaims(context.Context, *pb.SessionClaimsRequest) (*pb.SessionResult, error) {
+	return nil, status.Error(codes.Unimplemented, "old plugin")
+}
+func TestOldRemotePluginEmptyClaims(t *testing.T) {
+	st := memory.New()
+	_ = st.Tenants().Create(t.Context(), &store.Tenant{ID: "t", Name: "t"})
+	_ = st.Sessions().Create(t.Context(), &store.LoginSession{TenantID: "t", ID: "s", TokenHash: "h"})
+	c := serveWith(t, oldClaimsServer{NewServer(st)})
+	if _, err := store.SetSessionClaims(t.Context(), c, "t", "s", "app", `{}`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := store.SetSessionClaims(t.Context(), c, "t", "s", "app", `{"urn:claim":true}`); err == nil {
+		t.Fatal("real unsupported write accepted")
 	}
 }

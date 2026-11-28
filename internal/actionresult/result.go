@@ -30,6 +30,7 @@ type MFAEffects struct {
 // Effects are a flow's validated, accumulated results. Claims are filtered
 // during minting. Metadata patches commit only when the flow completes.
 type Effects struct {
+	FlowExecuted bool `json:",omitempty"`
 	// SignupUserID overrides the generated database identity during registration.
 	SignupUserID       string `json:",omitempty"`
 	MFA                *MFAEffects

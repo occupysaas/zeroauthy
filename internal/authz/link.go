@@ -12,6 +12,8 @@ import (
 
 // linkRefused refuses a login whose api.authentication.setPrimaryUser
 // cannot be applied: access_denied, nothing changed (Plan 40).
+var errPrincipalGone = errors.New("authz: authenticated principal no longer exists")
+
 type linkRefused struct{ reason string }
 
 func (e *linkRefused) Error() string { return e.reason }

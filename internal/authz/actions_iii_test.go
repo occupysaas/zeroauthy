@@ -224,7 +224,7 @@ func TestSetPrimaryUserOneWinner(t *testing.T) {
 		switch {
 		case r.q.Get("code") != "":
 			won++
-		case r.q.Get("error") != "":
+		case r.q.Get("error") == "access_denied":
 			refused++
 		}
 	}
@@ -285,5 +285,121 @@ func TestUserinfoClaimsClearedWithoutActions(t *testing.T) {
 				t.Fatalf("stale claims=%+v %v", saved, err)
 			}
 		})
+	}
+}
+
+func TestSessionEffectsSurviveConsent(t *testing.T) {
+	for _, claim := range []bool{false, true} {
+		t.Run(map[bool]string{false: "completion-only", true: "with-claim"}[claim], func(t *testing.T) {
+			e := newActionsEnv(t)
+			body := `api.session.setCookieMode('non-persistent');api.session.setExpiresAt(Date.parse(event.session.expires_at)-3600000);`
+			if claim {
+				body += `api.idToken.setCustomClaim('urn:claim',true);`
+			}
+			e.postLogin(t, "consent-effects", body)
+			ck := e.login(t, fixedNow())
+			before := e.session(t, ck)
+			loc := location(t, e.get(t, partnerQuery(), ck))
+			if loc.Path != "/u/consent" {
+				t.Fatal(loc)
+			}
+			txn, err := e.st.AuthTransactions().Get(t.Context(), e.tenant.ID, loc.Query().Get("state"))
+			if err != nil {
+				t.Fatal(err)
+			}
+			location(t, e.consent(t, txn, ck, true))
+			after, err := e.st.Sessions().Get(t.Context(), e.tenant.ID, before.ID)
+			if err != nil || after.CookieMode != "non-persistent" || !after.ExpiresAt.Equal(fixedNow().Add(72*time.Hour)) {
+				t.Fatalf("lost consent effects %+v %v", after, err)
+			}
+		})
+	}
+}
+
+func TestLinkedConsentGrantUsesFinalSubject(t *testing.T) {
+	e := newActionsEnv(t)
+	e.primaryUser(t, "primary", false)
+	e.postLogin(t, "consent-link", `api.authentication.setPrimaryUser('auth0|primary');`)
+	ck := e.login(t, fixedNow())
+	loc := location(t, e.get(t, partnerQuery(), ck))
+	if loc.Path != "/u/consent" {
+		t.Fatal(loc)
+	}
+	txn, err := e.st.AuthTransactions().Get(t.Context(), e.tenant.ID, loc.Query().Get("state"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	loc = location(t, e.consent(t, txn, ck, true))
+	if loc.Query().Get("code") == "" || e.codeUser(t, loc) != "auth0|primary" {
+		t.Fatal(loc)
+	}
+	grants, err := e.st.UserGrants().Find(t.Context(), e.tenant.ID, "partner", "auth0|primary", "https://api.acme.test")
+	if err != nil || len(grants.Scopes) == 0 {
+		t.Fatalf("consent did not follow final subject: %+v %v", grants, err)
+	}
+}
+
+func TestSessionActionRespectsReducedPolicy(t *testing.T) {
+	for _, mode := range []string{"persistent", "non-persistent"} {
+		t.Run(mode, func(t *testing.T) {
+			e := newActionsEnv(t)
+			ck := e.login(t, fixedNow())
+			before := e.session(t, ck)
+			tn, err := e.st.Tenants().Get(t.Context(), e.tenant.ID)
+			if err != nil {
+				t.Fatal(err)
+			}
+			tn.SessionLifetime = 7200
+			tn.IdleSessionLifetime = 1800
+			tn.EphemeralSessionLifetime = 3600
+			tn.IdleEphemeralSessionLifetime = 900
+			if err = e.st.Tenants().Update(t.Context(), tn); err != nil {
+				t.Fatal(err)
+			}
+			e.postLogin(t, "policy", `api.session.setCookieMode('`+mode+`');api.session.setExpiresAt(Date.parse(event.session.expires_at)-1000);`)
+			location(t, e.get(t, goodQuery(), ck))
+			after, err := e.st.Sessions().Get(t.Context(), e.tenant.ID, before.ID)
+			max := fixedNow().Add(2 * time.Hour)
+			if mode == "non-persistent" {
+				max = fixedNow().Add(time.Hour)
+			}
+			if err != nil || after.ExpiresAt.After(max) {
+				t.Fatalf("policy cap lost: %+v %v", after, err)
+			}
+		})
+	}
+}
+
+func TestSessionRevokeWithDeny(t *testing.T) {
+	e := newActionsEnv(t)
+	e.postLogin(t, "revoke-deny", `api.session.revoke('revoked');api.access.deny('denied');`)
+	ck := e.login(t, fixedNow())
+	s := e.session(t, ck)
+	loc := location(t, e.get(t, goodQuery(), ck))
+	if loc.Query().Get("error") != "access_denied" {
+		t.Fatal(loc)
+	}
+	if _, err := e.st.Sessions().Get(t.Context(), e.tenant.ID, s.ID); !errors.Is(err, store.ErrNotFound) {
+		t.Fatalf("denial swallowed revocation: %v", err)
+	}
+}
+func TestSessionRevokeAfterRowDisappears(t *testing.T) {
+	e := newActionsEnv(t)
+	ck := e.login(t, fixedNow())
+	s := e.session(t, ck)
+	ctx := t.Context()
+	rt := &store.RefreshToken{TenantID: e.tenant.ID, ID: "rt-gone", TokenHash: "rt-gone-hash", UserID: s.UserID, ClientID: "spa", SessionID: s.ID, FamilyID: "family-gone", ExpiresAt: fixedNow().Add(time.Hour)}
+	if err := e.st.RefreshTokens().Create(ctx, rt); err != nil {
+		t.Fatal(err)
+	}
+	if err := e.st.Sessions().Delete(ctx, e.tenant.ID, s.ID); err != nil {
+		t.Fatal(err)
+	}
+	if err := e.h.revokeSession(ctx, httptest.NewRecorder(), e.res(), s, false); err != nil {
+		t.Fatal(err)
+	}
+	after, err := e.st.RefreshTokens().Get(ctx, e.tenant.ID, rt.ID)
+	if err != nil || after.RevokedAt == nil {
+		t.Fatalf("offline family survives: %+v %v", after, err)
 	}
 }

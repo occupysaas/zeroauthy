@@ -11,6 +11,7 @@ import (
 
 	"github.com/zeroauthy/zeroauthy/internal/actions"
 	"github.com/zeroauthy/zeroauthy/internal/authz"
+	"github.com/zeroauthy/zeroauthy/internal/customdb"
 	"github.com/zeroauthy/zeroauthy/internal/dbconn"
 	"github.com/zeroauthy/zeroauthy/internal/httpx"
 	"github.com/zeroauthy/zeroauthy/internal/i18n"
@@ -734,6 +735,7 @@ func (h *Handlers) ResetPasswordSubmit(w http.ResponseWriter, r *http.Request) {
 	// that then refuses or fails has spent the link; the form shows why,
 	// and the user asks for a new link.
 	now := h.now()
+	var scriptOrg *store.Organization
 	if !mfaPass || legacy {
 		err = h.Store.WithTx(ctx, func(tx store.Store) error {
 			locked, e := tx.Users().GetForUpdate(ctx, res.Tenant.ID, tk.UserID)
@@ -759,7 +761,8 @@ func (h *Handlers) ResetPasswordSubmit(w http.ResponseWriter, r *http.Request) {
 				}
 			}
 
-			if _, e := orglogin.PasswordResetContext(ctx, tx, res.Tenant.ID, tk.OrganizationID, tk.ClientID, conn); e != nil {
+			scriptOrg, e = orglogin.PasswordResetContext(ctx, tx, res.Tenant.ID, tk.OrganizationID, tk.ClientID, conn)
+			if e != nil {
 				if errors.Is(e, store.ErrNotFound) || errors.Is(e, orglogin.ErrNotMember) {
 					return errResetUnusable
 				}
@@ -786,7 +789,7 @@ func (h *Handlers) ResetPasswordSubmit(w http.ResponseWriter, r *http.Request) {
 
 	// 7. Set the password in the legacy store.
 	if legacy {
-		err := h.Database.ChangeLegacyPassword(ctx, conn, user, pw)
+		err := h.Database.ChangeLegacyPassword(customdb.WithOrganization(ctx, scriptOrg), conn, user, pw)
 		var ue *identity.UnauthorizedError
 		switch {
 		case errors.As(err, &ue):

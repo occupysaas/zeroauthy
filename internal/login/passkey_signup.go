@@ -457,6 +457,7 @@ func (h *Handlers) SignupPasskeyPost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var user *store.User
+	originalUserID := d.User.UserID
 	err = h.Database.CreateWithCredential(r.Context(), f.conn, callbacks, &d.User, func(ctx context.Context, tx store.Store, u *store.User) error {
 		// Recheck current organization policy through the existing commit callback;
 		// service connection checks and signup enablement run against this transaction.
@@ -472,7 +473,7 @@ func (h *Handlers) SignupPasskeyPost(w http.ResponseWriter, r *http.Request) {
 		}
 		bound := *h.Passkeys
 		bound.Store = tx
-		user, _, err = bound.Signup(ctx, f.res.Tenant.ID, u, []byte(r.PostForm.Get("credential")), taken, r.UserAgent())
+		user, _, err = bound.SignupWithSubject(ctx, f.res.Tenant.ID, u, originalUserID, []byte(r.PostForm.Get("credential")), taken, r.UserAgent())
 		return err
 	})
 	if err != nil {

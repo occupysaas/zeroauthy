@@ -27,6 +27,10 @@ const (
 // defaults; metadata values commit when the flow ends. Transaction metadata
 // never leaves the flow.
 type sealedEffects struct {
+	FlowExecuted    bool            `json:"flow_executed,omitempty"`
+	Session         *SessionEffects `json:"session,omitempty"`
+	PrimaryUserID   string          `json:"primary_user_id,omitempty"`
+	RecordedMethods []string        `json:"recorded_methods,omitempty"`
 	// Only explicit deletion keys survive consent to suppress deferred invitation defaults.
 	DeletedAppMetadata  []string       `json:"deleted_app_metadata,omitempty"`
 	DeletedUserMetadata []string       `json:"deleted_user_metadata,omitempty"`
@@ -53,7 +57,9 @@ func SealEffects(w keys.Wrapper, tenantID, purpose string, e *Effects, bind ...s
 	if e != nil {
 		s = sealedEffects{AccessClaims: e.AccessClaims, IDClaims: e.IDClaims, AddScopes: e.AddScopes, RemoveScopes: e.RemoveScopes, RBAC: e.RBAC, SAML: e.SAML}
 		if purpose == SealConsent {
+			s.FlowExecuted = e.FlowExecuted
 			s.MFA = e.MFA
+			s.Session, s.PrimaryUserID, s.RecordedMethods = e.Session, e.PrimaryUserID, e.RecordedMethods
 			for k, v := range e.AppMetadata {
 				if v == nil {
 					s.DeletedAppMetadata = append(s.DeletedAppMetadata, k)
@@ -97,6 +103,8 @@ func OpenEffects(w keys.Wrapper, tenantID, purpose string, sealed []byte, bind .
 	}
 	e := &Effects{MFA: s.MFA, AccessClaims: s.AccessClaims, IDClaims: s.IDClaims, AddScopes: s.AddScopes, RemoveScopes: s.RemoveScopes, RBAC: s.RBAC, SAML: s.SAML}
 	if purpose == SealConsent {
+		e.FlowExecuted = s.FlowExecuted
+		e.Session, e.PrimaryUserID, e.RecordedMethods = s.Session, s.PrimaryUserID, s.RecordedMethods
 		if len(s.DeletedAppMetadata) > 0 {
 			e.AppMetadata = map[string]any{}
 			for _, k := range s.DeletedAppMetadata {

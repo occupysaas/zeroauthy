@@ -131,9 +131,8 @@ Reserved JWT names (including `sub`, `aud`, `scope`, `permissions` and
 Namespaces at `auth0.com`, `webtask.io`, `webtask.run`, `zeroauthy.dev` and their
 subdomains, and prefixes `urn:auth0` / `urn:zeroauthy`, are dropped. Management
 API access tokens also drop non-namespaced claims. Custom claims must fit
-100,000 JSON bytes per token; oversize fails the flow. **Plan 27 does not
-return Action ID-token custom claims from `/userinfo`**; read them from the
-ID token. This is a deferred parity gap.
+100,000 JSON bytes per token; oversize fails the flow. Action ID-token custom
+claims are also available from `/userinfo` on live sessions (see below).
 
 ## Redirect and continue
 
@@ -595,9 +594,10 @@ Delegated actors/session transfers and unavailable ASN fields are omitted.
 
 ID-token custom claims also appear at `/userinfo`, with reserved and existing
 standard claims taking precedence. Claims are bounded to 100,000 JSON bytes
-per session/client, stored on the session and replaced by the latest login or
-refresh flow. A different client sees its own claims only; tokens without a
-session have none. This intentionally means older tokens for the same
+per session/client, with a 1,000,000-byte bound on the complete serialized
+claims map. Empty replacements remove that client entry. Claims are stored on
+the live session and replaced by the latest successful login or refresh flow. A different client sees its own claims only; tokens without a
+session, or with an expired or deleted session, have none. This intentionally means older tokens for the same
 session/client see the newest flow's claims. Both namespaced and private
 claims follow the existing ID-token filter (LR40-6, X9).
 
@@ -624,7 +624,10 @@ way: it cannot be turned off). Scripts declaring the extra parameter receive
 a recursively frozen context immediately before callback. It contains only
 the validated organization's id, name, display_name and metadata; without an
 organization, and for delete scripts, it is empty. Existing callback signatures
-continue to work. Request IP, client ID and language are not part of the
+continue to work. Declare positional parameters explicitly, for example
+`function(email, password, context, callback)`: signature detection uses
+JavaScript function arity, so default or rest parameters do not opt a script
+into context delivery. Request IP, client ID and language are not part of the
 currently documented database-script context (LR40-7).
 
 The execution viewer shows requested effect operation names only. A successful

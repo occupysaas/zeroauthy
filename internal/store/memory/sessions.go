@@ -256,9 +256,10 @@ func (r sessions) SetClaims(_ context.Context, tid, id, client, raw string) (*st
 	if !ok {
 		return nil, store.ErrNotFound
 	}
-	if s.UserinfoClaims == nil {
-		s.UserinfoClaims = map[string]string{}
+	next, err := store.MergeSessionClaims(s.UserinfoClaims, client, raw)
+	if err != nil {
+		return nil, err
 	}
-	s.UserinfoClaims[client] = raw
+	s.UserinfoClaims = next
 	return cloneSession(s), nil
 }

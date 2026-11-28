@@ -465,7 +465,7 @@ function buildApi(req, commands, event, parse) {
       if (mode !== 'persistent' && mode !== 'non-persistent') throw new TypeError("api.session.setCookieMode: mode must be 'persistent' or 'non-persistent'");
       return record('session.setCookieMode', [mode]);
     },
-    ...metadataOps('session', sess && sess.metadata),
+    ...metadataOps('session', req.state?.session_metadata ?? (sess && sess.metadata)),
   };
   // api.refreshToken exists only on refresh exchanges, as on Auth0 (X4).
   const rt = event && event.refresh_token ? event.refresh_token : null;
@@ -473,7 +473,7 @@ function buildApi(req, commands, event, parse) {
     revoke(reason) { return record('refreshToken.revoke', reason === undefined ? [] : [reason]); },
     setExpiresAt(t) { return record('refreshToken.setExpiresAt', [millis('refreshToken.setExpiresAt', t)]); },
     setIdleExpiresAt(t) { return record('refreshToken.setIdleExpiresAt', [millis('refreshToken.setIdleExpiresAt', t)]); },
-    ...metadataOps('refreshToken', rt.metadata),
+    ...metadataOps('refreshToken', req.state?.refresh_token_metadata ?? rt.metadata),
   } : undefined;
   api.multifactor = ns('multifactor', ['enable']);
   // Plan 37a: api.samlResponse setters; the server validates each one.

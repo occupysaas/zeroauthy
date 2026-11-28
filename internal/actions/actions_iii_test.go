@@ -2,6 +2,7 @@ package actions_test
 
 import (
 	"context"
+	"fmt"
 	"strconv"
 	"strings"
 	"testing"
@@ -151,5 +152,23 @@ func TestActionEffectNamesRecorded(t *testing.T) {
 	ex := h.execution("t1", r.ExecutionID)
 	if strings.Join(ex.Results[0].RequestedEffects, ",") != "session.setCookieMode,authentication.setPrimaryUser" {
 		t.Fatalf("effects=%v", ex.Results[0].RequestedEffects)
+	}
+}
+
+func TestMetadataKeyBudgetAcrossActions(t *testing.T) {
+	h := newHarness(t)
+	first := h.action("t1", trigLogin, "delete-key", `exports.onExecutePostLogin=(e,a)=>{a.session.deleteMetadata('k0');a.refreshToken.deleteMetadata('k0');};`, nil, false)
+	second := h.action("t1", trigLogin, "replace-key", `exports.onExecutePostLogin=(e,a)=>{a.session.setMetadata('replacement','v');a.refreshToken.setMetadata('replacement','v');};`, nil, false)
+	h.bind("t1", trigLogin, first, second)
+	in := h.loginInput("t1")
+	md := map[string]string{}
+	for i := range 25 {
+		md[fmt.Sprint("k", i)] = "v"
+	}
+	in.Session = &store.LoginSession{ID: "s", UserID: in.User.UserID, Metadata: md}
+	in.RefreshToken = &store.RefreshToken{ID: "rt", Metadata: md}
+	r, err := h.eng.PostLogin(context.Background(), in)
+	if err != nil || len(r.Effects.Session.Metadata) != 2 || len(r.Effects.RefreshToken.Metadata) != 2 {
+		t.Fatalf("legal aggregate rejected: %+v %v", r, err)
 	}
 }

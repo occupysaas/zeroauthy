@@ -1250,3 +1250,25 @@ func TestNativePasskeyMFARechecksPolicyBeforeMembership(t *testing.T) {
 		t.Fatal("revoked passkey committed login", member, after.LoginsCount, err)
 	}
 }
+
+func TestNativePasskeyCustomActionIDAndNextLogin(t *testing.T) {
+	f, _ := nativeFixture(t)
+	a := actionstest.NewOffline(t, f.st, f.wrapper)
+	tid := f.tenantID(t, "acme")
+	a.Bind(t, tid, actions.TriggerPreUserRegistration, a.Deploy(t, tid, actions.TriggerPreUserRegistration, "native-custom-id", `exports.onExecutePreUserRegistration=(e,a)=>a.user.setUserId('native-custom');`))
+	f.h.Actions = a.Engine
+	device, body := nativeSignup(t, f)
+	claims, _ := verifyToken(t, f.keys, tid, body["id_token"].(string))
+	if claims["sub"] != "auth0|native-custom" {
+		t.Fatal(claims["sub"])
+	}
+	form, _ := nativeLogin(t, f, device, "https://native.example.test")
+	rec, body := f.native(t, "/oauth/token", "native.example.test", form, true)
+	if rec.Code != 200 {
+		t.Fatalf("next login %d %v", rec.Code, body)
+	}
+	claims, _ = verifyToken(t, f.keys, tid, body["id_token"].(string))
+	if claims["sub"] != "auth0|native-custom" {
+		t.Fatal(claims["sub"])
+	}
+}

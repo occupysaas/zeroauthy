@@ -2,6 +2,7 @@ package grpcstore
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"sync"
 	"sync/atomic"
@@ -579,6 +580,20 @@ func (s *Server) refreshTokensRevokeOfflineByUser(ctx context.Context, q *pb.Ref
 func (r clientSessions) SetClaims(ctx context.Context, tid, id, client, raw string) (*store.LoginSession, error) {
 	res, err := r.c.rpc.SessionsSetClaims(ctx, &pb.SessionClaimsRequest{TxId: r.c.txID, TenantId: tid, Id: id, ClientId: client, Claims: raw})
 	if status.Code(err) == codes.Unimplemented {
+		if store.ValidateSessionClaims(raw) != nil {
+			return nil, store.ErrInvalid
+		}
+		var claims map[string]any
+		_ = json.Unmarshal([]byte(raw), &claims)
+		if len(claims) == 0 {
+			current, e := r.Get(ctx, tid, id)
+			if e != nil {
+				return nil, e
+			}
+			if current.UserinfoClaims[client] == "" {
+				return current, nil
+			}
+		}
 		return nil, store.ErrSessionLimitsUnavailable
 	}
 	if err = r.c.refreshResult("SessionsSetClaims", res, err); err != nil {

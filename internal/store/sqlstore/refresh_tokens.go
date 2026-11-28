@@ -467,7 +467,7 @@ func (r refreshTokens) ListByUserPage(ctx context.Context, tid, user, client, fr
 func (r refreshTokens) UpdateMetadata(ctx context.Context, tid, id string, md map[string]string) (*store.RefreshToken, error) {
 	var t *store.RefreshToken
 	err := r.s.atomicRetry(ctx, nil, func(tx *Store) error {
-		res, err := tx.exec(ctx, "UPDATE refresh_tokens SET metadata=? WHERE tenant_id=? AND id=? AND access<>'online'", jsonColumn{&md}, tid, id)
+		res, err := tx.exec(ctx, "UPDATE refresh_tokens SET metadata=? WHERE tenant_id=? AND id=?", jsonColumn{&md}, tid, id)
 		if err != nil {
 			return err
 		}

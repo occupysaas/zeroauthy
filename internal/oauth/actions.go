@@ -14,6 +14,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/access"
 	"github.com/zeroauthy/zeroauthy/internal/actions"
 	"github.com/zeroauthy/zeroauthy/internal/logs"
+	"github.com/zeroauthy/zeroauthy/internal/session"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/tenant"
 )
@@ -117,15 +118,7 @@ func (h *Handlers) postLogin(ctx context.Context, res tenant.Resolved, c *store.
 		}
 		return nil, invalidGrant("the refresh token was revoked")
 	}
-	if d := result.Denied; d != nil {
-		return nil, &Error{Status: http.StatusForbidden, Code: d.Code, Description: d.Reason}
-	}
-	if result.Effects.PrimaryUserID != "" {
-		// Account linking from an Action needs the browser flow's session
-		// (Plan 40); a token grant is refused rather than issuing for the
-		// secondary.
-		return nil, &Error{Status: http.StatusForbidden, Code: "access_denied", Description: "setPrimaryUser is not supported on this grant"}
-	}
+
 	if se := result.Effects.Session; se != nil && se.Revoke != nil {
 		// api.session.revoke on a token grant ends the grant's session (Plan 40).
 		if f.session != nil {
@@ -139,7 +132,16 @@ func (h *Handlers) postLogin(ctx context.Context, res tenant.Resolved, c *store.
 		}
 		return nil, &Error{Status: http.StatusForbidden, Code: "access_denied", Description: reason}
 	}
-	if se := result.Effects.Session; se != nil && f.session != nil {
+	if d := result.Denied; d != nil {
+		return nil, &Error{Status: http.StatusForbidden, Code: d.Code, Description: d.Reason}
+	}
+	if result.Effects.PrimaryUserID != "" {
+		// Account linking from an Action needs the browser flow's session
+		// (Plan 40); a token grant is refused rather than issuing for the
+		// secondary.
+		return nil, &Error{Status: http.StatusForbidden, Code: "access_denied", Description: "setPrimaryUser is not supported on this grant"}
+	}
+	if se := result.Effects.Session; se != nil && f.session != nil && f.refreshToken == nil {
 		if e := h.applyActionSession(ctx, res, f.session, se); e != nil {
 			return nil, serverError()
 		}
@@ -151,34 +153,9 @@ func (h *Handlers) postLogin(ctx context.Context, res tenant.Resolved, c *store.
 // refresh tokens are revoked unless preserved, the user's version bumps, the
 // session is deleted and back-channel logout is queued, in one transaction.
 func (h *Handlers) revokeActionSession(ctx context.Context, res tenant.Resolved, sess *store.LoginSession, preserve bool) error {
-	tid := res.Tenant.ID
-	return h.Store.WithTx(ctx, func(tx store.Store) error {
-		if _, err := tx.Tenants().Get(ctx, tid); err != nil {
-			return err
-		}
-		current, err := tx.Sessions().GetForUpdate(ctx, tid, sess.ID)
-		if errors.Is(err, store.ErrNotFound) {
-			return nil
-		}
-		if err != nil {
-			return err
-		}
-		if _, err := tx.Users().GetForUpdate(ctx, tid, current.UserID); err != nil && !errors.Is(err, store.ErrNotFound) {
-			return err
-		}
-		if !preserve {
-			if _, err := tx.RefreshTokens().RevokeBySession(ctx, tid, current.ID, h.now().UTC()); err != nil {
-				return err
-			}
-		}
-		if _, err := tx.Users().BumpVersion(ctx, tid, current.UserID); err != nil && !errors.Is(err, store.ErrNotFound) {
-			return err
-		}
-		if err := tx.Sessions().Delete(ctx, tid, current.ID); err != nil {
-			return err
-		}
+	return session.RevokeFromAction(ctx, h.Store, sess, preserve, h.now(), func(ctx context.Context, tx store.Store, current *store.LoginSession) error {
 		if h.Logout != nil {
-			return h.Logout.WithStore(tx).SessionsEnded(ctx, tid, []*store.LoginSession{current}, logout.SessionRevoked)
+			return h.Logout.WithStore(tx).SessionsEnded(ctx, res.Tenant.ID, []*store.LoginSession{current}, logout.SessionRevoked)
 		}
 		return nil
 	})
@@ -214,7 +191,10 @@ func (h *Handlers) applyActionSession(ctx context.Context, res tenant.Resolved, 
 		if se.CookieMode != "" {
 			mode = se.CookieMode
 		}
-		_, err = store.SetSessionLimits(ctx, tx, tid, sess.ID, exp, idle, mode)
+		next := *current
+		next.ExpiresAt, next.IdleExpiresAt, next.CookieMode = exp, idle, mode
+		session.CapActionLimits(res.Tenant, &next, sess, h.now())
+		_, err = store.SetSessionLimits(ctx, tx, tid, sess.ID, next.ExpiresAt, next.IdleExpiresAt, next.CookieMode)
 		return err
 	})
 }

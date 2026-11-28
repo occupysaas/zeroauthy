@@ -231,6 +231,7 @@ func (h *Handlers) MarkFlowMFA(r *http.Request, res tenant.Resolved, sess *store
 }
 
 type consentGrantKey struct{}
+type consentScopesKey struct{}
 
 // commitLogin is the single boundary for non-Action authorization effects.
 // Cookie headers are staged by approve alongside code/device issuance.
@@ -251,6 +252,9 @@ func (h *Handlers) commitLogin(w http.ResponseWriter, r *http.Request, res tenan
 			return store.ErrPrecondition
 		}
 		user, e := h.Store.Users().GetForUpdate(ctx, res.Tenant.ID, sess.UserID)
+		if errors.Is(e, store.ErrNotFound) {
+			return errPrincipalGone
+		}
 		if e != nil {
 			return e
 		}
@@ -300,7 +304,11 @@ func (h *Handlers) commitLogin(w http.ResponseWriter, r *http.Request, res tenan
 			if se.CookieMode != "" {
 				sess.CookieMode = se.CookieMode
 			}
-			opts = append(opts, func(s *store.LoginSession) { capSessionLimits(s, se) })
+			observed := *sess
+			opts = append(opts, func(s *store.LoginSession) {
+				capSessionLimits(s, se)
+				session.CapActionLimits(res.Tenant, s, &observed, h.now())
+			})
 		}
 		if err = h.Sessions.Commit(ctx, w, r, res.Tenant, sess, token, opts...); err != nil {
 			return err
@@ -338,9 +346,18 @@ func (h *Handlers) commitLogin(w http.ResponseWriter, r *http.Request, res tenan
 		}
 		// A flow without claims needs no write unless it must clear this
 		// client's earlier claims. Keep the no-bindings path at one extra read.
-		if len(filtered) > 0 || sess.UserinfoClaims[fr.ClientID] != "" {
-			if _, e = store.SetSessionClaims(ctx, h.Store, res.Tenant.ID, sess.ID, fr.ClientID, string(raw)); e != nil {
+		if len(filtered) > 0 || sess.UserinfoClaims[fr.ClientID] != "" || (eff != nil && eff.FlowExecuted) {
+			current, e := h.Store.Sessions().GetForUpdate(ctx, res.Tenant.ID, sess.ID)
+			if e != nil {
 				return e
+			}
+			if current.UserID != sess.UserID {
+				return store.ErrPrecondition
+			}
+			if len(filtered) > 0 || current.UserinfoClaims[fr.ClientID] != "" {
+				if _, e = store.SetSessionClaims(ctx, h.Store, res.Tenant.ID, sess.ID, fr.ClientID, string(raw)); e != nil {
+					return e
+				}
 			}
 		}
 	}
@@ -372,15 +389,31 @@ func (h *Handlers) commitLogin(w http.ResponseWriter, r *http.Request, res tenan
 		if e != nil {
 			return e
 		}
-		if choice.UserID != sess.UserID || choice.Epoch != user.RememberBrowserEpoch {
+		// Remembered MFA proof belongs to the principal that performed it.
+		// Linking must not transfer that browser credential to another user.
+		if choice.UserID != sess.UserID && eff != nil && eff.PrimaryUserID != "" {
+			// Do not mint a remember cookie for the new principal.
+		} else if choice.UserID != sess.UserID || choice.Epoch != user.RememberBrowserEpoch {
 			return store.ErrPrecondition
 		}
-		if e = h.Sessions.SetMFABrowser(ctx, w, user, "remember"); e != nil {
-			return e
+		if choice.UserID == sess.UserID {
+			if e = h.Sessions.SetMFABrowser(ctx, w, user, "remember"); e != nil {
+				return e
+			}
 		}
 	}
 	if grant, ok := ctx.Value(consentGrantKey{}).(*store.UserGrant); ok {
-		if _, err = h.Store.UserGrants().Upsert(ctx, grant); err != nil {
+		copied := *grant
+		if grant.UserID != sess.UserID {
+			if eff == nil || eff.PrimaryUserID == "" {
+				return store.ErrPrecondition
+			}
+			copied.UserID = sess.UserID
+			// Consent collected for this request must not transfer older grants
+			// from the secondary to the primary.
+			copied.Scopes, _ = ctx.Value(consentScopesKey{}).([]string)
+		}
+		if _, err = h.Store.UserGrants().Upsert(ctx, &copied); err != nil {
 			return err
 		}
 	}
@@ -513,6 +546,7 @@ func (h *Handlers) applySessionEffects(ctx context.Context, w http.ResponseWrite
 	}
 	next := *current
 	capSessionLimits(&next, se)
+	session.CapActionLimits(res.Tenant, &next, sess, h.now())
 	if next.ExpiresAt.Equal(current.ExpiresAt) && next.IdleExpiresAt.Equal(current.IdleExpiresAt) && next.CookieMode == current.CookieMode {
 		return nil
 	}

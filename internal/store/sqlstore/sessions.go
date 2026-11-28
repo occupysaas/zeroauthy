@@ -320,10 +320,11 @@ func (r sessions) SetClaims(ctx context.Context, tid, id, client, raw string) (*
 		if err != nil {
 			return err
 		}
-		if s.UserinfoClaims == nil {
-			s.UserinfoClaims = map[string]string{}
+		next, err := store.MergeSessionClaims(s.UserinfoClaims, client, raw)
+		if err != nil {
+			return err
 		}
-		s.UserinfoClaims[client] = raw
+		s.UserinfoClaims = next
 		_, err = tx.exec(ctx, "UPDATE sessions SET userinfo_claims=? WHERE tenant_id=? AND id=?", jsonColumn{&s.UserinfoClaims}, tid, id)
 		out = s
 		return err
