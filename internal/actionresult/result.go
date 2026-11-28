@@ -1,7 +1,10 @@
 // Package actionresult defines dependency-neutral Action flow outcomes.
 package actionresult
 
-import "slices"
+import (
+	"slices"
+	"time"
+)
 
 // TargetEdit is the target scope set after the flow's transaction edits.
 type TargetEdit struct{ Scopes []string }
@@ -44,6 +47,40 @@ type Effects struct {
 	Ceiling []string
 	// SAML holds api.samlResponse.* settings for this SAML response (Plan 37a).
 	SAML *SAMLEffects
+	// Session holds api.session.* calls (Plan 40); nil when none was made.
+	Session *SessionEffects `json:",omitempty"`
+	// RefreshToken holds api.refreshToken setters and metadata calls.
+	RefreshToken *RefreshTokenEffects `json:",omitempty"`
+	// PrimaryUserID is the last api.authentication.setPrimaryUser argument.
+	PrimaryUserID string `json:",omitempty"`
+	// RecordedMethods are api.authentication.recordMethod provider URLs.
+	RecordedMethods []string `json:",omitempty"`
+}
+
+// MetadataOp is one metadata call, applied in call order: "set" (Key,
+// Value), "delete" (Key) or "evict" (every key).
+type MetadataOp struct{ Op, Key, Value string }
+
+// Revocation is an api.session.revoke call.
+type Revocation struct {
+	Reason                string
+	PreserveRefreshTokens bool
+}
+
+// SessionEffects are a flow's api.session calls. The expiry setters can
+// only shorten the session (LR40-3); callers cap them when applying.
+type SessionEffects struct {
+	Revoke                   *Revocation
+	ExpiresAt, IdleExpiresAt *time.Time
+	CookieMode               string // "", "persistent" or "non-persistent"
+	Metadata                 []MetadataOp
+}
+
+// RefreshTokenEffects are a flow's api.refreshToken setters and metadata
+// calls (revoke stays Effects.RefreshTokenRevoke).
+type RefreshTokenEffects struct {
+	ExpiresAt, IdleExpiresAt *time.Time
+	Metadata                 []MetadataOp
 }
 
 // Denial is access.deny or validation.error. Code is "access_denied" for a

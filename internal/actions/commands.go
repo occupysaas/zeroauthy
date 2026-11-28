@@ -6,9 +6,11 @@ import (
 	"fmt"
 	"github.com/zeroauthy/zeroauthy/internal/actionresult"
 	"maps"
+	"math"
 	"net/url"
 	"slices"
 	"strings"
+	"time"
 	"unicode/utf8"
 
 	"github.com/zeroauthy/zeroauthy/internal/actionsrules"
@@ -86,6 +88,7 @@ type cacheOp struct {
 // runner sends is used before it passes apply.
 type accum struct {
 	trigger      string
+	handler      string // the running handler (onContinuePostLogin admits recordMethod)
 	canRedirect  bool
 	customizeMFA bool
 
@@ -185,6 +188,34 @@ func (a *accum) apply(c command) error {
 	switch c.Op {
 	case "multifactor.enable", "authentication.challengeWith", "authentication.challengeWithAny", "authentication.enrollWith", "authentication.enrollWithAny":
 		return a.applyMFA(c)
+	case "session.revoke", "session.setExpiresAt", "session.setIdleExpiresAt", "session.setCookieMode",
+		"session.setMetadata", "session.deleteMetadata", "session.evictMetadata",
+		"refreshToken.setExpiresAt", "refreshToken.setIdleExpiresAt", "refreshToken.setMetadata",
+		"refreshToken.deleteMetadata", "refreshToken.evictMetadata":
+		return a.applySessionToken(c)
+	case "authentication.setPrimaryUser":
+		if err := argCount(c, 1, 1); err != nil {
+			return err
+		}
+		id, err := argString(c, 0, "primary_user_id")
+		if err != nil || id == "" || len(id) > 1024 || !utf8.ValidString(id) {
+			return invalid(c.Op, "primary_user_id must be a non-empty user ID")
+		}
+		a.eff.PrimaryUserID = id
+	case "authentication.recordMethod":
+		if a.handler != "onContinuePostLogin" {
+			return invalid(c.Op, "is available only in onContinuePostLogin")
+		}
+		if err := argCount(c, 1, 1); err != nil {
+			return err
+		}
+		u, err := argString(c, 0, "provider_url")
+		if err != nil || !recordMethodURL(u) {
+			return invalid(c.Op, "provider_url must be an absolute https URL of at most %d bytes", maxRecordMethodURL)
+		}
+		if !slices.Contains(a.eff.RecordedMethods, u) {
+			a.eff.RecordedMethods = append(a.eff.RecordedMethods, u)
+		}
 	case "refreshToken.revoke":
 		if err := argCount(c, 0, 1); err != nil {
 			return err
@@ -978,4 +1009,153 @@ func (a *accum) applySAML(c command) error {
 		return invalid(c.Op, "unknown samlResponse setter")
 	}
 	return err
+}
+
+// Plan 40 limits (Plan 48 metadata limits; recordMethod URL).
+const (
+	maxActionMetadataKeys  = 25
+	maxActionMetadataRunes = 255
+	maxRecordMethodURL     = 2048
+)
+
+func recordMethodURL(raw string) bool {
+	if raw == "" || len(raw) > maxRecordMethodURL {
+		return false
+	}
+	u, err := url.Parse(raw)
+	return err == nil && u.Scheme == "https" && u.Host != "" && u.User == nil
+}
+
+// argMillis reads a positive JSON integer of milliseconds since the epoch.
+func argMillis(c command, i int) (time.Time, error) {
+	var n float64
+	if i >= len(c.Args) || json.Unmarshal(c.Args[i], &n) != nil || n <= 0 || n != math.Trunc(n) || n > 1e15 {
+		return time.Time{}, invalid(c.Op, "expects a positive time in milliseconds since the epoch")
+	}
+	return time.UnixMilli(int64(n)).UTC(), nil
+}
+
+// applySessionToken accumulates api.session and api.refreshToken setters
+// and metadata calls (Plan 40). Expiry values are capped when applied.
+func (a *accum) applySessionToken(c command) error {
+	ns, name, _ := strings.Cut(c.Op, ".")
+	var expires, idle **time.Time
+	var md *[]MetadataOp
+	if ns == "session" {
+		if a.eff.Session == nil {
+			a.eff.Session = &SessionEffects{}
+		}
+		expires, idle, md = &a.eff.Session.ExpiresAt, &a.eff.Session.IdleExpiresAt, &a.eff.Session.Metadata
+	} else {
+		if a.eff.RefreshToken == nil {
+			a.eff.RefreshToken = &RefreshTokenEffects{}
+		}
+		expires, idle, md = &a.eff.RefreshToken.ExpiresAt, &a.eff.RefreshToken.IdleExpiresAt, &a.eff.RefreshToken.Metadata
+	}
+	switch name {
+	case "revoke":
+		if err := argCount(c, 0, 2); err != nil {
+			return err
+		}
+		reason, err := optString(c, 0, "reason")
+		if err != nil {
+			return err
+		}
+		rev := &Revocation{Reason: truncateRunes(reason, 1024)}
+		if len(c.Args) > 1 && string(c.Args[1]) != "null" {
+			var opts struct {
+				PreserveRefreshTokens *bool `json:"preserveRefreshTokens"`
+			}
+			if json.Unmarshal(c.Args[1], &opts) != nil {
+				return invalid(c.Op, "options must be an object")
+			}
+			rev.PreserveRefreshTokens = opts.PreserveRefreshTokens != nil && *opts.PreserveRefreshTokens
+		}
+		a.eff.Session.Revoke = rev
+	case "setExpiresAt", "setIdleExpiresAt":
+		if err := argCount(c, 1, 1); err != nil {
+			return err
+		}
+		at, err := argMillis(c, 0)
+		if err != nil {
+			return err
+		}
+		if name == "setExpiresAt" {
+			*expires = &at
+		} else {
+			*idle = &at
+		}
+	case "setCookieMode":
+		if err := argCount(c, 1, 1); err != nil {
+			return err
+		}
+		mode, err := argString(c, 0, "mode")
+		if err != nil || (mode != "persistent" && mode != "non-persistent") {
+			return invalid(c.Op, "mode must be persistent or non-persistent")
+		}
+		a.eff.Session.CookieMode = mode
+	case "setMetadata":
+		if err := argCount(c, 2, 2); err != nil {
+			return err
+		}
+		k, err := argString(c, 0, "key")
+		if err != nil {
+			return err
+		}
+		v, err := argString(c, 1, "value")
+		if err != nil {
+			return err
+		}
+		if k == "" || utf8.RuneCountInString(k) > maxActionMetadataRunes || utf8.RuneCountInString(v) > maxActionMetadataRunes {
+			return invalid(c.Op, "key and value must be 1 to %d characters", maxActionMetadataRunes)
+		}
+		*md = append(*md, MetadataOp{Op: "set", Key: k, Value: v})
+	case "deleteMetadata":
+		if err := argCount(c, 1, 1); err != nil {
+			return err
+		}
+		k, err := argString(c, 0, "key")
+		if err != nil {
+			return err
+		}
+		*md = append(*md, MetadataOp{Op: "delete", Key: k})
+	case "evictMetadata":
+		if err := argCount(c, 0, 0); err != nil {
+			return err
+		}
+		*md = append(*md, MetadataOp{Op: "evict"})
+	default:
+		return invalid(c.Op, "unknown member")
+	}
+	return nil
+}
+
+// ApplyMetadataOps applies ops in call order to current, returning the new
+// map, or an error when it exceeds the key limit.
+func ApplyMetadataOps(current map[string]string, ops []MetadataOp) (map[string]string, error) {
+	out := maps.Clone(current)
+	if out == nil {
+		out = map[string]string{}
+	}
+	for _, op := range ops {
+		switch op.Op {
+		case "set":
+			out[op.Key] = op.Value
+		case "delete":
+			delete(out, op.Key)
+		case "evict":
+			clear(out)
+		}
+	}
+	if len(out) > maxActionMetadataKeys {
+		return nil, fmt.Errorf("%w: metadata may hold at most %d keys", ErrInvalidCommand, maxActionMetadataKeys)
+	}
+	return out, nil
+}
+
+func truncateRunes(s string, n int) string {
+	if utf8.RuneCountInString(s) <= n {
+		return s
+	}
+	return string([]rune(s)[:n])
 }

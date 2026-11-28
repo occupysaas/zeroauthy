@@ -50,6 +50,10 @@ type Denial = actionresult.Denial
 type NotificationOutcome = actionresult.NotificationOutcome
 type Redirect = actionresult.Redirect
 type Result = actionresult.Result
+type MetadataOp = actionresult.MetadataOp
+type Revocation = actionresult.Revocation
+type SessionEffects = actionresult.SessionEffects
+type RefreshTokenEffects = actionresult.RefreshTokenEffects
 
 // ErrFlow is a failed flow: no code or token may be issued. ExecutionID
 // names its execution record; it is for operators and the hosted error
@@ -682,10 +686,11 @@ func (e *Engine) step(ctx context.Context, f *flow, u unit, event map[string]any
 		return out, fmt.Errorf("%w: %s", ErrActionError, red.RedactLineContext(ctx, resp.Error.Message))
 	}
 	f.acc.cache = nil
+	f.acc.handler = f.handler
 	for _, c := range resp.Commands {
 		// Scrub display-only messages before validation truncates them. Do not
 		// mutate business commands (claims, metadata, cache or redirect URLs).
-		if c.Op == "access.deny" || c.Op == "validation.error" || c.Op == "refreshToken.revoke" || strings.HasPrefix(c.Op, "notification.") {
+		if c.Op == "access.deny" || c.Op == "validation.error" || c.Op == "refreshToken.revoke" || c.Op == "session.revoke" || strings.HasPrefix(c.Op, "notification.") {
 			start := 0
 			// A deny code reaches the OAuth error and the logs unmasked, so a
 			// code holding a secret value is refused, never rewritten.
@@ -702,7 +707,9 @@ func (e *Engine) step(ctx context.Context, f *flow, u unit, event map[string]any
 			for i := start; i < len(c.Args); i++ {
 				raw := c.Args[i]
 				var text string
-				if json.Unmarshal(raw, &text) == nil {
+				// null stays null: unmarshalling it into a string succeeds
+				// and would turn an absent options argument into "".
+				if string(raw) != "null" && json.Unmarshal(raw, &text) == nil {
 					c.Args[i], _ = json.Marshal(red.RedactLineContext(ctx, text))
 				}
 			}
