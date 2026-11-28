@@ -447,6 +447,29 @@ func (s *Server) sessionsUpdateMetadata(ctx context.Context, q *pb.RefreshIIRequ
 	return &pb.SessionResult{Value: v, Error: e}, err
 }
 
+// SetLimits sets session expiries and the cookie mode (Plan 40). A plugin
+// built before the RPC answers Unimplemented: unavailable.
+func (r clientSessions) SetLimits(ctx context.Context, tid, id string, expiresAt, idleExpiresAt time.Time, cookieMode string) (*store.LoginSession, error) {
+	if err := r.c.requireRefreshII(ctx); err != nil {
+		return nil, err
+	}
+	res, err := r.c.rpc.SessionsSetLimits(ctx, &pb.SessionLimitsRequest{TxId: r.c.txID, TenantId: tid, Id: id, ExpiresAt: tsToPB(expiresAt), IdleExpiresAt: tsToPB(idleExpiresAt), CookieMode: cookieMode})
+	if status.Code(err) == codes.Unimplemented {
+		return nil, store.ErrSessionLimitsUnavailable
+	}
+	if err = r.c.refreshResult("SessionsSetLimits", res, err); err != nil {
+		return nil, err
+	}
+	return sessionFromPB(res.Value)
+}
+
+func (s *Server) SessionsSetLimits(ctx context.Context, q *pb.SessionLimitsRequest) (*pb.SessionResult, error) {
+	v, e, err := one(s, q.TxId, func(st store.Store) (*store.LoginSession, error) {
+		return store.SetSessionLimits(ctx, st, q.TenantId, q.Id, tsFromPB(q.ExpiresAt), tsFromPB(q.IdleExpiresAt), q.CookieMode)
+	}, sessionToPB)
+	return &pb.SessionResult{Value: v, Error: e}, err
+}
+
 func (r clientRefreshTokens) ListByUserPage(ctx context.Context, tid, user, client, from string, take int) ([]*store.RefreshToken, string, error) {
 	if err := r.c.requireRefreshII(ctx); err != nil {
 		return nil, "", err

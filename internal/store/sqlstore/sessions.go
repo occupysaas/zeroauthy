@@ -230,6 +230,23 @@ func (r sessions) UpdateMetadata(ctx context.Context, tid, id string, md map[str
 	return session, err
 }
 
+// SetLimits sets the session's expiries and cookie mode (Plan 40).
+func (r sessions) SetLimits(ctx context.Context, tid, id string, expiresAt, idleExpiresAt time.Time, cookieMode string) (*store.LoginSession, error) {
+	var session *store.LoginSession
+	err := r.s.atomicRetry(ctx, nil, func(tx *Store) error {
+		res, err := tx.exec(ctx, "UPDATE sessions SET expires_at=?, idle_expires_at=?, cookie_mode=? WHERE tenant_id=? AND id=?", micros(expiresAt), micros(idleExpiresAt), cookieMode, tid, id)
+		if err != nil {
+			return err
+		}
+		if err = expectRow(res); err != nil {
+			return err
+		}
+		session, err = (sessions{tx}).Get(ctx, tid, id)
+		return err
+	})
+	return session, err
+}
+
 func (r sessions) ListExpired(ctx context.Context, before time.Time, limit int) ([]*store.LoginSession, error) {
 	if limit < 1 || limit > 1000 {
 		return nil, store.ErrInvalid

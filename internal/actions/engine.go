@@ -456,7 +456,10 @@ func (e *Engine) run(ctx context.Context, f *flow, user *store.User) (*Result, e
 			failure, failed = err, u.name
 		}
 		ex.Results = append(ex.Results, r)
-		if failure == nil && f.acc.denied == nil && f.acc.redirect != nil {
+		// api.session.revoke ends the flow like a deny: no later Action runs
+		// and no redirect suspends it (Plan 40 Review Focus 3).
+		revoked := f.acc.eff.Session != nil && f.acc.eff.Session.Revoke != nil
+		if failure == nil && f.acc.denied == nil && !revoked && f.acc.redirect != nil {
 			f.remaining = time.Until(f.deadline)
 			var redirect *Redirect
 			err := e.Store.WithTx(fctx, func(tx store.Store) error {
@@ -479,7 +482,7 @@ func (e *Engine) run(ctx context.Context, f *flow, user *store.User) (*Result, e
 		// Only the redirecting Action resumes onContinuePostLogin; the tail
 		// always starts with onExecutePostLogin.
 		f.handler = handlerFor(f.trigger)
-		if failure != nil || f.acc.denied != nil {
+		if failure != nil || f.acc.denied != nil || revoked {
 			break
 		}
 	}

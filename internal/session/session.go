@@ -172,7 +172,11 @@ func (m *Manager) Prepare(ctx context.Context, r *http.Request, t *store.Tenant,
 
 // Commit persists prepared evidence. The caller owns the transaction and must
 // buffer the response cookie until that transaction has committed.
-func (m *Manager) Commit(ctx context.Context, w http.ResponseWriter, r *http.Request, t *store.Tenant, s *store.LoginSession, token string) error {
+// CommitOption adjusts a session after its lifetimes are computed and
+// before it is stored and its cookie set (Plan 40 api.session effects).
+type CommitOption func(*store.LoginSession)
+
+func (m *Manager) Commit(ctx context.Context, w http.ResponseWriter, r *http.Request, t *store.Tenant, s *store.LoginSession, token string, opts ...CommitOption) error {
 	// The SSO lifetime starts when the session is created. Authentication evidence
 	// retains the original first-factor time and methods across slow MFA/consent.
 	now := m.now()
@@ -182,6 +186,9 @@ func (m *Manager) Commit(ctx context.Context, w http.ResponseWriter, r *http.Req
 	s.CreatedAt = now
 	s.UpdatedAt = now
 	s.LastInteractedAt = now
+	for _, opt := range opts {
+		opt(s)
+	}
 
 	if old, err := r.Cookie(CookieName); err == nil && old.Value != "" {
 		previous, err := m.Store.Sessions().GetByTokenHash(ctx, t.ID, secrets.HashToken(old.Value))
@@ -197,6 +204,22 @@ func (m *Manager) Commit(ctx context.Context, w http.ResponseWriter, r *http.Req
 	if err := m.Store.Sessions().Create(ctx, s); err != nil {
 		return err
 	}
+	writeCookie(w, token, s)
+	return nil
+}
+
+// Reissue rewrites the request's session cookie for s after its expiry or
+// cookie mode changed. The cookie must be s's own; otherwise nothing is
+// written.
+func (m *Manager) Reissue(w http.ResponseWriter, r *http.Request, s *store.LoginSession) {
+	c, err := r.Cookie(CookieName)
+	if err != nil || c.Value == "" || secrets.HashToken(c.Value) != s.TokenHash {
+		return
+	}
+	writeCookie(w, c.Value, s)
+}
+
+func writeCookie(w http.ResponseWriter, token string, s *store.LoginSession) {
 	cookie := &http.Cookie{
 		Name:     CookieName,
 		Value:    token,
@@ -212,7 +235,6 @@ func (m *Manager) Commit(ctx context.Context, w http.ResponseWriter, r *http.Req
 		cookie.Expires = time.Time{}
 	}
 	http.SetCookie(w, cookie)
-	return nil
 }
 
 // AddClient records that clientID received tokens through s.

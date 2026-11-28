@@ -551,6 +551,8 @@ service StoreService {
   rpc RefreshTokensListByUserPage(RefreshIIRequest) returns (RefreshTokenPage);
   rpc RefreshTokensUpdateMetadata(RefreshIIRequest) returns (RefreshTokenResult);
   rpc SessionsUpdateMetadata(RefreshIIRequest) returns (SessionResult);
+  // Plan 40: api.session expiry and cookie mode.
+  rpc SessionsSetLimits(SessionLimitsRequest) returns (SessionResult);
   rpc RefreshTokensRecordExchange(RefreshIIRequest) returns (Result);
   rpc DPoPUseProof(DPoPProofRequest) returns (Result);
   rpc DPoPPurgeBefore(RefreshIIPurgeRequest) returns (CountResult);
@@ -1901,6 +1903,10 @@ message RefreshIIWrite {
     OrganizationsRequest organization = 6; LoginSession session = 7;
     AuthTransaction transaction = 8; AuthCode code = 9; RefreshToken token = 10;
   }
+}
+message SessionLimitsRequest {
+  string tx_id = 1; string tenant_id = 2; string id = 3;
+  google.protobuf.Timestamp expires_at = 4; google.protobuf.Timestamp idle_expires_at = 5; string cookie_mode = 6;
 }
 message RefreshIIRequest {
   string tx_id = 1; string tenant_id = 2; string id = 3;

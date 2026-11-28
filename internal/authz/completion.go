@@ -276,11 +276,29 @@ func (h *Handlers) commitLogin(w http.ResponseWriter, r *http.Request, res tenan
 		txn.HostedState.Revision++
 		token := secrets.RandomString(43)
 		sess.TokenHash = secrets.HashToken(token)
-		if err = h.Sessions.Commit(ctx, w, r, res.Tenant, sess, token); err != nil {
+		var opts []session.CommitOption
+		if eff != nil && eff.Session != nil {
+			se := eff.Session
+			if sess.Metadata, err = actions.ApplyMetadataOps(sess.Metadata, se.Metadata); err != nil {
+				return err
+			}
+			// The cookie mode chooses the tenant lifetimes; the expiry
+			// setters then only shorten them.
+			if se.CookieMode != "" {
+				sess.CookieMode = se.CookieMode
+			}
+			opts = append(opts, func(s *store.LoginSession) { capSessionLimits(s, se) })
+		}
+		if err = h.Sessions.Commit(ctx, w, r, res.Tenant, sess, token, opts...); err != nil {
 			return err
 		}
 	} else {
 		txn, _ = ctx.Value(completionTxnKey{}).(*store.AuthTransaction)
+		if eff != nil && eff.Session != nil {
+			if err = h.applySessionEffects(ctx, w, r, res, sess, eff.Session); err != nil {
+				return err
+			}
+		}
 	}
 	if txn != nil && txn.Params[orglogin.InvitationIDParam] != "" {
 		if err = h.acceptInvitation(ctx, txn, sess, eff); err != nil {
@@ -427,4 +445,40 @@ func (h *Handlers) HandleLoginAdmissionError(w http.ResponseWriter, r *http.Requ
 	}
 	h.refuse(w, r, res, client, fr, errAccessDenied(description))
 	return true
+}
+
+// applySessionEffects applies api.session calls to an existing session in
+// the commit transaction: capped expiries and cookie mode, metadata in call
+// order, and the cookie rewritten when its expiry or mode changed.
+func (h *Handlers) applySessionEffects(ctx context.Context, w http.ResponseWriter, r *http.Request, res tenant.Resolved, sess *store.LoginSession, se *actions.SessionEffects) error {
+	current, err := h.Store.Sessions().GetForUpdate(ctx, res.Tenant.ID, sess.ID)
+	if err != nil {
+		return err
+	}
+	if len(se.Metadata) > 0 {
+		md, err := actions.ApplyMetadataOps(current.Metadata, se.Metadata)
+		if err != nil {
+			return err
+		}
+		if current, err = h.Store.Sessions().UpdateMetadata(ctx, res.Tenant.ID, sess.ID, md); err != nil {
+			return err
+		}
+	}
+	if se.ExpiresAt == nil && se.IdleExpiresAt == nil && se.CookieMode == "" {
+		return nil
+	}
+	next := *current
+	capSessionLimits(&next, se)
+	if next.ExpiresAt.Equal(current.ExpiresAt) && next.IdleExpiresAt.Equal(current.IdleExpiresAt) && next.CookieMode == current.CookieMode {
+		return nil
+	}
+	updated, err := store.SetSessionLimits(ctx, h.Store, res.Tenant.ID, sess.ID, next.ExpiresAt, next.IdleExpiresAt, next.CookieMode)
+	if err != nil {
+		return err
+	}
+	if !updated.ExpiresAt.Equal(current.ExpiresAt) || updated.CookieMode != current.CookieMode {
+		h.Sessions.Reissue(w, r, updated)
+	}
+	*sess = *updated
+	return nil
 }

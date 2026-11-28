@@ -172,6 +172,18 @@ func (r sessions) UpdateMetadata(_ context.Context, tid, id string, md map[strin
 	return cloneSession(s), nil
 }
 
+// SetLimits sets the session's expiries and cookie mode (Plan 40).
+func (r sessions) SetLimits(_ context.Context, tid, id string, expiresAt, idleExpiresAt time.Time, cookieMode string) (*store.LoginSession, error) {
+	r.s.lock()
+	defer r.s.unlock()
+	s := r.s.sessions[key{tid, id}]
+	if s == nil {
+		return nil, store.ErrNotFound
+	}
+	s.ExpiresAt, s.IdleExpiresAt, s.CookieMode = expiresAt, idleExpiresAt, cookieMode
+	return cloneSession(s), nil
+}
+
 func (r sessions) ListExpired(_ context.Context, before time.Time, limit int) ([]*store.LoginSession, error) {
 	if limit < 1 || limit > 1000 {
 		return nil, store.ErrInvalid

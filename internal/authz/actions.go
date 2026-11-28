@@ -17,6 +17,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/i18n"
 	"github.com/zeroauthy/zeroauthy/internal/logs"
 	"github.com/zeroauthy/zeroauthy/internal/orglogin"
+	"github.com/zeroauthy/zeroauthy/internal/session"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/tenant"
 	"github.com/zeroauthy/zeroauthy/internal/ui"
@@ -107,10 +108,10 @@ func (h *Handlers) postLogin(w http.ResponseWriter, r *http.Request, res tenant.
 		// A device approval cannot redirect.
 		CanRedirect: !fr.backchannel() && !slices.Contains(fr.Prompts(), "none"),
 	})
-	return h.postLoginResult(w, r, res, client, fr, result, err)
+	return h.postLoginResult(w, r, res, client, fr, sess, result, err)
 }
 
-func (h *Handlers) postLoginResult(w http.ResponseWriter, r *http.Request, res tenant.Resolved, client *store.Client, fr flowReq, result *actions.Result, err error) (*actions.Effects, bool) {
+func (h *Handlers) postLoginResult(w http.ResponseWriter, r *http.Request, res tenant.Resolved, client *store.Client, fr flowReq, sess *store.LoginSession, result *actions.Result, err error) (*actions.Effects, bool) {
 	event := logs.FromRequest(r)
 	event.TenantID = res.Tenant.ID
 	event.ClientID = client.ClientID
@@ -137,6 +138,23 @@ func (h *Handlers) postLoginResult(w http.ResponseWriter, r *http.Request, res t
 		event.Description = result.Denied.Reason
 		logs.RecordEvent(r.Context(), logs.RecorderFromContext(r.Context()), event)
 		h.refuse(w, r, res, client, fr, &Error{Code: result.Denied.Code, Description: result.Denied.Reason})
+		return nil, false
+	}
+	// api.session.revoke ends the session and the login even when a later
+	// Action redirected (Review Focus 3): no code or token follows.
+	if se := result.Effects.Session; se != nil && se.Revoke != nil {
+		if e := h.revokeSession(r.Context(), w, res, sess, se.Revoke.PreserveRefreshTokens); e != nil {
+			h.log().ErrorContext(r.Context(), "revoke session from Action", "tenant", res.Tenant.ID, "err", e)
+			h.actionsFailed(w, r, res, client, fr, result.ExecutionID)
+			return nil, false
+		}
+		reason := se.Revoke.Reason
+		if reason == "" {
+			reason = "the session was revoked"
+		}
+		event.Description = reason
+		logs.RecordEvent(r.Context(), logs.RecorderFromContext(r.Context()), event)
+		h.refuse(w, r, res, client, fr, &Error{Code: "access_denied", Description: reason})
 		return nil, false
 	}
 	if result.Redirect != nil {
@@ -247,4 +265,68 @@ func actionProtocol(fr flowReq) string {
 		return actions.ProtocolCIBA
 	}
 	return actions.ProtocolOIDCBasicProfile
+}
+
+// revokeSession ends a stored session for api.session.revoke (Plan 40): its
+// refresh tokens are revoked unless preserved, the owners' versions bump,
+// the row is deleted and back-channel logout is queued (session-revoked)
+// in one transaction; the cookie is cleared. A pending login has no stored
+// session, so nothing is written.
+func (h *Handlers) revokeSession(ctx context.Context, w http.ResponseWriter, res tenant.Resolved, sess *store.LoginSession, preserve bool) error {
+	if sess == nil {
+		return nil
+	}
+	tid := res.Tenant.ID
+	err := h.Store.WithTx(ctx, func(tx store.Store) error {
+		if _, err := tx.Tenants().Get(ctx, tid); err != nil {
+			return err
+		}
+		current, err := tx.Sessions().GetForUpdate(ctx, tid, sess.ID)
+		if errors.Is(err, store.ErrNotFound) {
+			return nil
+		}
+		if err != nil {
+			return err
+		}
+		if _, err := tx.Users().GetForUpdate(ctx, tid, current.UserID); err != nil && !errors.Is(err, store.ErrNotFound) {
+			return err
+		}
+		if !preserve {
+			if _, err := tx.RefreshTokens().RevokeBySession(ctx, tid, current.ID, h.now()); err != nil {
+				return err
+			}
+		}
+		if _, err := tx.Users().BumpVersion(ctx, tid, current.UserID); err != nil && !errors.Is(err, store.ErrNotFound) {
+			return err
+		}
+		if err := tx.Sessions().Delete(ctx, tid, current.ID); err != nil {
+			return err
+		}
+		if h.Sessions != nil && h.Sessions.OnEnd != nil {
+			return h.Sessions.OnEnd(ctx, tx, current)
+		}
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+	http.SetCookie(w, &http.Cookie{Name: session.CookieName, Value: "", Path: "/", MaxAge: -1, HttpOnly: true, Secure: true, SameSite: http.SameSiteNoneMode})
+	return nil
+}
+
+// capSessionLimits applies an Action's session expiry and cookie-mode calls
+// to s: the setters only shorten (LR40-3), idle never passes absolute.
+func capSessionLimits(s *store.LoginSession, se *actions.SessionEffects) {
+	if se.ExpiresAt != nil && se.ExpiresAt.Before(s.ExpiresAt) {
+		s.ExpiresAt = *se.ExpiresAt
+	}
+	if se.IdleExpiresAt != nil && se.IdleExpiresAt.Before(s.IdleExpiresAt) {
+		s.IdleExpiresAt = *se.IdleExpiresAt
+	}
+	if s.IdleExpiresAt.After(s.ExpiresAt) {
+		s.IdleExpiresAt = s.ExpiresAt
+	}
+	if se.CookieMode != "" {
+		s.CookieMode = se.CookieMode
+	}
 }

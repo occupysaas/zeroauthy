@@ -116,7 +116,7 @@ func (h *Handlers) Continue(w http.ResponseWriter, r *http.Request) {
 		invalid()
 		return
 	}
-	eff, ok := h.postLoginResult(w, r, res, client, fr, result, err)
+	eff, ok := h.postLoginResult(w, r, res, client, fr, sess, result, err)
 	if !ok {
 		return
 	}
