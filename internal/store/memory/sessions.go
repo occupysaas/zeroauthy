@@ -245,3 +245,20 @@ func (r sessions) RecordSAMLParticipant(_ context.Context, tenantID, id string, 
 	s.SAMLParticipants = store.UpsertSAMLParticipant(s.SAMLParticipants, p)
 	return nil
 }
+
+func (r sessions) SetClaims(_ context.Context, tid, id, client, raw string) (*store.LoginSession, error) {
+	if err := store.ValidateSessionClaims(raw); err != nil {
+		return nil, err
+	}
+	r.s.lock()
+	defer r.s.unlock()
+	s, ok := r.s.sessions[key{tid, id}]
+	if !ok {
+		return nil, store.ErrNotFound
+	}
+	if s.UserinfoClaims == nil {
+		s.UserinfoClaims = map[string]string{}
+	}
+	s.UserinfoClaims[client] = raw
+	return cloneSession(s), nil
+}

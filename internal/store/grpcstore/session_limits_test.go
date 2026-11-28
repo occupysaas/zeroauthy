@@ -36,3 +36,29 @@ func TestSessionLimits(t *testing.T) {
 		})
 	}
 }
+
+func TestSessionClaims(t *testing.T) {
+	for name, c := range map[string]*Client{"memory": inProcess(t), "sqlite": inProcessSQLite(t)} {
+		t.Run(name, func(t *testing.T) {
+			ctx := context.Background()
+			if err := c.Tenants().Create(ctx, &store.Tenant{ID: "t", Name: "t"}); err != nil {
+				t.Fatal(err)
+			}
+			if err := c.Sessions().Create(ctx, &store.LoginSession{TenantID: "t", ID: "s", TokenHash: "hash", UserinfoClaims: map[string]string{"a": `{"initial":true}`}}); err != nil {
+				t.Fatal(err)
+			}
+			for _, client := range []string{"a", "b"} {
+				if _, err := store.SetSessionClaims(ctx, c, "t", "s", client, `{"urn:test":true}`); err != nil {
+					t.Fatal(err)
+				}
+			}
+			s, err := c.Sessions().Get(ctx, "t", "s")
+			if err != nil || len(s.UserinfoClaims) != 2 || s.UserinfoClaims["a"] != `{"urn:test":true}` {
+				t.Fatalf("%+v %v", s, err)
+			}
+			if _, err := store.SetSessionClaims(ctx, c, "other", "s", "a", `{}`); err == nil {
+				t.Fatal("cross tenant write")
+			}
+		})
+	}
+}

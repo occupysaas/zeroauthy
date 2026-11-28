@@ -575,3 +575,20 @@ func (s *Server) refreshTokensRevokeOfflineByUser(ctx context.Context, q *pb.Ref
 		return st.RefreshTokens().RevokeOfflineByUser(ctx, q.TenantId, q.UserId, q.ClientId, aud, tsFromPB(q.At))
 	}), nil
 }
+
+func (r clientSessions) SetClaims(ctx context.Context, tid, id, client, raw string) (*store.LoginSession, error) {
+	res, err := r.c.rpc.SessionsSetClaims(ctx, &pb.SessionClaimsRequest{TxId: r.c.txID, TenantId: tid, Id: id, ClientId: client, Claims: raw})
+	if status.Code(err) == codes.Unimplemented {
+		return nil, store.ErrSessionLimitsUnavailable
+	}
+	if err = r.c.refreshResult("SessionsSetClaims", res, err); err != nil {
+		return nil, err
+	}
+	return sessionFromPB(res.Value)
+}
+func (s *Server) SessionsSetClaims(ctx context.Context, q *pb.SessionClaimsRequest) (*pb.SessionResult, error) {
+	v, e, err := one(s, q.TxId, func(st store.Store) (*store.LoginSession, error) {
+		return store.SetSessionClaims(ctx, st, q.TenantId, q.Id, q.ClientId, q.Claims)
+	}, sessionToPB)
+	return &pb.SessionResult{Value: v, Error: e}, err
+}

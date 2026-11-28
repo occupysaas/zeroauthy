@@ -323,6 +323,23 @@ func (h *Handlers) commitLogin(w http.ResponseWriter, r *http.Request, res tenan
 			}
 		}
 	}
+	if eff != nil || h.Actions != nil {
+		var custom map[string]any
+		if eff != nil {
+			custom = eff.IDClaims
+		}
+		filtered, e := actions.FilterClaims(actions.ClaimIDToken, nil, custom, false)
+		if e != nil {
+			return e
+		}
+		raw, e := json.Marshal(filtered)
+		if e != nil {
+			return e
+		}
+		if _, e = store.SetSessionClaims(ctx, h.Store, res.Tenant.ID, sess.ID, fr.ClientID, string(raw)); e != nil {
+			return e
+		}
+	}
 	if txn != nil && txn.Params[orglogin.InvitationIDParam] != "" {
 		if err = h.acceptInvitation(ctx, txn, sess, eff); err != nil {
 			return err

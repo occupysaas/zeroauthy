@@ -2,6 +2,7 @@ package oauth
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/url"
@@ -257,6 +258,29 @@ func (h *Handlers) refreshToken(ctx context.Context, res tenant.Resolved, c *sto
 		}
 		return nil
 	}, func(tx store.Store) error {
+		if rt.SessionID != "" {
+			session, e := tx.Sessions().GetForUpdate(ctx, tenantID, rt.SessionID)
+			if e != nil && !errors.Is(e, store.ErrNotFound) {
+				return e
+			}
+			if e == nil && session.UserID == rt.UserID && (session.ExpiresAt.IsZero() || h.now().Before(session.ExpiresAt)) && (session.IdleExpiresAt.IsZero() || h.now().Before(session.IdleExpiresAt)) {
+				var custom map[string]any
+				if eff != nil {
+					custom = eff.IDClaims
+				}
+				filtered, e := actions.FilterClaims(actions.ClaimIDToken, nil, custom, false)
+				if e != nil {
+					return e
+				}
+				raw, e := json.Marshal(filtered)
+				if e != nil {
+					return e
+				}
+				if _, e = store.SetSessionClaims(ctx, tx, tenantID, rt.SessionID, c.ClientID, string(raw)); e != nil {
+					return e
+				}
+			}
+		}
 		if !offlineGrant {
 			return h.finishOnline(ctx, tx, res, currentClient, rt)
 		}

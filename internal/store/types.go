@@ -898,6 +898,8 @@ type User struct {
 
 // LoginSession is a browser's authenticated session with a tenant.
 type LoginSession struct {
+	// UserinfoClaims stores bounded Action ID-token claims JSON per client.
+	UserinfoClaims map[string]string
 	// ClientOrganizations binds each participant to its latest validated organization.
 	// An empty value denotes a non-organization authorization.
 	ClientOrganizations map[string]string

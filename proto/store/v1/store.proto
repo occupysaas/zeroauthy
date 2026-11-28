@@ -553,6 +553,7 @@ service StoreService {
   rpc SessionsUpdateMetadata(RefreshIIRequest) returns (SessionResult);
   // Plan 40: api.session expiry and cookie mode.
   rpc SessionsSetLimits(SessionLimitsRequest) returns (SessionResult);
+  rpc SessionsSetClaims(SessionClaimsRequest) returns (SessionResult);
   rpc RefreshTokensSetLimits(SessionLimitsRequest) returns (RefreshTokenResult);
   rpc RefreshTokensRecordExchange(RefreshIIRequest) returns (Result);
   rpc DPoPUseProof(DPoPProofRequest) returns (Result);
@@ -1006,6 +1007,7 @@ message LoginSession {
   bytes auth_methods = 20; // Plan 33b (webauthn.v1); JSON [{name,type,at}], absent = unset
   StringMap metadata = 21;
   StringMap client_organizations = 22;
+  StringMap userinfo_claims = 24;
   bytes saml_participants = 23; // []store.SAMLParticipant JSON (Plan 37a, saml.v1)
 }
 
@@ -1997,3 +1999,5 @@ message CIBACallResult {
   Error error = 1;
   bytes result = 2; // JSON of the method's results
 }
+
+message SessionClaimsRequest {string tx_id=1;string tenant_id=2;string id=3;string client_id=4;string claims=5;}

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"slices"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -25,6 +26,27 @@ func newSession(tenantID, id, tokenHash string) *store.LoginSession {
 
 func testSessions(t *testing.T, newStore Factory) {
 	ctx := context.Background()
+	t.Run("UserinfoClaims", func(t *testing.T) {
+		s := open(t, newStore)
+		want := newSession("ten_a", "claims", "claims-hash")
+		want.UserinfoClaims = map[string]string{"a": `{"urn:one":true}`}
+		mustNoErr(t, s.Sessions().Create(ctx, want))
+		want.UserinfoClaims["a"] = "mutated"
+		got, err := s.Sessions().Get(ctx, "ten_a", want.ID)
+		mustNoErr(t, err)
+		mustEqual(t, got.UserinfoClaims["a"], `{"urn:one":true}`)
+		_, err = store.SetSessionClaims(ctx, s, "ten_a", want.ID, "b", `{"urn:two":true}`)
+		mustNoErr(t, err)
+		got, err = s.Sessions().Get(ctx, "ten_a", want.ID)
+		mustNoErr(t, err)
+		mustEqual(t, len(got.UserinfoClaims), 2)
+		_, err = store.SetSessionClaims(ctx, s, "ten_b", want.ID, "a", `{}`)
+		mustErrIs(t, err, store.ErrNotFound)
+		_, err = store.SetSessionClaims(ctx, s, "ten_a", want.ID, "a", `{"big":"`+strings.Repeat("x", 100000)+`"}`)
+		if err == nil {
+			t.Fatal("oversized claims accepted")
+		}
+	})
 
 	t.Run("ClientOrganization", func(t *testing.T) {
 		s := open(t, newStore)

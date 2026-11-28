@@ -1,7 +1,9 @@
 package oidc
 
 import (
+	"encoding/json"
 	"errors"
+	"github.com/zeroauthy/zeroauthy/internal/actions"
 	"mime"
 	"net/http"
 	"slices"
@@ -73,6 +75,7 @@ func (h *Handlers) Userinfo(w http.ResponseWriter, r *http.Request) {
 			AuthTime int64  `json:"auth_time"`
 			ACR      string `json:"acr"`
 		} `json:"https://zeroauthy.dev/userinfo"`
+		SessionID       string `json:"sid"`
 		Scope           string `json:"scope"`
 		OrgID           string `json:"org_id"`
 		OrgName         string `json:"org_name"`
@@ -163,6 +166,31 @@ func (h *Handlers) Userinfo(w http.ResponseWriter, r *http.Request) {
 	}
 	if extra.OrgName != "" {
 		body["org_name"] = extra.OrgName
+	}
+	if extra.SessionID != "" && extra.ClientID != "" {
+		session, e := h.Store.Sessions().Get(ctx, res.Tenant.ID, extra.SessionID)
+		if e != nil && !errors.Is(e, store.ErrNotFound) {
+			h.internalError(w, r, res.Tenant.ID, "load session claims", e)
+			return
+		}
+		if e == nil && session.UserID == user.UserID {
+			raw := session.UserinfoClaims[extra.ClientID]
+			if raw != "" {
+				var custom map[string]any
+				if store.ValidateSessionClaims(raw) != nil || json.Unmarshal([]byte(raw), &custom) != nil {
+					h.internalError(w, r, res.Tenant.ID, "decode session claims", store.ErrInvalid)
+					return
+				}
+				filtered, e := actions.FilterClaims(actions.ClaimIDToken, body, custom, false)
+				if e != nil {
+					h.internalError(w, r, res.Tenant.ID, "filter session claims", e)
+					return
+				}
+				for k, v := range filtered {
+					body[k] = v
+				}
+			}
+		}
 	}
 	httpx.WriteJSON(w, http.StatusOK, body)
 }

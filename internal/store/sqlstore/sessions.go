@@ -15,7 +15,7 @@ type sessions struct{ s *Store }
 func (s *Store) Sessions() store.Sessions { return sessions{s} }
 
 const sessionCols = `tenant_id, id, token_hash, user_id, connection, authenticated_at, client_ids, expires_at, idle_expires_at, created_at,
- updated_at, last_interacted_at, initial_ip, initial_user_agent, last_ip, last_user_agent, cookie_mode, origin, mfa_at, auth_methods, metadata, client_organizations, saml_participants`
+ updated_at, last_interacted_at, initial_ip, initial_user_agent, last_ip, last_user_agent, cookie_mode, origin, mfa_at, auth_methods, metadata, client_organizations, saml_participants, userinfo_claims`
 
 func (r sessions) Create(ctx context.Context, s *store.LoginSession) error {
 	clients, err := toJSON(s.ClientIDs)
@@ -26,10 +26,10 @@ func (r sessions) Create(ctx context.Context, s *store.LoginSession) error {
 	if err != nil {
 		return err
 	}
-	_, err = r.s.write(ctx, nil, `INSERT INTO sessions (`+sessionCols+`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+	_, err = r.s.write(ctx, nil, `INSERT INTO sessions (`+sessionCols+`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
 		s.TenantID, s.ID, s.TokenHash, s.UserID, s.Connection, micros(s.AuthenticatedAt), clients,
 		micros(s.ExpiresAt), micros(s.IdleExpiresAt), micros(s.CreatedAt),
-		micros(s.UpdatedAt), micros(s.LastInteractedAt), s.InitialIP, s.InitialUserAgent, s.LastIP, s.LastUserAgent, s.CookieMode, s.Origin, optionalMFATime(s.MFAAt), methods, jsonColumn{&s.Metadata}, jsonColumn{&s.ClientOrganizations}, jsonColumn{&s.SAMLParticipants})
+		micros(s.UpdatedAt), micros(s.LastInteractedAt), s.InitialIP, s.InitialUserAgent, s.LastIP, s.LastUserAgent, s.CookieMode, s.Origin, optionalMFATime(s.MFAAt), methods, jsonColumn{&s.Metadata}, jsonColumn{&s.ClientOrganizations}, jsonColumn{&s.SAMLParticipants}, jsonColumn{&s.UserinfoClaims})
 	return r.s.conflict(err)
 }
 
@@ -40,7 +40,7 @@ func scanSession(row scanner) (*store.LoginSession, error) {
 	var mfaAt sql.NullInt64
 	var methods sql.NullString
 	if err := row.Scan(&s.TenantID, &s.ID, &s.TokenHash, &s.UserID, &s.Connection, &authAt, &clients, &exp, &idle, &created,
-		&updated, &interacted, &s.InitialIP, &s.InitialUserAgent, &s.LastIP, &s.LastUserAgent, &s.CookieMode, &s.Origin, &mfaAt, &methods, jsonColumn{&s.Metadata}, jsonColumn{&s.ClientOrganizations}, jsonColumn{&s.SAMLParticipants}); err != nil {
+		&updated, &interacted, &s.InitialIP, &s.InitialUserAgent, &s.LastIP, &s.LastUserAgent, &s.CookieMode, &s.Origin, &mfaAt, &methods, jsonColumn{&s.Metadata}, jsonColumn{&s.ClientOrganizations}, jsonColumn{&s.SAMLParticipants}, jsonColumn{&s.UserinfoClaims}); err != nil {
 		return nil, err
 	}
 	if methods.Valid {
@@ -307,4 +307,26 @@ func (r sessions) RecordSAMLParticipant(ctx context.Context, tid, id string, p s
 		_, err = tx.exec(ctx, `UPDATE sessions SET client_ids = ?, saml_participants = ? WHERE tenant_id = ? AND id = ?`, ids, jsonColumn{&current.SAMLParticipants}, tid, id)
 		return err
 	})
+}
+
+func (r sessions) SetClaims(ctx context.Context, tid, id, client, raw string) (*store.LoginSession, error) {
+	if err := store.ValidateSessionClaims(raw); err != nil {
+		return nil, err
+	}
+	var out *store.LoginSession
+	err := r.s.WithTx(ctx, func(st store.Store) error {
+		tx := st.(*Store)
+		s, err := tx.Sessions().GetForUpdate(ctx, tid, id)
+		if err != nil {
+			return err
+		}
+		if s.UserinfoClaims == nil {
+			s.UserinfoClaims = map[string]string{}
+		}
+		s.UserinfoClaims[client] = raw
+		_, err = tx.exec(ctx, "UPDATE sessions SET userinfo_claims=? WHERE tenant_id=? AND id=?", jsonColumn{&s.UserinfoClaims}, tid, id)
+		out = s
+		return err
+	})
+	return out, err
 }

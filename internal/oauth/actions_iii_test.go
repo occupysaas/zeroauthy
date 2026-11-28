@@ -2,6 +2,7 @@ package oauth
 
 import (
 	"context"
+	"strings"
 	"testing"
 	"time"
 )
@@ -86,5 +87,39 @@ func TestSetPrimaryUserTokenGrantRefused(t *testing.T) {
 	status, body := f.token(t, pw("ropg", "ropg-secret", "alice@acme.test", "alice password 1", "audience", acmeAPI, "scope", "openid"))
 	if status != 403 || body["error"] != "access_denied" {
 		t.Fatalf("password grant: %d %v", status, body)
+	}
+}
+
+func TestUserinfoClaimsAfterRefresh(t *testing.T) {
+	f := newActionsFixture(t)
+	f.actions.PostLogin(t, f.tid, "claims", `exports.onExecutePostLogin=(event,api)=>{api.idToken.setCustomClaim("https://app.test/flow",event.refresh_token ? "refresh" : "login");};`)
+	code := f.authorize(t, "rt-spa", "https://rt.acme.test/cb", acmeUserScopes)
+	status, body := f.token(t, codeForm(code, "rt-spa", "https://rt.acme.test/cb", pkceVerifier))
+	if status != 200 {
+		t.Fatalf("%d %v", status, body)
+	}
+	raw := body["refresh_token"].(string)
+	rt := f.storedRT(t, raw)
+	s, err := f.st.Sessions().Get(context.Background(), f.tid, rt.SessionID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(s.UserinfoClaims["rt-spa"], `"login"`) {
+		t.Fatalf("login claims: %v", s.UserinfoClaims)
+	}
+	status, body = f.token(t, refreshForm("rt-spa", raw))
+	if status != 200 {
+		t.Fatalf("%d %v", status, body)
+	}
+	s, err = f.st.Sessions().Get(context.Background(), f.tid, rt.SessionID)
+	if err != nil || !strings.Contains(s.UserinfoClaims["rt-spa"], `"refresh"`) {
+		t.Fatalf("refresh claims: %+v %v", s, err)
+	}
+	var claims map[string]any
+	if err = f.keys.Verify(context.Background(), f.tid, body["access_token"].(string), &claims); err != nil {
+		t.Fatal(err)
+	}
+	if claims["sid"] != rt.SessionID {
+		t.Fatalf("access token lacks sid: %v", claims["sid"])
 	}
 }
