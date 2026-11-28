@@ -32,6 +32,10 @@ import (
 const envPrefix = "ZEROAUTHY_"
 
 type Config struct {
+	// TrustedJA3Header names a header overwritten by the terminating proxy; empty trusts none.
+	TrustedJA3Header string `koanf:"trusted_ja3_header"`
+	// TrustedJA4Header names a header overwritten by the terminating proxy; empty trusts none.
+	TrustedJA4Header string `koanf:"trusted_ja4_header"`
 	// Compat is read only from the three explicit NONCOMPLIANT environment switches.
 	Compat   compat.Switches `koanf:"-"`
 	Server   Server          `koanf:"server"`

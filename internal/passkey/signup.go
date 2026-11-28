@@ -242,3 +242,16 @@ func (s *Service) Signup(ctx context.Context, tid string, draft *store.User, raw
 	}
 	return &u, a, nil
 }
+
+// SignupWithSubject preserves the server-issued challenge binding when a
+// pre-registration Action chooses the final database subject. originalID is
+// captured by the caller before invoking tenant code; clients cannot set it.
+func (s *Service) SignupWithSubject(ctx context.Context, tid string, draft *store.User, originalID string, raw []byte, taken *Taken, userAgent string) (*store.User, *store.Authenticator, error) {
+	if taken == nil || taken.Binding.Purpose != PasskeyRegister || originalID == "" || taken.Binding.UserID != originalID || draft == nil || draft.TenantID != tid {
+		return nil, nil, ErrCeremony
+	}
+	proof := *taken
+	proof.Binding = taken.Binding
+	proof.Binding.UserID = draft.UserID
+	return s.Signup(ctx, tid, draft, raw, &proof, userAgent)
+}

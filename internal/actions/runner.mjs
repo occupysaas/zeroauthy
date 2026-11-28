@@ -326,6 +326,10 @@ function buildApi(req, commands, event, parse) {
 
   api.idToken = ns('idToken', ['setCustomClaim']);
   api.user = ns('user', ['setAppMetadata', 'setUserMetadata']);
+  api.user.setUserId = (id) => {
+    if (typeof id !== 'string' || !id || [...id].length > 255 || /\s/.test(id)) throw new TypeError('api.user.setUserId: invalid user ID');
+    return record('user.setUserId', [id]);
+  };
   api.validation = ns('validation', ['error']);
   api.transaction.setMetadata = (key, value) => {
     record('transaction.setMetadata', [key, value]);
@@ -431,23 +435,72 @@ function buildApi(req, commands, event, parse) {
   };
   api.rules = { wasExecuted: () => false };
   for (const name of unsupportedNamespaces) api[name] = unsupported(name);
-  api.refreshToken = ns('refreshToken', ['revoke']);
+  // Plan 40: api.session and api.refreshToken. Arguments are checked here so
+  // misuse throws inside the Action; the server checks them again.
+  const millis = (op, v) => { if (typeof v !== 'number' || !Number.isInteger(v) || v <= 0) throw new TypeError(`api.${op}: expects a positive time in milliseconds`); return v; };
+  const mdText = (op, s, what) => { if (typeof s !== 'string' || (what === 'key' && s === '') || [...s].length > 255) throw new TypeError(`api.${op}: ${what} must be a string of at most 255 characters`); return s; };
+  const metadataOps = (nsName, current) => {
+    const keys = new Set(Object.keys(current ?? {}));
+    return {
+      setMetadata(k, v) {
+        mdText(`${nsName}.setMetadata`, k, 'key'); mdText(`${nsName}.setMetadata`, v, 'value');
+        if (!keys.has(k) && keys.size >= 25) throw new RangeError(`api.${nsName}.setMetadata: metadata may hold at most 25 keys`);
+        keys.add(k);
+        return record(`${nsName}.setMetadata`, [k, v]);
+      },
+      deleteMetadata(k) { mdText(`${nsName}.deleteMetadata`, k, 'key'); keys.delete(k); return record(`${nsName}.deleteMetadata`, [k]); },
+      evictMetadata() { keys.clear(); return record(`${nsName}.evictMetadata`, []); },
+    };
+  };
+  const sess = event && event.session ? event.session : null;
+  api.session = {
+    revoke(reason, options) {
+      if (reason !== undefined && reason !== null && typeof reason !== 'string') throw new TypeError('api.session.revoke: reason must be a string');
+      if (options !== undefined && options !== null && typeof options !== 'object') throw new TypeError('api.session.revoke: options must be an object');
+      return record('session.revoke', [reason ?? null, options ?? null]);
+    },
+    setExpiresAt(t) { return record('session.setExpiresAt', [millis('session.setExpiresAt', t)]); },
+    setIdleExpiresAt(t) { return record('session.setIdleExpiresAt', [millis('session.setIdleExpiresAt', t)]); },
+    setCookieMode(mode) {
+      if (mode !== 'persistent' && mode !== 'non-persistent') throw new TypeError("api.session.setCookieMode: mode must be 'persistent' or 'non-persistent'");
+      return record('session.setCookieMode', [mode]);
+    },
+    ...metadataOps('session', req.state?.session_metadata ?? (sess && sess.metadata)),
+  };
+  // api.refreshToken exists only on refresh exchanges, as on Auth0 (X4).
+  const rt = event && event.refresh_token ? event.refresh_token : null;
+  api.refreshToken = rt ? {
+    revoke(reason) { return record('refreshToken.revoke', reason === undefined ? [] : [reason]); },
+    setExpiresAt(t) { return record('refreshToken.setExpiresAt', [millis('refreshToken.setExpiresAt', t)]); },
+    setIdleExpiresAt(t) { return record('refreshToken.setIdleExpiresAt', [millis('refreshToken.setIdleExpiresAt', t)]); },
+    ...metadataOps('refreshToken', req.state?.refresh_token_metadata ?? rt.metadata),
+  } : undefined;
   api.multifactor = ns('multifactor', ['enable']);
   // Plan 37a: api.samlResponse setters; the server validates each one.
   api.samlResponse = ns('samlResponse', ['setAttribute', 'setAudience', 'setRecipient', 'setCreateUpnClaim', 'setPassthroughClaimsWithNoMapping', 'setMapUnknownClaimsAsIs', 'setMapIdentities', 'setSignatureAlgorithm', 'setDigestAlgorithm', 'setDestination', 'setLifetimeInSeconds', 'setSignResponse', 'setNameIdentifierFormat', 'setNameIdentifierProbes', 'setAuthnContextClassRef', 'setSigningCert', 'setIncludeAttributeNameFormat', 'setTypedAttributes', 'setEncryptionCert', 'setEncryptionPublicKey', 'setCert', 'setKey', 'setRelayState', 'setIssuer', 'setEncryptionAlgorithm']);
   api.authentication = ns('authentication', ['challengeWith', 'challengeWithAny', 'enrollWith', 'enrollWithAny', 'setUserById', 'setUserByConnection', 'setOrganization', 'setActor']);
+  api.authentication.setPrimaryUser = (id) => {
+    if (typeof id !== 'string' || id === '') throw new TypeError('api.authentication.setPrimaryUser: primary_user_id must be a non-empty string');
+    return record('authentication.setPrimaryUser', [id]);
+  };
+  api.authentication.recordMethod = (u) => {
+    if (req.handler !== 'onContinuePostLogin') throw new Error('api.authentication.recordMethod is available only in onContinuePostLogin');
+    if (typeof u !== 'string') throw new TypeError('api.authentication.recordMethod: provider_url must be a string');
+    return record('authentication.recordMethod', [u]);
+  };
 
   // Only capabilities sent by the server are exposed. The same frozen
   // inventory drives Go's command allowlist; helper/read methods are local.
   const unsupportedMembers = new Set(req.unsupported_api ?? []);
   for (const member of req.api ?? []) {
     const [name, methodName] = member.split('.');
+    if (name === 'refreshToken' && api.refreshToken === undefined) continue;
     if (!selected[name]) selected[name] = {};
     if (unsupportedMembers.has(member)) selected[name][methodName] = unsupported(name)[methodName];
     else if (typeof api[name]?.[methodName] === 'function') selected[name][methodName] = api[name][methodName];
     else selected[name][methodName] = unsupported(name)[methodName];
   }
-  // Pre-registration's unsupported methods (including EA user.setUserId)
+  // Pre-registration's unsupported methods
   // must fail closed even when caught. Preserve existing triggers' capability
   // introspection and their explicitly unsupported namespaces.
   const guardedNamespaces = req.handler === 'onExecutePreUserRegistration' ? Object.keys(selected) : unsupportedNamespaces;

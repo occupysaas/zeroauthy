@@ -91,8 +91,9 @@ type Deps struct {
 
 	// Scripts runs custom database scripts; nil makes customized
 	// connections fail.
-	Scripts           *customdb.Client
-	TrustProxyHeaders bool
+	Scripts                            *customdb.Client
+	TrustedJA3Header, TrustedJA4Header string
+	TrustProxyHeaders                  bool
 
 	// Domains admits API custom domains and private origin aliases ahead of
 	// tenant resolution and constrains legacy forwarded-header trust; nil
@@ -271,7 +272,11 @@ func New(d Deps) http.Handler {
 					return err
 				}
 			}
-			return d.Logout.WithStore(tx).SessionsEnded(ctx, ended.TenantID, []*store.LoginSession{ended}, logout.RPLogout)
+			why := logout.RPLogout
+			if session.EndReason(ctx) == string(logout.SessionRevoked) {
+				why = logout.SessionRevoked
+			}
+			return d.Logout.WithStore(tx).SessionsEnded(ctx, ended.TenantID, []*store.LoginSession{ended}, why)
 		}
 		d.Sessions = &sessions
 	}
@@ -384,7 +389,8 @@ func New(d Deps) http.Handler {
 		})
 		tr.Use(d.Resolver.Middleware, limit, cors(d.Store), hostedPresentation(d.Store), func(next http.Handler) http.Handler {
 			return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				next.ServeHTTP(w, r.WithContext(logs.WithRecorder(r.Context(), d.Recorder)))
+				ctx := actions.WithSecurityContext(r.Context(), actions.SecurityContext(r, d.TrustedJA3Header, d.TrustedJA4Header))
+				next.ServeHTTP(w, r.WithContext(logs.WithRecorder(ctx, d.Recorder)))
 			})
 		})
 		proofService := &dpop.Service{Store: d.Store, Wrapper: d.Wrapper}

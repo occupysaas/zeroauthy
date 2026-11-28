@@ -231,6 +231,7 @@ func (h *Handlers) MarkFlowMFA(r *http.Request, res tenant.Resolved, sess *store
 }
 
 type consentGrantKey struct{}
+type consentScopesKey struct{}
 
 // commitLogin is the single boundary for non-Action authorization effects.
 // Cookie headers are staged by approve alongside code/device issuance.
@@ -251,6 +252,9 @@ func (h *Handlers) commitLogin(w http.ResponseWriter, r *http.Request, res tenan
 			return store.ErrPrecondition
 		}
 		user, e := h.Store.Users().GetForUpdate(ctx, res.Tenant.ID, sess.UserID)
+		if errors.Is(e, store.ErrNotFound) {
+			return errPrincipalGone
+		}
 		if e != nil {
 			return e
 		}
@@ -274,13 +278,88 @@ func (h *Handlers) commitLogin(w http.ResponseWriter, r *http.Request, res tenan
 			return err
 		}
 		txn.HostedState.Revision++
+		if eff != nil && eff.PrimaryUserID != "" {
+			if err = h.linkPrimary(ctx, res, sess, eff.PrimaryUserID, false); err != nil {
+				return err
+			}
+		}
+		if eff != nil && len(eff.RecordedMethods) > 0 {
+			// The session is created below with the external methods.
+			now := h.now()
+			for _, m := range eff.RecordedMethods {
+				sess.AuthMethods = append(sess.AuthMethods, store.AuthMethod{Name: m, At: now})
+			}
+			sess.MFAAt = now
+		}
 		token := secrets.RandomString(43)
 		sess.TokenHash = secrets.HashToken(token)
-		if err = h.Sessions.Commit(ctx, w, r, res.Tenant, sess, token); err != nil {
+		var opts []session.CommitOption
+		if eff != nil && eff.Session != nil {
+			se := eff.Session
+			if sess.Metadata, err = actions.ApplyMetadataOps(sess.Metadata, se.Metadata); err != nil {
+				return err
+			}
+			// The cookie mode chooses the tenant lifetimes; the expiry
+			// setters then only shorten them.
+			if se.CookieMode != "" {
+				sess.CookieMode = se.CookieMode
+			}
+			observed := *sess
+			opts = append(opts, func(s *store.LoginSession) {
+				capSessionLimits(s, se)
+				session.CapActionLimits(res.Tenant, s, &observed, h.now())
+			})
+		}
+		if err = h.Sessions.Commit(ctx, w, r, res.Tenant, sess, token, opts...); err != nil {
 			return err
 		}
 	} else {
 		txn, _ = ctx.Value(completionTxnKey{}).(*store.AuthTransaction)
+		if eff != nil && eff.Session != nil {
+			if err = h.applySessionEffects(ctx, w, r, res, sess, eff.Session); err != nil {
+				return err
+			}
+		}
+		if eff != nil && eff.PrimaryUserID != "" {
+			if err = h.linkPrimary(ctx, res, sess, eff.PrimaryUserID, true); err != nil {
+				return err
+			}
+		}
+		if eff != nil && len(eff.RecordedMethods) > 0 {
+			if err = h.recordMethods(ctx, res, sess, eff.RecordedMethods); err != nil {
+				return err
+			}
+		}
+	}
+	if eff != nil || h.Actions != nil || sess.UserinfoClaims[fr.ClientID] != "" {
+		var custom map[string]any
+		if eff != nil {
+			custom = eff.IDClaims
+		}
+		filtered, e := actions.FilterClaims(actions.ClaimIDToken, nil, custom, false)
+		if e != nil {
+			return e
+		}
+		raw, e := json.Marshal(filtered)
+		if e != nil {
+			return e
+		}
+		// A flow without claims needs no write unless it must clear this
+		// client's earlier claims. Keep the no-bindings path at one extra read.
+		if len(filtered) > 0 || sess.UserinfoClaims[fr.ClientID] != "" || (eff != nil && eff.FlowExecuted) {
+			current, e := h.Store.Sessions().GetForUpdate(ctx, res.Tenant.ID, sess.ID)
+			if e != nil {
+				return e
+			}
+			if current.UserID != sess.UserID {
+				return store.ErrPrecondition
+			}
+			if len(filtered) > 0 || current.UserinfoClaims[fr.ClientID] != "" {
+				if _, e = store.SetSessionClaims(ctx, h.Store, res.Tenant.ID, sess.ID, fr.ClientID, string(raw)); e != nil {
+					return e
+				}
+			}
+		}
 	}
 	if txn != nil && txn.Params[orglogin.InvitationIDParam] != "" {
 		if err = h.acceptInvitation(ctx, txn, sess, eff); err != nil {
@@ -310,15 +389,31 @@ func (h *Handlers) commitLogin(w http.ResponseWriter, r *http.Request, res tenan
 		if e != nil {
 			return e
 		}
-		if choice.UserID != sess.UserID || choice.Epoch != user.RememberBrowserEpoch {
+		// Remembered MFA proof belongs to the principal that performed it.
+		// Linking must not transfer that browser credential to another user.
+		if choice.UserID != sess.UserID && eff != nil && eff.PrimaryUserID != "" {
+			// Do not mint a remember cookie for the new principal.
+		} else if choice.UserID != sess.UserID || choice.Epoch != user.RememberBrowserEpoch {
 			return store.ErrPrecondition
 		}
-		if e = h.Sessions.SetMFABrowser(ctx, w, user, "remember"); e != nil {
-			return e
+		if choice.UserID == sess.UserID {
+			if e = h.Sessions.SetMFABrowser(ctx, w, user, "remember"); e != nil {
+				return e
+			}
 		}
 	}
 	if grant, ok := ctx.Value(consentGrantKey{}).(*store.UserGrant); ok {
-		if _, err = h.Store.UserGrants().Upsert(ctx, grant); err != nil {
+		copied := *grant
+		if grant.UserID != sess.UserID {
+			if eff == nil || eff.PrimaryUserID == "" {
+				return store.ErrPrecondition
+			}
+			copied.UserID = sess.UserID
+			// Consent collected for this request must not transfer older grants
+			// from the secondary to the primary.
+			copied.Scopes, _ = ctx.Value(consentScopesKey{}).([]string)
+		}
+		if _, err = h.Store.UserGrants().Upsert(ctx, &copied); err != nil {
 			return err
 		}
 	}
@@ -427,4 +522,41 @@ func (h *Handlers) HandleLoginAdmissionError(w http.ResponseWriter, r *http.Requ
 	}
 	h.refuse(w, r, res, client, fr, errAccessDenied(description))
 	return true
+}
+
+// applySessionEffects applies api.session calls to an existing session in
+// the commit transaction: capped expiries and cookie mode, metadata in call
+// order, and the cookie rewritten when its expiry or mode changed.
+func (h *Handlers) applySessionEffects(ctx context.Context, w http.ResponseWriter, r *http.Request, res tenant.Resolved, sess *store.LoginSession, se *actions.SessionEffects) error {
+	current, err := h.Store.Sessions().GetForUpdate(ctx, res.Tenant.ID, sess.ID)
+	if err != nil {
+		return err
+	}
+	if len(se.Metadata) > 0 {
+		md, err := actions.ApplyMetadataOps(current.Metadata, se.Metadata)
+		if err != nil {
+			return err
+		}
+		if current, err = h.Store.Sessions().UpdateMetadata(ctx, res.Tenant.ID, sess.ID, md); err != nil {
+			return err
+		}
+	}
+	if se.ExpiresAt == nil && se.IdleExpiresAt == nil && se.CookieMode == "" {
+		return nil
+	}
+	next := *current
+	capSessionLimits(&next, se)
+	session.CapActionLimits(res.Tenant, &next, sess, h.now())
+	if next.ExpiresAt.Equal(current.ExpiresAt) && next.IdleExpiresAt.Equal(current.IdleExpiresAt) && next.CookieMode == current.CookieMode {
+		return nil
+	}
+	updated, err := store.SetSessionLimits(ctx, h.Store, res.Tenant.ID, sess.ID, next.ExpiresAt, next.IdleExpiresAt, next.CookieMode)
+	if err != nil {
+		return err
+	}
+	if !updated.ExpiresAt.Equal(current.ExpiresAt) || updated.CookieMode != current.CookieMode {
+		h.Sessions.Reissue(w, r, updated)
+	}
+	*sess = *updated
+	return nil
 }

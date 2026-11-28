@@ -2,6 +2,7 @@ package grpcstore
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"sync"
 	"sync/atomic"
@@ -447,6 +448,51 @@ func (s *Server) sessionsUpdateMetadata(ctx context.Context, q *pb.RefreshIIRequ
 	return &pb.SessionResult{Value: v, Error: e}, err
 }
 
+// SetLimits sets session expiries and the cookie mode (Plan 40). A plugin
+// built before the RPC answers Unimplemented: unavailable.
+func (r clientSessions) SetLimits(ctx context.Context, tid, id string, expiresAt, idleExpiresAt time.Time, cookieMode string) (*store.LoginSession, error) {
+	if err := r.c.requireRefreshII(ctx); err != nil {
+		return nil, err
+	}
+	res, err := r.c.rpc.SessionsSetLimits(ctx, &pb.SessionLimitsRequest{TxId: r.c.txID, TenantId: tid, Id: id, ExpiresAt: tsToPB(expiresAt), IdleExpiresAt: tsToPB(idleExpiresAt), CookieMode: cookieMode})
+	if status.Code(err) == codes.Unimplemented {
+		return nil, store.ErrSessionLimitsUnavailable
+	}
+	if err = r.c.refreshResult("SessionsSetLimits", res, err); err != nil {
+		return nil, err
+	}
+	return sessionFromPB(res.Value)
+}
+
+func (s *Server) SessionsSetLimits(ctx context.Context, q *pb.SessionLimitsRequest) (*pb.SessionResult, error) {
+	v, e, err := one(s, q.TxId, func(st store.Store) (*store.LoginSession, error) {
+		return store.SetSessionLimits(ctx, st, q.TenantId, q.Id, tsFromPB(q.ExpiresAt), tsFromPB(q.IdleExpiresAt), q.CookieMode)
+	}, sessionToPB)
+	return &pb.SessionResult{Value: v, Error: e}, err
+}
+
+// SetLimits sets refresh-token expiries (Plan 40).
+func (r clientRefreshTokens) SetLimits(ctx context.Context, tid, id string, expiresAt, idleExpiresAt time.Time) (*store.RefreshToken, error) {
+	if err := r.c.requireRefreshII(ctx); err != nil {
+		return nil, err
+	}
+	res, err := r.c.rpc.RefreshTokensSetLimits(ctx, &pb.SessionLimitsRequest{TxId: r.c.txID, TenantId: tid, Id: id, ExpiresAt: tsToPB(expiresAt), IdleExpiresAt: tsToPB(idleExpiresAt)})
+	if status.Code(err) == codes.Unimplemented {
+		return nil, store.ErrSessionLimitsUnavailable
+	}
+	if err = r.c.refreshResult("RefreshTokensSetLimits", res, err); err != nil {
+		return nil, err
+	}
+	return refreshTokenFromPB(res.Value)
+}
+
+func (s *Server) RefreshTokensSetLimits(ctx context.Context, q *pb.SessionLimitsRequest) (*pb.RefreshTokenResult, error) {
+	v, e, err := one(s, q.TxId, func(st store.Store) (*store.RefreshToken, error) {
+		return store.SetRefreshTokenLimits(ctx, st, q.TenantId, q.Id, tsFromPB(q.ExpiresAt), tsFromPB(q.IdleExpiresAt))
+	}, refreshTokenToPB)
+	return &pb.RefreshTokenResult{Value: v, Error: e}, err
+}
+
 func (r clientRefreshTokens) ListByUserPage(ctx context.Context, tid, user, client, from string, take int) ([]*store.RefreshToken, string, error) {
 	if err := r.c.requireRefreshII(ctx); err != nil {
 		return nil, "", err
@@ -529,4 +575,35 @@ func (s *Server) refreshTokensRevokeOfflineByUser(ctx context.Context, q *pb.Ref
 	return count(s, q.TxId, func(st store.Store) (int, error) {
 		return st.RefreshTokens().RevokeOfflineByUser(ctx, q.TenantId, q.UserId, q.ClientId, aud, tsFromPB(q.At))
 	}), nil
+}
+
+func (r clientSessions) SetClaims(ctx context.Context, tid, id, client, raw string) (*store.LoginSession, error) {
+	res, err := r.c.rpc.SessionsSetClaims(ctx, &pb.SessionClaimsRequest{TxId: r.c.txID, TenantId: tid, Id: id, ClientId: client, Claims: raw})
+	if status.Code(err) == codes.Unimplemented {
+		if store.ValidateSessionClaims(raw) != nil {
+			return nil, store.ErrInvalid
+		}
+		var claims map[string]any
+		_ = json.Unmarshal([]byte(raw), &claims)
+		if len(claims) == 0 {
+			current, e := r.Get(ctx, tid, id)
+			if e != nil {
+				return nil, e
+			}
+			if current.UserinfoClaims[client] == "" {
+				return current, nil
+			}
+		}
+		return nil, store.ErrSessionLimitsUnavailable
+	}
+	if err = r.c.refreshResult("SessionsSetClaims", res, err); err != nil {
+		return nil, err
+	}
+	return sessionFromPB(res.Value)
+}
+func (s *Server) SessionsSetClaims(ctx context.Context, q *pb.SessionClaimsRequest) (*pb.SessionResult, error) {
+	v, e, err := one(s, q.TxId, func(st store.Store) (*store.LoginSession, error) {
+		return store.SetSessionClaims(ctx, st, q.TenantId, q.Id, q.ClientId, q.Claims)
+	}, sessionToPB)
+	return &pb.SessionResult{Value: v, Error: e}, err
 }

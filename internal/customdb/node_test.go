@@ -584,3 +584,21 @@ func TestRunnerCapturesConsoleOutput(t *testing.T) {
 		t.Errorf("logs on error = %q", got)
 	}
 }
+
+func TestScriptContextFrozen(t *testing.T) {
+	r := newRunner(t, config.CustomDB{})
+	raw, err := r.Execute(context.Background(), Request{TenantID: "t", ConnectionID: "c", Script: "login", Source: `function login(e,p,context,cb){cb(null,{frozen:Object.isFrozen(context)&&Object.isFrozen(context.organization),id:context.organization.id});}`, Args: []any{"a", "password"}, Context: map[string]any{"organization": map[string]any{"id": "org"}}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	mustJSON(t, raw, `{"frozen":true,"id":"org"}`)
+}
+
+func TestScriptContextOldSignature(t *testing.T) {
+	r := newRunner(t, config.CustomDB{})
+	raw, err := r.Execute(context.Background(), Request{TenantID: "t", ConnectionID: "c", Script: "login", Source: `function login(e,p,cb){cb(null,{old:true});}`, Args: []any{"a", "password"}, Context: map[string]any{}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	mustJSON(t, raw, `{"old":true}`)
+}

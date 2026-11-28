@@ -84,10 +84,19 @@ func TestTriggerAPIs(t *testing.T) {
 		for _, tc := range []struct{ code, want string }{
 			{`api.transaction.setResultUrl('https://app.test/done?keep=yes&status=old#end',{query:{status:'ok',count:2,valid:true}});`, "https://app.test/done?count=2&keep=yes&status=ok&valid=true#end"},
 			{`api.transaction.setResultUrl('http://localhost:3000/done');`, "http://localhost:3000/done"},
+			{`api.transaction.setResultUrl('https://app.test/done',null);`, "https://app.test/done"},
 		} {
 			a, _, err := triggerTestRun(t, e, buildID, "password-reset-post-challenge", "onExecutePostChallenge", tc.code)
 			if err != nil || a.resultURL != tc.want {
 				t.Errorf("url=%s err=%v want %s", a.resultURL, err, tc.want)
+			}
+		}
+	})
+	t.Run("invalid_result_query_options", func(t *testing.T) {
+		for _, options := range []string{`[]`, `{query:[]}`, `{query:null}`, `{query:{nested:{value:1}}}`, `{query:{values:[1]}}`} {
+			_, _, err := triggerTestRun(t, e, buildID, "password-reset-post-challenge", "onExecutePostChallenge", `api.transaction.setResultUrl('https://app.test/done',`+options+`);`)
+			if errorID(err) != "invalid_api_call" {
+				t.Errorf("options %s: %v", options, err)
 			}
 		}
 	})
@@ -264,8 +273,9 @@ func TestTriggerEvents(t *testing.T) {
 	}
 	for _, tc := range cases {
 		if tc.name == "post-login" {
-			tc.want = strings.Replace(tc.want, `{"authorization":`, `{"authentication":{"methods":[]},"authorization":`, 1)
-			tc.want = strings.Replace(tc.want, `"user":{`, `"user":{"enrolledFactors":[],`, 1)
+			tc.want = strings.Replace(tc.want, `{"authorization":`, `{"authentication":{"methods":[],"riskAssessment":{"confidence":"low","assessments":{"NewDevice":{"code":"unknown_device","confidence":"low"},"UntrustedIP":{"code":"not_found_on_deny_list","confidence":"high"},"ImpossibleTravel":{"code":"missing_geoip","confidence":"neutral"},"AgentDetection":{"code":"unknown","confidence":"neutral"}}}},"security_context":{"ja3":null,"ja4":null},"authorization":`, 1)
+			tc.want = strings.Replace(tc.want, `"transaction":{"id":""`, `"transaction":{"id":"","linking_id":""`, 1)
+			tc.want = strings.Replace(tc.want, `"user":{`, `"user":{"enrolledFactors":[],"multifactor":[],"last_password_reset":"2026-10-28T12:00:00Z",`, 1)
 		}
 		t.Run(tc.name, func(t *testing.T) {
 			var want any
@@ -279,7 +289,7 @@ func TestTriggerEvents(t *testing.T) {
 				t.Errorf("event = %s\nwant = %s", got, tc.want)
 			}
 			for _, forbidden := range []string{"SECRET", `"geoip"`, `"security_context"`, `"authentication"`} {
-				if strings.Contains(got, forbidden) && !(tc.name == "post-login" && forbidden == `"authentication"`) {
+				if strings.Contains(got, forbidden) && !(tc.name == "post-login" && (forbidden == `"authentication"` || forbidden == `"security_context"`)) {
 					t.Errorf("event leaked %s", forbidden)
 				}
 			}

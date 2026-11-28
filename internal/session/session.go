@@ -172,7 +172,11 @@ func (m *Manager) Prepare(ctx context.Context, r *http.Request, t *store.Tenant,
 
 // Commit persists prepared evidence. The caller owns the transaction and must
 // buffer the response cookie until that transaction has committed.
-func (m *Manager) Commit(ctx context.Context, w http.ResponseWriter, r *http.Request, t *store.Tenant, s *store.LoginSession, token string) error {
+// CommitOption adjusts a session after its lifetimes are computed and
+// before it is stored and its cookie set (Plan 40 api.session effects).
+type CommitOption func(*store.LoginSession)
+
+func (m *Manager) Commit(ctx context.Context, w http.ResponseWriter, r *http.Request, t *store.Tenant, s *store.LoginSession, token string, opts ...CommitOption) error {
 	// The SSO lifetime starts when the session is created. Authentication evidence
 	// retains the original first-factor time and methods across slow MFA/consent.
 	now := m.now()
@@ -182,6 +186,9 @@ func (m *Manager) Commit(ctx context.Context, w http.ResponseWriter, r *http.Req
 	s.CreatedAt = now
 	s.UpdatedAt = now
 	s.LastInteractedAt = now
+	for _, opt := range opts {
+		opt(s)
+	}
 
 	if old, err := r.Cookie(CookieName); err == nil && old.Value != "" {
 		previous, err := m.Store.Sessions().GetByTokenHash(ctx, t.ID, secrets.HashToken(old.Value))
@@ -197,6 +204,22 @@ func (m *Manager) Commit(ctx context.Context, w http.ResponseWriter, r *http.Req
 	if err := m.Store.Sessions().Create(ctx, s); err != nil {
 		return err
 	}
+	writeCookie(w, token, s)
+	return nil
+}
+
+// Reissue rewrites the request's session cookie for s after its expiry or
+// cookie mode changed. The cookie must be s's own; otherwise nothing is
+// written.
+func (m *Manager) Reissue(w http.ResponseWriter, r *http.Request, s *store.LoginSession) {
+	c, err := r.Cookie(CookieName)
+	if err != nil || c.Value == "" || secrets.HashToken(c.Value) != s.TokenHash {
+		return
+	}
+	writeCookie(w, c.Value, s)
+}
+
+func writeCookie(w http.ResponseWriter, token string, s *store.LoginSession) {
 	cookie := &http.Cookie{
 		Name:     CookieName,
 		Value:    token,
@@ -212,7 +235,6 @@ func (m *Manager) Commit(ctx context.Context, w http.ResponseWriter, r *http.Req
 		cookie.Expires = time.Time{}
 	}
 	http.SetCookie(w, cookie)
-	return nil
 }
 
 // AddClient records that clientID received tokens through s.
@@ -385,4 +407,88 @@ func (m *Manager) AddClientOrganization(ctx context.Context, s *store.LoginSessi
 	}
 	s.ClientOrganizations[client.ClientID] = orgID
 	return nil
+}
+
+// CapActionLimits caps stored and prospective sessions against the deadlines
+// observed by the Action and today's policy for the selected cookie mode.
+func CapActionLimits(t *store.Tenant, s *store.LoginSession, observed *store.LoginSession, now time.Time) {
+	if observed != nil {
+		if !observed.ExpiresAt.IsZero() {
+			s.ExpiresAt = minTime(s.ExpiresAt, observed.ExpiresAt)
+		}
+		if !observed.IdleExpiresAt.IsZero() {
+			s.IdleExpiresAt = minTime(s.IdleExpiresAt, observed.IdleExpiresAt)
+		}
+	}
+	absolute, idle := lifetimes(t, s.CookieMode)
+	start := s.CreatedAt
+	if start.IsZero() {
+		start = now
+	}
+	last := s.LastInteractedAt
+	if last.IsZero() {
+		last = now
+	}
+	s.ExpiresAt = minTime(s.ExpiresAt, expiry(start, absolute))
+	s.IdleExpiresAt = minTime(s.IdleExpiresAt, expiry(last, idle))
+	s.IdleExpiresAt = minTime(s.IdleExpiresAt, s.ExpiresAt)
+}
+
+type endReasonKey struct{}
+
+func WithEndReason(ctx context.Context, reason string) context.Context {
+	return context.WithValue(ctx, endReasonKey{}, reason)
+}
+func EndReason(ctx context.Context) string { v, _ := ctx.Value(endReasonKey{}).(string); return v }
+
+// RevokeFromAction keeps offline-family revocation effective even if ordinary
+// logout removed the session during the Action. Callbacks use the same tx.
+func RevokeFromAction(ctx context.Context, st store.Store, sess *store.LoginSession, preserve bool, at time.Time, onEnd func(context.Context, store.Store, *store.LoginSession) error) error {
+	if sess == nil {
+		return nil
+	}
+	ctx = WithEndReason(ctx, "session-revoked")
+	return st.WithTx(ctx, func(tx store.Store) error {
+		if _, e := tx.Tenants().Get(ctx, sess.TenantID); e != nil {
+			return e
+		}
+		current, e := tx.Sessions().GetForUpdate(ctx, sess.TenantID, sess.ID)
+		if e != nil && !errors.Is(e, store.ErrNotFound) {
+			return e
+		}
+		owners, e := tx.RefreshTokens().SessionOwners(ctx, sess.TenantID, sess.ID)
+		if e != nil {
+			return e
+		}
+		owners = append(owners, sess.UserID)
+		if current != nil {
+			owners = append(owners, current.UserID)
+		}
+		slices.Sort(owners)
+		owners = slices.Compact(owners)
+		for _, uid := range owners {
+			if _, e := tx.Users().GetForUpdate(ctx, sess.TenantID, uid); e != nil && !errors.Is(e, store.ErrNotFound) {
+				return e
+			}
+		}
+		if !preserve {
+			if _, e := tx.RefreshTokens().RevokeBySession(ctx, sess.TenantID, sess.ID, at); e != nil {
+				return e
+			}
+		}
+		for _, uid := range owners {
+			if _, e := tx.Users().BumpVersion(ctx, sess.TenantID, uid); e != nil && !errors.Is(e, store.ErrNotFound) {
+				return e
+			}
+		}
+		if current != nil {
+			if e := tx.Sessions().Delete(ctx, sess.TenantID, sess.ID); e != nil {
+				return e
+			}
+			if onEnd != nil {
+				return onEnd(ctx, tx, current)
+			}
+		}
+		return nil
+	})
 }

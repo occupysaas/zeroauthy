@@ -16972,10 +16972,13 @@ type SystemActionExecution struct {
 			Id      string `json:"id"`
 			Message string `json:"message"`
 		} `json:"error,omitempty"`
-		JobAttempt *int      `json:"job_attempt,omitempty"`
-		JobId      *string   `json:"job_id,omitempty"`
-		Logs       []string  `json:"logs"`
-		StartedAt  time.Time `json:"started_at"`
+		JobAttempt *int     `json:"job_attempt,omitempty"`
+		JobId      *string  `json:"job_id,omitempty"`
+		Logs       []string `json:"logs"`
+
+		// RequestedEffects Validated Action effect operation names only; requested during this execution, applied by the enclosing flow on success.
+		RequestedEffects *[]string `json:"requested_effects,omitempty"`
+		StartedAt        time.Time `json:"started_at"`
 	} `json:"results"`
 	Status    string    `json:"status"`
 	TriggerId string    `json:"trigger_id"`

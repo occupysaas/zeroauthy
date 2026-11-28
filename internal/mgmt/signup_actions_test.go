@@ -18,6 +18,7 @@ func TestSignupPostRegistrationManagementBypass(t *testing.T) {
 	ae.Bind(t, e.tn.ID, actions.TriggerPostUserRegistration, ae.Deploy(t, e.tn.ID, actions.TriggerPostUserRegistration, "post", `exports.onExecutePostUserRegistration=()=>{throw Error('must not run')};`))
 	counts := &actionstest.Counts{}
 	e.h.Store = actionstest.CountingStore{Store: e.st, Counts: counts}
+	ae.Engine.Store = e.h.Store
 	out := e.mustCreate(t, map[string]any{"email": "management@x.test"})
 	if out["email"] != "management@x.test" {
 		t.Fatalf("created %v", out)

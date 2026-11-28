@@ -1,8 +1,11 @@
 package oauth
 
 import (
+	"time"
+
 	"context"
 	"errors"
+	"github.com/zeroauthy/zeroauthy/internal/logout"
 	"net/http"
 	"net/url"
 	"slices"
@@ -11,6 +14,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/access"
 	"github.com/zeroauthy/zeroauthy/internal/actions"
 	"github.com/zeroauthy/zeroauthy/internal/logs"
+	"github.com/zeroauthy/zeroauthy/internal/session"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/tenant"
 )
@@ -27,6 +31,7 @@ func withRequestInfo(ctx context.Context, r *http.Request, ip string, form url.V
 	lang, _, _ := strings.Cut(r.Header.Get("Accept-Language"), ",")
 	lang, _, _ = strings.Cut(lang, ";")
 	return context.WithValue(ctx, requestInfoKey{}, actions.RequestInfo{
+		SecurityContext: actions.SecurityContextFrom(ctx), CorrelationID: actions.CorrelationID(r),
 		IP: ip, Hostname: r.Host, Method: r.Method, UserAgent: r.UserAgent(), Language: strings.TrimSpace(lang),
 		Query: map[string]any{}, Body: body,
 	})
@@ -113,10 +118,125 @@ func (h *Handlers) postLogin(ctx context.Context, res tenant.Resolved, c *store.
 		}
 		return nil, invalidGrant("the refresh token was revoked")
 	}
+
+	if se := result.Effects.Session; se != nil && se.Revoke != nil {
+		// api.session.revoke on a token grant ends the grant's session (Plan 40).
+		if f.session != nil {
+			if e := h.revokeActionSession(ctx, res, f.session, se.Revoke.PreserveRefreshTokens); e != nil {
+				return nil, serverError()
+			}
+		}
+		reason := se.Revoke.Reason
+		if reason == "" {
+			reason = "the session was revoked"
+		}
+		return nil, &Error{Status: http.StatusForbidden, Code: "access_denied", Description: reason}
+	}
 	if d := result.Denied; d != nil {
 		return nil, &Error{Status: http.StatusForbidden, Code: d.Code, Description: d.Reason}
 	}
+	if result.Effects.PrimaryUserID != "" {
+		// Account linking from an Action needs the browser flow's session
+		// (Plan 40); a token grant is refused rather than issuing for the
+		// secondary.
+		return nil, &Error{Status: http.StatusForbidden, Code: "access_denied", Description: "setPrimaryUser is not supported on this grant"}
+	}
+	if se := result.Effects.Session; se != nil && f.session != nil && f.refreshToken == nil {
+		if e := h.applyActionSession(ctx, res, f.session, se); e != nil {
+			return nil, serverError()
+		}
+	}
 	return &result.Effects, nil
+}
+
+// revokeActionSession ends sess for api.session.revoke on a token grant: its
+// refresh tokens are revoked unless preserved, the user's version bumps, the
+// session is deleted and back-channel logout is queued, in one transaction.
+func (h *Handlers) revokeActionSession(ctx context.Context, res tenant.Resolved, sess *store.LoginSession, preserve bool) error {
+	return session.RevokeFromAction(ctx, h.Store, sess, preserve, h.now(), func(ctx context.Context, tx store.Store, current *store.LoginSession) error {
+		if h.Logout != nil {
+			return h.Logout.WithStore(tx).SessionsEnded(ctx, res.Tenant.ID, []*store.LoginSession{current}, logout.SessionRevoked)
+		}
+		return nil
+	})
+}
+
+// applyActionSession applies api.session setters and metadata calls on a
+// token grant's session: expiries only shorten (LR40-3); no cookie exists
+// here, so the cookie mode is stored for the next browser request.
+func (h *Handlers) applyActionSession(ctx context.Context, res tenant.Resolved, sess *store.LoginSession, se *actions.SessionEffects) error {
+	tid := res.Tenant.ID
+	return h.Store.WithTx(ctx, func(tx store.Store) error {
+		current, err := tx.Sessions().GetForUpdate(ctx, tid, sess.ID)
+		if errors.Is(err, store.ErrNotFound) {
+			return nil
+		}
+		if err != nil {
+			return err
+		}
+		if len(se.Metadata) > 0 {
+			md, err := actions.ApplyMetadataOps(current.Metadata, se.Metadata)
+			if err != nil {
+				return err
+			}
+			if current, err = tx.Sessions().UpdateMetadata(ctx, tid, sess.ID, md); err != nil {
+				return err
+			}
+		}
+		if se.ExpiresAt == nil && se.IdleExpiresAt == nil && se.CookieMode == "" {
+			return nil
+		}
+		exp, idle := shortenLimits(current.ExpiresAt, current.IdleExpiresAt, se.ExpiresAt, se.IdleExpiresAt)
+		mode := current.CookieMode
+		if se.CookieMode != "" {
+			mode = se.CookieMode
+		}
+		next := *current
+		next.ExpiresAt, next.IdleExpiresAt, next.CookieMode = exp, idle, mode
+		session.CapActionLimits(res.Tenant, &next, sess, h.now())
+		_, err = store.SetSessionLimits(ctx, tx, tid, sess.ID, next.ExpiresAt, next.IdleExpiresAt, next.CookieMode)
+		return err
+	})
+}
+
+// shortenLimits caps requested absolute and idle expiries by the current
+// ones (zero current meaning never) and keeps idle within absolute.
+func shortenLimits(curAbs, curIdle time.Time, reqAbs, reqIdle *time.Time) (time.Time, time.Time) {
+	abs, idle := curAbs, curIdle
+	if reqAbs != nil && (abs.IsZero() || reqAbs.Before(abs)) {
+		abs = *reqAbs
+	}
+	if reqIdle != nil && (idle.IsZero() || reqIdle.Before(idle)) {
+		idle = *reqIdle
+	}
+	if !abs.IsZero() && !idle.IsZero() && idle.After(abs) {
+		idle = abs
+	}
+	return abs, idle
+}
+
+// applyRefreshTokenEffects applies api.refreshToken setters and metadata to
+// the live token of the family (the successor when it rotated) inside the
+// mint transaction.
+func applyRefreshTokenEffects(ctx context.Context, tx store.Store, tid string, live *store.RefreshToken, re *actions.RefreshTokenEffects) error {
+	if re == nil || live == nil {
+		return nil
+	}
+	if len(re.Metadata) > 0 {
+		md, err := actions.ApplyMetadataOps(live.Metadata, re.Metadata)
+		if err != nil {
+			return err
+		}
+		if live, err = tx.RefreshTokens().UpdateMetadata(ctx, tid, live.ID, md); err != nil {
+			return err
+		}
+	}
+	if re.ExpiresAt == nil && re.IdleExpiresAt == nil {
+		return nil
+	}
+	exp, idle := shortenLimits(live.ExpiresAt, live.IdleExpiresAt, re.ExpiresAt, re.IdleExpiresAt)
+	_, err := store.SetRefreshTokenLimits(ctx, tx, tid, live.ID, exp, idle)
+	return err
 }
 
 // targetScopes is scopes after the flow's transaction target-scope edits,

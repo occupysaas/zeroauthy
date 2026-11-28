@@ -978,6 +978,7 @@ func sessionToPB(s *store.LoginSession) (*storev1.LoginSession, error) {
 		return nil, err
 	}
 	return &storev1.LoginSession{
+		UserinfoClaims:      stringMapToPB(s.UserinfoClaims),
 		SamlParticipants:    participants,
 		ClientOrganizations: stringMapToPB(s.ClientOrganizations),
 		Metadata:            stringMapToPB(s.Metadata),
@@ -1010,6 +1011,7 @@ func sessionFromPB(pb *storev1.LoginSession) (*store.LoginSession, error) {
 		return nil, err
 	}
 	return &store.LoginSession{
+		UserinfoClaims:      stringMapFromPB(pb.UserinfoClaims),
 		SAMLParticipants:    participants,
 		ClientOrganizations: stringMapFromPB(pb.ClientOrganizations),
 		Metadata:            stringMapFromPB(pb.Metadata),

@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/zeroauthy/zeroauthy/internal/customdomain"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/tenant"
 	"github.com/zeroauthy/zeroauthy/internal/userrules"
@@ -36,6 +37,8 @@ const (
 // RequestInfo is event.request: the HTTP request that triggered the flow.
 // geoip and asn are omitted (D-0053).
 type RequestInfo struct {
+	CorrelationID                             string
+	SecurityContext                           map[string]any
 	IP, Hostname, Method, UserAgent, Language string
 	// Origin is the resolved public origin, set by the HTTP handler.
 	Origin      string
@@ -46,6 +49,7 @@ type RequestInfo struct {
 // uses its Protocol and RequestedScopes; post-login preserves the existing
 // PostLoginInput.Protocol and RequestedScopes fields.
 type TransactionInfo struct {
+	LinkingID                                                                     string
 	ID, RedirectURI, State, Locale                                                string
 	Protocol, ResponseMode, ResponseType, UILocales, Prompt, LoginHint, ACRValues string
 	RequestedScopes                                                               []string
@@ -112,6 +116,8 @@ type EmailInput struct {
 
 // PostLoginInput is everything a post-login flow sees.
 type PostLoginInput struct {
+	Risk         RiskInput
+	CustomDomain *customdomain.PublicDomain
 	// PendingMembership is a validated auto-enrollment intent: until committed,
 	// the event includes tenant roles only and token permissions stay personal.
 	PendingMembership bool
@@ -298,7 +304,9 @@ func sessionEvent(s *store.LoginSession) map[string]any {
 	}
 	return map[string]any{"id": s.ID, "created_at": rfc3339(s.CreatedAt), "updated_at": rfc3339(s.UpdatedAt),
 		"authenticated_at": rfc3339(s.AuthenticatedAt), "last_interacted_at": rfc3339(s.LastInteractedAt),
-		"expires_at": rfc3339(s.ExpiresAt), "idle_expires_at": rfc3339(s.IdleExpiresAt), "metadata": md}
+		"expires_at": rfc3339(s.ExpiresAt), "idle_expires_at": rfc3339(s.IdleExpiresAt), "metadata": md,
+		"user_id": s.UserID, "clients": sessionClients(s.ClientIDs), "cookie": map[string]any{"mode": s.CookieMode},
+		"device": map[string]any{"initial_ip": s.InitialIP, "initial_user_agent": s.InitialUserAgent, "last_ip": s.LastIP, "last_user_agent": s.LastUserAgent}}
 }
 
 func organizationEvent(o *store.Organization) map[string]any {
@@ -327,7 +335,7 @@ func postLoginEvent(in *PostLoginInput, roleNames []string, a *accum) map[string
 		"tenant":        tenantEvent(in.Tenant),
 		"authorization": map[string]any{"roles": strs(roleNames)},
 		"transaction": map[string]any{
-			"id": in.Transaction.ID, "protocol": in.Protocol, "redirect_uri": in.Transaction.RedirectURI,
+			"id": in.Transaction.ID, "linking_id": in.Transaction.LinkingID, "protocol": in.Protocol, "redirect_uri": in.Transaction.RedirectURI,
 			"state": in.Transaction.State, "locale": in.Transaction.Locale,
 			"requested_scopes": strs(in.RequestedScopes), "target_scopes": strs(a.target),
 			"metadata": obj(a.eff.TxnMetadata),
@@ -339,11 +347,29 @@ func postLoginEvent(in *PostLoginInput, roleNames []string, a *accum) map[string
 			factors = []map[string]any{}
 		}
 		user["enrolledFactors"] = factors
+		multifactor := []string{}
+		for _, f := range factors {
+			typ, _ := f["type"].(string)
+			name := typ
+			switch typ {
+			case "otp":
+				name = "google-authenticator"
+			case "phone", "push-notification":
+				name = "guardian"
+			}
+			if !slices.Contains(multifactor, name) {
+				multifactor = append(multifactor, name)
+			}
+		}
+		user["multifactor"] = multifactor
+		if in.Connection != nil && in.Connection.Strategy == "auth0" && in.User.LastPasswordReset != nil {
+			user["last_password_reset"] = rfc3339(*in.User.LastPasswordReset)
+		}
 	}
 	methods := []any{}
 	if in.Session != nil {
 		for _, m := range in.Session.AuthMethods {
-			if slices.Contains([]string{"pwd", "passkey", "federated", "email", "sms"}, m.Name) {
+			if slices.Contains([]string{"pwd", "passkey", "federated", "email", "sms"}, m.Name) || strings.HasPrefix(m.Name, "https://") {
 				methods = append(methods, map[string]any{"name": m.Name, "timestamp": rfc3339(m.At)})
 			}
 		}
@@ -351,7 +377,17 @@ func postLoginEvent(in *PostLoginInput, roleNames []string, a *accum) map[string
 	if in.Session != nil && !in.Session.MFAAt.IsZero() {
 		methods = append(methods, map[string]any{"name": "mfa", "timestamp": rfc3339(in.Session.MFAAt)})
 	}
-	ev["authentication"] = map[string]any{"methods": methods}
+	ev["authentication"] = map[string]any{"methods": methods, "riskAssessment": AssessRisk(in.Risk)}
+	ev["security_context"] = in.Request.SecurityContext
+	if in.Request.SecurityContext == nil {
+		ev["security_context"] = map[string]any{"ja3": nil, "ja4": nil}
+	}
+	if in.CustomDomain != nil {
+		ev["custom_domain"] = map[string]any{"domain": in.CustomDomain.Domain, "domain_metadata": in.CustomDomain.Metadata}
+	}
+	if in.Request.CorrelationID != "" {
+		ev["transaction"].(map[string]any)["correlation_id"] = in.Request.CorrelationID
+	}
 	if in.Organization != nil {
 		ev["organization"] = organizationEvent(in.Organization)
 	}
@@ -373,7 +409,29 @@ func postLoginEvent(in *PostLoginInput, roleNames []string, a *accum) map[string
 		if md == nil {
 			md = map[string]string{}
 		}
-		ev["refresh_token"] = map[string]any{"id": rt.ID, "access": access, "metadata": md, "created_at": rfc3339(rt.CreatedAt)}
+		audience := rt.Audience
+		if audience == "" {
+			origin := rt.Origin
+			if origin == "" {
+				origin = in.Tenant.Origin()
+			}
+			audience = origin + "/userinfo"
+		}
+		v := map[string]any{"id": rt.ID, "access": access, "metadata": md, "created_at": rfc3339(rt.CreatedAt), "client_id": rt.ClientID, "user_id": rt.UserID, "session_id": rt.SessionID, "rotating": rt.Rotating,
+			"resource_servers": []map[string]any{{"audience": audience, "scopes": strings.Join(rt.Scopes, " ")}}}
+		if !rt.ExpiresAt.IsZero() {
+			v["expires_at"] = rfc3339(rt.ExpiresAt)
+		}
+		if !rt.IdleExpiresAt.IsZero() {
+			v["idle_expires_at"] = rfc3339(rt.IdleExpiresAt)
+		}
+		if rt.LastExchangedAt != nil {
+			v["last_exchanged_at"] = rfc3339(*rt.LastExchangedAt)
+		}
+		if d := rt.Device; d != nil {
+			v["device"] = map[string]any{"initial_ip": d.InitialIP, "initial_user_agent": d.InitialUserAgent, "last_ip": d.LastIP, "last_user_agent": d.LastUserAgent, "initial_asn": d.InitialASN, "last_asn": d.LastASN}
+		}
+		ev["refresh_token"] = v
 	}
 	if s := sessionEvent(in.Session); s != nil {
 		ev["session"] = s
@@ -629,4 +687,12 @@ func phoneEvent(trigger string, s *phoneSnapshot, a *accum) map[string]any {
 		ev["connection"] = connectionEvent(s.connection)
 	}
 	return ev
+}
+
+func sessionClients(ids []string) []map[string]any {
+	out := []map[string]any{}
+	for _, id := range ids {
+		out = append(out, map[string]any{"client_id": id})
+	}
+	return out
 }

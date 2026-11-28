@@ -285,6 +285,23 @@ func (r refreshTokens) Touch(ctx context.Context, tenantID, id string, idleExpir
 	})
 }
 
+// SetLimits sets the token's expiries (Plan 40).
+func (r refreshTokens) SetLimits(ctx context.Context, tenantID, id string, expiresAt, idleExpiresAt time.Time) (*store.RefreshToken, error) {
+	var out *store.RefreshToken
+	err := r.atomic(ctx, tenantID, func(tx *Store) error {
+		res, err := tx.exec(ctx, "UPDATE refresh_tokens SET expires_at=?, idle_expires_at=? WHERE tenant_id=? AND id=? AND revoked_at IS NULL", micros(expiresAt), micros(idleExpiresAt), tenantID, id)
+		if err != nil {
+			return err
+		}
+		if err = expectRow(res); err != nil {
+			return err
+		}
+		out, err = (refreshTokens{tx}).Get(ctx, tenantID, id)
+		return err
+	})
+	return out, err
+}
+
 func (r refreshTokens) RevokeFamily(ctx context.Context, tenantID, familyID string, at time.Time) error {
 	return r.atomic(ctx, tenantID, func(tx *Store) error {
 		current, err := (refreshTokens{tx}).familyAlias(ctx, tenantID, familyID)
@@ -450,7 +467,7 @@ func (r refreshTokens) ListByUserPage(ctx context.Context, tid, user, client, fr
 func (r refreshTokens) UpdateMetadata(ctx context.Context, tid, id string, md map[string]string) (*store.RefreshToken, error) {
 	var t *store.RefreshToken
 	err := r.s.atomicRetry(ctx, nil, func(tx *Store) error {
-		res, err := tx.exec(ctx, "UPDATE refresh_tokens SET metadata=? WHERE tenant_id=? AND id=? AND access<>'online'", jsonColumn{&md}, tid, id)
+		res, err := tx.exec(ctx, "UPDATE refresh_tokens SET metadata=? WHERE tenant_id=? AND id=?", jsonColumn{&md}, tid, id)
 		if err != nil {
 			return err
 		}

@@ -30,13 +30,14 @@ type Minter struct {
 }
 
 type AccessTokenParams struct {
-	DPoPJKT  string
-	TenantID string
-	Issuer   string
-	Subject  string
-	Audience []string
-	ClientID string
-	Scopes   []string
+	SessionID string
+	DPoPJKT   string
+	TenantID  string
+	Issuer    string
+	Subject   string
+	Audience  []string
+	ClientID  string
+	Scopes    []string
 	// TokenDialect defaults to the legacy access_token profile.
 	TokenDialect       string
 	Permissions        []string
@@ -61,6 +62,7 @@ type AccessTokenParams struct {
 }
 
 type accessTokenClaims struct {
+	SessionID       string            `json:"sid,omitempty"`
 	Confirmation    map[string]string `json:"cnf,omitempty"`
 	Issuer          string            `json:"iss"`
 	Subject         string            `json:"sub"`
@@ -135,6 +137,7 @@ func (m *Minter) AccessToken(ctx context.Context, p AccessTokenParams) (string, 
 	}
 	iat := m.now().Unix()
 	c := accessTokenClaims{
+		SessionID:       p.SessionID,
 		Issuer:          p.Issuer,
 		Subject:         p.Subject,
 		Audience:        audience(p.Audience),

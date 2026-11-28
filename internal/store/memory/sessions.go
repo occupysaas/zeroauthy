@@ -172,6 +172,18 @@ func (r sessions) UpdateMetadata(_ context.Context, tid, id string, md map[strin
 	return cloneSession(s), nil
 }
 
+// SetLimits sets the session's expiries and cookie mode (Plan 40).
+func (r sessions) SetLimits(_ context.Context, tid, id string, expiresAt, idleExpiresAt time.Time, cookieMode string) (*store.LoginSession, error) {
+	r.s.lock()
+	defer r.s.unlock()
+	s := r.s.sessions[key{tid, id}]
+	if s == nil {
+		return nil, store.ErrNotFound
+	}
+	s.ExpiresAt, s.IdleExpiresAt, s.CookieMode = expiresAt, idleExpiresAt, cookieMode
+	return cloneSession(s), nil
+}
+
 func (r sessions) ListExpired(_ context.Context, before time.Time, limit int) ([]*store.LoginSession, error) {
 	if limit < 1 || limit > 1000 {
 		return nil, store.ErrInvalid
@@ -232,4 +244,22 @@ func (r sessions) RecordSAMLParticipant(_ context.Context, tenantID, id string, 
 	}
 	s.SAMLParticipants = store.UpsertSAMLParticipant(s.SAMLParticipants, p)
 	return nil
+}
+
+func (r sessions) SetClaims(_ context.Context, tid, id, client, raw string) (*store.LoginSession, error) {
+	if err := store.ValidateSessionClaims(raw); err != nil {
+		return nil, err
+	}
+	r.s.lock()
+	defer r.s.unlock()
+	s, ok := r.s.sessions[key{tid, id}]
+	if !ok {
+		return nil, store.ErrNotFound
+	}
+	next, err := store.MergeSessionClaims(s.UserinfoClaims, client, raw)
+	if err != nil {
+		return nil, err
+	}
+	s.UserinfoClaims = next
+	return cloneSession(s), nil
 }

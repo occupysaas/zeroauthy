@@ -362,6 +362,7 @@ func TestUserRoundTrip(t *testing.T) {
 
 func TestSessionRoundTrip(t *testing.T) {
 	roundTrip(t, "full", &store.LoginSession{
+		UserinfoClaims:      map[string]string{"c1": `{"urn:test":true}`},
 		ClientOrganizations: map[string]string{"c1": "org_0123456789abcdef"},
 		SAMLParticipants:    []store.SAMLParticipant{{ConnectionID: "con_up", ClientID: "c1", NameID: "alice", NameIDFormat: "urn:f", SessionIndex: "s1"}},
 		Metadata:            map[string]string{"purpose": "roundtrip"},

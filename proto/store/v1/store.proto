@@ -551,6 +551,10 @@ service StoreService {
   rpc RefreshTokensListByUserPage(RefreshIIRequest) returns (RefreshTokenPage);
   rpc RefreshTokensUpdateMetadata(RefreshIIRequest) returns (RefreshTokenResult);
   rpc SessionsUpdateMetadata(RefreshIIRequest) returns (SessionResult);
+  // Plan 40: api.session expiry and cookie mode.
+  rpc SessionsSetLimits(SessionLimitsRequest) returns (SessionResult);
+  rpc SessionsSetClaims(SessionClaimsRequest) returns (SessionResult);
+  rpc RefreshTokensSetLimits(SessionLimitsRequest) returns (RefreshTokenResult);
   rpc RefreshTokensRecordExchange(RefreshIIRequest) returns (Result);
   rpc DPoPUseProof(DPoPProofRequest) returns (Result);
   rpc DPoPPurgeBefore(RefreshIIPurgeRequest) returns (CountResult);
@@ -1003,6 +1007,7 @@ message LoginSession {
   bytes auth_methods = 20; // Plan 33b (webauthn.v1); JSON [{name,type,at}], absent = unset
   StringMap metadata = 21;
   StringMap client_organizations = 22;
+  StringMap userinfo_claims = 24;
   bytes saml_participants = 23; // []store.SAMLParticipant JSON (Plan 37a, saml.v1)
 }
 
@@ -1484,6 +1489,7 @@ message ActionBindingMsg {
 }
 message ActionBoundMsg { ActionBindingMsg binding=1; ActionMsg action=2; ActionVersionMsg version=3; }
 message ActionExecutionResultMsg {
+  repeated string requested_effects=11;
   repeated string logs=8; string action_id=9; string denial_reason=10;
   string job_id=6; int32 job_attempt=7;
   string action_name=1; string error_id=2; string error_msg=3;
@@ -1902,6 +1908,10 @@ message RefreshIIWrite {
     AuthTransaction transaction = 8; AuthCode code = 9; RefreshToken token = 10;
   }
 }
+message SessionLimitsRequest {
+  string tx_id = 1; string tenant_id = 2; string id = 3;
+  google.protobuf.Timestamp expires_at = 4; google.protobuf.Timestamp idle_expires_at = 5; string cookie_mode = 6;
+}
 message RefreshIIRequest {
   string tx_id = 1; string tenant_id = 2; string id = 3;
   string user_id = 4; string client_id = 5; string audience = 6;
@@ -1990,3 +2000,5 @@ message CIBACallResult {
   Error error = 1;
   bytes result = 2; // JSON of the method's results
 }
+
+message SessionClaimsRequest {string tx_id=1;string tenant_id=2;string id=3;string client_id=4;string claims=5;}

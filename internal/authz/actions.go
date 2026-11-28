@@ -17,6 +17,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/i18n"
 	"github.com/zeroauthy/zeroauthy/internal/logs"
 	"github.com/zeroauthy/zeroauthy/internal/orglogin"
+	"github.com/zeroauthy/zeroauthy/internal/session"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/tenant"
 	"github.com/zeroauthy/zeroauthy/internal/ui"
@@ -64,6 +65,9 @@ func (h *Handlers) postLogin(w http.ResponseWriter, r *http.Request, res tenant.
 		// Actions pays only the bindings read.
 		Prepare: func(ctx context.Context, in *actions.PostLoginInput) error {
 			user, err := h.Store.Users().Get(ctx, res.Tenant.ID, sess.UserID)
+			if errors.Is(err, store.ErrNotFound) {
+				return errPrincipalGone
+			}
 			if err != nil {
 				return err
 			}
@@ -79,6 +83,12 @@ func (h *Handlers) postLogin(w http.ResponseWriter, r *http.Request, res tenant.
 				in.PendingMembership = !member
 			}
 			in.User, in.Connection = h.prospectiveUser(r, res, sess, user), conn
+			if h.Sessions != nil {
+				in.Risk.KnownDevice, err = h.Sessions.MFABrowserValid(ctx, r, user, "device")
+				if err != nil {
+					return err
+				}
+			}
 			if fr.invitationBinding[orglogin.InvitationIDParam] != "" {
 				txn, e := h.completionTransaction(ctx, r, res)
 				if e != nil {
@@ -95,6 +105,7 @@ func (h *Handlers) postLogin(w http.ResponseWriter, r *http.Request, res tenant.
 		},
 		// The login form's body (with the password) is never passed on.
 		Request: actions.RequestInfo{
+			SecurityContext: actions.SecurityContextFrom(ctx), CorrelationID: actions.CorrelationID(r),
 			IP: httpx.ClientIP(r, h.TrustProxyHeaders), Hostname: r.Host, Origin: res.Origin(), Method: r.Method,
 			UserAgent: r.UserAgent(), Language: firstLanguage(r.Header.Get("Accept-Language")),
 			Query: query, Body: map[string]any{},
@@ -107,10 +118,10 @@ func (h *Handlers) postLogin(w http.ResponseWriter, r *http.Request, res tenant.
 		// A device approval cannot redirect.
 		CanRedirect: !fr.backchannel() && !slices.Contains(fr.Prompts(), "none"),
 	})
-	return h.postLoginResult(w, r, res, client, fr, result, err)
+	return h.postLoginResult(w, r, res, client, fr, sess, result, err)
 }
 
-func (h *Handlers) postLoginResult(w http.ResponseWriter, r *http.Request, res tenant.Resolved, client *store.Client, fr flowReq, result *actions.Result, err error) (*actions.Effects, bool) {
+func (h *Handlers) postLoginResult(w http.ResponseWriter, r *http.Request, res tenant.Resolved, client *store.Client, fr flowReq, sess *store.LoginSession, result *actions.Result, err error) (*actions.Effects, bool) {
 	event := logs.FromRequest(r)
 	event.TenantID = res.Tenant.ID
 	event.ClientID = client.ClientID
@@ -118,8 +129,20 @@ func (h *Handlers) postLoginResult(w http.ResponseWriter, r *http.Request, res t
 	if result != nil {
 		logs.AddExecution(r.Context(), result.ExecutionID)
 	}
+	// A link winner may remove this authenticated principal while the
+	// losing flow is running or committing metadata. Confirm disappearance;
+	// unrelated storage failures retain their server_error mapping.
+	if err != nil && (errors.Is(err, store.ErrNotFound) || errors.Is(err, errPrincipalGone)) {
+		if _, lookup := h.Store.Users().Get(r.Context(), res.Tenant.ID, sess.UserID); errors.Is(lookup, store.ErrNotFound) {
+			h.refuse(w, r, res, client, fr, errAccessDenied("the authenticated account no longer exists"))
+			return nil, false
+		}
+	}
 	var fe *actions.ErrFlow
 	switch {
+	case errors.Is(err, errPrincipalGone):
+		h.refuse(w, r, res, client, fr, errAccessDenied("the authenticated account no longer exists"))
+		return nil, false
 	case errors.Is(err, actions.ErrRedirectNotAllowed) && slices.Contains(fr.Prompts(), "none"):
 		h.refuse(w, r, res, client, fr, &Error{Code: "interaction_required", Description: "the Action requires interaction"})
 		return nil, false
@@ -133,7 +156,26 @@ func (h *Handlers) postLoginResult(w http.ResponseWriter, r *http.Request, res t
 		h.log().ErrorContext(r.Context(), "run post-login Actions", "tenant", res.Tenant.ID, "err", err)
 		h.actionsFailed(w, r, res, client, fr, "")
 		return nil, false
-	case result.Denied != nil:
+
+	}
+	// api.session.revoke ends the session and the login even when a later
+	// Action redirected (Review Focus 3): no code or token follows.
+	if se := result.Effects.Session; se != nil && se.Revoke != nil {
+		if e := h.revokeSession(r.Context(), w, res, sess, se.Revoke.PreserveRefreshTokens); e != nil {
+			h.log().ErrorContext(r.Context(), "revoke session from Action", "tenant", res.Tenant.ID, "err", e)
+			h.actionsFailed(w, r, res, client, fr, result.ExecutionID)
+			return nil, false
+		}
+		reason := se.Revoke.Reason
+		if reason == "" {
+			reason = "the session was revoked"
+		}
+		event.Description = reason
+		logs.RecordEvent(r.Context(), logs.RecorderFromContext(r.Context()), event)
+		h.refuse(w, r, res, client, fr, &Error{Code: "access_denied", Description: reason})
+		return nil, false
+	}
+	if result.Denied != nil {
 		event.Description = result.Denied.Reason
 		logs.RecordEvent(r.Context(), logs.RecorderFromContext(r.Context()), event)
 		h.refuse(w, r, res, client, fr, &Error{Code: result.Denied.Code, Description: result.Denied.Reason})
@@ -184,7 +226,7 @@ const ranEmpty = "-"
 // sealConsent seals eff for consent transaction txnID of sessionID and
 // client; a flow without effects is only marked as run.
 func (h *Handlers) sealConsent(tenantID, txnID, sessionID, clientID string, eff *actions.Effects) (string, error) {
-	if !eff.HasTokenEffects() && eff.Target == nil && eff.MFA == nil && !hasMetadataDeletion(eff) {
+	if !eff.HasTokenEffects() && eff.Target == nil && eff.MFA == nil && eff.Session == nil && eff.PrimaryUserID == "" && len(eff.RecordedMethods) == 0 && !hasMetadataDeletion(eff) {
 		return ranEmpty, nil
 	}
 	b, err := actions.SealEffects(h.Wrapper, tenantID, actions.SealConsent, eff, txnID, sessionID, clientID)
@@ -203,7 +245,7 @@ func (h *Handlers) consentEffects(tenantID string, txn *store.AuthTransaction) (
 	case !ok:
 		return nil, nil
 	case raw == ranEmpty:
-		return &actions.Effects{}, nil
+		return &actions.Effects{FlowExecuted: true}, nil
 	}
 	b, err := base64.RawURLEncoding.DecodeString(raw)
 	if err != nil {
@@ -247,4 +289,42 @@ func actionProtocol(fr flowReq) string {
 		return actions.ProtocolCIBA
 	}
 	return actions.ProtocolOIDCBasicProfile
+}
+
+// revokeSession ends a stored session for api.session.revoke (Plan 40): its
+// refresh tokens are revoked unless preserved, the owners' versions bump,
+// the row is deleted and back-channel logout is queued (session-revoked)
+// in one transaction; the cookie is cleared. A pending login has no stored
+// session, so nothing is written.
+func (h *Handlers) revokeSession(ctx context.Context, w http.ResponseWriter, res tenant.Resolved, sess *store.LoginSession, preserve bool) error {
+	if sess == nil {
+		return nil
+	}
+	var onEnd func(context.Context, store.Store, *store.LoginSession) error
+	if h.Sessions != nil {
+		onEnd = h.Sessions.OnEnd
+	}
+	err := session.RevokeFromAction(ctx, h.Store, sess, preserve, h.now(), onEnd)
+	if err != nil {
+		return err
+	}
+	http.SetCookie(w, &http.Cookie{Name: session.CookieName, Value: "", Path: "/", MaxAge: -1, HttpOnly: true, Secure: true, SameSite: http.SameSiteNoneMode})
+	return nil
+}
+
+// capSessionLimits applies an Action's session expiry and cookie-mode calls
+// to s: the setters only shorten (LR40-3), idle never passes absolute.
+func capSessionLimits(s *store.LoginSession, se *actions.SessionEffects) {
+	if se.ExpiresAt != nil && se.ExpiresAt.Before(s.ExpiresAt) {
+		s.ExpiresAt = *se.ExpiresAt
+	}
+	if se.IdleExpiresAt != nil && se.IdleExpiresAt.Before(s.IdleExpiresAt) {
+		s.IdleExpiresAt = *se.IdleExpiresAt
+	}
+	if s.IdleExpiresAt.After(s.ExpiresAt) {
+		s.IdleExpiresAt = s.ExpiresAt
+	}
+	if se.CookieMode != "" {
+		s.CookieMode = se.CookieMode
+	}
 }

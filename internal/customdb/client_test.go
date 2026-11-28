@@ -234,3 +234,32 @@ func TestChangeEmailErrors(t *testing.T) {
 		t.Fatalf("verify without a script = %v", err)
 	}
 }
+
+func TestScriptContext(t *testing.T) {
+	for _, enabled := range []bool{false, true} {
+		c, fe, conn := clientFor(t, loginReturning(map[string]any{"user_id": "external", "email": "a@example.test"}))
+		conn.Extra = map[string]any{"enable_script_context": enabled}
+		ctx := WithOrganization(context.Background(), &store.Organization{TenantID: conn.TenantID, ID: "org", Name: "example"})
+		if _, err := c.Login(ctx, conn, "a@example.test", "password"); err != nil {
+			t.Fatal(err)
+		}
+		req := fe.Requests()[0]
+		if (req.Context != nil) != enabled {
+			t.Fatalf("enabled=%v context=%v", enabled, req.Context)
+		}
+		if enabled {
+			org := req.Context["organization"].(map[string]any)
+			if org["id"] != "org" || org["name"] != "example" {
+				t.Fatal(req.Context)
+			}
+		}
+		if got := scriptContext(ctx, conn, store.ScriptDelete); len(got) != 0 {
+			t.Fatal(got)
+		}
+		other := *conn
+		other.TenantID = "another"
+		if len(scriptContext(ctx, &other, store.ScriptLogin)) != 0 {
+			t.Fatal("cross tenant organization")
+		}
+	}
+}

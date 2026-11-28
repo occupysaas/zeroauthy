@@ -103,6 +103,8 @@ type Execution struct {
 
 // ExecutionResult is one Action's outcome within an execution.
 type ExecutionResult struct {
+	// RequestedEffects contains operation names only, never arguments or metadata values.
+	RequestedEffects []string
 	// JobID and JobAttempt identify this immutable asynchronous attempt.
 	JobID                                   string
 	JobAttempt                              int

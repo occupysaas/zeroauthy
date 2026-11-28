@@ -1120,6 +1120,37 @@ classic scope would expose the other resource (`read:roles` alone would list
 users and their emails). Auth0's runtime rule was not observed; if it accepts
 a single classic scope on the reads, such a client gets 403 here.
 
+## D-0190 — Plan 40 Actions III (2026-11-28)
+
+**Status:** implementation complete on `plan-40-actions-iii`; final verification and CI are tracked in the [record](../superpowers/2026-11-16-plan-40-implementation-record.md).
+
+**Authority:** [Plan 40 design](../superpowers/specs/2026-11-16-zeroauthy-actions-iii-design.md),
+Auth0's post-login event and API object references, the custom user ID page
+and the Management API trigger enum. No live Auth0 call was made.
+`internal/actionsrules/inventory.json` records every member's status. This
+decision amends D-0053 for the members that become supported.
+
+**Recheck (2026-11-28):** `password-hash-migration`, `login-post-identifier`,
+`signup-post-identifier` and `post-credential-validation` still have no
+documented event or `api` (the IDs appear only in the Management API enum):
+deferred (LR40-2). `api.user.setUserId` in pre-user-registration is now
+documented as Early Access
+(<https://auth0.com/docs/authenticate/database-connections/custom-user-id>):
+built (LR40-8).
+
+| Ruling | Contract |
+|---|---|
+| LR40-1 | The Early Access session members `setCookieMode` and `*Metadata` are built, on Plan 48's session metadata. |
+| LR40-2 | The four newer trigger IDs stay deferred until documented. |
+| LR40-3 | `session.setExpiresAt`/`setIdleExpiresAt` and the refresh-token setters only shorten: never later than the current expiry or the tenant maximum. |
+| LR40-4 | Plan 48 is merged: metadata and refresh-token members are built (no fallback). |
+| LR40-5 | Risk assessment uses local signals only: `NewDevice` (known-device record), `UntrustedIP` (attack-protection state); `ImpossibleTravel` and `AgentDetection` are `neutral`. Overall `confidence` is the lowest non-neutral, else `neutral`. |
+| LR40-6 | `/userinfo` returns the latest flow's Action ID-token claims, stored per (session, client). |
+| LR40-7 | Current docs confirm `enable_script_context`: frozen organization data before callback, empty for delete; old signatures remain valid. No request IP/client/language fields. |
+| LR40-8 | `api.user.setUserId(id)` (Early Access): database connections only; the ID is used as the new user's `user_id` after the connection prefix (`auth0|<id>`), must be unique within the connection and is refused for passwordless and federated signups. |
+
+Observation points X1–X10 are listed in `docs/superpowers/plan-1-followups.md`.
+
 ## D-0053 — Plan 27 Actions contract (2026-10-27)
 
 Freeze the [public review](observations/actions.md) and
@@ -1161,7 +1192,7 @@ Local choices where public material is silent or open:
   and `transaction.metadata` (documented) and `user.app_metadata`/`user_metadata`
   after a commit-free in-memory overlay (local).
 - `/userinfo` does not return Action ID-token custom claims in Plan 27; this
-  supersedes the original local default and remains deferred (Ruling 10).
+  was deferred in Plan 27 and is implemented by Plan 40 (D-0190).
   Non-namespaced access-token claims are dropped for the tenant's Management
   API audience. `request.geoip`, `asn`, organization, MFA, prompt, agent and
   Enterprise members are omitted; `groups.*` return empty; `rules.wasExecuted`

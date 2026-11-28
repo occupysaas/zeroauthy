@@ -1008,3 +1008,30 @@ Tier 2 social providers (D-0182).
 - **SD-5** Untappd API status (docs reference v4).
 - **SD-6** VK legacy `oauth.vk.com` versus VK ID.
 - **SD-7** Whether Auth0 still lists Fitbit and Instagram and what its sign-in does now.
+
+## Plan 40 observation points
+
+Actions III (D-0190).
+
+- **X1** `setPrimaryUser` refusals and when the change applies.
+- **X2** Risk assessment codes and confidence values.
+- **X3** The error returned after `session.revoke`.
+- **X4** `api.refreshToken` outside refresh exchanges (zeroauthy: undefined).
+- **X5** Whether `enableScriptContext` is documented.
+- **X6** `recordMethod`'s effect on `amr` (zeroauthy: `mfa` added).
+- **X7** Sources of `linking_id` and `correlation_id`.
+- **X8** `user.multifactor` values.
+- **X9** Which Action claims `/userinfo` echoes.
+- **X10** Hosted-page display of `api.validation.error` on custom fields.
+
+### Plan 27/28 carryover closure in Plan 40
+
+The persistent console cap and sandbox addon/sibling assertions are closed by
+Plan 40 Task 9. The cap is applied after masking; the transient Test response
+retains its 64 KiB bound. The bypass tests now attach the engine to the counting
+store. Result-URL options cover arrays, null and nested values; null options
+are treated as omitted. Ticket challenge coverage now checks exact expiry and
+timestamp aliasing. The ErrPrecondition codec sentinel assertion was already
+present. Hosted internal fields and validation rendering are covered by Task 8.
+Broader historical store/build/Deploy review polish remains in the originating
+implementation records; it is not reported as completed here.

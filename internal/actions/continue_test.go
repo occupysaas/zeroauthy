@@ -484,3 +484,18 @@ func TestActionsTransactionID(t *testing.T) {
 		t.Fatal("transaction id reused across logins")
 	}
 }
+
+func TestEventTransactionIDsAcrossContinue(t *testing.T) {
+	h := newHarness(t)
+	first := h.action("t1", trigLogin, "ids-first", `exports.onExecutePostLogin=(e,a)=>{if(!e.transaction.linking_id||e.transaction.correlation_id!=='original')throw Error('missing IDs');a.transaction.setMetadata('link',e.transaction.linking_id);a.redirect.sendUserTo('https://step.test/');};exports.onContinuePostLogin=(e,a)=>{if(e.transaction.linking_id!==e.transaction.metadata.link||e.transaction.correlation_id!=='continued')throw Error('IDs lost');};`, nil, false)
+	second := h.action("t1", trigLogin, "ids-second", `exports.onExecutePostLogin=(e,a)=>{if(e.transaction.linking_id!==e.transaction.metadata.link)throw Error('changed linking ID');a.idToken.setCustomClaim('urn:ids',true);};`, nil, false)
+	h.bind("t1", trigLogin, first, second)
+	in := redirectInput(h)
+	in.Request.CorrelationID = "original"
+	r, err := h.eng.PostLogin(context.Background(), in)
+	state := redirectState(t, r, err)
+	r, err = resume(t, h, "t1", state, in.Session, actions.RequestInfo{Hostname: "t1.example.test", CorrelationID: "continued"})
+	if err != nil || r.Effects.IDClaims["urn:ids"] != true {
+		t.Fatalf("%+v %v", r, err)
+	}
+}

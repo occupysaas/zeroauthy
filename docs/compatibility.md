@@ -32,7 +32,7 @@ Auth0 or Okta.
 | Protocol | Front-channel logout, Dynamic Client Registration; CIBA Guardian push, ping and push delivery | Plan 41, roadmap §5 |
 | Protocol | Implicit and hybrid flows (`response_type=token`, `id_token`) | Plan 41, only where Auth0's behaviour passes the OIDF profiles |
 | Universal Login | Advanced Customizations (ACUL) and the Classic and WebAuthn-first modes; arbitrary page JavaScript | Plan 44 |
-| Actions | Newer triggers (password-hash migration, credential validation), `/userinfo` custom claims, `event.authentication.methods` lists only the MFA step | Plan 40 |
+| Actions | Four undocumented newer triggers; prompt/session-transfer and vendor risk data remain deferred | Plan 40 |
 | My Account API | `/me/v1` authentication methods (passkeys, WebAuthn keys, TOTP, email, phone, recovery code, password) and factors; connected accounts, consents and profile are not | [Guide](my-account-api.md) |
 | My Organization API | `/my-org/v1`, every operation of the OpenAPI 1.0.0: details, members, member roles, roles, invitations, user stores (Phase A); domains with DNS verification, the organization's enterprise identity providers, their domains and SCIM provisioning (Phase B). No User Attribute Profiles; `pingfederate` providers cannot be created | [Guide](my-organization-api.md) |
 | Other APIs | Token Vault and connected accounts | Plan 43 |
@@ -60,7 +60,7 @@ have no effect yet; the feature guides label them "stored only".
 | Connections | Database, custom database (Auth0 scripts, import mode), Google, Microsoft personal and work accounts, generic OAuth 2, back-channel OIDC, passwordless email and SMS | [custom DB](custom-db.md), [social](social-connections.md), [passwordless](passwordless.md) |
 | MFA | One-time passwords, email, SMS and voice, recovery codes, policies, remember browser, Guardian and authentication-method APIs | [MFA](mfa.md) |
 | Management API | Applications, APIs and grants, connections, users (search, linking, sessions, tickets, import and export with password hashes), roles and permissions, organizations and invitations, tenant settings, attack protection, signing keys, email and phone providers and templates, branding and custom text, custom domains, Actions and Modules, logs, log streams, stats, event streams | [Management API](management-api.md) |
-| Actions | Eleven triggers, including custom token exchange, post-login with MFA control, registration, password, custom email and phone providers and event streams | [Actions](actions.md) |
+| Actions | Eleven triggers, including custom token exchange, post-login with session/refresh effects, linking, risk and userinfo claims, registration/custom IDs, password, custom email and phone providers and event streams | [Actions](actions.md) |
 | Operations | SQLite, PostgreSQL, MySQL, gRPC storage plugins; automatic certificates for custom domains; admin console | [deployment](deployment.md), [console](console.md) |
 
 ## Tested clients

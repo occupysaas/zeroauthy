@@ -32,6 +32,7 @@ var runnerJS []byte
 
 // Request is one script execution.
 type Request struct {
+	Context      map[string]any
 	TenantID     string
 	ConnectionID string // vm context key, with ScriptHash
 	Script       string // one of store.ScriptNames
@@ -156,12 +157,13 @@ func (r *NodeRunner) Probe() error {
 
 // Wire protocol with runner.mjs. The pool adds the request "id".
 type wireRequest struct {
-	Conn   string            `json:"conn"`
-	Hash   string            `json:"hash"`
-	Name   string            `json:"name"`
-	Source string            `json:"source"`
-	Config map[string]string `json:"config"`
-	Args   []any             `json:"args"`
+	Context map[string]any    `json:"context"`
+	Conn    string            `json:"conn"`
+	Hash    string            `json:"hash"`
+	Name    string            `json:"name"`
+	Source  string            `json:"source"`
+	Config  map[string]string `json:"config"`
+	Args    []any             `json:"args"`
 	// Capture asks the runner to return the script's console output.
 	Capture bool `json:"capture,omitempty"`
 }
@@ -198,7 +200,7 @@ func (r *NodeRunner) Execute(ctx context.Context, req Request) (json.RawMessage,
 		return nil, err
 	}
 	sum := sha256.Sum256([]byte(req.Source))
-	wire := wireRequest{Conn: req.ConnectionID, Hash: hex.EncodeToString(sum[:]), Name: req.Script,
+	wire := wireRequest{Context: req.Context, Conn: req.ConnectionID, Hash: hex.EncodeToString(sum[:]), Name: req.Script,
 		Source: req.Source, Config: req.Config, Args: req.Args, Capture: req.OnLogs != nil}
 	if wire.Config == nil {
 		wire.Config = map[string]string{}

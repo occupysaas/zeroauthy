@@ -176,7 +176,7 @@ func (h *Handlers) approve(w http.ResponseWriter, r *http.Request, res tenant.Re
 		if e := local.commitLogin(&staged, request, res, fr, sess, eff); e != nil {
 			return e
 		}
-		if fr.invitationBinding[orglogin.InvitationIDParam] != "" && eff != nil && eff.RBAC != nil {
+		if eff != nil && eff.RBAC != nil && (eff.PrimaryUserID != "" || fr.invitationBinding[orglogin.InvitationIDParam] != "") {
 			snapshot, e := store.OrganizationAuthorizationSnapshot(ctx, tx, res.Tenant.ID, sess.UserID, fr.OrgID, eff.RBAC.Audience)
 			if e != nil {
 				return e
@@ -218,8 +218,17 @@ func (h *Handlers) approve(w http.ResponseWriter, r *http.Request, res tenant.Re
 		return e
 	})
 	if err != nil {
+		if errors.Is(err, errPrincipalGone) {
+			h.refuse(w, r, res, client, fr, errAccessDenied("the authenticated account no longer exists"))
+			return
+		}
 		if policyError != nil {
 			h.refuse(w, r, res, client, fr, policyError)
+			return
+		}
+		var lr *linkRefused
+		if errors.As(err, &lr) {
+			h.refuse(w, r, res, client, fr, errAccessDenied(lr.reason))
 			return
 		}
 		if fr.device() && (errors.Is(err, store.ErrAlreadyUsed) || errors.Is(err, store.ErrNotFound)) {

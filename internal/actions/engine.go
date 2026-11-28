@@ -15,11 +15,13 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/actions/build"
 	"github.com/zeroauthy/zeroauthy/internal/actionsrules"
 	"github.com/zeroauthy/zeroauthy/internal/customdb"
+	"github.com/zeroauthy/zeroauthy/internal/customdomain"
 	"github.com/zeroauthy/zeroauthy/internal/events/eventcontext"
 	"github.com/zeroauthy/zeroauthy/internal/keys"
 	"github.com/zeroauthy/zeroauthy/internal/logs"
 	"github.com/zeroauthy/zeroauthy/internal/logscrub"
 	"github.com/zeroauthy/zeroauthy/internal/noderunner"
+	"github.com/zeroauthy/zeroauthy/internal/protection"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/userrules"
@@ -50,6 +52,10 @@ type Denial = actionresult.Denial
 type NotificationOutcome = actionresult.NotificationOutcome
 type Redirect = actionresult.Redirect
 type Result = actionresult.Result
+type MetadataOp = actionresult.MetadataOp
+type Revocation = actionresult.Revocation
+type SessionEffects = actionresult.SessionEffects
+type RefreshTokenEffects = actionresult.RefreshTokenEffects
 
 // ErrFlow is a failed flow: no code or token may be issued. ExecutionID
 // names its execution record; it is for operators and the hosted error
@@ -217,6 +223,19 @@ func (e *Engine) PostLogin(ctx context.Context, in PostLoginInput) (*Result, err
 			return nil, e.unrecorded(tenantID, TriggerPostLogin, err)
 		}
 	}
+	if in.CustomDomain == nil {
+		in.CustomDomain, err = customdomain.PublicContext(ctx, e.Store, tenantID, in.Request.Hostname)
+		if err != nil {
+			return nil, e.unrecorded(tenantID, TriggerPostLogin, err)
+		}
+	}
+	if !protection.Allowlisted(in.Request.IP, in.Tenant.Tenant.ProtectionSettings.SuspiciousIP.Allowlist) {
+		svc := &protection.Service{Store: e.Store, Now: e.Now}
+		in.Risk.BlockedIP, err = svc.IPBlocked(ctx, tenantID, in.Request.IP)
+		if err != nil {
+			return nil, e.unrecorded(tenantID, TriggerPostLogin, err)
+		}
+	}
 	ctx = eventcontext.Enrich(ctx, in.Client, in.Connection)
 	// Resolve only the bound ID; caller-provided snapshots cannot select a
 	// different organization. The input is sealed unchanged on suspension.
@@ -231,6 +250,9 @@ func (e *Engine) PostLogin(ctx context.Context, in PostLoginInput) (*Result, err
 	// event.transaction.id names this login; a redirect's sealed input keeps it.
 	if in.Transaction.ID == "" {
 		in.Transaction.ID = secrets.RandomString(24)
+	}
+	if in.Transaction.LinkingID == "" {
+		in.Transaction.LinkingID = secrets.RandomString(24)
 	}
 	var roles []roleJSON
 	var groups []groupJSON
@@ -273,6 +295,7 @@ func (e *Engine) PostLogin(ctx context.Context, in PostLoginInput) (*Result, err
 		}
 		f.acc.eff.RBAC = &RBACSnapshot{Audience: in.ResourceServer.Identifier, Permissions: append([]string{}, snapshot.Permissions...)}
 	}
+	f.acc.eff.FlowExecuted = true
 	f.acc.customizeMFA, _ = in.Tenant.Tenant.SettingsExtra["customize_mfa_in_postlogin_action"].(bool)
 	f.event = func() map[string]any { return postLoginEvent(&in, names, f.acc) }
 	return e.run(ctx, f, in.User)
@@ -442,7 +465,16 @@ func (e *Engine) run(ctx context.Context, f *flow, user *store.User) (*Result, e
 		}
 		r := store.ExecutionResult{JobID: f.jobID, JobAttempt: f.jobAttempt, ActionID: u.actionID, ActionName: u.name, StartedAt: started, EndedAt: e.now()}
 		if step != nil {
-			r.Logs = capConsole(step.logs)
+			r.Logs = capPersistedConsole(step.logs)
+			if err == nil {
+				for _, c := range step.commands {
+					if strings.HasPrefix(c.Op, "session.") || strings.HasPrefix(c.Op, "refreshToken.") || c.Op == "authentication.setPrimaryUser" || c.Op == "authentication.recordMethod" {
+						if !slices.Contains(r.RequestedEffects, c.Op) {
+							r.RequestedEffects = append(r.RequestedEffects, c.Op)
+						}
+					}
+				}
+			}
 			if err == nil {
 				r.DenialReason = step.denialReason
 			}
@@ -452,7 +484,10 @@ func (e *Engine) run(ctx context.Context, f *flow, user *store.User) (*Result, e
 			failure, failed = err, u.name
 		}
 		ex.Results = append(ex.Results, r)
-		if failure == nil && f.acc.denied == nil && f.acc.redirect != nil {
+		// api.session.revoke ends the flow like a deny: no later Action runs
+		// and no redirect suspends it (Plan 40 Review Focus 3).
+		revoked := f.acc.eff.Session != nil && f.acc.eff.Session.Revoke != nil
+		if failure == nil && f.acc.denied == nil && !revoked && f.acc.redirect != nil {
 			f.remaining = time.Until(f.deadline)
 			var redirect *Redirect
 			err := e.Store.WithTx(fctx, func(tx store.Store) error {
@@ -475,7 +510,7 @@ func (e *Engine) run(ctx context.Context, f *flow, user *store.User) (*Result, e
 		// Only the redirecting Action resumes onContinuePostLogin; the tail
 		// always starts with onExecutePostLogin.
 		f.handler = handlerFor(f.trigger)
-		if failure != nil || f.acc.denied != nil {
+		if failure != nil || f.acc.denied != nil || revoked {
 			break
 		}
 	}
@@ -630,6 +665,25 @@ func (e *Engine) step(ctx context.Context, f *flow, u unit, event map[string]any
 		Secrets: vals, Modules: modules, Cache: f.cache.snapshot(e.now()), Roles: f.roles, Groups: f.groups,
 		API: triggerSpecs[f.trigger].API, UnsupportedAPI: triggerSpecs[f.trigger].unsupported,
 		State: map[string]any{"canRedirect": f.acc.canRedirect, "state": f.state}, Hostname: f.hostname}
+	// Each runner call starts fresh; carry metadata accounting from prior
+	// Actions without mutating the public event snapshot.
+	for name, ops := range map[string][]MetadataOp{"session": nil, "refresh_token": nil} {
+		if name == "session" && f.acc.eff.Session != nil {
+			ops = f.acc.eff.Session.Metadata
+		}
+		if name == "refresh_token" && f.acc.eff.RefreshToken != nil {
+			ops = f.acc.eff.RefreshToken.Metadata
+		}
+		if obj, ok := event[name].(map[string]any); ok {
+			initial, _ := obj["metadata"].(map[string]string)
+			md, e := ApplyMetadataOps(initial, ops)
+			if e != nil {
+				return nil, e
+			}
+			req.State[name+"_metadata"] = md
+		}
+	}
+
 	if req.Roles == nil {
 		req.Roles = []roleJSON{}
 	}
@@ -682,10 +736,11 @@ func (e *Engine) step(ctx context.Context, f *flow, u unit, event map[string]any
 		return out, fmt.Errorf("%w: %s", ErrActionError, red.RedactLineContext(ctx, resp.Error.Message))
 	}
 	f.acc.cache = nil
+	f.acc.handler = f.handler
 	for _, c := range resp.Commands {
 		// Scrub display-only messages before validation truncates them. Do not
 		// mutate business commands (claims, metadata, cache or redirect URLs).
-		if c.Op == "access.deny" || c.Op == "validation.error" || c.Op == "refreshToken.revoke" || strings.HasPrefix(c.Op, "notification.") {
+		if c.Op == "access.deny" || c.Op == "validation.error" || c.Op == "refreshToken.revoke" || c.Op == "session.revoke" || strings.HasPrefix(c.Op, "notification.") {
 			start := 0
 			// A deny code reaches the OAuth error and the logs unmasked, so a
 			// code holding a secret value is refused, never rewritten.
@@ -702,7 +757,9 @@ func (e *Engine) step(ctx context.Context, f *flow, u unit, event map[string]any
 			for i := start; i < len(c.Args); i++ {
 				raw := c.Args[i]
 				var text string
-				if json.Unmarshal(raw, &text) == nil {
+				// null stays null: unmarshalling it into a string succeeds
+				// and would turn an absent options argument into "".
+				if string(raw) != "null" && json.Unmarshal(raw, &text) == nil {
 					c.Args[i], _ = json.Marshal(red.RedactLineContext(ctx, text))
 				}
 			}
@@ -1003,4 +1060,18 @@ func executionFailureEvent(f *flow) logs.Event {
 		event.UserID = field("user", "user_id")
 	}
 	return event
+}
+
+// capPersistedConsole applies the public per-Action character limit only
+// after masking. Test output remains transient and keeps its byte bound.
+func capPersistedConsole(lines []string) []string {
+	safe := capConsole(lines)
+	joined := strings.Join(safe, "\n")
+	limit := actionsrules.Inventory().Limits["console_log_chars_per_action"]
+	if utf8.RuneCountInString(joined) <= limit {
+		return safe
+	}
+	const marker = "… truncated"
+	prefix := string([]rune(joined)[:limit-utf8.RuneCountInString(marker)-1])
+	return append(strings.Split(prefix, "\n"), marker)
 }

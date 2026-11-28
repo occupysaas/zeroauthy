@@ -72,6 +72,9 @@ func (h *Handlers) mfaDecision(r *http.Request, res tenant.Resolved, fr flowReq,
 		return mfa.Requirement{}, err
 	}
 	u, err := h.Store.Users().Get(r.Context(), res.Tenant.ID, sess.UserID)
+	if errors.Is(err, store.ErrNotFound) {
+		return mfa.Requirement{}, errPrincipalGone
+	}
 	if err != nil {
 		return mfa.Requirement{}, err
 	}
@@ -153,7 +156,9 @@ func (h *Handlers) mfaDecision(r *http.Request, res tenant.Resolved, fr flowReq,
 func (h *Handlers) requireMFA(w http.ResponseWriter, r *http.Request, res tenant.Resolved, client *store.Client, fr flowReq, sess *store.LoginSession, eff *actions.Effects) bool {
 	req, err := h.mfaDecision(r, res, fr, sess, eff)
 	if err != nil {
-		if errors.Is(err, mfa.ErrNoFactor) {
+		if errors.Is(err, errPrincipalGone) {
+			h.refuse(w, r, res, client, fr, errAccessDenied("the authenticated account no longer exists"))
+		} else if errors.Is(err, mfa.ErrNoFactor) {
 			h.refuse(w, r, res, client, fr, errAccessDenied("MFA is required but no factor is enabled"))
 		} else {
 			h.refuse(w, r, res, client, fr, errServer())

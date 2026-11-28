@@ -39,7 +39,7 @@ func TestSignupPreRegistration(t *testing.T) {
 		{"validation", `api.validation.error('bad_signup','Profil refusé');`, 400, "bad_signup", "Profil refusé"},
 		{"validation_access_denied", `api.validation.error('access_denied','Profil refusé');`, 400, "access_denied", "Profil refusé"},
 		{"throw", `throw new Error('PRIVATE-secret');`, 400, "extensibility_error", "Unable to complete signup."},
-		{"unsupported", `try { api.user.setUserId('custom'); } catch (_) {}`, 400, "extensibility_error", "Unable to complete signup."},
+		{"unsupported", `try { api.user.setPassword('custom'); } catch (_) {}`, 400, "extensibility_error", "Unable to complete signup."},
 		{"invalid_metadata", `api.user.setAppMetadata('$bad',true);`, 400, "extensibility_error", "Unable to complete signup."},
 		{"timeout", `while(true){}`, 400, "extensibility_error", "Unable to complete signup."},
 	} {

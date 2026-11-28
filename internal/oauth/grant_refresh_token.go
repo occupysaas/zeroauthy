@@ -2,6 +2,7 @@ package oauth
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/url"
@@ -178,7 +179,19 @@ func (h *Handlers) refreshToken(ctx context.Context, res tenant.Resolved, c *sto
 	// target-scope and addScope additions are never stored with the
 	// family (whose ceiling never grows): the flow must add them again.
 	// Target edits are filtered by API definition, policy and RBAC.
-	eff, oerr := h.postLogin(ctx, res, c, loginFlow{organizationID: rt.OrganizationID, connectionID: rt.OrganizationConnectionID, session: onlineSess, refreshToken: rt, user: user, userConnection: true, rs: rs, protocol: actions.ProtocolRefreshToken,
+	// event.session is the family's session while it is live, offline
+	// families included (Plan 40).
+	eventSess := onlineSess
+	if eventSess == nil && rt.SessionID != "" {
+		s, e := h.Store.Sessions().Get(ctx, tenantID, rt.SessionID)
+		if e != nil && !errors.Is(e, store.ErrNotFound) {
+			return nil, serverError()
+		}
+		if e == nil && s.UserID == rt.UserID && h.now().Before(s.ExpiresAt) && h.now().Before(s.IdleExpiresAt) {
+			eventSess = s
+		}
+	}
+	eff, oerr := h.postLogin(ctx, res, c, loginFlow{organizationID: rt.OrganizationID, connectionID: rt.OrganizationConnectionID, session: eventSess, refreshToken: rt, user: user, userConnection: true, rs: rs, protocol: actions.ProtocolRefreshToken,
 		requested: d.Scopes, target: d.Scopes})
 	if oerr != nil {
 		return nil, oerr
@@ -249,8 +262,21 @@ func (h *Handlers) refreshToken(ctx context.Context, res tenant.Resolved, c *sto
 		}
 		return nil
 	}, func(tx store.Store) error {
+
 		if !offlineGrant {
-			return h.finishOnline(ctx, tx, res, currentClient, rt)
+			if err := h.finishOnline(ctx, tx, res, currentClient, rt); err != nil {
+				return err
+			}
+			if eff != nil && eff.RefreshToken != nil {
+				live, e := tx.RefreshTokens().Get(ctx, tenantID, rt.ID)
+				if e != nil {
+					return e
+				}
+				if e = applyRefreshTokenEffects(ctx, tx, tenantID, live, eff.RefreshToken); e != nil {
+					return e
+				}
+			}
+			return h.finishRefreshSessionEffects(ctx, tx, res, rt, c.ClientID, eff)
 		}
 		var writeErr error
 		nextRaw, writeErr = finishRefresh(ctx, tx.RefreshTokens(), rt, currentClient, res.Origin(), h.now().UTC(), keep, capable)
@@ -262,9 +288,24 @@ func (h *Handlers) refreshToken(ctx context.Context, res tenant.Resolved, c *sto
 			return writeErr
 		}
 		if capable {
-			return h.recordRefreshExchange(ctx, tx.RefreshTokens(), rt, nextRaw)
+			if err := h.recordRefreshExchange(ctx, tx.RefreshTokens(), rt, nextRaw); err != nil {
+				return err
+			}
 		}
-		return nil
+		if eff != nil && eff.RefreshToken != nil {
+			live := rt
+			if nextRaw != "" {
+				if live, writeErr = tx.RefreshTokens().GetByTokenHash(ctx, tenantID, secrets.HashToken(nextRaw)); writeErr != nil {
+					return writeErr
+				}
+			} else if live, writeErr = tx.RefreshTokens().Get(ctx, tenantID, rt.ID); writeErr != nil {
+				return writeErr
+			}
+			if writeErr = applyRefreshTokenEffects(ctx, tx, tenantID, live, eff.RefreshToken); writeErr != nil {
+				return writeErr
+			}
+		}
+		return h.finishRefreshSessionEffects(ctx, tx, res, rt, c.ClientID, eff)
 	})
 	var policyErr *Error
 	if errors.As(err, &policyErr) {
@@ -322,4 +363,46 @@ func (h *Handlers) logRefreshReuse(ctx context.Context, tenantID, clientID strin
 	logs.RecordEvent(ctx, h.Recorder, logs.Event{TenantID: tenantID, Type: "ferrt", ClientID: clientID, UserID: rt.UserID, OrganizationID: rt.OrganizationID})
 	h.log().WarnContext(ctx, "refresh token reuse detected; family revoked",
 		"tenant", tenantID, "client_id", clientID, "user_id", rt.UserID, "family", rt.FamilyID)
+}
+
+// finishRefreshSessionEffects runs only after successful presentation consumption
+// (or final online validation). A refused reuse retains revocation only.
+func (h *Handlers) finishRefreshSessionEffects(ctx context.Context, tx store.Store, res tenant.Resolved, rt *store.RefreshToken, clientID string, eff *actions.Effects) error {
+	if rt.SessionID == "" {
+		return nil
+	}
+	current, e := tx.Sessions().GetForUpdate(ctx, rt.TenantID, rt.SessionID)
+	if errors.Is(e, store.ErrNotFound) {
+		return nil
+	}
+	if e != nil {
+		return e
+	}
+	if current.UserID != rt.UserID || !h.now().Before(current.ExpiresAt) || !h.now().Before(current.IdleExpiresAt) {
+		return nil
+	}
+	if eff != nil && eff.Session != nil {
+		local := *h
+		local.Store = tx
+		if e = local.applyActionSession(ctx, res, current, eff.Session); e != nil {
+			return e
+		}
+	}
+	var custom map[string]any
+	if eff != nil {
+		custom = eff.IDClaims
+	}
+	filtered, e := actions.FilterClaims(actions.ClaimIDToken, nil, custom, false)
+	if e != nil {
+		return e
+	}
+	if len(filtered) == 0 && current.UserinfoClaims[clientID] == "" {
+		return nil
+	}
+	raw, e := json.Marshal(filtered)
+	if e != nil {
+		return e
+	}
+	_, e = store.SetSessionClaims(ctx, tx, rt.TenantID, rt.SessionID, clientID, string(raw))
+	return e
 }

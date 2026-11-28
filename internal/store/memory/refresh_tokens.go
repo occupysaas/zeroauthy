@@ -139,6 +139,18 @@ func (r refreshTokens) Touch(_ context.Context, tenantID, id string, idleExpires
 	return nil
 }
 
+// SetLimits sets the token's expiries (Plan 40).
+func (r refreshTokens) SetLimits(_ context.Context, tenantID, id string, expiresAt, idleExpiresAt time.Time) (*store.RefreshToken, error) {
+	r.s.lock()
+	defer r.s.unlock()
+	t, ok := r.s.refreshTokens[key{tenantID, id}]
+	if !ok || t.RevokedAt != nil {
+		return nil, store.ErrNotFound
+	}
+	t.ExpiresAt, t.IdleExpiresAt = expiresAt, idleExpiresAt
+	return cloneRefreshToken(t), nil
+}
+
 func (r refreshTokens) RevokeFamily(_ context.Context, tenantID, familyID string, at time.Time) error {
 	r.s.lock()
 	defer r.s.unlock()
@@ -361,7 +373,7 @@ func (r refreshTokens) UpdateMetadata(_ context.Context, tid, id string, md map[
 	r.s.lock()
 	defer r.s.unlock()
 	t := r.s.refreshTokens[key{tid, id}]
-	if t == nil || t.Access == "online" {
+	if t == nil {
 		return nil, store.ErrNotFound
 	}
 	t.Metadata = maps.Clone(md)

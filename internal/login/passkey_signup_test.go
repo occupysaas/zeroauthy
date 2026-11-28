@@ -600,3 +600,24 @@ func TestPasskeySignupCreditIPChange(t *testing.T) {
 		t.Fatalf("old credit retained %v", err)
 	}
 }
+
+func TestPasskeySignupCustomActionID(t *testing.T) {
+	e, _ := signupPasskeyEnv(t)
+	tn := mustTenant(t, e, "acme")
+	wrapper, _ := keys.NewLocalWrapper(bytes.Repeat([]byte{7}, 32))
+	a := actionstest.NewOffline(t, e.st, wrapper)
+	a.Bind(t, tn.ID, actions.TriggerPreUserRegistration, a.Deploy(t, tn.ID, actions.TriggerPreUserRegistration, "custom-passkey", `exports.onExecutePreUserRegistration=(e,a)=>a.user.setUserId('custom-passkey');`))
+	e.h.Actions = a.Engine
+	b := e.browser("acme.example.test")
+	page, state, csrf := signupID(t, b, "custompasskey@acme.test")
+	p := readPasskeyPage(t, page)
+	rec := b.do(t, "POST", "/u/signup/passkey", url.Values{"state": {state}, "csrf": {csrf}, "hosted_revision": {revisionFrom(t, page.Body.String())}, "challenge_id": {p.ChallengeID}, "credential": {string(signupCredential(t, p))}})
+	u, err := e.st.Users().Get(t.Context(), tn.ID, "auth0|custom-passkey")
+	if rec.Code != 302 || err != nil {
+		t.Fatalf("signup=%d user=%+v err=%v %s", rec.Code, u, err, rec.Body.String())
+	}
+	aa, err := e.st.MFA().ListAuthenticators(t.Context(), tn.ID, u.UserID)
+	if err != nil || len(aa) != 1 || aa[0].UserID != u.UserID {
+		t.Fatalf("credential owner %+v %v", aa, err)
+	}
+}
