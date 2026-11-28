@@ -1,6 +1,7 @@
 package actions_test
 
 import (
+	"context"
 	"strconv"
 	"strings"
 	"testing"
@@ -119,3 +120,24 @@ func TestPreludeSetPrimaryUser(t *testing.T) {
 }
 
 func itoa(n int64) string { return strconv.FormatInt(n, 10) }
+
+func TestPreludeSetUserId(t *testing.T) {
+	for _, tc := range []struct {
+		code string
+		ok   bool
+	}{{`api.user.setUserId('external')`, true}, {`api.user.setUserId(42)`, false}, {`api.user.setUserId('')`, false}, {`api.user.setUserId('with space')`, false}, {`api.user.setUserId('x'.repeat(256))`, false}} {
+		h := newHarness(t)
+		a := h.action("t1", actions.TriggerPreUserRegistration, "custom-id", `exports.onExecutePreUserRegistration=(event,api)=>{`+tc.code+`};`, nil, false)
+		h.bind("t1", actions.TriggerPreUserRegistration, a)
+		login := h.loginInput("t1")
+		in := actions.RegistrationInput{Tenant: login.Tenant, User: login.User, Connection: &store.Connection{Strategy: store.StrategyDatabase}}
+		r, err := h.eng.PreUserRegistration(context.Background(), in)
+		if tc.ok {
+			if err != nil || r.Effects.SignupUserID != "external" {
+				t.Fatalf("%+v %v", r, err)
+			}
+		} else if err == nil {
+			t.Fatalf("accepted %s", tc.code)
+		}
+	}
+}

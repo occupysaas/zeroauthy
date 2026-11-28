@@ -11,6 +11,7 @@ import (
 	"slices"
 	"strings"
 	"time"
+	"unicode"
 	"unicode/utf8"
 
 	"github.com/zeroauthy/zeroauthy/internal/actionsrules"
@@ -193,6 +194,15 @@ func (a *accum) apply(c command) error {
 		"refreshToken.setExpiresAt", "refreshToken.setIdleExpiresAt", "refreshToken.setMetadata",
 		"refreshToken.deleteMetadata", "refreshToken.evictMetadata":
 		return a.applySessionToken(c)
+	case "user.setUserId":
+		if err := argCount(c, 1, 1); err != nil {
+			return err
+		}
+		id, err := argString(c, 0, "user_id")
+		if err != nil || id == "" || !utf8.ValidString(id) || utf8.RuneCountInString(id) > 255 || strings.IndexFunc(id, unicode.IsSpace) >= 0 {
+			return invalid(c.Op, "invalid user_id")
+		}
+		a.eff.SignupUserID = id
 	case "authentication.setPrimaryUser":
 		if err := argCount(c, 1, 1); err != nil {
 			return err

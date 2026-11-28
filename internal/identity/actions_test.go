@@ -81,3 +81,15 @@ func TestSignupPreRegistrationLegacyExistingLocal(t *testing.T) {
 		t.Fatalf("signup %+v %v enqueued=%d", u, err, enqueued)
 	}
 }
+
+func TestSignupUserIDRefusedForPasswordless(t *testing.T) {
+	db, conn := newDB(t)
+	conn.Strategy = "email"
+	u := &store.User{TenantID: conn.TenantID, UserID: "email|original", Identities: []store.Identity{{Provider: "email", Connection: conn.Name, UserID: "original"}}}
+	err := db.CreatePasswordless(context.Background(), conn, SignupActions{Run: func(context.Context, *store.User) (*actionresult.Result, error) {
+		return &actionresult.Result{Effects: actionresult.Effects{SignupUserID: "custom"}}, nil
+	}}, u)
+	if err == nil || u.UserID != "email|original" {
+		t.Fatalf("err=%v user=%+v", err, u)
+	}
+}

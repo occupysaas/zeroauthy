@@ -15,6 +15,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/access"
 	"github.com/zeroauthy/zeroauthy/internal/actions"
 	"github.com/zeroauthy/zeroauthy/internal/authz"
+	"github.com/zeroauthy/zeroauthy/internal/customdb"
 	"github.com/zeroauthy/zeroauthy/internal/dbconn"
 	"github.com/zeroauthy/zeroauthy/internal/events"
 	"github.com/zeroauthy/zeroauthy/internal/federation"
@@ -171,6 +172,7 @@ func (h *Handlers) flowForTxn(r *http.Request, res tenant.Resolved, txn *store.A
 	if err != nil {
 		return f, err
 	}
+	*r = *r.WithContext(customdb.WithOrganization(r.Context(), f.org.Org))
 	f.view = ui.WithOrganization(f.view, f.org.Org)
 	if f.org.Org != nil && txn.Params["connection"] != "" {
 		conn, e := h.Store.Connections().GetByName(ctx, res.Tenant.ID, txn.Params["connection"])
@@ -933,6 +935,9 @@ func (h *Handlers) signupCallbacks(w http.ResponseWriter, r *http.Request, f *fl
 		}
 		body := map[string]any{}
 		for k, v := range r.PostForm {
+			if k == "csrf" || k == "state" || strings.HasPrefix(k, "za_") || strings.HasPrefix(k, "ulp-") {
+				continue
+			}
 			if r.URL.Path == "/u/signup/passkey" {
 				allowed := false
 				for _, field := range signupProfileFields {
@@ -950,6 +955,10 @@ func (h *Handlers) signupCallbacks(w http.ResponseWriter, r *http.Request, f *fl
 			} else {
 				body[k] = v
 			}
+		}
+		// Use only the fields admitted by the hosted form, including earlier steps.
+		for k, v := range f.txn.HostedState.PromptFields {
+			body[k] = v
 		}
 		input := signupactions.Input(r, f.res, client, f.conn, body, h.TrustProxyHeaders)
 		p := f.txn.Params

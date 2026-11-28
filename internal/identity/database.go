@@ -571,7 +571,7 @@ func (d *Database) Signup(ctx context.Context, conn *store.Connection, in Signup
 		CreatedAt: now,
 		UpdatedAt: now,
 	}
-	if err := d.runSignupActions(ctx, in.Actions, u); err != nil {
+	if err := d.runSignupActions(ctx, conn, in.Actions, u); err != nil {
 		return nil, err
 	}
 	if err := d.insertSignup(ctx, conn, in.Actions, u, hash); err != nil {
@@ -624,7 +624,7 @@ type ErrSignupActionFailed struct{ ExecutionID string }
 
 func (e *ErrSignupActionFailed) Error() string { return "signup Action failed" }
 
-func (d *Database) runSignupActions(ctx context.Context, a SignupActions, u *store.User) error {
+func (d *Database) runSignupActions(ctx context.Context, conn *store.Connection, a SignupActions, u *store.User) error {
 	if a.Run == nil {
 		return nil
 	}
@@ -658,6 +658,16 @@ func (d *Database) runSignupActions(ctx context.Context, a SignupActions, u *sto
 	appMeta := mergeSignupMetadata(u.AppMetadata, result.Effects.AppMetadata)
 	if CheckMetadata("user_metadata", userMeta) != nil || CheckMetadata("app_metadata", appMeta) != nil {
 		return &ErrSignupActionFailed{ExecutionID: result.ExecutionID}
+	}
+	if id := result.Effects.SignupUserID; id != "" {
+		if conn.Strategy != store.StrategyDatabase || len(u.Identities) > 1 || (len(u.Identities) == 1 && u.Identities[0].Provider != store.StrategyDatabase) {
+			return &ErrSignupActionFailed{ExecutionID: result.ExecutionID}
+		}
+		if len(u.Identities) == 0 {
+			u.Identities = []store.Identity{{Provider: store.StrategyDatabase, Connection: conn.Name}}
+		}
+		u.UserID = store.StrategyDatabase + "|" + id
+		u.Identities[0].UserID = id
 	}
 	u.UserMetadata, u.AppMetadata = userMeta, appMeta
 	return nil
@@ -718,7 +728,7 @@ func (d *Database) enqueueSignup(ctx context.Context, tx store.Store, conn *stor
 // prospective user, then the insert queues post-user-registration in the
 // same transaction. ErrUserExists reports a concurrent creation.
 func (d *Database) CreatePasswordless(ctx context.Context, conn *store.Connection, a SignupActions, u *store.User) error {
-	if err := d.runSignupActions(ctx, a, u); err != nil {
+	if err := d.runSignupActions(ctx, conn, a, u); err != nil {
 		return err
 	}
 	return d.insertSignup(ctx, conn, a, u, "")
@@ -736,7 +746,7 @@ func (d *Database) CreateWithCredential(ctx context.Context, conn *store.Connect
 			return err
 		}
 	}
-	if err := d.runSignupActions(ctx, a, u); err != nil {
+	if err := d.runSignupActions(ctx, conn, a, u); err != nil {
 		return err
 	}
 	err := orglogin.WithMembershipEvents(ctx, d.Store, func(ctx context.Context, tx store.Store) error {

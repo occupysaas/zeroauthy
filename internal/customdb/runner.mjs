@@ -157,7 +157,14 @@ function runIn(req, logs) {
   };
   try {
     const fn = compile(req);
-    const out = fn(...(Array.isArray(req.args) ? req.args : []), finish);
+    const args = Array.isArray(req.args) ? [...req.args] : [];
+    if (req.context !== null && req.context !== undefined && fn.length > args.length + 1) {
+      const freeze = (v) => { if (v && typeof v === 'object') {for (const x of Object.values(v)) freeze(x);Object.freeze(v);}return v; };
+      // Parse inside the script realm: host Object constructors never enter it.
+      const parse = vm.runInContext('JSON.parse', contextFor(req.conn, req.config).ctx);
+      args.push(freeze(parse(JSON.stringify(req.context))));
+    }
+    const out = fn(...args, finish);
     if (out && typeof out.then === 'function') out.then(undefined, (e) => finish(e));
   } catch (e) { finish(e); }
 }

@@ -48,6 +48,9 @@ func (u CreateUser) arg() map[string]any {
 func (c *Client) run(ctx context.Context, conn *store.Connection, script string, args ...any) (json.RawMessage, error) {
 	ctx = credentialContext(ctx, script, args)
 	req, err := c.request(conn, script, args)
+	if enabled, _ := conn.Extra["enable_script_context"].(bool); enabled {
+		req.Context = scriptContext(ctx, conn, script)
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -91,6 +94,9 @@ func (c *Client) request(conn *store.Connection, script string, args []any) (Req
 func (c *Client) Try(ctx context.Context, conn *store.Connection, script string, args []any, onLogs func([]string)) (json.RawMessage, error) {
 	ctx = credentialContext(ctx, script, args)
 	req, err := c.request(conn, script, args)
+	if enabled, _ := conn.Extra["enable_script_context"].(bool); enabled {
+		req.Context = scriptContext(ctx, conn, script)
+	}
 	if err != nil {
 		return nil, err
 	}

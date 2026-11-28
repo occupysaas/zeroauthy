@@ -357,7 +357,7 @@ func (d *Database) customSignup(ctx context.Context, conn *store.Connection, in 
 	}
 	name, nickname := DefaultNames(in.Name, in.Nickname, email, username)
 	prospective := &store.User{TenantID: conn.TenantID, Email: email, Username: username, Name: name, Nickname: nickname, GivenName: in.GivenName, FamilyName: in.FamilyName, Picture: in.Picture, UserMetadata: in.UserMetadata}
-	if err := d.runSignupActions(ctx, in.Actions, prospective); err != nil {
+	if err := d.runSignupActions(ctx, conn, in.Actions, prospective); err != nil {
 		return nil, err
 	}
 	in.UserMetadata = prospective.UserMetadata
@@ -384,6 +384,10 @@ func (d *Database) customSignup(ctx context.Context, conn *store.Connection, in 
 		return nil, d.scriptErr(ctx, conn, store.ScriptLogin, err)
 	}
 	u := d.profileUser(conn, p)
+	if prospective.UserID != "" {
+		u.UserID = prospective.UserID
+		u.Identities[0].UserID = prospective.Identities[0].UserID
+	}
 	u.UserMetadata = mergeSignupMetadata(u.UserMetadata, prospective.UserMetadata)
 	u.AppMetadata = mergeSignupMetadata(u.AppMetadata, prospective.AppMetadata)
 	var historyHash string
@@ -394,7 +398,7 @@ func (d *Database) customSignup(ctx context.Context, conn *store.Connection, in 
 		}
 	}
 	err = d.insertSignup(ctx, conn, in.Actions, u, historyHash)
-	if errors.Is(err, ErrUserExists) {
+	if errors.Is(err, ErrUserExists) && prospective.UserID == "" {
 		// The legacy store has accepted the account, so a local record (an
 		// earlier login or a concurrent first login) is adopted as before
 		// Actions; upsertProfile still reports a real collision. The

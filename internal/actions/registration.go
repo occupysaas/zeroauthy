@@ -21,6 +21,9 @@ func (e *Engine) PreUserRegistration(ctx context.Context, in RegistrationInput) 
 	f := &flow{tenantID: tenantID, trigger: TriggerPreUserRegistration, handler: handlerFor(TriggerPreUserRegistration), hostname: in.Tenant.Host, units: pinned(bound), acc: newAccum(TriggerPreUserRegistration, nil, nil, false), cache: e.caches.get(tenantID, TriggerPreUserRegistration)}
 	f.event = func() map[string]any { return registrationEvent(&in, f.acc) }
 	f.validate = func(eff *Effects) error {
+		if eff.SignupUserID != "" && (in.Connection == nil || in.Connection.Strategy != store.StrategyDatabase) {
+			return invalid("user.setUserId", "requires a database connection")
+		}
 		prospective := &store.User{}
 		if in.User != nil {
 			*prospective = *in.User

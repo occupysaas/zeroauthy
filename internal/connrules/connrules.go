@@ -65,6 +65,7 @@ var precedenceValues = []string{"email", "username", "phone_number"}
 // "string". They live in Options.Extra beside the unknown keys, which are
 // stored untouched and not checked (Auth0 accepts them as sent).
 var ExtraSchema = map[string]string{
+	"enable_script_context":                "boolean",
 	"authentication_methods":               "object",
 	"passkey_options":                      "object",
 	"attributes":                           "object",

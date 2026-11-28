@@ -326,6 +326,10 @@ function buildApi(req, commands, event, parse) {
 
   api.idToken = ns('idToken', ['setCustomClaim']);
   api.user = ns('user', ['setAppMetadata', 'setUserMetadata']);
+  api.user.setUserId = (id) => {
+    if (typeof id !== 'string' || !id || [...id].length > 255 || /\s/.test(id)) throw new TypeError('api.user.setUserId: invalid user ID');
+    return record('user.setUserId', [id]);
+  };
   api.validation = ns('validation', ['error']);
   api.transaction.setMetadata = (key, value) => {
     record('transaction.setMetadata', [key, value]);
@@ -496,7 +500,7 @@ function buildApi(req, commands, event, parse) {
     else if (typeof api[name]?.[methodName] === 'function') selected[name][methodName] = api[name][methodName];
     else selected[name][methodName] = unsupported(name)[methodName];
   }
-  // Pre-registration's unsupported methods (including EA user.setUserId)
+  // Pre-registration's unsupported methods
   // must fail closed even when caught. Preserve existing triggers' capability
   // introspection and their explicitly unsupported namespaces.
   const guardedNamespaces = req.handler === 'onExecutePreUserRegistration' ? Object.keys(selected) : unsupportedNamespaces;

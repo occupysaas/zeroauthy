@@ -617,6 +617,15 @@ func (h *Handlers) UpdateConnection(w http.ResponseWriter, r *http.Request, id s
 			if plain, err = h.resolveConfiguration(tn.ID, id, patch.Options.Configuration, current); err != nil {
 				return err
 			}
+			if enabled, _ := c.Extra["enable_script_context"].(bool); enabled {
+				if value, present := patch.Options.Extra["enable_script_context"]; present && value != true {
+					return badBody("options.enable_script_context cannot be disabled")
+				}
+				if patch.Options.Extra == nil {
+					patch.Options.Extra = map[string]any{}
+				}
+				patch.Options.Extra["enable_script_context"] = true
+			}
 			spec.Options = patch.Options
 			setPlainConfiguration(spec, plain)
 			if spec.Passwordless() {
