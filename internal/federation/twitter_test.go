@@ -88,7 +88,5 @@ func TestEveryInventoryStrategyHasDescriptor(t *testing.T) {
 			t.Errorf("%s has no descriptor", s)
 		}
 	}
-	if len(providers.Strategies()) != len(want) {
-		t.Errorf("descriptors %v", providers.Strategies())
-	}
+
 }

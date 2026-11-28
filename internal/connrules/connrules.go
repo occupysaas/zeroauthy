@@ -468,7 +468,10 @@ func normalizeFederated(s *Spec) []error {
 		if settings.Channel != "" {
 			s.Options.Extra["type"] = settings.Channel
 		}
-		if s.Strategy == rules.GitHub || rules.IsDescriptorSocial(s.Strategy) {
+		// A free scope is returned as stored; Exact and OAuth 1.0a
+		// descriptors have no scope (LR39d-1).
+		noScope := settings.Social != nil && (settings.Social.FreeScope || settings.Social.BaseURL != "") || settings.OAuth1 != nil && rules.IsDescriptorSocial(s.Strategy) && s.Strategy != rules.Twitter
+		if (s.Strategy == rules.GitHub || rules.IsDescriptorSocial(s.Strategy)) && !noScope {
 			// The effective scope is returned, as the GitHub and Plan 39b
 			// rules document. Facebook's is a comma-separated string.
 			scope := make([]any, len(settings.Scopes))

@@ -1,0 +1,31 @@
+{
+ "strategy": "wordpress",
+ "display_name": "WordPress.com",
+ "source": [
+  "https://developer.wordpress.com/docs/oauth2/",
+  "https://developer.wordpress.com/docs/api/1.1/get/me/",
+  "https://auth0.com/docs/authenticate/identity-providers/social-identity-providers/wordpress"
+ ],
+ "authorization_url": "https://public-api.wordpress.com/oauth2/authorize",
+ "token_url": "https://public-api.wordpress.com/oauth2/token",
+ "profile_url": "https://public-api.wordpress.com/rest/v1.1/me",
+ "token_auth": "client_secret_post",
+ "pkce": "none",
+ "base_scopes": [
+  "auth"
+ ],
+ "flags": [],
+ "freeform_scopes": false,
+ "free_scope": true,
+ "profile": {
+  "user_id": "ID",
+  "email": "email",
+  "name": "display_name",
+  "nickname": "username",
+  "picture": "avatar_URL"
+ },
+ "email_verified": {
+  "rule": "field",
+  "path": "email_verified"
+ }
+}

@@ -1,0 +1,38 @@
+{
+ "strategy": "exact",
+ "display_name": "Exact Online",
+ "source": [
+  "https://support.exactonline.com/community/s/knowledge-base#All-All-DNO-Content-oauth-eol-oauth-dev-impleovervw",
+  "https://auth0.com/docs/authenticate/identity-providers/social-identity-providers/exact"
+ ],
+ "authorization_url": "{base_url}/api/oauth2/auth",
+ "token_url": "{base_url}/api/oauth2/token",
+ "profile_url": "{base_url}/api/v1/current/Me",
+ "profile_accept": "application/json",
+ "token_auth": "client_secret_post",
+ "pkce": "none",
+ "base_scopes": [],
+ "flags": [],
+ "stored_only": [
+  "profile"
+ ],
+ "freeform_scopes": false,
+ "base_url_hosts": [
+  "start.exactonline.nl",
+  "start.exactonline.be",
+  "start.exactonline.co.uk",
+  "start.exactonline.com",
+  "start.exactonline.de",
+  "start.exactonline.fr",
+  "start.exactonline.es"
+ ],
+ "profile": {
+  "user_id": "d.results[0].UserID",
+  "email": "d.results[0].Email",
+  "name": "d.results[0].FullName",
+  "username": "d.results[0].UserName"
+ },
+ "email_verified": {
+  "rule": "never"
+ }
+}

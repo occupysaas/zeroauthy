@@ -178,6 +178,15 @@ func setPath(doc map[string]any, path string, v any) {
 	for i, seg := range segs {
 		name, filter := seg[0], seg[1]
 		last := i == len(segs)-1
+		if filter != "" && filter[0] >= '0' && filter[0] <= '9' {
+			list, _ := cur[name].([]any)
+			if len(list) == 0 {
+				list = []any{map[string]any{}}
+				cur[name] = list
+			}
+			cur = list[0].(map[string]any)
+			continue
+		}
 		if filter != "" {
 			list, _ := cur[name].([]any)
 			if len(list) == 0 {
@@ -205,6 +214,8 @@ func splitPath(path string) [][2]string {
 	for _, seg := range splitDots(path) {
 		if i := indexOf(seg, "[?"); i >= 0 {
 			out = append(out, [2]string{seg[:i], seg[i+2 : len(seg)-1]})
+		} else if i := indexOf(seg, "["); i >= 0 {
+			out = append(out, [2]string{seg[:i], seg[i+1 : len(seg)-1]})
 		} else {
 			out = append(out, [2]string{seg, ""})
 		}

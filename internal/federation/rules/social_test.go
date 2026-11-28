@@ -188,3 +188,63 @@ func TestSocialTwitterProtocol(t *testing.T) {
 		}
 	}
 }
+
+func TestSocialFreeScope(t *testing.T) {
+	s, errs := Parse(socialInput("wordpress", nil))
+	if len(errs) > 0 || !reflect.DeepEqual(s.Scopes, []string{"auth"}) {
+		t.Fatalf("default %v %v", s.Scopes, errs)
+	}
+	for _, v := range []any{[]any{"global", "auth"}, "global auth", "global,auth"} {
+		s, errs := Parse(socialInput("wordpress", map[string]any{"scope": v}))
+		if len(errs) > 0 || !reflect.DeepEqual(s.Scopes, []string{"global", "auth"}) {
+			t.Fatalf("scope %v: %v %v", v, s.Scopes, errs)
+		}
+	}
+	for name, v := range map[string]any{
+		"21 tokens":  manyScopes(21),
+		"not string": []any{1},
+		"too long":   []any{strings.Repeat("a", 129)},
+		"object":     map[string]any{"a": 1},
+	} {
+		if _, errs := Parse(socialInput("wordpress", map[string]any{"scope": v})); len(errs) == 0 {
+			t.Fatalf("%s accepted", name)
+		}
+	}
+}
+
+func TestExactBaseURL(t *testing.T) {
+	for _, host := range []string{"nl", "be", "co.uk", "com", "de", "fr", "es"} {
+		base := "https://start.exactonline." + host
+		s, errs := Parse(socialInput("exact", map[string]any{"baseUrl": base, "profile": true}))
+		if len(errs) > 0 || s.AuthorizationURL != base+"/api/oauth2/auth" || s.TokenURL != base+"/api/oauth2/token" || s.Social.BaseURL != base || len(s.Scopes) != 0 {
+			t.Fatalf("%s: %+v %v", host, s, errs)
+		}
+	}
+	if _, errs := Parse(socialInput("exact", map[string]any{"baseUrl": "https://start.exactonline.nl/"})); len(errs) > 0 {
+		t.Fatalf("trailing slash: %v", errs)
+	}
+	for _, bad := range []any{nil, "https://start.exactonline.nl.evil.com", "http://start.exactonline.nl", "https://u@start.exactonline.nl",
+		"https://start.exactonline.nl/x", "https://start.exactonline.nl:8443", "https://start.exactonline.nl?x=1", "https://evil.com/start.exactonline.nl", 42.0} {
+		o := map[string]any{}
+		if bad != nil {
+			o["baseUrl"] = bad
+		}
+		if _, errs := Parse(socialInput("exact", o)); len(errs) == 0 {
+			t.Fatalf("baseUrl %v accepted", bad)
+		}
+	}
+}
+
+func TestSocialOAuth1Descriptor(t *testing.T) {
+	s, errs := Parse(socialInput("evernote", nil))
+	if len(errs) > 0 || s.OAuth1 == nil || s.OAuth1.RequestTokenURL != "https://www.evernote.com/oauth" || s.OAuth1.UserAuthorizationURL != "https://www.evernote.com/OAuth.action" ||
+		!s.OAuth1.EmptySecret || len(s.Scopes) != 0 {
+		t.Fatalf("evernote %+v %v", s.OAuth1, errs)
+	}
+	if s, _ := Parse(socialInput("evernote-sandbox", nil)); s.OAuth1 == nil || s.OAuth1.AccessTokenURL != "https://sandbox.evernote.com/oauth" {
+		t.Fatalf("sandbox %+v", s.OAuth1)
+	}
+	if s, _ := Parse(socialInput("twitter", map[string]any{"protocol": "oauth1"})); s.OAuth1 == nil || s.OAuth1.EmptySecret {
+		t.Fatal("twitter oauth1 must not allow an empty token secret")
+	}
+}

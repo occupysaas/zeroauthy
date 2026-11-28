@@ -120,3 +120,40 @@ func TestMgmtOAuth1Connections(t *testing.T) {
 		}
 	}
 }
+
+// TestMgmtTier2Scope: a free-scope strategy returns scope as stored, and
+// Exact and Evernote, which have none, return no scope (LR39d-1).
+func TestMgmtTier2Scope(t *testing.T) {
+	e := newConnEnv(t)
+	secret := map[string]any{"client_id": "cid", "client_secret": "tier2-throwaway-secret"}
+	with := func(extra map[string]any) map[string]any {
+		o := map[string]any{}
+		for k, v := range secret {
+			o[k] = v
+		}
+		for k, v := range extra {
+			o[k] = v
+		}
+		return o
+	}
+	rec, out := e.do("POST", connBase, map[string]any{"name": "wp", "strategy": "wordpress", "options": with(map[string]any{"scope": "global"})})
+	if rec.Code != 201 || out["options"].(map[string]any)["scope"] != "global" {
+		t.Fatalf("wordpress: %d %v", rec.Code, out["options"])
+	}
+	rec, out = e.do("POST", connBase, map[string]any{"name": "wp2", "strategy": "wordpress", "options": with(nil)})
+	if _, has := out["options"].(map[string]any)["scope"]; rec.Code != 201 || has {
+		t.Fatalf("wordpress without scope: %d %v", rec.Code, out["options"])
+	}
+	for name, body := range map[string]map[string]any{
+		"exact":    {"name": "ex", "strategy": "exact", "options": with(map[string]any{"baseUrl": "https://start.exactonline.nl"})},
+		"evernote": {"name": "en", "strategy": "evernote", "options": with(nil)},
+	} {
+		rec, out := e.do("POST", connBase, body)
+		if _, has := out["options"].(map[string]any)["scope"]; rec.Code != 201 || has {
+			t.Fatalf("%s: %d %v", name, rec.Code, out["options"])
+		}
+	}
+	if rec, _ := e.do("POST", connBase, map[string]any{"name": "ex2", "strategy": "exact", "options": with(map[string]any{"baseUrl": "https://evil.example"})}); rec.Code != 400 {
+		t.Fatalf("exact bad baseUrl: %d", rec.Code)
+	}
+}

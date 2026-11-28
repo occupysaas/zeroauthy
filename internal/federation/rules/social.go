@@ -6,6 +6,7 @@ import (
 	"math"
 	"net/url"
 	"regexp"
+	"slices"
 	"strings"
 
 	"github.com/zeroauthy/zeroauthy/internal/federation/providers"
@@ -22,6 +23,10 @@ type SocialSettings struct {
 	Protocol string
 	// CommunityBaseURL is salesforce-community's base URL.
 	CommunityBaseURL string
+	// BaseURL is the chosen regional base URL (Exact, LR39d-2).
+	BaseURL string
+	// FreeScope reports that the operator's scope is requested (LR39d-1).
+	FreeScope bool
 }
 
 const (
@@ -106,10 +111,27 @@ func parseSocial(strategy string, o, connectedAccounts map[string]any, out *Sett
 	social := &SocialSettings{Separator: d.Separator()}
 	errs = append(errs, parseSocialHook(d, o, social)...)
 	scopes := d.EffectiveScopes(enabled, extra)
-	if social.Protocol == "oauth1" {
+	if social.Protocol == "oauth1" || d.Protocol == providers.ProtocolOAuth1 {
 		scopes = []string{} // OAuth 1.0a has no scope
 	}
-	if v, ok := o["scope"]; ok && v != nil {
+	if d.FreeScope {
+		social.FreeScope = true
+		if v, ok := o["scope"]; ok && v != nil {
+			got, valid := scopeInput(v)
+			if !valid || len(got) > maxFreeformScopes {
+				fail("options.scope must be at most %d scopes", maxFreeformScopes)
+			}
+			for _, sc := range got {
+				if !freeformScopeRE.MatchString(sc) {
+					fail("options.scope entries must be 1 to %d printable characters without spaces or commas", maxFreeformBytes)
+					break
+				}
+			}
+			if valid && len(got) > 0 {
+				scopes = got
+			}
+		}
+	} else if v, ok := o["scope"]; ok && v != nil {
 		got, valid := scopeInput(v)
 		if !valid {
 			fail("options.scope must be an array of strings or a scope string")
@@ -124,6 +146,21 @@ func parseSocial(strategy string, o, connectedAccounts map[string]any, out *Sett
 		out.OAuth1 = &OAuth1Settings{RequestTokenURL: TwitterRequestTokenURL, AccessTokenURL: TwitterAccessTokenURL,
 			UserAuthorizationURL: TwitterAuthenticateURL, SignatureMethod: "HMAC-SHA1"}
 		out.AuthorizationURL, out.TokenURL = TwitterAuthenticateURL, TwitterAccessTokenURL
+	}
+	if len(d.BaseURLHosts) > 0 {
+		base, ok := baseURLOption(o["baseUrl"], d.BaseURLHosts)
+		if !ok {
+			fail("options.baseUrl must be https://<host> for one of %s", strings.Join(d.BaseURLHosts, ", "))
+		} else {
+			social.BaseURL = base
+			out.AuthorizationURL = strings.Replace(d.AuthorizationURL, providers.BaseURLPlaceholder, base, 1)
+			out.TokenURL = strings.Replace(d.TokenURL, providers.BaseURLPlaceholder, base, 1)
+		}
+	}
+	if o1 := d.OAuth1; o1 != nil {
+		out.OAuth1 = &OAuth1Settings{RequestTokenURL: o1.RequestTokenURL, AccessTokenURL: o1.AccessTokenURL, UserAuthorizationURL: o1.AuthorizationURL,
+			SignatureMethod: "HMAC-SHA1", EmptySecret: o1.EmptySecret}
+		out.AuthorizationURL, out.TokenURL = o1.AuthorizationURL, o1.AccessTokenURL
 	}
 	if social.CommunityBaseURL != "" {
 		out.AuthorizationURL = strings.Replace(d.AuthorizationURL, providers.CommunityPlaceholder, social.CommunityBaseURL, 1)
@@ -214,4 +251,19 @@ func intOption(v any) (int, bool) {
 		return int(n), true
 	}
 	return 0, false
+}
+
+// baseURLOption accepts exactly "https://<host>" (an optional trailing slash)
+// for a host in hosts.
+func baseURLOption(v any, hosts []string) (string, bool) {
+	raw, ok := v.(string)
+	if !ok {
+		return "", false
+	}
+	raw = strings.TrimSuffix(raw, "/")
+	host, ok := strings.CutPrefix(raw, "https://")
+	if !ok || !slices.Contains(hosts, host) {
+		return "", false
+	}
+	return raw, true
 }

@@ -51,6 +51,12 @@ func TestDescriptorsMatchInventory(t *testing.T) {
 		if !ok {
 			t.Fatalf("%s: not in the inventory", d.Strategy)
 		}
+		if d.Protocol == ProtocolOAuth1 {
+			if row.AuthorizationURL != d.OAuth1.AuthorizationURL || row.TokenURL != d.OAuth1.AccessTokenURL || row.UserID != d.Profile.UserID {
+				t.Errorf("%s: oauth1 endpoints or user id differ from the inventory", d.Strategy)
+			}
+			continue
+		}
 		literal := func(s string) bool {
 			return strings.HasPrefix(s, "https://") && !strings.Contains(s, "<") && !strings.Contains(s, " ")
 		}

@@ -50,6 +50,33 @@
     "fields": []
   },
   {
+    "strategy": "evernote",
+    "display_name": "Evernote",
+    "separator": " ",
+    "base_scopes": [],
+    "flags": [],
+    "freeform_scopes": false,
+    "fields": []
+  },
+  {
+    "strategy": "evernote-sandbox",
+    "display_name": "Evernote (sandbox)",
+    "separator": " ",
+    "base_scopes": [],
+    "flags": [],
+    "freeform_scopes": false,
+    "fields": []
+  },
+  {
+    "strategy": "exact",
+    "display_name": "Exact Online",
+    "separator": " ",
+    "base_scopes": [],
+    "flags": [],
+    "freeform_scopes": false,
+    "fields": []
+  },
+  {
     "strategy": "facebook",
     "display_name": "Facebook",
     "separator": ",",
@@ -517,6 +544,17 @@
     "fields": [
       "protocol"
     ]
+  },
+  {
+    "strategy": "wordpress",
+    "display_name": "WordPress.com",
+    "separator": " ",
+    "base_scopes": [
+      "auth"
+    ],
+    "flags": [],
+    "freeform_scopes": false,
+    "fields": []
   },
   {
     "strategy": "yahoo",
