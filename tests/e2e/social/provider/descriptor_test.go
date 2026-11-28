@@ -33,6 +33,9 @@ func TestSocialStandIn(t *testing.T) {
 	client.CheckRedirect = func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }
 	for _, d := range providers.All() {
 		t.Run(d.Strategy, func(t *testing.T) {
+			if d.Retired != nil {
+				t.Skip("retired: TestRetiredProviders")
+			}
 			if d.Protocol == providers.ProtocolOAuth1 {
 				t.Skip("OAuth 1.0a descriptors: TestSocialStandInOAuth1")
 			}
@@ -72,7 +75,7 @@ func TestSocialStandIn(t *testing.T) {
 			res.Body.Close()
 			u, _ := url.Parse(auth)
 			q := u.Query()
-			post := url.Values{"subject": {"user-1"}, "decision": {"allow"}, "redirect_uri": {q.Get("redirect_uri")}, "state": {q.Get("state")}, "code_challenge": {q.Get("code_challenge")}}
+			post := url.Values{"subject": {"user-1"}, "decision": {"allow"}, "redirect_uri": {q.Get(redirectParamOf(d))}, "state": {q.Get("state")}, "code_challenge": {q.Get("code_challenge")}}
 			res, err = client.PostForm(u.Scheme+"://"+u.Host+u.Path, post)
 			if err != nil || res.StatusCode != http.StatusFound {
 				t.Fatalf("allow %v %v", res.StatusCode, err)

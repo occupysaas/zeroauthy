@@ -32,7 +32,41 @@ type tier1Case struct {
 
 const tokenOK = `{"access_token":"` + socTestToken + `","token_type":"bearer","expires_in":3600}`
 
-var tier1Cases = []tier1Case{
+var tier1Cases = append(tier1Rows, tier2Rows...)
+
+// noType is a token response without token_type (Baidu, Bitly, 37signals,
+// Untappd, VK, Weibo answer without one).
+const noType = `{"access_token":"` + socTestToken + `","expires_in":3600`
+
+var tier2Rows = []tier1Case{
+	{strategy: "baidu", tokenPath: "/baidu/oauth/2.0/token", tokenBody: noType + `}`, profilePath: "/baidu/rest/2.0/passport/users/getInfo",
+		profileBody: `{"userid":"2097322476","username":"bd"}`, scope: "basic", subject: "2097322476", name: "bd"},
+	{strategy: "bitly", tokenPath: "/bitly/oauth/access_token", tokenBody: noType + `,"login":"bitlyuser"}`, profilePath: "/bitly/v4/user",
+		profileBody: `{"login":"bitlyuser","name":"Bit Ly","emails":[{"email":"b@example.com","is_primary":true,"is_verified":true}]}`, scope: "", subject: "bitlyuser", email: "b@example.com", verified: true, name: "Bit Ly"},
+	{strategy: "daccount", tokenPath: "/daccount/token", tokenBody: tokenOK, profilePath: "/daccount/userinfo", profileBody: `{"sub":"dac-1"}`, scope: "openid", subject: "dac-1"},
+	{strategy: "dwolla", tokenPath: "/dwolla/token", tokenBody: `{"access_token":"` + socTestToken + `","token_type":"bearer","account_id":"acc-123"}`, profilePath: "/dwolla/accounts/acc-123",
+		profileBody: `{"id":"acc-123","name":"Dw Olla"}`, scope: "AccountInfoFull", subject: "acc-123", name: "Dw Olla"},
+	{strategy: "exact", options: `,"baseUrl":"https://start.exactonline.nl"`, tokenPath: "/exact/api/oauth2/token", tokenBody: tokenOK, profilePath: "/exact/api/v1/current/Me",
+		profileBody: `{"d":{"results":[{"UserID":"guid-1","FullName":"Ex Act","Email":"e@example.com"}]}}`, scope: "", subject: "guid-1", email: "e@example.com", verified: false, name: "Ex Act"},
+	{strategy: "planningcenter", tokenPath: "/planningcenter/oauth/token", tokenBody: tokenOK, profilePath: "/planningcenter/people/v2/me",
+		profileBody: `{"data":{"id":"pc-1","attributes":{"name":"Plan Center","first_name":"Plan","last_name":"Center"}}}`, scope: "people", subject: "pc-1", name: "Plan Center"},
+	{strategy: "soundcloud", tokenPath: "/soundcloud/oauth/token", tokenBody: tokenOK, profilePath: "/soundcloud/me",
+		profileBody: `{"id":3207,"username":"sc","full_name":"Sound Cloud"}`, scope: "", subject: "3207", name: "Sound Cloud"},
+	{strategy: "thirtysevensignals", tokenPath: "/thirtysevensignals/authorization/token", tokenBody: noType + `}`, profilePath: "/thirtysevensignals/authorization.json",
+		profileBody: `{"identity":{"id":9999999,"first_name":"Jason","last_name":"Fried","email_address":"j@example.com"}}`, scope: "", subject: "9999999", email: "j@example.com", verified: false},
+	{strategy: "untappd", tokenPath: "/untappd/oauth/authorize/", tokenBody: `{"meta":{"http_code":200},"response":{"access_token":"` + socTestToken + `"}}`, profilePath: "/untappd/v4/user/info",
+		profileBody: `{"response":{"user":{"uid":12345,"user_name":"ut","first_name":"Un","last_name":"Tappd","settings":{"email_address":"u@example.com"}}}}`, scope: "", subject: "12345", email: "u@example.com", verified: false},
+	{strategy: "vkontakte", tokenPath: "/vkontakte/access_token", tokenBody: noType + `,"user_id":66748,"email":"vk@example.com"}`, profilePath: "/vkontakte/method/users.get",
+		profileBody: `{"response":[{"id":66748,"first_name":"V","last_name":"K","screen_name":"vk"}]}`, scope: "", subject: "66748", email: "vk@example.com", verified: false},
+	{strategy: "weibo", tokenPath: "/weibo/oauth2/access_token", tokenBody: noType + `,"uid":"1404376560"}`, profilePath: "/weibo/2/users/show.json",
+		profileBody: `{"idstr":"1404376560","screen_name":"wb","name":"Wei Bo"}`, scope: "", subject: "1404376560", name: "Wei Bo"},
+	{strategy: "wordpress", tokenPath: "/wordpress/oauth2/token", tokenBody: tokenOK, profilePath: "/wordpress/rest/v1.1/me", profileBody: wpProfile,
+		scope: "auth", subject: "42", email: "wp@example.com", verified: true, name: "W P"},
+	{strategy: "yandex", tokenPath: "/yandex/token", tokenBody: tokenOK, profilePath: "/yandex/info",
+		profileBody: `{"id":"1000034426","login":"ya","real_name":"Yan Dex","default_email":"y@example.com"}`, scope: "", subject: "1000034426", email: "y@example.com", verified: false, name: "Yan Dex"},
+}
+
+var tier1Rows = []tier1Case{
 	{strategy: "facebook", options: `,"email":true,"user_birthday":true`, tokenPath: "/facebook/v24.0/oauth/access_token", tokenBody: tokenOK,
 		profilePath: "/facebook/v24.0/me", profileBody: `{"id":"10150000000000001","name":"Fay Book","first_name":"Fay","last_name":"Book","email":"fay@example.com","picture":{"data":{"url":"https://graph.example/pic.jpg"}}}`,
 		scope: "public_profile,email,user_birthday", subject: "10150000000000001", email: "fay@example.com", verified: true, name: "Fay Book"},
@@ -173,6 +207,7 @@ func TestDescriptorEmailRules(t *testing.T) {
 // setPath writes v at a Lookup path, creating objects and a one-element
 // selected array for [?field] segments.
 func setPath(doc map[string]any, path string, v any) {
+	path = strings.TrimPrefix(path, providers.TokenPrefix)
 	segs := splitPath(path)
 	cur := doc
 	for i, seg := range segs {

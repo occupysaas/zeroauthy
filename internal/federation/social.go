@@ -71,6 +71,11 @@ func (ps *Providers) SocialEndpoints(cfg Config, loginHint string) (Endpoints, e
 // socialEndpoints builds d's endpoints, runs its begin hook and applies the
 // fixture rewrite.
 func (ps *Providers) socialEndpoints(d *providers.Descriptor, cfg Config, loginHint string) (Endpoints, error) {
+	if r := d.Retired; r != nil {
+		// Stored and returned like any connection; never signed in to
+		// (LR39d-3). The reason is operator-safe text from the descriptor.
+		return Endpoints{}, fmt.Errorf("%w: %s sign-in was retired on %s: %s", ErrConnectionUnusable, d.DisplayName, r.Date, r.Reason)
+	}
 	e := ps.socialEndpointsFor(d, cfg, loginHint)
 	if h, ok := socialHooks[d.Hook]; ok && h.begin != nil {
 		if err := h.begin(d, cfg, loginHint, &e); err != nil {

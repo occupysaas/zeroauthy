@@ -18,6 +18,17 @@
     "fields": []
   },
   {
+    "strategy": "baidu",
+    "display_name": "Baidu",
+    "separator": " ",
+    "base_scopes": [
+      "basic"
+    ],
+    "flags": [],
+    "freeform_scopes": false,
+    "fields": []
+  },
+  {
     "strategy": "bitbucket",
     "display_name": "Bitbucket",
     "separator": " ",
@@ -30,10 +41,30 @@
     "fields": []
   },
   {
+    "strategy": "bitly",
+    "display_name": "Bitly",
+    "separator": " ",
+    "base_scopes": [],
+    "flags": [],
+    "freeform_scopes": false,
+    "fields": []
+  },
+  {
     "strategy": "box",
     "display_name": "Box",
     "separator": " ",
     "base_scopes": [],
+    "flags": [],
+    "freeform_scopes": false,
+    "fields": []
+  },
+  {
+    "strategy": "daccount",
+    "display_name": "d Account",
+    "separator": " ",
+    "base_scopes": [
+      "openid"
+    ],
     "flags": [],
     "freeform_scopes": false,
     "fields": []
@@ -44,6 +75,17 @@
     "separator": " ",
     "base_scopes": [
       "account_info.read"
+    ],
+    "flags": [],
+    "freeform_scopes": false,
+    "fields": []
+  },
+  {
+    "strategy": "dwolla",
+    "display_name": "Dwolla",
+    "separator": " ",
+    "base_scopes": [
+      "AccountInfoFull"
     ],
     "flags": [],
     "freeform_scopes": false,
@@ -328,6 +370,28 @@
     "fields": []
   },
   {
+    "strategy": "fitbit",
+    "display_name": "Fitbit",
+    "separator": " ",
+    "base_scopes": [
+      "profile"
+    ],
+    "flags": [],
+    "freeform_scopes": false,
+    "fields": []
+  },
+  {
+    "strategy": "instagram",
+    "display_name": "Instagram",
+    "separator": " ",
+    "base_scopes": [
+      "user_profile"
+    ],
+    "flags": [],
+    "freeform_scopes": false,
+    "fields": []
+  },
+  {
     "strategy": "line",
     "display_name": "LINE",
     "separator": " ",
@@ -444,6 +508,17 @@
     "fields": []
   },
   {
+    "strategy": "planningcenter",
+    "display_name": "Planning Center",
+    "separator": " ",
+    "base_scopes": [
+      "people"
+    ],
+    "flags": [],
+    "freeform_scopes": false,
+    "fields": []
+  },
+  {
     "strategy": "salesforce",
     "display_name": "Salesforce",
     "separator": " ",
@@ -514,6 +589,24 @@
     ]
   },
   {
+    "strategy": "soundcloud",
+    "display_name": "SoundCloud",
+    "separator": " ",
+    "base_scopes": [],
+    "flags": [],
+    "freeform_scopes": false,
+    "fields": []
+  },
+  {
+    "strategy": "thirtysevensignals",
+    "display_name": "37signals",
+    "separator": " ",
+    "base_scopes": [],
+    "flags": [],
+    "freeform_scopes": false,
+    "fields": []
+  },
+  {
     "strategy": "twitter",
     "display_name": "X (Twitter)",
     "separator": " ",
@@ -546,6 +639,33 @@
     ]
   },
   {
+    "strategy": "untappd",
+    "display_name": "Untappd",
+    "separator": " ",
+    "base_scopes": [],
+    "flags": [],
+    "freeform_scopes": false,
+    "fields": []
+  },
+  {
+    "strategy": "vkontakte",
+    "display_name": "VK",
+    "separator": " ",
+    "base_scopes": [],
+    "flags": [],
+    "freeform_scopes": false,
+    "fields": []
+  },
+  {
+    "strategy": "weibo",
+    "display_name": "Weibo",
+    "separator": " ",
+    "base_scopes": [],
+    "flags": [],
+    "freeform_scopes": false,
+    "fields": []
+  },
+  {
     "strategy": "wordpress",
     "display_name": "WordPress.com",
     "separator": " ",
@@ -565,6 +685,15 @@
       "profile",
       "email"
     ],
+    "flags": [],
+    "freeform_scopes": false,
+    "fields": []
+  },
+  {
+    "strategy": "yandex",
+    "display_name": "Yandex",
+    "separator": " ",
+    "base_scopes": [],
     "flags": [],
     "freeform_scopes": false,
     "fields": []

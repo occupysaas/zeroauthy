@@ -1,0 +1,29 @@
+{
+ "strategy": "bitly",
+ "display_name": "Bitly",
+ "source": [
+  "https://dev.bitly.com/docs/getting-started/authentication/",
+  "https://auth0.com/docs/authenticate/identity-providers/social-identity-providers/bitly"
+ ],
+ "authorization_url": "https://bitly.com/oauth/authorize",
+ "token_url": "https://api-ssl.bitly.com/oauth/access_token",
+ "profile_url": "https://api-ssl.bitly.com/v4/user",
+ "token_auth": "client_secret_post",
+ "pkce": "none",
+ "base_scopes": [],
+ "flags": [],
+ "freeform_scopes": false,
+ "free_scope": true,
+ "profile": {
+  "user_id": "login",
+  "name": "name",
+  "nickname": "login",
+  "email": "emails[?is_primary].email"
+ },
+ "email_verified": {
+  "rule": "field",
+  "path": "emails[?is_primary].is_verified"
+ },
+ "token_accept": "application/json",
+ "token_type_optional": true
+}

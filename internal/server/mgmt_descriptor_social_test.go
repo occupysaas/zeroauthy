@@ -157,3 +157,22 @@ func TestMgmtTier2Scope(t *testing.T) {
 		t.Fatalf("exact bad baseUrl: %d", rec.Code)
 	}
 }
+
+// TestMgmtRetiredConnections: retired strategies create, read and PATCH
+// normally (LR39d-3).
+func TestMgmtRetiredConnections(t *testing.T) {
+	e := newConnEnv(t)
+	for _, strategy := range []string{"fitbit", "instagram"} {
+		rec, out := e.do("POST", connBase, map[string]any{"name": strategy, "strategy": strategy, "options": map[string]any{"client_id": "cid", "client_secret": "retired-throwaway-secret", "scope": []any{"profile"}}})
+		if rec.Code != 201 {
+			t.Fatalf("%s create: %d %s", strategy, rec.Code, rec.Body)
+		}
+		id := out["id"].(string)
+		if rec, _ := e.do("GET", connBase+"/"+id, nil); rec.Code != 200 {
+			t.Fatalf("%s read: %d", strategy, rec.Code)
+		}
+		if rec, _ := e.do("PATCH", connBase+"/"+id, map[string]any{"options": map[string]any{"client_id": "cid", "scope": []any{"activity"}}}); rec.Code != 200 {
+			t.Fatalf("%s patch: %d %s", strategy, rec.Code, rec.Body)
+		}
+	}
+}

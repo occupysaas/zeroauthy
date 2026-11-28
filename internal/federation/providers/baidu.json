@@ -1,0 +1,29 @@
+{
+ "strategy": "baidu",
+ "display_name": "Baidu",
+ "source": [
+  "https://openauth.baidu.com/doc/doc.html",
+  "https://auth0.com/docs/authenticate/identity-providers/social-identity-providers/baidu"
+ ],
+ "authorization_url": "https://openapi.baidu.com/oauth/2.0/authorize",
+ "token_url": "https://openapi.baidu.com/oauth/2.0/token",
+ "profile_url": "https://openapi.baidu.com/rest/2.0/passport/users/getInfo",
+ "token_auth": "client_secret_post",
+ "pkce": "none",
+ "base_scopes": [
+  "basic"
+ ],
+ "flags": [],
+ "freeform_scopes": false,
+ "free_scope": true,
+ "profile": {
+  "user_id": "userid",
+  "name": "username",
+  "nickname": "username"
+ },
+ "email_verified": {
+  "rule": "never"
+ },
+ "profile_auth": "query:access_token",
+ "token_type_optional": true
+}

@@ -1,0 +1,25 @@
+{
+ "strategy": "daccount",
+ "display_name": "d Account",
+ "source": [
+  "https://dev.smt.docomo.ne.jp/?p=docs.api.page&api_name=dcc",
+  "https://auth0.com/docs/authenticate/identity-providers/social-identity-providers/daccount"
+ ],
+ "authorization_url": "https://id.smt.docomo.ne.jp/cgi8/oidc/authorize",
+ "token_url": "https://conf.uw.docomo.ne.jp/token",
+ "profile_url": "https://conf.uw.docomo.ne.jp/userinfo",
+ "token_auth": "client_secret_basic",
+ "pkce": "none",
+ "base_scopes": [
+  "openid"
+ ],
+ "flags": [],
+ "freeform_scopes": false,
+ "free_scope": true,
+ "profile": {
+  "user_id": "sub"
+ },
+ "email_verified": {
+  "rule": "never"
+ }
+}

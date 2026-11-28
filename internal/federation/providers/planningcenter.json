@@ -1,0 +1,28 @@
+{
+ "strategy": "planningcenter",
+ "display_name": "Planning Center",
+ "source": [
+  "https://developer.planning.center/docs/#/overview/authentication",
+  "https://auth0.com/docs/authenticate/identity-providers/social-identity-providers/planningcenter"
+ ],
+ "authorization_url": "https://api.planningcenteronline.com/oauth/authorize",
+ "token_url": "https://api.planningcenteronline.com/oauth/token",
+ "profile_url": "https://api.planningcenteronline.com/people/v2/me",
+ "token_auth": "client_secret_post",
+ "pkce": "none",
+ "base_scopes": [
+  "people"
+ ],
+ "flags": [],
+ "freeform_scopes": false,
+ "free_scope": true,
+ "profile": {
+  "user_id": "data.id",
+  "name": "data.attributes.name",
+  "given_name": "data.attributes.first_name",
+  "family_name": "data.attributes.last_name"
+ },
+ "email_verified": {
+  "rule": "never"
+ }
+}

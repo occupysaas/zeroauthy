@@ -1,0 +1,34 @@
+{
+ "strategy": "vkontakte",
+ "display_name": "VK",
+ "source": [
+  "https://dev.vk.com/en/api/access-token/authcode-flow-user",
+  "https://auth0.com/docs/authenticate/identity-providers/social-identity-providers/vkontakte"
+ ],
+ "authorization_url": "https://oauth.vk.com/authorize",
+ "token_url": "https://oauth.vk.com/access_token",
+ "profile_url": "https://api.vk.com/method/users.get",
+ "token_auth": "client_secret_post",
+ "pkce": "none",
+ "base_scopes": [],
+ "flags": [],
+ "freeform_scopes": false,
+ "free_scope": true,
+ "profile": {
+  "user_id": "token:user_id",
+  "email": "token:email",
+  "given_name": "response[0].first_name",
+  "family_name": "response[0].last_name",
+  "nickname": "response[0].screen_name",
+  "picture": "response[0].photo_200"
+ },
+ "email_verified": {
+  "rule": "never"
+ },
+ "profile_auth": "query:access_token",
+ "profile_params": {
+  "v": "5.199",
+  "fields": "photo_200,screen_name"
+ },
+ "token_type_optional": true
+}

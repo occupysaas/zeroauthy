@@ -3098,7 +3098,7 @@
     "authorization_url": "https://untappd.com/oauth/authenticate/",
     "token_url": "https://untappd.com/oauth/authorize/",
     "profile_url": "https://api.untappd.com/v4/user/info",
-    "token_auth": "query (GET)",
+    "token_auth": "client_secret_query",
     "pkce": "none",
     "base_scopes": [],
     "scope_flags": {},

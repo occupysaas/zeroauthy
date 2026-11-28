@@ -1,0 +1,29 @@
+{
+ "strategy": "weibo",
+ "display_name": "Weibo",
+ "source": [
+  "https://open.weibo.com/wiki/Oauth2/access_token",
+  "https://open.weibo.com/wiki/2/users/show",
+  "https://auth0.com/docs/authenticate/identity-providers/social-identity-providers/weibo"
+ ],
+ "authorization_url": "https://api.weibo.com/oauth2/authorize",
+ "token_url": "https://api.weibo.com/oauth2/access_token",
+ "profile_url": "https://api.weibo.com/2/users/show.json?uid={token.uid}",
+ "token_auth": "client_secret_post",
+ "pkce": "none",
+ "base_scopes": [],
+ "flags": [],
+ "freeform_scopes": false,
+ "free_scope": true,
+ "profile": {
+  "user_id": "idstr",
+  "name": "name",
+  "nickname": "screen_name",
+  "picture": "avatar_large"
+ },
+ "email_verified": {
+  "rule": "never"
+ },
+ "profile_auth": "query:access_token",
+ "token_type_optional": true
+}

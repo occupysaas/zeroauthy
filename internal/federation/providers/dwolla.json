@@ -1,0 +1,27 @@
+{
+ "strategy": "dwolla",
+ "display_name": "Dwolla",
+ "source": [
+  "https://developers.dwolla.com/docs/auth",
+  "https://auth0.com/docs/authenticate/identity-providers/social-identity-providers/dwolla"
+ ],
+ "authorization_url": "https://accounts.dwolla.com/auth",
+ "token_url": "https://accounts.dwolla.com/token",
+ "profile_url": "https://api.dwolla.com/accounts/{token.account_id}",
+ "token_auth": "client_secret_post",
+ "pkce": "none",
+ "base_scopes": [
+  "AccountInfoFull"
+ ],
+ "flags": [],
+ "freeform_scopes": false,
+ "free_scope": true,
+ "profile": {
+  "user_id": "token:account_id",
+  "name": "name"
+ },
+ "email_verified": {
+  "rule": "never"
+ },
+ "profile_accept": "application/vnd.dwolla.v1.hal+json"
+}

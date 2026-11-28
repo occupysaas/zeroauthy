@@ -1,0 +1,32 @@
+{
+ "strategy": "fitbit",
+ "display_name": "Fitbit",
+ "source": [
+  "https://dev.fitbit.com/blog/2025-08-08-fitbit-dev-tools-moving-to-google-accounts/",
+  "https://developers.google.com/health/migration",
+  "https://auth0.com/docs/authenticate/identity-providers/social-identity-providers/fitbit"
+ ],
+ "authorization_url": "https://www.fitbit.com/oauth2/authorize",
+ "token_url": "https://api.fitbit.com/oauth2/token",
+ "profile_url": "https://api.fitbit.com/1/user/-/profile.json",
+ "token_auth": "client_secret_basic",
+ "pkce": "S256",
+ "base_scopes": [
+  "profile"
+ ],
+ "flags": [],
+ "freeform_scopes": false,
+ "free_scope": true,
+ "profile": {
+  "user_id": "user.encodedId",
+  "name": "user.displayName"
+ },
+ "email_verified": {
+  "rule": "never"
+ },
+ "retired": {
+  "date": "2026-11-02",
+  "reason": "Fitbit turned off its legacy Web API and OAuth endpoints; sign-in moved to the Google Health API",
+  "source": "https://developers.google.com/health/migration"
+ }
+}

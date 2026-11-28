@@ -60,7 +60,7 @@ func (p *Provider) serveSocial(w http.ResponseWriter, r *http.Request) {
 		p.socialProfile(w, r, d, true)
 	case d.VerifyURL != "" && path == socialPath(d.VerifyURL) && r.Method == http.MethodPost:
 		p.socialVerify(w, r, d)
-	case path == socialPath(d.ProfileURL) || d.Hook == providers.HookSalesforce && strings.HasPrefix(path, "/id/"):
+	case path == socialPath(d.ProfileURL) || d.Hook == providers.HookSalesforce && strings.HasPrefix(path, "/id/") || templated(d.ProfileURL, path):
 		p.socialProfile(w, r, d, false)
 	default:
 		http.NotFound(w, r)
@@ -243,7 +243,7 @@ func (p *Provider) socialProfile(w http.ResponseWriter, r *http.Request, d *prov
 		setPath(doc, d.Profile.UserID, t.sub)
 	}
 	for _, path := range []string{d.Profile.Name, d.Profile.Nickname} {
-		if path != "" && !strings.HasPrefix(path, providers.TokenPrefix) {
+		if path != "" && path != d.Profile.UserID && !strings.HasPrefix(path, providers.TokenPrefix) {
 			setPath(doc, path, "Name "+t.sub)
 		}
 	}
@@ -338,4 +338,18 @@ func (p *Provider) tokenProfile(d *providers.Descriptor, sub string, out map[str
 	if f, ok := strings.CutPrefix(d.Profile.Email, providers.TokenPrefix); ok {
 		setPath(out, f, SocialEmail(d.Strategy, sub))
 	}
+}
+
+// templated reports whether path matches a profile URL whose path holds a
+// {token.<field>} variable (Dwolla's /accounts/{token.account_id}).
+func templated(profileURL, path string) bool {
+	if !strings.Contains(profileURL, "{token.") {
+		return false
+	}
+	raw := strings.SplitN(strings.SplitN(profileURL, "://", 2)[1], "/", 2)
+	if len(raw) < 2 {
+		return false
+	}
+	prefix, _, _ := strings.Cut("/"+raw[1], "{token.")
+	return strings.HasPrefix(path, prefix) && len(path) > len(prefix) && !strings.Contains(path[len(prefix):], "/")
 }
