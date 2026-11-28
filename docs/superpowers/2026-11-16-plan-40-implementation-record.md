@@ -131,7 +131,7 @@ failed as expected before restoration. Review detail stays in the private local
 workspace. The initial focused review suite had two expectation failures after
 tightening cookie policy and consent marker handling; corrected checks pass.
 Final aggregate and post-review E2E results are recorded below when completed.
-CI remains pending. No merge readiness is claimed.
+Plan-branch CI passed at `fab0ddaf` (https://github.com/occupysaas/zeroauthy/actions/runs/46111231292); merged 2026-11-28 in PR #109.
 
 Additional rulings: the complete stored session-claims map is bounded to
 1,000,000 serialized JSON bytes; each client remains bounded to 100,000 bytes,
