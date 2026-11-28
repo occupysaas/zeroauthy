@@ -1,6 +1,6 @@
 # Plan 40 — Actions III (session and refresh-token APIs, linking, risk, newer event members)
 
-**Date:** 2026-11-16. **Status:** design; not implemented.
+**Date:** 2026-11-16. **Status:** implemented; merged 2026-11-28 (PR #109); see the [implementation record](../2026-11-16-plan-40-implementation-record.md) and D-0190.
 
 **Roadmap entry:** [management roadmap, Plan 40](2026-10-19-zeroauthy-management-roadmap-design.md)
 ("short"); [parallel paths](2026-11-13-zeroauthy-parallel-paths-design.md)
