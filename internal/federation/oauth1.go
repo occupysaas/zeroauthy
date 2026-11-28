@@ -290,5 +290,5 @@ func (ps *Providers) twitterOAuth1Profile(ctx context.Context, _ ExchangeInput, 
 	if dec.Decode(&doc) != nil || doc == nil {
 		return Profile{}, fmt.Errorf("%w: twitter profile is not a JSON object", ErrProviderResponse)
 	}
-	return mapSocialProfile(d, doc, doc)
+	return mapSocialProfile(d, doc, doc, nil)
 }

@@ -142,7 +142,7 @@ func TestDescriptorEmailRules(t *testing.T) {
 			doc := map[string]any{}
 			setPath(doc, d.Profile.UserID, "subject-1")
 			setPath(doc, d.Profile.Email, "person@example.com")
-			p, err := mapSocialProfile(d, doc, doc)
+			p, err := mapSocialProfile(d, doc, doc, doc)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -154,15 +154,15 @@ func TestDescriptorEmailRules(t *testing.T) {
 			}
 			if d.EmailVerified.Rule == providers.EmailField {
 				setPath(doc, d.EmailVerified.Path, false)
-				if p, _ := mapSocialProfile(d, doc, doc); *p.EmailVerified {
+				if p, _ := mapSocialProfile(d, doc, doc, doc); *p.EmailVerified {
 					t.Fatal("field false gave verified")
 				}
 				setPath(doc, d.EmailVerified.Path, "yes")
-				if p, _ := mapSocialProfile(d, doc, doc); *p.EmailVerified {
+				if p, _ := mapSocialProfile(d, doc, doc, doc); *p.EmailVerified {
 					t.Fatal("non-boolean field gave verified")
 				}
 				setPath(doc, d.EmailVerified.Path, true)
-				if p, _ := mapSocialProfile(d, doc, doc); !*p.EmailVerified {
+				if p, _ := mapSocialProfile(d, doc, doc, doc); !*p.EmailVerified {
 					t.Fatal("field true gave unverified")
 				}
 			}

@@ -33,7 +33,13 @@ func TestSocialStandIn(t *testing.T) {
 	client.CheckRedirect = func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }
 	for _, d := range providers.All() {
 		t.Run(d.Strategy, func(t *testing.T) {
+			if d.Protocol == providers.ProtocolOAuth1 {
+				t.Skip("OAuth 1.0a descriptors: TestSocialStandInOAuth1")
+			}
 			opts := map[string]any{"client_id": ClientID, "client_secret": ClientSecret}
+			if len(d.BaseURLHosts) > 0 {
+				opts["baseUrl"] = "https://" + d.BaseURLHosts[0]
+			}
 			if d.Strategy == "salesforce-community" {
 				opts["community_base_url"] = "https://community.example"
 			}

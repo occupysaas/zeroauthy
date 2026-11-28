@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"regexp"
 	"strings"
 
 	"github.com/zeroauthy/zeroauthy/internal/federation/providers"
@@ -87,8 +88,14 @@ func (ps *Providers) socialEndpointsFor(d *providers.Descriptor, cfg Config, _ s
 	if e.AuthorizationURL == "" {
 		e.AuthorizationURL, e.TokenURL = d.AuthorizationURL, d.TokenURL
 	}
-	if d.TokenAuth == providers.AuthBasic {
+	switch d.TokenAuth {
+	case providers.AuthBasic:
 		e.TokenAuthMethod = authBasic
+	case providers.AuthQuery:
+		e.TokenAuthMethod = providers.AuthQuery
+	}
+	if cfg.Social != nil && cfg.Social.BaseURL != "" {
+		e.UserInfoURL = strings.Replace(e.UserInfoURL, providers.BaseURLPlaceholder, cfg.Social.BaseURL, 1)
 	}
 	if d.PKCE == providers.PKCES256 {
 		e.PKCEMethod = "S256"
@@ -114,7 +121,10 @@ func (p socialProvider) AuthorizationURL(in StartInput) (string, error) {
 	q := u.Query()
 	q.Set("response_type", "code")
 	q.Set("client_id", in.Config.ClientID)
-	q.Set("redirect_uri", in.CallbackURL)
+	q.Set(redirectParam(p.d), in.CallbackURL)
+	for k, v := range p.d.AuthorizeParams {
+		q.Set(k, v)
+	}
 	if len(in.Config.Scopes) > 0 {
 		q.Set("scope", strings.Join(in.Config.Scopes, p.d.Separator()))
 	}
@@ -134,7 +144,7 @@ func (p socialProvider) Exchange(ctx context.Context, in ExchangeInput) (Provide
 	if in.Endpoints.PKCEMethod != "S256" {
 		in.CodeVerifier = ""
 	}
-	body, err := p.ps.exchangeCodeRaw(ctx, in.Endpoints.TokenURL, in.Endpoints.TokenAuthMethod, in)
+	body, err := p.tokenRequest(ctx, in)
 	if err != nil {
 		return ProviderResult{}, err
 	}
@@ -143,6 +153,13 @@ func (p socialProvider) Exchange(ctx context.Context, in ExchangeInput) (Provide
 	dec.UseNumber()
 	if dec.Decode(&raw) != nil {
 		return ProviderResult{}, fmt.Errorf("%w: malformed token response", ErrProviderResponse)
+	}
+	if d.TokenResponsePath != "" {
+		obj, ok := providers.Lookup(raw, d.TokenResponsePath)
+		if raw, ok = obj.(map[string]any); !ok {
+			return ProviderResult{}, fmt.Errorf("%w: token response lacks %s", ErrProviderResponse, d.TokenResponsePath)
+		}
+		body, _ = json.Marshal(raw)
 	}
 	if _, has := raw["token_type"]; !has && d.TokenTypeOptional {
 		raw["token_type"] = "bearer"
@@ -156,7 +173,10 @@ func (p socialProvider) Exchange(ctx context.Context, in ExchangeInput) (Provide
 		return ProviderResult{}, fmt.Errorf("%w: token response token_type is not bearer", ErrProviderResponse)
 	}
 	hook := socialHooks[d.Hook]
-	profileURL := in.Endpoints.UserInfoURL
+	profileURL, err := expandTokenValues(in.Endpoints.UserInfoURL, raw)
+	if err != nil {
+		return ProviderResult{}, err
+	}
 	if hook.profileURL != nil {
 		if profileURL, err = hook.profileURL(in.Endpoints, raw); err != nil {
 			return ProviderResult{}, err
@@ -172,7 +192,7 @@ func (p socialProvider) Exchange(ctx context.Context, in ExchangeInput) (Provide
 			return ProviderResult{}, err
 		}
 	}
-	profile, err := mapSocialProfile(d, doc, emailDoc)
+	profile, err := mapSocialProfile(d, doc, emailDoc, raw)
 	if err != nil {
 		return ProviderResult{}, err
 	}
@@ -194,13 +214,26 @@ func (ps *Providers) socialFetch(ctx context.Context, d *providers.Descriptor, m
 	if err != nil || rawURL == "" {
 		return nil, fmt.Errorf("%w: bad profile URL", ErrProviderResponse)
 	}
-	req.Header.Set("Accept", "application/json")
+	q := req.URL.Query()
+	for k, v := range d.ProfileParams {
+		q.Set(k, v)
+	}
+	accept := "application/json"
+	if d.ProfileAccept != "" {
+		accept = d.ProfileAccept
+	}
+	req.Header.Set("Accept", accept)
 	req.Header.Set("User-Agent", "zeroauthy")
 	if name, ok := strings.CutPrefix(d.ProfileAuth, "header:"); ok {
 		req.Header.Set(name, token)
+	} else if name, ok := strings.CutPrefix(d.ProfileAuth, "query:"); ok {
+		q.Set(name, token) // never in an error: errors carry no URL
+	} else if scheme, ok := strings.CutPrefix(d.ProfileAuth, "scheme:"); ok {
+		req.Header.Set("Authorization", scheme+" "+token)
 	} else {
 		req.Header.Set("Authorization", "Bearer "+token)
 	}
+	req.URL.RawQuery = q.Encode()
 	if hook.decorate != nil {
 		hook.decorate(req, token, secret)
 	}
@@ -227,9 +260,15 @@ func (ps *Providers) socialFetch(ctx context.Context, d *providers.Descriptor, m
 // mapSocialProfile applies the descriptor's profile map. The subject is a
 // string or a JSON integer, never read through float64. Optional attributes
 // that are not bounded strings are dropped.
-func mapSocialProfile(d *providers.Descriptor, doc, emailDoc map[string]any) (Profile, error) {
+func mapSocialProfile(d *providers.Descriptor, doc, emailDoc, tokenDoc map[string]any) (Profile, error) {
 	var p Profile
-	v, ok := providers.Lookup(doc, d.Profile.UserID)
+	lookup := func(src map[string]any, path string) (any, bool) {
+		if rest, ok := strings.CutPrefix(path, providers.TokenPrefix); ok {
+			return providers.Lookup(tokenDoc, rest)
+		}
+		return providers.Lookup(src, path)
+	}
+	v, ok := lookup(doc, d.Profile.UserID)
 	if !ok {
 		return Profile{}, fmt.Errorf("%w: %s profile lacks the user id", ErrProfile, d.Strategy)
 	}
@@ -256,7 +295,7 @@ func mapSocialProfile(d *providers.Descriptor, doc, emailDoc map[string]any) (Pr
 		if path == "" {
 			return nil
 		}
-		v, ok := providers.Lookup(src, path)
+		v, ok := lookup(src, path)
 		if !ok {
 			return nil
 		}
@@ -280,7 +319,7 @@ func mapSocialProfile(d *providers.Descriptor, doc, emailDoc map[string]any) (Pr
 		case providers.EmailAlways:
 			verified = true
 		case providers.EmailField:
-			v, _ := providers.Lookup(emailDoc, d.EmailVerified.Path)
+			v, _ := lookup(emailDoc, d.EmailVerified.Path)
 			verified = v == true || v == "true"
 		}
 		p.EmailVerified = &verified
@@ -303,4 +342,115 @@ func mapSocialProfile(d *providers.Descriptor, doc, emailDoc map[string]any) (Pr
 		}
 	}
 	return p, nil
+}
+
+// redirectParam is the descriptor's name for redirect_uri.
+func redirectParam(d *providers.Descriptor) string {
+	if d.RedirectParam != "" {
+		return d.RedirectParam
+	}
+	return "redirect_uri"
+}
+
+// tokenRequest redeems the code once with the descriptor's request shape:
+// POST (default) or GET, client credentials in the body, a basic header or
+// the query, the redirect parameter's name and fixed parameters. It never
+// retries; errors carry no credential, URL or body.
+func (p socialProvider) tokenRequest(ctx context.Context, in ExchangeInput) ([]byte, error) {
+	d := p.d
+	form := url.Values{"grant_type": {"authorization_code"}, "code": {in.Code}}
+	form.Set(redirectParam(d), in.CallbackURL)
+	if in.CodeVerifier != "" {
+		form.Set("code_verifier", in.CodeVerifier)
+	}
+	for k, v := range d.TokenParams {
+		form.Set(k, v)
+	}
+	u, err := url.Parse(in.Endpoints.TokenURL)
+	if err != nil || in.Endpoints.TokenURL == "" {
+		return nil, fmt.Errorf("%w: token endpoint", ErrInvalidConfig)
+	}
+	query := u.Query()
+	switch in.Endpoints.TokenAuthMethod {
+	case authPost:
+		form.Set("client_id", in.Config.ClientID)
+		form.Set("client_secret", in.ClientSecret)
+	case providers.AuthQuery:
+		query.Set("client_id", in.Config.ClientID)
+		query.Set("client_secret", in.ClientSecret)
+	case authBasic:
+	default:
+		return nil, fmt.Errorf("%w: unsupported client authentication", ErrInvalidConfig)
+	}
+	var req *http.Request
+	if d.TokenMethod == http.MethodGet {
+		for k, vs := range form {
+			query[k] = vs
+		}
+		u.RawQuery = query.Encode()
+		req, err = http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
+	} else {
+		u.RawQuery = query.Encode()
+		req, err = http.NewRequestWithContext(ctx, http.MethodPost, u.String(), strings.NewReader(form.Encode()))
+		if err == nil {
+			req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		}
+	}
+	if err != nil {
+		return nil, fmt.Errorf("%w: token endpoint", ErrInvalidConfig)
+	}
+	accept := "application/json"
+	if d.TokenAccept != "" {
+		accept = d.TokenAccept
+	}
+	req.Header.Set("Accept", accept)
+	if in.Endpoints.TokenAuthMethod == authBasic {
+		req.SetBasicAuth(url.QueryEscape(in.Config.ClientID), url.QueryEscape(in.ClientSecret))
+	}
+	resp, err := p.ps.client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("%w: token request: %w", ErrProviderResponse, redact(err))
+	}
+	body, err := readAll(resp)
+	if err != nil {
+		return nil, fmt.Errorf("%w: token response: %w", ErrProviderResponse, redact(err))
+	}
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("%w: token endpoint status %d", ErrProviderResponse, resp.StatusCode)
+	}
+	return body, nil
+}
+
+// tokenValueRE bounds a token-response value substituted into a profile URL
+// (LR39d-5).
+var tokenValueRE = regexp.MustCompile(`^[A-Za-z0-9._-]{1,128}$`)
+var tokenVarRE = regexp.MustCompile(`(\{|%7B)token\.([a-z][a-z0-9_]{0,63})(\}|%7D)`)
+
+// expandTokenValues substitutes {token.<field>} in a profile URL with the
+// token response's field: a string or JSON integer matching tokenValueRE and
+// not all dots, path-escaped. Anything else refuses the login before any
+// profile call.
+func expandTokenValues(raw string, token map[string]any) (string, error) {
+	var bad error
+	out := tokenVarRE.ReplaceAllStringFunc(raw, func(m string) string {
+		field := tokenVarRE.FindStringSubmatch(m)[2]
+		var s string
+		switch v := token[field].(type) {
+		case string:
+			s = v
+		case json.Number:
+			if !strings.ContainsAny(v.String(), ".eE+-") {
+				s = v.String()
+			}
+		}
+		if !tokenValueRE.MatchString(s) || strings.Trim(s, ".") == "" {
+			bad = fmt.Errorf("%w: token response %s is not a plain identifier", ErrProviderResponse, field)
+			return m
+		}
+		return url.PathEscape(s)
+	})
+	if bad != nil {
+		return "", bad
+	}
+	return out, nil
 }
