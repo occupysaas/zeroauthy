@@ -93,7 +93,7 @@ func TestActionsInventory(t *testing.T) {
 	}
 	members := map[string][]string{
 		"event-stream":                  {"cache.get", "cache.set", "cache.delete"},
-		"pre-user-registration":         {"access.deny", "user.setAppMetadata", "user.setUserMetadata", "cache.get", "cache.set", "cache.delete", "validation.error"},
+		"pre-user-registration":         {"access.deny", "user.setAppMetadata", "user.setUserMetadata", "user.setUserId", "cache.get", "cache.set", "cache.delete", "validation.error"},
 		"post-user-registration":        {"cache.get", "cache.set", "cache.delete"},
 		"post-change-password":          {"cache.get", "cache.set", "cache.delete"},
 		"password-reset-post-challenge": {"access.deny", "authentication.challengeWith", "authentication.challengeWithAny", "redirect.sendUserTo", "redirect.encodeToken", "redirect.validateToken", "redirect.canRedirect", "cache.get", "cache.set", "cache.delete", "prompt.render", "transaction.setResultUrl"},
@@ -147,7 +147,10 @@ func TestActionsInventory(t *testing.T) {
 		"custom-token-exchange":         {"onExecuteCustomTokenExchange", "", true},
 	}
 	events := map[string][]string{
-		"post-login":                    {"refresh_token.access", "refresh_token.metadata", "session.metadata", "client.refresh_token.policies"},
+		"post-login": {"refresh_token.access", "refresh_token.metadata", "session.metadata", "client.refresh_token.policies",
+			// Plan 40 (D-0190).
+			"authentication.riskAssessment", "custom_domain", "security_context", "transaction.linking_id",
+			"transaction.correlation_id", "user.last_password_reset", "user.multifactor"},
 		"event-stream":                  {"message", "secrets"},
 		"pre-user-registration":         {"user", "connection", "client", "request", "request.body", "tenant", "transaction", "secrets", "custom_domain.domain"},
 		"post-user-registration":        {"user", "user.user_id", "user.created_at", "connection", "request", "tenant", "transaction", "secrets"},
@@ -294,6 +297,14 @@ func wantSupport(trigger, name string) string {
 		return "supported" // Plan 37c directory groups
 	case "rules.wasExecuted":
 		return "empty"
+	}
+	switch name {
+	case "session.revoke", "session.setExpiresAt", "session.setIdleExpiresAt", "session.setCookieMode",
+		"session.setMetadata", "session.deleteMetadata", "session.evictMetadata",
+		"refreshToken.setExpiresAt", "refreshToken.setIdleExpiresAt", "refreshToken.setMetadata",
+		"refreshToken.deleteMetadata", "refreshToken.evictMetadata",
+		"authentication.recordMethod", "authentication.setPrimaryUser", "user.setUserId":
+		return "supported" // Plan 40 (D-0190)
 	}
 	for _, ns := range []string{"session.", "refreshToken.", "authentication.", "multifactor.", "prompt.", "samlResponse."} {
 		if strings.HasPrefix(name, ns) {

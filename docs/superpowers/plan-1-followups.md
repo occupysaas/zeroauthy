@@ -1008,3 +1008,18 @@ Tier 2 social providers (D-0182).
 - **SD-5** Untappd API status (docs reference v4).
 - **SD-6** VK legacy `oauth.vk.com` versus VK ID.
 - **SD-7** Whether Auth0 still lists Fitbit and Instagram and what its sign-in does now.
+
+## Plan 40 observation points
+
+Actions III (D-0190).
+
+- **X1** `setPrimaryUser` refusals and when the change applies.
+- **X2** Risk assessment codes and confidence values.
+- **X3** The error returned after `session.revoke`.
+- **X4** `api.refreshToken` outside refresh exchanges (zeroauthy: undefined).
+- **X5** Whether `enableScriptContext` is documented.
+- **X6** `recordMethod`'s effect on `amr` (zeroauthy: `mfa` added).
+- **X7** Sources of `linking_id` and `correlation_id`.
+- **X8** `user.multifactor` values.
+- **X9** Which Action claims `/userinfo` echoes.
+- **X10** Hosted-page display of `api.validation.error` on custom fields.

@@ -535,7 +535,14 @@
         "refresh_token.access",
         "refresh_token.metadata",
         "user.enrolledFactors",
-        "authentication.methods"
+        "authentication.methods",
+        "authentication.riskAssessment",
+        "custom_domain",
+        "security_context",
+        "transaction.linking_id",
+        "transaction.correlation_id",
+        "user.last_password_reset",
+        "user.multifactor"
       ],
       "api": [
         {
@@ -674,45 +681,45 @@
         },
         {
           "name": "session.revoke",
-          "support": "unsupported",
-          "evidence": "local",
-          "note": "throws not supported by zeroauthy; fails closed"
+          "support": "supported",
+          "evidence": "documented",
+          "note": "Plan 40 (D-0190)"
         },
         {
           "name": "session.setExpiresAt",
-          "support": "unsupported",
-          "evidence": "local",
-          "note": "throws not supported by zeroauthy; fails closed"
+          "support": "supported",
+          "evidence": "documented",
+          "note": "Plan 40 (D-0190)"
         },
         {
           "name": "session.setIdleExpiresAt",
-          "support": "unsupported",
-          "evidence": "local",
-          "note": "throws not supported by zeroauthy; fails closed"
+          "support": "supported",
+          "evidence": "documented",
+          "note": "Plan 40 (D-0190)"
         },
         {
           "name": "session.setCookieMode",
-          "support": "unsupported",
-          "evidence": "local",
-          "note": "throws not supported by zeroauthy; fails closed"
+          "support": "supported",
+          "evidence": "documented",
+          "note": "Plan 40 (D-0190)"
         },
         {
           "name": "session.setMetadata",
-          "support": "unsupported",
-          "evidence": "local",
-          "note": "throws not supported by zeroauthy; fails closed"
+          "support": "supported",
+          "evidence": "documented",
+          "note": "Plan 40 (D-0190)"
         },
         {
           "name": "session.deleteMetadata",
-          "support": "unsupported",
-          "evidence": "local",
-          "note": "throws not supported by zeroauthy; fails closed"
+          "support": "supported",
+          "evidence": "documented",
+          "note": "Plan 40 (D-0190)"
         },
         {
           "name": "session.evictMetadata",
-          "support": "unsupported",
-          "evidence": "local",
-          "note": "throws not supported by zeroauthy; fails closed"
+          "support": "supported",
+          "evidence": "documented",
+          "note": "Plan 40 (D-0190)"
         },
         {
           "name": "refreshToken.revoke",
@@ -722,73 +729,101 @@
         },
         {
           "name": "refreshToken.setExpiresAt",
-          "support": "unsupported",
-          "evidence": "local",
-          "note": "throws not supported by zeroauthy; fails closed"
+          "support": "supported",
+          "evidence": "documented",
+          "note": "Plan 40 (D-0190)"
         },
         {
           "name": "refreshToken.setIdleExpiresAt",
-          "support": "unsupported",
-          "evidence": "local",
-          "note": "throws not supported by zeroauthy; fails closed"
+          "support": "supported",
+          "evidence": "documented",
+          "note": "Plan 40 (D-0190)"
         },
         {
           "name": "refreshToken.setMetadata",
-          "support": "unsupported",
-          "evidence": "local",
-          "note": "throws not supported by zeroauthy; fails closed"
+          "support": "supported",
+          "evidence": "documented",
+          "note": "Plan 40 (D-0190)"
         },
         {
           "name": "refreshToken.deleteMetadata",
-          "support": "unsupported",
-          "evidence": "local",
-          "note": "throws not supported by zeroauthy; fails closed"
+          "support": "supported",
+          "evidence": "documented",
+          "note": "Plan 40 (D-0190)"
         },
         {
           "name": "refreshToken.evictMetadata",
-          "support": "unsupported",
-          "evidence": "local",
-          "note": "throws not supported by zeroauthy; fails closed"
+          "support": "supported",
+          "evidence": "documented",
+          "note": "Plan 40 (D-0190)"
         },
         {
           "name": "authentication.challengeWith",
           "support": "supported",
           "evidence": "documented",
           "note": "Plan 33 MFA; Plan 33b adds WebAuthn factors; frozen mfarules schemas",
-          "factors": ["otp", "email", "recovery-code", "phone", "webauthn-roaming", "webauthn-platform"]
+          "factors": [
+            "otp",
+            "email",
+            "recovery-code",
+            "phone",
+            "webauthn-roaming",
+            "webauthn-platform"
+          ]
         },
         {
           "name": "authentication.challengeWithAny",
           "support": "supported",
           "evidence": "documented",
           "note": "Plan 33 MFA; Plan 33b adds WebAuthn factors; frozen mfarules schemas",
-          "factors": ["otp", "email", "recovery-code", "phone", "webauthn-roaming", "webauthn-platform"]
+          "factors": [
+            "otp",
+            "email",
+            "recovery-code",
+            "phone",
+            "webauthn-roaming",
+            "webauthn-platform"
+          ]
         },
         {
           "name": "authentication.enrollWith",
           "support": "supported",
           "evidence": "documented",
           "note": "Plan 33 MFA; Plan 33b adds WebAuthn factors; frozen mfarules schemas",
-          "factors": ["otp", "email", "recovery-code", "phone", "webauthn-roaming", "webauthn-platform"]
+          "factors": [
+            "otp",
+            "email",
+            "recovery-code",
+            "phone",
+            "webauthn-roaming",
+            "webauthn-platform"
+          ]
         },
         {
           "name": "authentication.enrollWithAny",
           "support": "supported",
           "evidence": "documented",
           "note": "Plan 33 MFA; Plan 33b adds WebAuthn factors; frozen mfarules schemas",
-          "factors": ["otp", "email", "recovery-code", "phone", "webauthn-roaming", "webauthn-platform"]
+          "factors": [
+            "otp",
+            "email",
+            "recovery-code",
+            "phone",
+            "webauthn-roaming",
+            "webauthn-platform"
+          ]
         },
         {
           "name": "authentication.recordMethod",
-          "support": "unsupported",
-          "evidence": "local",
-          "note": "throws not supported by zeroauthy; fails closed"
+          "support": "supported",
+          "evidence": "documented",
+          "note": "Plan 40 (D-0190)"
         },
         {
           "name": "authentication.setPrimaryUser",
-          "support": "unsupported",
-          "evidence": "local",
-          "note": "throws not supported by zeroauthy; fails closed"
+          "support": "supported",
+          "evidence": "documented",
+          "note": "Plan 40 (D-0190)"
         },
         {
           "name": "multifactor.enable",
@@ -1052,6 +1087,11 @@
           "evidence": "documented"
         },
         {
+          "name": "user.setUserId",
+          "support": "supported",
+          "evidence": "documented"
+        },
+        {
           "name": "cache.get",
           "support": "supported",
           "evidence": "documented"
@@ -1176,14 +1216,28 @@
           "support": "supported",
           "evidence": "documented",
           "note": "Plan 33 MFA; Plan 33b adds WebAuthn factors; frozen mfarules schemas",
-          "factors": ["otp", "email", "recovery-code", "phone", "webauthn-roaming", "webauthn-platform"]
+          "factors": [
+            "otp",
+            "email",
+            "recovery-code",
+            "phone",
+            "webauthn-roaming",
+            "webauthn-platform"
+          ]
         },
         {
           "name": "authentication.challengeWithAny",
           "support": "supported",
           "evidence": "documented",
           "note": "Plan 33 MFA; Plan 33b adds WebAuthn factors; frozen mfarules schemas",
-          "factors": ["otp", "email", "recovery-code", "phone", "webauthn-roaming", "webauthn-platform"]
+          "factors": [
+            "otp",
+            "email",
+            "recovery-code",
+            "phone",
+            "webauthn-roaming",
+            "webauthn-platform"
+          ]
         },
         {
           "name": "redirect.sendUserTo",
