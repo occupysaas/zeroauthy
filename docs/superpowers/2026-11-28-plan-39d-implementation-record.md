@@ -32,4 +32,16 @@ descriptor features).
 
 ## Verification
 
-Recorded below as runs complete.
+Local, 2026-11-28, at `8cf12839`, TMPDIR/GOTMPDIR on `/dev/shm`:
+
+- `go test -p 4 ./...` (no `-race`): exit 0, 124 packages ok.
+- `make e2e-social-providers`: exit 0; 33 Chromium tests (every live Tier 1
+  and Tier 2 strategy, retired Fitbit/Instagram refusal, denial, Shopify
+  without a shop) and the Deploy CLI 9.1.0 YAML and directory cells with 32
+  connections.
+- `make e2e-social`, `e2e-deploy`, `e2e-github`, `e2e-apple`: exit 0
+  (`E2E_CHROMIUM` set to the system Chromium).
+- Console: `vitest run` 779 tests, `vue-tsc` and `eslint` clean; two
+  clean-clone `make console` builds identical and committed.
+- Final review: self-review (subagents only on request); no Critical or
+  Important findings.
