@@ -470,6 +470,28 @@ func (s *Server) SessionsSetLimits(ctx context.Context, q *pb.SessionLimitsReque
 	return &pb.SessionResult{Value: v, Error: e}, err
 }
 
+// SetLimits sets refresh-token expiries (Plan 40).
+func (r clientRefreshTokens) SetLimits(ctx context.Context, tid, id string, expiresAt, idleExpiresAt time.Time) (*store.RefreshToken, error) {
+	if err := r.c.requireRefreshII(ctx); err != nil {
+		return nil, err
+	}
+	res, err := r.c.rpc.RefreshTokensSetLimits(ctx, &pb.SessionLimitsRequest{TxId: r.c.txID, TenantId: tid, Id: id, ExpiresAt: tsToPB(expiresAt), IdleExpiresAt: tsToPB(idleExpiresAt)})
+	if status.Code(err) == codes.Unimplemented {
+		return nil, store.ErrSessionLimitsUnavailable
+	}
+	if err = r.c.refreshResult("RefreshTokensSetLimits", res, err); err != nil {
+		return nil, err
+	}
+	return refreshTokenFromPB(res.Value)
+}
+
+func (s *Server) RefreshTokensSetLimits(ctx context.Context, q *pb.SessionLimitsRequest) (*pb.RefreshTokenResult, error) {
+	v, e, err := one(s, q.TxId, func(st store.Store) (*store.RefreshToken, error) {
+		return store.SetRefreshTokenLimits(ctx, st, q.TenantId, q.Id, tsFromPB(q.ExpiresAt), tsFromPB(q.IdleExpiresAt))
+	}, refreshTokenToPB)
+	return &pb.RefreshTokenResult{Value: v, Error: e}, err
+}
+
 func (r clientRefreshTokens) ListByUserPage(ctx context.Context, tid, user, client, from string, take int) ([]*store.RefreshToken, string, error) {
 	if err := r.c.requireRefreshII(ctx); err != nil {
 		return nil, "", err

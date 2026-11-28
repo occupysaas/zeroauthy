@@ -285,6 +285,23 @@ func (r refreshTokens) Touch(ctx context.Context, tenantID, id string, idleExpir
 	})
 }
 
+// SetLimits sets the token's expiries (Plan 40).
+func (r refreshTokens) SetLimits(ctx context.Context, tenantID, id string, expiresAt, idleExpiresAt time.Time) (*store.RefreshToken, error) {
+	var out *store.RefreshToken
+	err := r.atomic(ctx, tenantID, func(tx *Store) error {
+		res, err := tx.exec(ctx, "UPDATE refresh_tokens SET expires_at=?, idle_expires_at=? WHERE tenant_id=? AND id=? AND revoked_at IS NULL", micros(expiresAt), micros(idleExpiresAt), tenantID, id)
+		if err != nil {
+			return err
+		}
+		if err = expectRow(res); err != nil {
+			return err
+		}
+		out, err = (refreshTokens{tx}).Get(ctx, tenantID, id)
+		return err
+	})
+	return out, err
+}
+
 func (r refreshTokens) RevokeFamily(ctx context.Context, tenantID, familyID string, at time.Time) error {
 	return r.atomic(ctx, tenantID, func(tx *Store) error {
 		current, err := (refreshTokens{tx}).familyAlias(ctx, tenantID, familyID)

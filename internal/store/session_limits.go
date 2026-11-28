@@ -27,3 +27,20 @@ func SetSessionLimits(ctx context.Context, st Store, tenantID, id string, expire
 	}
 	return s.SetLimits(ctx, tenantID, id, expiresAt, idleExpiresAt, cookieMode)
 }
+
+// RefreshTokenLimitSetter is the optional Plan 40 refresh-token update
+// behind api.refreshToken.setExpiresAt and setIdleExpiresAt. Callers cap the
+// values; a zero time means never, as in RefreshToken.
+type RefreshTokenLimitSetter interface {
+	SetLimits(ctx context.Context, tenantID, id string, expiresAt, idleExpiresAt time.Time) (*RefreshToken, error)
+}
+
+// SetRefreshTokenLimits applies SetLimits through st's refresh tokens, or
+// returns ErrSessionLimitsUnavailable when the driver lacks it.
+func SetRefreshTokenLimits(ctx context.Context, st Store, tenantID, id string, expiresAt, idleExpiresAt time.Time) (*RefreshToken, error) {
+	r, ok := st.RefreshTokens().(RefreshTokenLimitSetter)
+	if !ok {
+		return nil, ErrSessionLimitsUnavailable
+	}
+	return r.SetLimits(ctx, tenantID, id, expiresAt, idleExpiresAt)
+}

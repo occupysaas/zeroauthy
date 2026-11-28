@@ -553,6 +553,7 @@ service StoreService {
   rpc SessionsUpdateMetadata(RefreshIIRequest) returns (SessionResult);
   // Plan 40: api.session expiry and cookie mode.
   rpc SessionsSetLimits(SessionLimitsRequest) returns (SessionResult);
+  rpc RefreshTokensSetLimits(SessionLimitsRequest) returns (RefreshTokenResult);
   rpc RefreshTokensRecordExchange(RefreshIIRequest) returns (Result);
   rpc DPoPUseProof(DPoPProofRequest) returns (Result);
   rpc DPoPPurgeBefore(RefreshIIPurgeRequest) returns (CountResult);

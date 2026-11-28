@@ -178,7 +178,15 @@ func (h *Handlers) refreshToken(ctx context.Context, res tenant.Resolved, c *sto
 	// target-scope and addScope additions are never stored with the
 	// family (whose ceiling never grows): the flow must add them again.
 	// Target edits are filtered by API definition, policy and RBAC.
-	eff, oerr := h.postLogin(ctx, res, c, loginFlow{organizationID: rt.OrganizationID, connectionID: rt.OrganizationConnectionID, session: onlineSess, refreshToken: rt, user: user, userConnection: true, rs: rs, protocol: actions.ProtocolRefreshToken,
+	// event.session is the family's session while it is live, offline
+	// families included (Plan 40).
+	eventSess := onlineSess
+	if eventSess == nil && rt.SessionID != "" {
+		if s, e := h.Store.Sessions().Get(ctx, tenantID, rt.SessionID); e == nil && s.UserID == rt.UserID && h.now().Before(s.ExpiresAt) && h.now().Before(s.IdleExpiresAt) {
+			eventSess = s
+		}
+	}
+	eff, oerr := h.postLogin(ctx, res, c, loginFlow{organizationID: rt.OrganizationID, connectionID: rt.OrganizationConnectionID, session: eventSess, refreshToken: rt, user: user, userConnection: true, rs: rs, protocol: actions.ProtocolRefreshToken,
 		requested: d.Scopes, target: d.Scopes})
 	if oerr != nil {
 		return nil, oerr
@@ -262,7 +270,20 @@ func (h *Handlers) refreshToken(ctx context.Context, res tenant.Resolved, c *sto
 			return writeErr
 		}
 		if capable {
-			return h.recordRefreshExchange(ctx, tx.RefreshTokens(), rt, nextRaw)
+			if err := h.recordRefreshExchange(ctx, tx.RefreshTokens(), rt, nextRaw); err != nil {
+				return err
+			}
+		}
+		if eff != nil && eff.RefreshToken != nil {
+			live := rt
+			if nextRaw != "" {
+				if live, writeErr = tx.RefreshTokens().GetByTokenHash(ctx, tenantID, secrets.HashToken(nextRaw)); writeErr != nil {
+					return writeErr
+				}
+			} else if live, writeErr = tx.RefreshTokens().Get(ctx, tenantID, rt.ID); writeErr != nil {
+				return writeErr
+			}
+			return applyRefreshTokenEffects(ctx, tx, tenantID, live, eff.RefreshToken)
 		}
 		return nil
 	})

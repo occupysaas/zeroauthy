@@ -447,6 +447,7 @@ const (
 	StoreService_RefreshTokensUpdateMetadata_FullMethodName                   = "/zeroauthy.store.v1.StoreService/RefreshTokensUpdateMetadata"
 	StoreService_SessionsUpdateMetadata_FullMethodName                        = "/zeroauthy.store.v1.StoreService/SessionsUpdateMetadata"
 	StoreService_SessionsSetLimits_FullMethodName                             = "/zeroauthy.store.v1.StoreService/SessionsSetLimits"
+	StoreService_RefreshTokensSetLimits_FullMethodName                        = "/zeroauthy.store.v1.StoreService/RefreshTokensSetLimits"
 	StoreService_RefreshTokensRecordExchange_FullMethodName                   = "/zeroauthy.store.v1.StoreService/RefreshTokensRecordExchange"
 	StoreService_DPoPUseProof_FullMethodName                                  = "/zeroauthy.store.v1.StoreService/DPoPUseProof"
 	StoreService_DPoPPurgeBefore_FullMethodName                               = "/zeroauthy.store.v1.StoreService/DPoPPurgeBefore"
@@ -1031,6 +1032,7 @@ type StoreServiceClient interface {
 	SessionsUpdateMetadata(ctx context.Context, in *RefreshIIRequest, opts ...grpc.CallOption) (*SessionResult, error)
 	// Plan 40: api.session expiry and cookie mode.
 	SessionsSetLimits(ctx context.Context, in *SessionLimitsRequest, opts ...grpc.CallOption) (*SessionResult, error)
+	RefreshTokensSetLimits(ctx context.Context, in *SessionLimitsRequest, opts ...grpc.CallOption) (*RefreshTokenResult, error)
 	RefreshTokensRecordExchange(ctx context.Context, in *RefreshIIRequest, opts ...grpc.CallOption) (*Result, error)
 	DPoPUseProof(ctx context.Context, in *DPoPProofRequest, opts ...grpc.CallOption) (*Result, error)
 	DPoPPurgeBefore(ctx context.Context, in *RefreshIIPurgeRequest, opts ...grpc.CallOption) (*CountResult, error)
@@ -5395,6 +5397,16 @@ func (c *storeServiceClient) SessionsSetLimits(ctx context.Context, in *SessionL
 	return out, nil
 }
 
+func (c *storeServiceClient) RefreshTokensSetLimits(ctx context.Context, in *SessionLimitsRequest, opts ...grpc.CallOption) (*RefreshTokenResult, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RefreshTokenResult)
+	err := c.cc.Invoke(ctx, StoreService_RefreshTokensSetLimits_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *storeServiceClient) RefreshTokensRecordExchange(ctx context.Context, in *RefreshIIRequest, opts ...grpc.CallOption) (*Result, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(Result)
@@ -6427,6 +6439,7 @@ type StoreServiceServer interface {
 	SessionsUpdateMetadata(context.Context, *RefreshIIRequest) (*SessionResult, error)
 	// Plan 40: api.session expiry and cookie mode.
 	SessionsSetLimits(context.Context, *SessionLimitsRequest) (*SessionResult, error)
+	RefreshTokensSetLimits(context.Context, *SessionLimitsRequest) (*RefreshTokenResult, error)
 	RefreshTokensRecordExchange(context.Context, *RefreshIIRequest) (*Result, error)
 	DPoPUseProof(context.Context, *DPoPProofRequest) (*Result, error)
 	DPoPPurgeBefore(context.Context, *RefreshIIPurgeRequest) (*CountResult, error)
@@ -7782,6 +7795,9 @@ func (UnimplementedStoreServiceServer) SessionsUpdateMetadata(context.Context, *
 }
 func (UnimplementedStoreServiceServer) SessionsSetLimits(context.Context, *SessionLimitsRequest) (*SessionResult, error) {
 	return nil, status.Error(codes.Unimplemented, "method SessionsSetLimits not implemented")
+}
+func (UnimplementedStoreServiceServer) RefreshTokensSetLimits(context.Context, *SessionLimitsRequest) (*RefreshTokenResult, error) {
+	return nil, status.Error(codes.Unimplemented, "method RefreshTokensSetLimits not implemented")
 }
 func (UnimplementedStoreServiceServer) RefreshTokensRecordExchange(context.Context, *RefreshIIRequest) (*Result, error) {
 	return nil, status.Error(codes.Unimplemented, "method RefreshTokensRecordExchange not implemented")
@@ -15637,6 +15653,24 @@ func _StoreService_SessionsSetLimits_Handler(srv interface{}, ctx context.Contex
 	return interceptor(ctx, in, info, handler)
 }
 
+func _StoreService_RefreshTokensSetLimits_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SessionLimitsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).RefreshTokensSetLimits(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_RefreshTokensSetLimits_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).RefreshTokensSetLimits(ctx, req.(*SessionLimitsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _StoreService_RefreshTokensRecordExchange_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(RefreshIIRequest)
 	if err := dec(in); err != nil {
@@ -18222,6 +18256,10 @@ var StoreService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "SessionsSetLimits",
 			Handler:    _StoreService_SessionsSetLimits_Handler,
+		},
+		{
+			MethodName: "RefreshTokensSetLimits",
+			Handler:    _StoreService_RefreshTokensSetLimits_Handler,
 		},
 		{
 			MethodName: "RefreshTokensRecordExchange",

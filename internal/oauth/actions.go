@@ -1,8 +1,11 @@
 package oauth
 
 import (
+	"time"
+
 	"context"
 	"errors"
+	"github.com/zeroauthy/zeroauthy/internal/logout"
 	"net/http"
 	"net/url"
 	"slices"
@@ -116,7 +119,137 @@ func (h *Handlers) postLogin(ctx context.Context, res tenant.Resolved, c *store.
 	if d := result.Denied; d != nil {
 		return nil, &Error{Status: http.StatusForbidden, Code: d.Code, Description: d.Reason}
 	}
+	if se := result.Effects.Session; se != nil && se.Revoke != nil {
+		// api.session.revoke on a token grant ends the grant's session (Plan 40).
+		if f.session != nil {
+			if e := h.revokeActionSession(ctx, res, f.session, se.Revoke.PreserveRefreshTokens); e != nil {
+				return nil, serverError()
+			}
+		}
+		reason := se.Revoke.Reason
+		if reason == "" {
+			reason = "the session was revoked"
+		}
+		return nil, &Error{Status: http.StatusForbidden, Code: "access_denied", Description: reason}
+	}
+	if se := result.Effects.Session; se != nil && f.session != nil {
+		if e := h.applyActionSession(ctx, res, f.session, se); e != nil {
+			return nil, serverError()
+		}
+	}
 	return &result.Effects, nil
+}
+
+// revokeActionSession ends sess for api.session.revoke on a token grant: its
+// refresh tokens are revoked unless preserved, the user's version bumps, the
+// session is deleted and back-channel logout is queued, in one transaction.
+func (h *Handlers) revokeActionSession(ctx context.Context, res tenant.Resolved, sess *store.LoginSession, preserve bool) error {
+	tid := res.Tenant.ID
+	return h.Store.WithTx(ctx, func(tx store.Store) error {
+		if _, err := tx.Tenants().Get(ctx, tid); err != nil {
+			return err
+		}
+		current, err := tx.Sessions().GetForUpdate(ctx, tid, sess.ID)
+		if errors.Is(err, store.ErrNotFound) {
+			return nil
+		}
+		if err != nil {
+			return err
+		}
+		if _, err := tx.Users().GetForUpdate(ctx, tid, current.UserID); err != nil && !errors.Is(err, store.ErrNotFound) {
+			return err
+		}
+		if !preserve {
+			if _, err := tx.RefreshTokens().RevokeBySession(ctx, tid, current.ID, h.now().UTC()); err != nil {
+				return err
+			}
+		}
+		if _, err := tx.Users().BumpVersion(ctx, tid, current.UserID); err != nil && !errors.Is(err, store.ErrNotFound) {
+			return err
+		}
+		if err := tx.Sessions().Delete(ctx, tid, current.ID); err != nil {
+			return err
+		}
+		if h.Logout != nil {
+			return h.Logout.WithStore(tx).SessionsEnded(ctx, tid, []*store.LoginSession{current}, logout.SessionRevoked)
+		}
+		return nil
+	})
+}
+
+// applyActionSession applies api.session setters and metadata calls on a
+// token grant's session: expiries only shorten (LR40-3); no cookie exists
+// here, so the cookie mode is stored for the next browser request.
+func (h *Handlers) applyActionSession(ctx context.Context, res tenant.Resolved, sess *store.LoginSession, se *actions.SessionEffects) error {
+	tid := res.Tenant.ID
+	return h.Store.WithTx(ctx, func(tx store.Store) error {
+		current, err := tx.Sessions().GetForUpdate(ctx, tid, sess.ID)
+		if errors.Is(err, store.ErrNotFound) {
+			return nil
+		}
+		if err != nil {
+			return err
+		}
+		if len(se.Metadata) > 0 {
+			md, err := actions.ApplyMetadataOps(current.Metadata, se.Metadata)
+			if err != nil {
+				return err
+			}
+			if current, err = tx.Sessions().UpdateMetadata(ctx, tid, sess.ID, md); err != nil {
+				return err
+			}
+		}
+		if se.ExpiresAt == nil && se.IdleExpiresAt == nil && se.CookieMode == "" {
+			return nil
+		}
+		exp, idle := shortenLimits(current.ExpiresAt, current.IdleExpiresAt, se.ExpiresAt, se.IdleExpiresAt)
+		mode := current.CookieMode
+		if se.CookieMode != "" {
+			mode = se.CookieMode
+		}
+		_, err = store.SetSessionLimits(ctx, tx, tid, sess.ID, exp, idle, mode)
+		return err
+	})
+}
+
+// shortenLimits caps requested absolute and idle expiries by the current
+// ones (zero current meaning never) and keeps idle within absolute.
+func shortenLimits(curAbs, curIdle time.Time, reqAbs, reqIdle *time.Time) (time.Time, time.Time) {
+	abs, idle := curAbs, curIdle
+	if reqAbs != nil && (abs.IsZero() || reqAbs.Before(abs)) {
+		abs = *reqAbs
+	}
+	if reqIdle != nil && (idle.IsZero() || reqIdle.Before(idle)) {
+		idle = *reqIdle
+	}
+	if !abs.IsZero() && !idle.IsZero() && idle.After(abs) {
+		idle = abs
+	}
+	return abs, idle
+}
+
+// applyRefreshTokenEffects applies api.refreshToken setters and metadata to
+// the live token of the family (the successor when it rotated) inside the
+// mint transaction.
+func applyRefreshTokenEffects(ctx context.Context, tx store.Store, tid string, live *store.RefreshToken, re *actions.RefreshTokenEffects) error {
+	if re == nil || live == nil {
+		return nil
+	}
+	if len(re.Metadata) > 0 {
+		md, err := actions.ApplyMetadataOps(live.Metadata, re.Metadata)
+		if err != nil {
+			return err
+		}
+		if live, err = tx.RefreshTokens().UpdateMetadata(ctx, tid, live.ID, md); err != nil {
+			return err
+		}
+	}
+	if re.ExpiresAt == nil && re.IdleExpiresAt == nil {
+		return nil
+	}
+	exp, idle := shortenLimits(live.ExpiresAt, live.IdleExpiresAt, re.ExpiresAt, re.IdleExpiresAt)
+	_, err := store.SetRefreshTokenLimits(ctx, tx, tid, live.ID, exp, idle)
+	return err
 }
 
 // targetScopes is scopes after the flow's transaction target-scope edits,
