@@ -100,7 +100,7 @@ func (ps *Providers) oauth1RequestToken(ctx context.Context, cfg Config, rawURL,
 		return "", "", err
 	}
 	token, tokenSecret = v.Get("oauth_token"), v.Get("oauth_token_secret")
-	if token == "" || tokenSecret == "" || v.Get("oauth_callback_confirmed") != "true" || len(token) > maxTokenBytes || len(tokenSecret) > maxTokenBytes {
+	if token == "" || tokenSecret == "" && !cfg.OAuth1.EmptySecret || v.Get("oauth_callback_confirmed") != "true" || len(token) > maxTokenBytes || len(tokenSecret) > maxTokenBytes {
 		return "", "", fmt.Errorf("%w: oauth1 request-token response is incomplete or unconfirmed", ErrProviderResponse)
 	}
 	return token, tokenSecret, nil
@@ -128,7 +128,7 @@ func checkOAuth1Callback(cfg Config, p CallbackParams, pr proof) error {
 	if cfg.OAuth1 == nil {
 		return nil
 	}
-	if pr.OAuth1Token == "" || pr.OAuth1Secret == "" || subtle.ConstantTimeCompare([]byte(pr.OAuth1Token), []byte(p.State)) != 1 {
+	if pr.OAuth1Token == "" || pr.OAuth1Secret == "" && !cfg.OAuth1.EmptySecret || subtle.ConstantTimeCompare([]byte(pr.OAuth1Token), []byte(p.State)) != 1 {
 		return ErrCallbackRejected
 	}
 	return nil
@@ -145,10 +145,12 @@ func (oauth1Provider) AuthorizationURL(StartInput) (string, error) {
 func (p oauth1Provider) Exchange(ctx context.Context, in ExchangeInput) (ProviderResult, error) {
 	cfg := in.Config
 	twitter := cfg.Strategy == rules.Twitter
-	if !twitter && p.ps.scripts == nil {
+	d, descriptor := providers.Get(cfg.Strategy)
+	descriptor = descriptor && d.Protocol == providers.ProtocolOAuth1
+	if !twitter && !descriptor && p.ps.scripts == nil {
 		return ProviderResult{}, ErrScriptUnavailable
 	}
-	if in.Code == "" || in.OAuth1Token == "" || in.OAuth1Secret == "" {
+	if in.Code == "" || in.OAuth1Token == "" || in.OAuth1Secret == "" && !cfg.OAuth1.EmptySecret {
 		return ProviderResult{}, ErrCallbackRejected
 	}
 	c, err := oauth1Credentials(cfg, in.ClientSecret, in.OAuth1Token, in.OAuth1Secret)
@@ -160,11 +162,26 @@ func (p oauth1Provider) Exchange(ctx context.Context, in ExchangeInput) (Provide
 		return ProviderResult{}, err
 	}
 	token, secret := v.Get("oauth_token"), v.Get("oauth_token_secret")
-	if token == "" || secret == "" || len(token) > maxTokenBytes || len(secret) > maxTokenBytes {
+	if token == "" || secret == "" && !cfg.OAuth1.EmptySecret || len(token) > maxTokenBytes || len(secret) > maxTokenBytes {
 		return ProviderResult{}, fmt.Errorf("%w: oauth1 access-token response is incomplete", ErrProviderResponse)
 	}
 	tokens := TokenSet{AccessToken: token, TokenSecret: secret, TokenType: "oauth1"}
 	c.Token, c.TokenSecret = token, secret
+	if descriptor {
+		// The profile is the access-token response (Evernote's edam_userId,
+		// LR39d-4): its values reach the profile map through token: paths.
+		resp := map[string]any{}
+		for k, vs := range v {
+			if k != "oauth_token" && k != "oauth_token_secret" {
+				resp[k] = vs[0]
+			}
+		}
+		profile, err := mapSocialProfile(d, map[string]any{}, map[string]any{}, resp)
+		if err != nil {
+			return ProviderResult{}, err
+		}
+		return ProviderResult{Profile: profile, Tokens: tokens}, nil
+	}
 	if twitter {
 		profile, err := p.ps.twitterOAuth1Profile(ctx, in, c)
 		if err != nil {
