@@ -14,6 +14,8 @@ type OAuth1Settings struct {
 	UserAuthorizationURL string
 	// SignatureMethod is HMAC-SHA1 or RSA-SHA1; PLAINTEXT is never used.
 	SignatureMethod string
+	// EmptySecret accepts an empty oauth_token_secret (Evernote, LR39d-4).
+	EmptySecret bool
 }
 
 // NeedsSocialCapability reports whether identities of strategy need the

@@ -15,6 +15,12 @@ type ConsoleDescriptor struct {
 	// (salesforce-community), protocol (twitter), login_hint (shopify, a
 	// note: the shop comes from /authorize).
 	Fields []string `json:"fields"`
+	// FreeScope: the operator types the scope (Plan 39d).
+	FreeScope bool `json:"free_scope"`
+	// BaseURLHosts are Exact's regional hosts, for a region picker.
+	BaseURLHosts []string `json:"base_url_hosts"`
+	// Retired is the reason sign-in is refused, empty when live.
+	Retired string `json:"retired"`
 }
 
 // ConsoleSummary renders every descriptor for the console, sorted by
@@ -23,7 +29,19 @@ func ConsoleSummary() ([]byte, error) {
 	out := []ConsoleDescriptor{}
 	for _, d := range All() {
 		c := ConsoleDescriptor{Strategy: d.Strategy, DisplayName: d.DisplayName, Separator: d.Separator(), BaseScopes: d.BaseScopes,
-			Flags: d.Flags, Freeform: d.FreeformScopes, Fields: []string{}}
+			Flags: d.Flags, Freeform: d.FreeformScopes, Fields: []string{}, FreeScope: d.FreeScope, BaseURLHosts: d.BaseURLHosts}
+		if c.BaseURLHosts == nil {
+			c.BaseURLHosts = []string{}
+		}
+		if c.Flags == nil {
+			c.Flags = []Flag{}
+		}
+		if c.BaseScopes == nil {
+			c.BaseScopes = []string{}
+		}
+		if d.Retired != nil {
+			c.Retired = d.Retired.Reason
+		}
 		switch {
 		case d.Strategy == "salesforce-community":
 			c.Fields = append(c.Fields, "community_base_url")

@@ -2341,7 +2341,7 @@
   "identity": "<strategy>|<provider user id>; identities[].user_id is the raw provider id; isSocial=true; never auto-link by email",
   "email_rule": "email_verified is true only where the provider documents a verified email (rule always) or returns a verification field (rule field); otherwise false (SP-2)",
   "scope_rule": "effective scope = base scopes + each true flag's scopes + freeform_scopes where Auth0's OpenAPI lists freeform_scopes; an input scope must equal it as a set",
-  "tier2": "later plan (maintainer ruling 2026-11-27)",
+  "tier2": "Plan 39d (D-0182): rows with tier 2 above; maintainer rulings 2026-11-27/28: fixtures only, retired providers stored and refused at sign-in",
   "strategies": {
    "facebook": {
     "id_format": "facebook|<id>",
@@ -2783,6 +2783,439 @@
      "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
     ],
     "shop": "from login_hint at /authorize: <name> or <name>.myshopify.com, lowercase letters, digits and hyphens; refused otherwise (SP-9)"
+   },
+   "baidu": {
+    "tier": 2,
+    "status": "live",
+    "id_format": "baidu|<userid>",
+    "authorization_url": "https://openapi.baidu.com/oauth/2.0/authorize",
+    "token_url": "https://openapi.baidu.com/oauth/2.0/token",
+    "profile_url": "https://openapi.baidu.com/rest/2.0/passport/users/getInfo",
+    "token_auth": "client_secret_post",
+    "pkce": "none",
+    "base_scopes": [
+     "basic"
+    ],
+    "scope_flags": {},
+    "freeform_scopes": false,
+    "free_scope": true,
+    "user_id": "userid",
+    "email": null,
+    "email_verified": "never",
+    "source": [
+     "https://openauth.baidu.com/doc/doc.html",
+     "https://auth0.com/docs/authenticate/identity-providers/social-identity-providers/baidu",
+     "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
+    ],
+    "profile_auth": "query:access_token"
+   },
+   "bitly": {
+    "tier": 2,
+    "status": "live",
+    "id_format": "bitly|<login>",
+    "authorization_url": "https://bitly.com/oauth/authorize",
+    "token_url": "https://api-ssl.bitly.com/oauth/access_token",
+    "profile_url": "https://api-ssl.bitly.com/v4/user",
+    "token_auth": "client_secret_post",
+    "pkce": "none",
+    "base_scopes": [],
+    "scope_flags": {},
+    "freeform_scopes": false,
+    "free_scope": true,
+    "user_id": "login",
+    "email": "emails[?is_primary].email",
+    "email_verified": "field:emails[?is_primary].is_verified",
+    "source": [
+     "https://dev.bitly.com/docs/getting-started/authentication/",
+     "https://auth0.com/docs/authenticate/identity-providers/social-identity-providers/bitly",
+     "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
+    ],
+    "token_accept": "application/json"
+   },
+   "daccount": {
+    "tier": 2,
+    "status": "live, endpoints unconfirmed (SD-2)",
+    "id_format": "daccount|<sub>",
+    "authorization_url": "https://id.smt.docomo.ne.jp/cgi8/oidc/authorize",
+    "token_url": "https://conf.uw.docomo.ne.jp/token",
+    "profile_url": "https://conf.uw.docomo.ne.jp/userinfo",
+    "token_auth": "client_secret_basic",
+    "pkce": "none",
+    "base_scopes": [
+     "openid"
+    ],
+    "scope_flags": {},
+    "freeform_scopes": false,
+    "free_scope": true,
+    "user_id": "sub",
+    "email": null,
+    "email_verified": "never",
+    "source": [
+     "https://dev.smt.docomo.ne.jp/?p=docs.api.page&api_name=dcc",
+     "https://auth0.com/docs/authenticate/identity-providers/social-identity-providers/daccount",
+     "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
+    ]
+   },
+   "dwolla": {
+    "tier": 2,
+    "status": "live, user sign-in unverified (SD-3)",
+    "id_format": "dwolla|<token:account_id>",
+    "authorization_url": "https://accounts.dwolla.com/auth",
+    "token_url": "https://accounts.dwolla.com/token",
+    "profile_url": "https://api.dwolla.com/accounts/{token.account_id}",
+    "token_auth": "client_secret_post",
+    "pkce": "none",
+    "base_scopes": [
+     "AccountInfoFull"
+    ],
+    "scope_flags": {},
+    "freeform_scopes": false,
+    "free_scope": true,
+    "user_id": "token:account_id",
+    "email": null,
+    "email_verified": "never",
+    "source": [
+     "https://developers.dwolla.com/docs/auth",
+     "https://auth0.com/docs/authenticate/identity-providers/social-identity-providers/dwolla",
+     "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
+    ],
+    "profile_accept": "application/vnd.dwolla.v1.hal+json"
+   },
+   "evernote": {
+    "tier": 2,
+    "status": "live, API key issuance unverified (SD-4)",
+    "id_format": "evernote|<token:edam_userId>",
+    "authorization_url": "https://www.evernote.com/OAuth.action",
+    "token_url": "https://www.evernote.com/oauth",
+    "profile_url": "(none: Thrift API)",
+    "token_auth": "oauth1 HMAC-SHA1",
+    "pkce": "none",
+    "base_scopes": [],
+    "scope_flags": {},
+    "freeform_scopes": false,
+    "free_scope": false,
+    "user_id": "token:edam_userId",
+    "email": null,
+    "email_verified": "never",
+    "source": [
+     "https://dev.evernote.com/doc/articles/authentication.php",
+     "https://auth0.com/docs/authenticate/identity-providers/social-identity-providers/evernote",
+     "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
+    ],
+    "protocol": "oauth1",
+    "request_token_url": "https://www.evernote.com/oauth",
+    "empty_token_secret": true
+   },
+   "evernote-sandbox": {
+    "tier": 2,
+    "status": "live, API key issuance unverified (SD-4)",
+    "id_format": "evernote-sandbox|<token:edam_userId>",
+    "authorization_url": "https://sandbox.evernote.com/OAuth.action",
+    "token_url": "https://sandbox.evernote.com/oauth",
+    "profile_url": "(none: Thrift API)",
+    "token_auth": "oauth1 HMAC-SHA1",
+    "pkce": "none",
+    "base_scopes": [],
+    "scope_flags": {},
+    "freeform_scopes": false,
+    "free_scope": false,
+    "user_id": "token:edam_userId",
+    "email": null,
+    "email_verified": "never",
+    "source": [
+     "https://dev.evernote.com/doc/articles/authentication.php",
+     "https://auth0.com/docs/authenticate/identity-providers/social-identity-providers/evernote",
+     "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
+    ],
+    "protocol": "oauth1",
+    "request_token_url": "https://sandbox.evernote.com/oauth",
+    "empty_token_secret": true
+   },
+   "exact": {
+    "tier": 2,
+    "status": "live",
+    "id_format": "exact|<d.results[0].UserID>",
+    "authorization_url": "<baseUrl>/api/oauth2/auth",
+    "token_url": "<baseUrl>/api/oauth2/token",
+    "profile_url": "<baseUrl>/api/v1/current/Me",
+    "token_auth": "client_secret_post",
+    "pkce": "none",
+    "base_scopes": [],
+    "scope_flags": {},
+    "freeform_scopes": false,
+    "free_scope": false,
+    "user_id": "d.results[0].UserID",
+    "email": "d.results[0].Email",
+    "email_verified": "never",
+    "source": [
+     "https://support.exactonline.com/community/s/knowledge-base#All-All-DNO-Content-oauth-eol-oauth-dev-impleovervw",
+     "https://auth0.com/docs/authenticate/identity-providers/social-identity-providers/exact",
+     "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
+    ],
+    "base_url_hosts": [
+     "start.exactonline.nl",
+     "start.exactonline.be",
+     "start.exactonline.co.uk",
+     "start.exactonline.com",
+     "start.exactonline.de",
+     "start.exactonline.fr",
+     "start.exactonline.es"
+    ],
+    "stored_only": [
+     "profile"
+    ]
+   },
+   "fitbit": {
+    "tier": 2,
+    "status": "retired 2026-11-02",
+    "id_format": "fitbit|<user.encodedId>",
+    "authorization_url": "https://www.fitbit.com/oauth2/authorize",
+    "token_url": "https://api.fitbit.com/oauth2/token",
+    "profile_url": "https://api.fitbit.com/1/user/-/profile.json",
+    "token_auth": "client_secret_basic",
+    "pkce": "S256",
+    "base_scopes": [
+     "profile"
+    ],
+    "scope_flags": {},
+    "freeform_scopes": false,
+    "free_scope": true,
+    "user_id": "user.encodedId",
+    "email": null,
+    "email_verified": "never",
+    "source": [
+     "https://dev.fitbit.com/blog/2025-08-08-fitbit-dev-tools-moving-to-google-accounts/",
+     "https://developers.google.com/health/migration",
+     "https://auth0.com/docs/authenticate/identity-providers/social-identity-providers/fitbit",
+     "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
+    ],
+    "retired": "legacy Fitbit Web API and OAuth turned off 2026-11-02; replaced by the Google Health API"
+   },
+   "instagram": {
+    "tier": 2,
+    "status": "retired 2024-12-04",
+    "id_format": "instagram|<id>",
+    "authorization_url": "https://api.instagram.com/oauth/authorize",
+    "token_url": "https://api.instagram.com/oauth/access_token",
+    "profile_url": "https://graph.instagram.com/me?fields=id,username",
+    "token_auth": "client_secret_post",
+    "pkce": "none",
+    "base_scopes": [
+     "user_profile"
+    ],
+    "scope_flags": {},
+    "freeform_scopes": false,
+    "free_scope": true,
+    "user_id": "id",
+    "email": null,
+    "email_verified": "never",
+    "source": [
+     "https://developers.facebook.com/docs/instagram-basic-display-api",
+     "https://auth0.com/docs/authenticate/identity-providers/social-identity-providers/instagram",
+     "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
+    ],
+    "retired": "Instagram Basic Display API shut down 2024-12-04"
+   },
+   "planningcenter": {
+    "tier": 2,
+    "status": "live",
+    "id_format": "planningcenter|<data.id>",
+    "authorization_url": "https://api.planningcenteronline.com/oauth/authorize",
+    "token_url": "https://api.planningcenteronline.com/oauth/token",
+    "profile_url": "https://api.planningcenteronline.com/people/v2/me",
+    "token_auth": "client_secret_post",
+    "pkce": "none",
+    "base_scopes": [
+     "people"
+    ],
+    "scope_flags": {},
+    "freeform_scopes": false,
+    "free_scope": true,
+    "user_id": "data.id",
+    "email": null,
+    "email_verified": "never",
+    "source": [
+     "https://developer.planning.center/docs/#/overview/authentication",
+     "https://auth0.com/docs/authenticate/identity-providers/social-identity-providers/planningcenter",
+     "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
+    ]
+   },
+   "soundcloud": {
+    "tier": 2,
+    "status": "live",
+    "id_format": "soundcloud|<id>",
+    "authorization_url": "https://secure.soundcloud.com/authorize",
+    "token_url": "https://secure.soundcloud.com/oauth/token",
+    "profile_url": "https://api.soundcloud.com/me",
+    "token_auth": "client_secret_post",
+    "pkce": "S256",
+    "base_scopes": [],
+    "scope_flags": {},
+    "freeform_scopes": false,
+    "free_scope": true,
+    "user_id": "id",
+    "email": null,
+    "email_verified": "never",
+    "source": [
+     "https://developers.soundcloud.com/docs/api/guide#authentication",
+     "https://auth0.com/docs/authenticate/identity-providers/social-identity-providers/soundcloud",
+     "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
+    ],
+    "profile_auth": "scheme:OAuth"
+   },
+   "thirtysevensignals": {
+    "tier": 2,
+    "status": "live",
+    "id_format": "thirtysevensignals|<identity.id>",
+    "authorization_url": "https://launchpad.37signals.com/authorization/new",
+    "token_url": "https://launchpad.37signals.com/authorization/token",
+    "profile_url": "https://launchpad.37signals.com/authorization.json",
+    "token_auth": "client_secret_post",
+    "pkce": "none",
+    "base_scopes": [],
+    "scope_flags": {},
+    "freeform_scopes": false,
+    "free_scope": true,
+    "user_id": "identity.id",
+    "email": "identity.email_address",
+    "email_verified": "never",
+    "source": [
+     "https://github.com/basecamp/api/blob/master/sections/authentication.md",
+     "https://auth0.com/docs/authenticate/identity-providers/social-identity-providers/thirtysevensignals",
+     "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
+    ],
+    "authorize_params": {
+     "type": "web_server"
+    },
+    "token_params": {
+     "type": "web_server"
+    }
+   },
+   "untappd": {
+    "tier": 2,
+    "status": "live, API status unverified (SD-5)",
+    "id_format": "untappd|<response.user.uid>",
+    "authorization_url": "https://untappd.com/oauth/authenticate/",
+    "token_url": "https://untappd.com/oauth/authorize/",
+    "profile_url": "https://api.untappd.com/v4/user/info",
+    "token_auth": "client_secret_query",
+    "pkce": "none",
+    "base_scopes": [],
+    "scope_flags": {},
+    "freeform_scopes": false,
+    "free_scope": true,
+    "user_id": "response.user.uid",
+    "email": "response.user.settings.email_address",
+    "email_verified": "never",
+    "source": [
+     "https://untappd.com/api/docs",
+     "https://auth0.com/docs/authenticate/identity-providers/social-identity-providers/untappd",
+     "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
+    ],
+    "redirect_param": "redirect_url",
+    "token_method": "GET",
+    "token_response_path": "response",
+    "profile_auth": "query:access_token"
+   },
+   "vkontakte": {
+    "tier": 2,
+    "status": "live, legacy OAuth vs VK ID (SD-6)",
+    "id_format": "vkontakte|<token:user_id>",
+    "authorization_url": "https://oauth.vk.com/authorize",
+    "token_url": "https://oauth.vk.com/access_token",
+    "profile_url": "https://api.vk.com/method/users.get",
+    "token_auth": "client_secret_post",
+    "pkce": "none",
+    "base_scopes": [],
+    "scope_flags": {},
+    "freeform_scopes": false,
+    "free_scope": true,
+    "user_id": "token:user_id",
+    "email": "token:email",
+    "email_verified": "never",
+    "source": [
+     "https://dev.vk.com/en/api/access-token/authcode-flow-user",
+     "https://auth0.com/docs/authenticate/identity-providers/social-identity-providers/vkontakte",
+     "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
+    ],
+    "profile_auth": "query:access_token",
+    "profile_params": {
+     "v": "5.199",
+     "fields": "photo_200,screen_name"
+    }
+   },
+   "weibo": {
+    "tier": 2,
+    "status": "live",
+    "id_format": "weibo|<idstr>",
+    "authorization_url": "https://api.weibo.com/oauth2/authorize",
+    "token_url": "https://api.weibo.com/oauth2/access_token",
+    "profile_url": "https://api.weibo.com/2/users/show.json?uid={token.uid}",
+    "token_auth": "client_secret_post",
+    "pkce": "none",
+    "base_scopes": [],
+    "scope_flags": {},
+    "freeform_scopes": false,
+    "free_scope": true,
+    "user_id": "idstr",
+    "email": null,
+    "email_verified": "never",
+    "source": [
+     "https://open.weibo.com/wiki/Oauth2/access_token",
+     "https://open.weibo.com/wiki/2/users/show",
+     "https://auth0.com/docs/authenticate/identity-providers/social-identity-providers/weibo",
+     "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
+    ],
+    "profile_auth": "query:access_token"
+   },
+   "wordpress": {
+    "tier": 2,
+    "status": "live",
+    "id_format": "wordpress|<ID>",
+    "authorization_url": "https://public-api.wordpress.com/oauth2/authorize",
+    "token_url": "https://public-api.wordpress.com/oauth2/token",
+    "profile_url": "https://public-api.wordpress.com/rest/v1.1/me",
+    "token_auth": "client_secret_post",
+    "pkce": "none",
+    "base_scopes": [
+     "auth"
+    ],
+    "scope_flags": {},
+    "freeform_scopes": false,
+    "free_scope": true,
+    "user_id": "ID",
+    "email": "email",
+    "email_verified": "field:email_verified",
+    "source": [
+     "https://developer.wordpress.com/docs/oauth2/",
+     "https://developer.wordpress.com/docs/api/1.1/get/me/",
+     "https://auth0.com/docs/authenticate/identity-providers/social-identity-providers/wordpress",
+     "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
+    ]
+   },
+   "yandex": {
+    "tier": 2,
+    "status": "live",
+    "id_format": "yandex|<id>",
+    "authorization_url": "https://oauth.yandex.com/authorize",
+    "token_url": "https://oauth.yandex.com/token",
+    "profile_url": "https://login.yandex.ru/info?format=json",
+    "token_auth": "client_secret_post",
+    "pkce": "none",
+    "base_scopes": [],
+    "scope_flags": {},
+    "freeform_scopes": false,
+    "free_scope": true,
+    "user_id": "id",
+    "email": "default_email",
+    "email_verified": "never",
+    "source": [
+     "https://yandex.com/dev/id/doc/en/codes/code-url",
+     "https://yandex.com/dev/id/doc/en/user-information",
+     "https://auth0.com/docs/authenticate/identity-providers/social-identity-providers/yandex",
+     "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
+    ],
+    "profile_auth": "scheme:OAuth"
    }
   },
   "oauth1": {
@@ -2818,6 +3251,7 @@
     "user_profile": "optional bounded JSON object of strings; its id must equal user_id; its email is never verified (SP-4)",
     "requires": "native_social_login.facebook.enabled and an enabled facebook connection"
    }
-  }
+  },
+  "free_scope_rule": "LR39d-1: for strategies whose only Auth0 option is scope, the operator's scope (at most 20 tokens of 1-128 printable characters without spaces or commas; array or space/comma string) is requested; absent, the base scopes"
  }
 }

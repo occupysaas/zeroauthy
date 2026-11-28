@@ -1,0 +1,33 @@
+{
+ "strategy": "thirtysevensignals",
+ "display_name": "37signals",
+ "source": [
+  "https://github.com/basecamp/api/blob/master/sections/authentication.md",
+  "https://auth0.com/docs/authenticate/identity-providers/social-identity-providers/thirtysevensignals"
+ ],
+ "authorization_url": "https://launchpad.37signals.com/authorization/new",
+ "token_url": "https://launchpad.37signals.com/authorization/token",
+ "profile_url": "https://launchpad.37signals.com/authorization.json",
+ "token_auth": "client_secret_post",
+ "pkce": "none",
+ "base_scopes": [],
+ "flags": [],
+ "freeform_scopes": false,
+ "free_scope": true,
+ "profile": {
+  "user_id": "identity.id",
+  "given_name": "identity.first_name",
+  "family_name": "identity.last_name",
+  "email": "identity.email_address"
+ },
+ "email_verified": {
+  "rule": "never"
+ },
+ "authorize_params": {
+  "type": "web_server"
+ },
+ "token_params": {
+  "type": "web_server"
+ },
+ "token_type_optional": true
+}

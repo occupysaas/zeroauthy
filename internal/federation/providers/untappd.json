@@ -1,0 +1,32 @@
+{
+ "strategy": "untappd",
+ "display_name": "Untappd",
+ "source": [
+  "https://untappd.com/api/docs",
+  "https://auth0.com/docs/authenticate/identity-providers/social-identity-providers/untappd"
+ ],
+ "authorization_url": "https://untappd.com/oauth/authenticate/",
+ "token_url": "https://untappd.com/oauth/authorize/",
+ "profile_url": "https://api.untappd.com/v4/user/info",
+ "token_auth": "client_secret_query",
+ "pkce": "none",
+ "base_scopes": [],
+ "flags": [],
+ "freeform_scopes": false,
+ "free_scope": true,
+ "profile": {
+  "user_id": "response.user.uid",
+  "nickname": "response.user.user_name",
+  "given_name": "response.user.first_name",
+  "family_name": "response.user.last_name",
+  "email": "response.user.settings.email_address"
+ },
+ "email_verified": {
+  "rule": "never"
+ },
+ "redirect_param": "redirect_url",
+ "token_method": "GET",
+ "token_response_path": "response",
+ "profile_auth": "query:access_token",
+ "token_type_optional": true
+}

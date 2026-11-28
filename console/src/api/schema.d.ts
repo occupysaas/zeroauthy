@@ -6723,6 +6723,40 @@ export interface components {
             profile?: boolean;
         };
         /**
+         * @description Plan 39d Tier 2 strategies whose only Auth0 option is `scope`
+         *     (D-0182 LR39d-1): baidu, bitly, daccount, dwolla, fitbit, instagram,
+         *     planningcenter, soundcloud, thirtysevensignals, untappd, vkontakte,
+         *     weibo, wordpress and yandex. The operator's `scope` (array or space- or
+         *     comma-separated string; at most 20 tokens of 1–128 printable
+         *     characters without spaces or commas) is what is requested; absent, the
+         *     strategy's base scopes. It is returned on read as stored. `fitbit` and
+         *     `instagram` are accepted, stored and returned, but sign-in is refused:
+         *     their providers retired those sign-in APIs.
+         */
+        ConnectionOptionsSocialFreeScope: components["schemas"]["ConnectionOptionsSocial"];
+        /** @description `exact` (Exact Online). `baseUrl` is the regional host (D-0182 LR39d-2): https://start.exactonline.nl, .be, .co.uk, .com, .de, .fr or .es; endpoints are built under it. `profile` is stored only. No scope is sent. */
+        ConnectionOptionsExact: components["schemas"]["ConnectionOptionsSocial"] & {
+            /**
+             * Format: uri
+             * @enum {string}
+             */
+            baseUrl: "https://start.exactonline.nl" | "https://start.exactonline.be" | "https://start.exactonline.co.uk" | "https://start.exactonline.com" | "https://start.exactonline.de" | "https://start.exactonline.fr" | "https://start.exactonline.es";
+            /** @description Stored only. */
+            profile?: boolean;
+        };
+        /** @description `evernote` and `evernote-sandbox`: OAuth 1.0a with HMAC-SHA1 against Evernote's fixed endpoints; the user ID is the access-token response's `edam_userId` (D-0182). No email. */
+        ConnectionOptionsEvernote: {
+            /** @description Consumer key. */
+            client_id?: string;
+            /** @description Consumer secret; sealed. */
+            client_secret?: string;
+            /**
+             * @default on_each_login
+             * @enum {string}
+             */
+            set_user_root_attributes?: "on_each_login" | "on_first_login" | "never_on_login";
+        };
+        /**
          * @description Generic OAuth 1.0a connection (`oauth1`, D-0180). The three endpoint
          *     URLs are required, https and public. `signatureMethod` absent signs
          *     with HMAC-SHA1; `RSA-SHA1` signs with the RSA private key given as
@@ -11303,10 +11337,10 @@ export interface components {
             /** @description Letters and digits with single hyphens between them. */
             name: string;
             /**
-             * @description `samlp` follows ConnectionOptionsSAML (Plan 37a). `adfs` follows ConnectionOptionsADFS (Plan 37b). `google-apps` follows ConnectionOptionsGoogleApps (Plan 37c). `ad` follows ConnectionOptionsAD (Plan 38a): users sign in through Auth0's AD/LDAP Connector, provisioned with the connection's `provisioning_ticket_url`. `email` and `sms` are passwordless connections whose name must equal the strategy; options follow ConnectionOptionsEmail and ConnectionOptionsSMS (Plan 34). `apple` follows ConnectionOptionsApple; web/native login is active (D-0170). `github` follows ConnectionOptionsGitHub (Plan 39c). The Plan 39b social strategies follow ConnectionOptionsSocial and their strategy schema (D-0180); `oauth1` follows ConnectionOptionsOAuth1.
+             * @description `samlp` follows ConnectionOptionsSAML (Plan 37a). `adfs` follows ConnectionOptionsADFS (Plan 37b). `google-apps` follows ConnectionOptionsGoogleApps (Plan 37c). `ad` follows ConnectionOptionsAD (Plan 38a): users sign in through Auth0's AD/LDAP Connector, provisioned with the connection's `provisioning_ticket_url`. `email` and `sms` are passwordless connections whose name must equal the strategy; options follow ConnectionOptionsEmail and ConnectionOptionsSMS (Plan 34). `apple` follows ConnectionOptionsApple; web/native login is active (D-0170). `github` follows ConnectionOptionsGitHub (Plan 39c). The Plan 39b social strategies follow ConnectionOptionsSocial and their strategy schema (D-0180); `oauth1` follows ConnectionOptionsOAuth1. The Plan 39d Tier 2 strategies follow ConnectionOptionsSocialFreeScope, `exact` ConnectionOptionsExact and `evernote`/`evernote-sandbox` ConnectionOptionsEvernote (D-0182); `fitbit` and `instagram` are stored but refused at sign-in because their providers retired those sign-in APIs.
              * @enum {string}
              */
-            strategy: "auth0" | "google-oauth2" | "oauth2" | "oidc" | "windowslive" | "waad" | "email" | "sms" | "apple" | "github" | "okta" | "samlp" | "adfs" | "google-apps" | "ad" | "facebook" | "linkedin" | "twitter" | "amazon" | "paypal" | "paypal-sandbox" | "salesforce" | "salesforce-community" | "salesforce-sandbox" | "yahoo" | "line" | "dropbox" | "box" | "bitbucket" | "shopify" | "oauth1";
+            strategy: "auth0" | "google-oauth2" | "oauth2" | "oidc" | "windowslive" | "waad" | "email" | "sms" | "apple" | "github" | "okta" | "samlp" | "adfs" | "google-apps" | "ad" | "facebook" | "linkedin" | "twitter" | "amazon" | "paypal" | "paypal-sandbox" | "salesforce" | "salesforce-community" | "salesforce-sandbox" | "yahoo" | "line" | "dropbox" | "box" | "bitbucket" | "shopify" | "oauth1" | "baidu" | "bitly" | "daccount" | "dwolla" | "evernote" | "evernote-sandbox" | "exact" | "fitbit" | "instagram" | "planningcenter" | "soundcloud" | "thirtysevensignals" | "untappd" | "vkontakte" | "weibo" | "wordpress" | "yandex";
             /** @description Applications to enable on the connection; accepted on create only. */
             enabled_clients?: string[];
         };

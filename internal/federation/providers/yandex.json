@@ -1,0 +1,30 @@
+{
+ "strategy": "yandex",
+ "display_name": "Yandex",
+ "source": [
+  "https://yandex.com/dev/id/doc/en/codes/code-url",
+  "https://yandex.com/dev/id/doc/en/user-information",
+  "https://auth0.com/docs/authenticate/identity-providers/social-identity-providers/yandex"
+ ],
+ "authorization_url": "https://oauth.yandex.com/authorize",
+ "token_url": "https://oauth.yandex.com/token",
+ "profile_url": "https://login.yandex.ru/info?format=json",
+ "token_auth": "client_secret_post",
+ "pkce": "none",
+ "base_scopes": [],
+ "flags": [],
+ "freeform_scopes": false,
+ "free_scope": true,
+ "profile": {
+  "user_id": "id",
+  "name": "real_name",
+  "given_name": "first_name",
+  "family_name": "last_name",
+  "nickname": "login",
+  "email": "default_email"
+ },
+ "email_verified": {
+  "rule": "never"
+ },
+ "profile_auth": "scheme:OAuth"
+}

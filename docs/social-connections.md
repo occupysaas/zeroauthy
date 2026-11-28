@@ -5,7 +5,8 @@ discovery, see [enterprise connections](enterprise-connections.md).
 
 Plan 24 adds the federation core; Plan 39a adds Apple web and native login;
 Plan 39c adds GitHub; Plan 39b adds the remaining Tier 1 social providers,
-generic OAuth 1.0a and native Google and Facebook sign-in:
+generic OAuth 1.0a and native Google and Facebook sign-in; Plan 39d adds
+Tier 2:
 
 | Strategy | Kind | Identity key | Public user ID |
 |---|---|---|---|
@@ -29,6 +30,23 @@ generic OAuth 1.0a and native Google and Facebook sign-in:
 | `shopify` | social (`isSocial: true`) | the shop's `id` | `shopify|<id>` |
 | `twitter` | social (`isSocial: true`) | X user `id` (`id_str` on OAuth 1.0a) | `twitter|<id>` |
 | `yahoo` | social (`isSocial: true`) | Yahoo `sub` | `yahoo|<id>` |
+| `baidu` | social (`isSocial: true`) | Baidu `userid` | `baidu|<id>` |
+| `bitly` | social (`isSocial: true`) | Bitly `login` | `bitly|<id>` |
+| `daccount` | social (`isSocial: true`) | d Account `sub` | `daccount|<id>` |
+| `dwolla` | social (`isSocial: true`) | Dwolla account ID | `dwolla|<id>` |
+| `evernote` | social (`isSocial: true`) | Evernote `edam_userId` | `evernote|<id>` |
+| `evernote-sandbox` | social (`isSocial: true`) | Evernote `edam_userId` | `evernote-sandbox|<id>` |
+| `exact` | social (`isSocial: true`) | Exact `UserID` | `exact|<id>` |
+| `fitbit` | social (`isSocial: true`) | retired: sign-in refused | `fitbit|<id>` |
+| `instagram` | social (`isSocial: true`) | retired: sign-in refused | `instagram|<id>` |
+| `planningcenter` | social (`isSocial: true`) | Planning Center person `id` | `planningcenter|<id>` |
+| `soundcloud` | social (`isSocial: true`) | SoundCloud `id` | `soundcloud|<id>` |
+| `thirtysevensignals` | social (`isSocial: true`) | 37signals identity `id` | `thirtysevensignals|<id>` |
+| `untappd` | social (`isSocial: true`) | Untappd `uid` | `untappd|<id>` |
+| `vkontakte` | social (`isSocial: true`) | VK `user_id` | `vkontakte|<id>` |
+| `weibo` | social (`isSocial: true`) | Weibo `idstr` | `weibo|<id>` |
+| `wordpress` | social (`isSocial: true`) | WordPress.com `ID` | `wordpress|<id>` |
+| `yandex` | social (`isSocial: true`) | Yandex `id` | `yandex|<id>` |
 | `oidc` (front or back channel) | enterprise (`isSocial: false`) | ID token `sub` | `oidc|<connection>|<sub>` |
 
 The frozen option inventory is `internal/federation/inventory.json`; the
@@ -209,7 +227,7 @@ secret reinjection and post-import logins; see
 ## Not included
 
 Microsoft accounts (see [email-account-connections.md](email-account-connections.md)),
-the Tier 2 social providers (a later plan), One Tap, automatic linking,
+One Tap, automatic linking,
 provider-initiated login, federated logout or revocation, organizations, MFA,
 Actions, Token Vault, development keys, arbitrary upstream parameter
 forwarding, front-channel OIDC and the remaining enterprise OIDC features (Plan
@@ -437,7 +455,7 @@ live GitHub account is used.
 descriptor (`internal/federation/providers/*.json`): fixed endpoints, client
 authentication, PKCE use, the permission flags, the profile map and the email
 rule, with the provider documentation each comes from. D-0180 records the
-rulings. Tier 2 (Baidu, Evernote, Instagram, …) follows in a later plan.
+rulings. Tier 2 follows below (Plan 39d).
 
 Create one with `client_id` and `client_secret` of your app at the provider;
 the secret is sealed and never returned, `client_id` cannot change, and
@@ -531,3 +549,37 @@ must name the same user and its email is never marked verified.
 
 Both run post-login Actions and MFA like Apple native login, and with the
 switch off the request is `400 invalid_request` before any provider call.
+
+## Tier 2 social providers (Plan 39d)
+
+`baidu`, `bitly`, `daccount`, `dwolla`, `evernote`, `evernote-sandbox`,
+`exact`, `planningcenter`, `soundcloud`, `thirtysevensignals`, `untappd`,
+`vkontakte`, `weibo`, `wordpress` and `yandex` run on descriptors like Tier 1
+(D-0182). Auth0 gives most of them only a `scope` option: the operator's
+`scope` (an array or a space- or comma-separated string, at most 20 scopes)
+is what is requested, and it is returned as stored; without one, the
+provider's default is requested.
+
+| Strategy | Default scope | `email_verified` | Notes |
+|---|---|---|---|
+| `baidu` | `basic` | no email | the token travels as a query parameter |
+| `bitly` | none | from the primary email's `is_verified` | |
+| `daccount` | `openid` | no email | NTT docomo d Account Connect (endpoints SD-2) |
+| `dwolla` | `AccountInfoFull` | no email | the account comes from the token response (SD-3) |
+| `evernote`, `evernote-sandbox` | none (OAuth 1.0a) | no email | consumer key and secret only; the user is `edam_userId` (SD-4) |
+| `exact` | none | false | `baseUrl` is required: `https://start.exactonline.nl`, `.be`, `.co.uk`, `.com`, `.de`, `.fr` or `.es` |
+| `planningcenter` | `people` | no email | |
+| `soundcloud` | none | no email | S256 PKCE |
+| `thirtysevensignals` | none | false | Basecamp's Launchpad |
+| `untappd` | none | false | SD-5 |
+| `vkontakte` | none | false | request `email` in `scope` to receive it (SD-6) |
+| `weibo` | none | no email | |
+| `wordpress` | `auth` | from WordPress's `email_verified` | |
+| `yandex` | none | false | |
+
+**Retired:** `fitbit` (Fitbit turned off its legacy Web API and OAuth on
+2026-11-02; sign-in moved to the Google Health API) and `instagram` (Meta shut
+down the Basic Display API on 2024-12-04). Their connections are created,
+returned, changed and exported like any other, so Auth0 exports import
+unchanged, but `/authorize` refuses them before any provider call. The
+console shows the reason. GitHub stays on its own adapter (Plan 39c).

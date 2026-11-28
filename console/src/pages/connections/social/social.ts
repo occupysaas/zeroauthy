@@ -5,7 +5,7 @@ import descriptorList from './descriptors.json'
 // must continue opening generic OIDC connections.
 // The Plan 39b descriptor strategies, in descriptors.json order (a test keeps
 // them equal). descriptors.json is generated from the server's descriptors.
-export const descriptorStrategies = ['amazon', 'bitbucket', 'box', 'dropbox', 'facebook', 'line', 'linkedin', 'paypal', 'paypal-sandbox', 'salesforce', 'salesforce-community', 'salesforce-sandbox', 'shopify', 'twitter', 'yahoo'] as const
+export const descriptorStrategies = ['amazon', 'baidu', 'bitbucket', 'bitly', 'box', 'daccount', 'dropbox', 'dwolla', 'evernote', 'evernote-sandbox', 'exact', 'facebook', 'fitbit', 'instagram', 'line', 'linkedin', 'paypal', 'paypal-sandbox', 'planningcenter', 'salesforce', 'salesforce-community', 'salesforce-sandbox', 'shopify', 'soundcloud', 'thirtysevensignals', 'twitter', 'untappd', 'vkontakte', 'weibo', 'wordpress', 'yahoo', 'yandex'] as const
 export type DescriptorStrategy = (typeof descriptorStrategies)[number]
 export const federatedStrategies = ['google-oauth2', 'oauth2', 'oidc', 'windowslive', 'waad', 'apple', 'github', 'okta', 'samlp', 'adfs', 'google-apps', 'ad', 'oauth1', ...descriptorStrategies] as const
 export const socialStrategies = ['google-oauth2', 'oauth2', 'windowslive', 'apple', 'github', ...descriptorStrategies] as const
@@ -174,6 +174,9 @@ export interface SocialDescriptor {
   flags: DescriptorFlag[]
   freeform_scopes: boolean
   fields: string[]
+  free_scope: boolean
+  base_url_hosts: string[]
+  retired: string
 }
 export const socialDescriptors = descriptorList as SocialDescriptor[]
 
@@ -193,8 +196,9 @@ export function freeformList(text: string): string[] {
 }
 
 /** The scope the server will compute; OAuth 1.0a has none. */
-export function descriptorScope(d: SocialDescriptor, flags: Record<string, boolean>, freeform: string, protocol = 'oauth2'): string {
+export function descriptorScope(d: SocialDescriptor, flags: Record<string, boolean>, freeform: string, protocol = 'oauth2', scope = ''): string {
   if (protocol === 'oauth1') return ''
+  if (d.free_scope) return freeformList(scope).length ? freeformList(scope).join(' ') : d.base_scopes.join(' ')
   const out: string[] = []
   const add = (s: string) => { if (!out.includes(s)) out.push(s) }
   d.base_scopes.forEach(add)
@@ -205,8 +209,10 @@ export function descriptorScope(d: SocialDescriptor, flags: Record<string, boole
 
 /** The options a descriptor form sends: flags that differ from their
  * default, freeform scopes and the extra fields; never scope. */
-export function descriptorOptions(d: SocialDescriptor, flags: Record<string, boolean>, freeform: string, extra: { community?: string; protocol?: string }): Options {
+export function descriptorOptions(d: SocialDescriptor, flags: Record<string, boolean>, freeform: string, extra: { community?: string; protocol?: string; scope?: string; baseUrl?: string }): Options {
   const o: Options = {}
+  if (d.free_scope && extra.scope && freeformList(extra.scope).length) o.scope = freeformList(extra.scope)
+  if (d.base_url_hosts.length && extra.baseUrl) o.baseUrl = extra.baseUrl
   for (const f of d.flags) if ((flags[f.option] === true) !== (f.default === true)) o[f.option] = flags[f.option] === true
   if (d.freeform_scopes && freeformList(freeform).length) o.freeform_scopes = freeformList(freeform)
   if (d.fields.includes('community_base_url') && extra.community !== undefined) o.community_base_url = extra.community.trim()

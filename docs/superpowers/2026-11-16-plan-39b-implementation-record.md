@@ -62,9 +62,8 @@ Local, 2026-11-27, at `df2e8b07`, TMPDIR/GOTMPDIR on `/dev/shm`:
 
 ## Maintainer rulings after review (2026-11-27)
 
-- GitHub stays on its Plan 39c adapter in this plan; the next social batch
-  (Tier 2) ports it to a descriptor, with Plan 39c's adapter tests as the
-  acceptance tests and public IDs unchanged.
+- GitHub stays on its Plan 39c adapter (2026-11-28: no descriptor port;
+  this reverses the note of 2026-11-27).
 - SP-3: the local native Google URN
   `http://auth0.com/oauth/token-type/google-id-token` stands.
 - Native Google accepts only tokens whose `aud` is the connection's

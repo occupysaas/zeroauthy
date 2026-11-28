@@ -22,7 +22,7 @@ const syncModes = ['on_each_login', 'on_first_login', 'never_on_login'] as const
 // The editable draft. It is reset from the connection only when another
 // connection is shown or after a save of ours: a failed reload in the parent
 // never discards edits.
-const draft = reactive({ displayName: '', showAsButton: true, active: true, sync: 'on_each_login', scope: '', scopes: '', email: true, githubFlags: {} as Record<string, boolean>, profile: true, newSecret: '', appleTeam: '', appleKID: '', appleName: true, descFlags: {} as Record<string, boolean>, freeform: '', community: '', protocol: 'oauth2' })
+const draft = reactive({ displayName: '', showAsButton: true, active: true, sync: 'on_each_login', scope: '', scopes: '', email: true, githubFlags: {} as Record<string, boolean>, profile: true, newSecret: '', appleTeam: '', appleKID: '', appleName: true, descFlags: {} as Record<string, boolean>, freeform: '', community: '', protocol: 'oauth2', freeScope: '', baseUrl: '' })
 const errors = reactive<Record<string, string>>({})
 const general = ref('')
 const status = ref('')
@@ -60,6 +60,8 @@ function reset(c: Connection) {
     draft.freeform = Array.isArray(o.freeform_scopes) ? (o.freeform_scopes as string[]).join(' ') : ''
     draft.community = typeof o.community_base_url === 'string' ? o.community_base_url : ''
     draft.protocol = o.protocol === 'oauth1' ? 'oauth1' : 'oauth2'
+    draft.freeScope = d.free_scope ? (Array.isArray(o.scope) ? (o.scope as string[]).join(' ') : typeof o.scope === 'string' ? o.scope : '') : ''
+    draft.baseUrl = typeof o.baseUrl === 'string' ? o.baseUrl : ''
   }
 }
 watch(() => props.connection.id, () => reset(props.connection), { immediate: true })
@@ -108,7 +110,7 @@ async function save() {
     for (const f of d.flags) delete opts[f.option]
     delete opts.freeform_scopes
     delete opts.scope
-    Object.assign(opts, descriptorOptions(d, draft.descFlags, draft.freeform, { community: draft.community, protocol: draft.protocol }))
+    Object.assign(opts, descriptorOptions(d, draft.descFlags, draft.freeform, { community: draft.community, protocol: draft.protocol, scope: draft.freeScope, baseUrl: draft.baseUrl }))
     if (d.fields.includes('protocol') && draft.protocol === 'oauth2') delete opts.protocol
   }
   if (strategy.value === 'apple') {
@@ -177,7 +179,7 @@ function fixed(key: string): string {
     <MicrosoftOptions v-if="strategy === 'windowslive' || strategy === 'waad'" :strategy="strategy" :mode="options.useCommonEndpoint === true ? 'organizations' : 'single'" :tenant-domain="fixed('tenant_domain')" readonly />
 
     <GitHubOptions v-if="strategy === 'github'" v-model:email="draft.email" v-model:flags="draft.githubFlags" />
-    <DescriptorOptions v-if="descriptor" v-model:flags="draft.descFlags" v-model:freeform="draft.freeform" v-model:community="draft.community" v-model:protocol="draft.protocol" :descriptor="descriptor" :community-error="errors.community" />
+    <DescriptorOptions v-if="descriptor" v-model:flags="draft.descFlags" v-model:freeform="draft.freeform" v-model:community="draft.community" v-model:protocol="draft.protocol" v-model:scope="draft.freeScope" v-model:base-url="draft.baseUrl" :descriptor="descriptor" :community-error="errors.community" />
     <p v-if="strategy === 'oauth1'" class="muted" data-testid="oauth1-api-only">{{ t('social.oauth1ApiOnly') }}</p>
     <template v-if="strategy === 'google-oauth2'">
       <label class="check"><input v-model="draft.email" type="checkbox" /> <span>{{ t('social.googleEmail') }}</span></label>

@@ -1,0 +1,24 @@
+{
+ "strategy": "evernote",
+ "display_name": "Evernote",
+ "source": [
+  "https://dev.evernote.com/doc/articles/authentication.php",
+  "https://auth0.com/docs/authenticate/identity-providers/social-identity-providers/evernote"
+ ],
+ "protocol": "oauth1",
+ "oauth1": {
+  "request_token_url": "https://www.evernote.com/oauth",
+  "access_token_url": "https://www.evernote.com/oauth",
+  "authorization_url": "https://www.evernote.com/OAuth.action",
+  "empty_secret": true
+ },
+ "base_scopes": [],
+ "flags": [],
+ "freeform_scopes": false,
+ "profile": {
+  "user_id": "token:edam_userId"
+ },
+ "email_verified": {
+  "rule": "never"
+ }
+}

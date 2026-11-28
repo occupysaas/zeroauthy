@@ -56,11 +56,13 @@ type Provider struct {
 	appleSeen    map[string]bool
 	// GitHub (Plan 39c): accounts registered by the test, single-use codes
 	// and access tokens.
-	githubAccounts map[string]GitHubAccount
-	githubCodes    map[string]gitHubCode
-	githubTokens   map[string]gitHubToken
-	socialCodes    map[string]socialCode // Plan 39b descriptor strategies
-	socialTokens   map[string]socialToken
+	githubAccounts  map[string]GitHubAccount
+	githubCodes     map[string]gitHubCode
+	githubTokens    map[string]gitHubToken
+	socialCodes     map[string]socialCode // Plan 39b descriptor strategies
+	socialTokens    map[string]socialToken
+	oauth1Requests  map[string]string     // request token → callback (Plan 39d)
+	oauth1Verifiers map[string]socialCode // request token → verifier and account
 }
 
 // New returns a provider for base.
@@ -69,7 +71,7 @@ func New(base string) (*Provider, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Provider{Base: strings.TrimSuffix(base, "/"), key: k, codes: map[string]code{}, tokens: map[string]string{}, Exchanges: map[string]int{}, socialCodes: map[string]socialCode{}, socialTokens: map[string]socialToken{}}, nil
+	return &Provider{Base: strings.TrimSuffix(base, "/"), key: k, codes: map[string]code{}, tokens: map[string]string{}, Exchanges: map[string]int{}, socialCodes: map[string]socialCode{}, socialTokens: map[string]socialToken{}, oauth1Requests: map[string]string{}, oauth1Verifiers: map[string]socialCode{}}, nil
 }
 
 func random() string {
