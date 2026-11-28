@@ -484,7 +484,8 @@ func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.S
 			Actions:        engine,
 			Phone:          phoneDispatcher,
 
-			Protection:          &protection.Service{Store: st, Log: log, BreachChecker: checker, Wrapper: wrapper, Notifier: tenantEmail},
+			Protection:       &protection.Service{Store: st, Log: log, BreachChecker: checker, Wrapper: wrapper, Notifier: tenantEmail},
+			TrustedJA3Header: cfg.TrustedJA3Header, TrustedJA4Header: cfg.TrustedJA4Header,
 			TrustProxyHeaders:   cfg.Server.TrustProxyHeaders,
 			BaseDomain:          cfg.Server.BaseDomain,
 			SystemHost:          systemHost,

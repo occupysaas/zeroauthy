@@ -80,6 +80,12 @@ func (h *Handlers) postLogin(w http.ResponseWriter, r *http.Request, res tenant.
 				in.PendingMembership = !member
 			}
 			in.User, in.Connection = h.prospectiveUser(r, res, sess, user), conn
+			if h.Sessions != nil {
+				in.Risk.KnownDevice, err = h.Sessions.MFABrowserValid(ctx, r, user, "device")
+				if err != nil {
+					return err
+				}
+			}
 			if fr.invitationBinding[orglogin.InvitationIDParam] != "" {
 				txn, e := h.completionTransaction(ctx, r, res)
 				if e != nil {
@@ -96,6 +102,7 @@ func (h *Handlers) postLogin(w http.ResponseWriter, r *http.Request, res tenant.
 		},
 		// The login form's body (with the password) is never passed on.
 		Request: actions.RequestInfo{
+			SecurityContext: actions.SecurityContextFrom(ctx), CorrelationID: actions.CorrelationID(r),
 			IP: httpx.ClientIP(r, h.TrustProxyHeaders), Hostname: r.Host, Origin: res.Origin(), Method: r.Method,
 			UserAgent: r.UserAgent(), Language: firstLanguage(r.Header.Get("Accept-Language")),
 			Query: query, Body: map[string]any{},

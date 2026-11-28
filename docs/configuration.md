@@ -59,6 +59,8 @@ mount a certificate. The [quickstart](quickstart.md) shows a full `docker run`.
 
 | Key | Environment variable | Type | Default | Description |
 | --- | --- | --- | --- | --- |
+| `trusted_ja3_header` | `ZEROAUTHY_TRUSTED_JA3_HEADER` | string | — | `trusted_ja3_header` names a header overwritten by the terminating proxy; empty trusts none. |
+| `trusted_ja4_header` | `ZEROAUTHY_TRUSTED_JA4_HEADER` | string | — | `trusted_ja4_header` names a header overwritten by the terminating proxy; empty trusts none. |
 | `seed` | `ZEROAUTHY_SEED` | string | — | `seed` is an optional path to a declarative seed file applied at startup. |
 | `seed_mode` | `ZEROAUTHY_SEED_MODE` | string | `apply` | `seed_mode` is "apply" (the default: the seed overwrites what it defines at every start) or "create_only" (it only creates what is missing, so edits made in the console survive a restart). |
 

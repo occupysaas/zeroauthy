@@ -15,11 +15,13 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/actions/build"
 	"github.com/zeroauthy/zeroauthy/internal/actionsrules"
 	"github.com/zeroauthy/zeroauthy/internal/customdb"
+	"github.com/zeroauthy/zeroauthy/internal/customdomain"
 	"github.com/zeroauthy/zeroauthy/internal/events/eventcontext"
 	"github.com/zeroauthy/zeroauthy/internal/keys"
 	"github.com/zeroauthy/zeroauthy/internal/logs"
 	"github.com/zeroauthy/zeroauthy/internal/logscrub"
 	"github.com/zeroauthy/zeroauthy/internal/noderunner"
+	"github.com/zeroauthy/zeroauthy/internal/protection"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/userrules"
@@ -221,6 +223,19 @@ func (e *Engine) PostLogin(ctx context.Context, in PostLoginInput) (*Result, err
 			return nil, e.unrecorded(tenantID, TriggerPostLogin, err)
 		}
 	}
+	if in.CustomDomain == nil {
+		in.CustomDomain, err = customdomain.PublicContext(ctx, e.Store, tenantID, in.Request.Hostname)
+		if err != nil {
+			return nil, e.unrecorded(tenantID, TriggerPostLogin, err)
+		}
+	}
+	if !protection.Allowlisted(in.Request.IP, in.Tenant.Tenant.ProtectionSettings.SuspiciousIP.Allowlist) {
+		svc := &protection.Service{Store: e.Store, Now: e.Now}
+		in.Risk.BlockedIP, err = svc.IPBlocked(ctx, tenantID, in.Request.IP)
+		if err != nil {
+			return nil, e.unrecorded(tenantID, TriggerPostLogin, err)
+		}
+	}
 	ctx = eventcontext.Enrich(ctx, in.Client, in.Connection)
 	// Resolve only the bound ID; caller-provided snapshots cannot select a
 	// different organization. The input is sealed unchanged on suspension.
@@ -235,6 +250,9 @@ func (e *Engine) PostLogin(ctx context.Context, in PostLoginInput) (*Result, err
 	// event.transaction.id names this login; a redirect's sealed input keeps it.
 	if in.Transaction.ID == "" {
 		in.Transaction.ID = secrets.RandomString(24)
+	}
+	if in.Transaction.LinkingID == "" {
+		in.Transaction.LinkingID = secrets.RandomString(24)
 	}
 	var roles []roleJSON
 	var groups []groupJSON

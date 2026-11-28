@@ -30,6 +30,7 @@ func withRequestInfo(ctx context.Context, r *http.Request, ip string, form url.V
 	lang, _, _ := strings.Cut(r.Header.Get("Accept-Language"), ",")
 	lang, _, _ = strings.Cut(lang, ";")
 	return context.WithValue(ctx, requestInfoKey{}, actions.RequestInfo{
+		SecurityContext: actions.SecurityContextFrom(ctx), CorrelationID: actions.CorrelationID(r),
 		IP: ip, Hostname: r.Host, Method: r.Method, UserAgent: r.UserAgent(), Language: strings.TrimSpace(lang),
 		Query: map[string]any{}, Body: body,
 	})
