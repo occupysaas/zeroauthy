@@ -996,3 +996,15 @@ Remaining social providers (D-0180).
 - **SP-7** Twitter email (zeroauthy: none on OAuth 2.0; `include_email` on OAuth 1.0a).
 - **SP-8** Whether Auth0 still serves LinkedIn versions 1 and 2 (zeroauthy: refused at login).
 - **SP-9** Shopify shop selection (zeroauthy: `login_hint`).
+
+## Plan 39d observation points
+
+Tier 2 social providers (D-0182).
+
+- **SD-1** Endpoints not confirmed from public provider documentation (listed per strategy in the inventory `status`).
+- **SD-2** d Account Connect endpoints and claims.
+- **SD-3** Whether Dwolla still offers user sign-in through OAuth (its current docs show only the client credentials flow).
+- **SD-4** Whether Evernote still issues new API keys.
+- **SD-5** Untappd API status (docs reference v4).
+- **SD-6** VK legacy `oauth.vk.com` versus VK ID.
+- **SD-7** Whether Auth0 still lists Fitbit and Instagram and what its sign-in does now.

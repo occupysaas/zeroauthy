@@ -1870,14 +1870,23 @@ const (
 	ConnectionCreateStrategyAmazon              ConnectionCreateStrategy = "amazon"
 	ConnectionCreateStrategyApple               ConnectionCreateStrategy = "apple"
 	ConnectionCreateStrategyAuth0               ConnectionCreateStrategy = "auth0"
+	ConnectionCreateStrategyBaidu               ConnectionCreateStrategy = "baidu"
 	ConnectionCreateStrategyBitbucket           ConnectionCreateStrategy = "bitbucket"
+	ConnectionCreateStrategyBitly               ConnectionCreateStrategy = "bitly"
 	ConnectionCreateStrategyBox                 ConnectionCreateStrategy = "box"
+	ConnectionCreateStrategyDaccount            ConnectionCreateStrategy = "daccount"
 	ConnectionCreateStrategyDropbox             ConnectionCreateStrategy = "dropbox"
+	ConnectionCreateStrategyDwolla              ConnectionCreateStrategy = "dwolla"
 	ConnectionCreateStrategyEmail               ConnectionCreateStrategy = "email"
+	ConnectionCreateStrategyEvernote            ConnectionCreateStrategy = "evernote"
+	ConnectionCreateStrategyEvernoteSandbox     ConnectionCreateStrategy = "evernote-sandbox"
+	ConnectionCreateStrategyExact               ConnectionCreateStrategy = "exact"
 	ConnectionCreateStrategyFacebook            ConnectionCreateStrategy = "facebook"
+	ConnectionCreateStrategyFitbit              ConnectionCreateStrategy = "fitbit"
 	ConnectionCreateStrategyGithub              ConnectionCreateStrategy = "github"
 	ConnectionCreateStrategyGoogleApps          ConnectionCreateStrategy = "google-apps"
 	ConnectionCreateStrategyGoogleOauth2        ConnectionCreateStrategy = "google-oauth2"
+	ConnectionCreateStrategyInstagram           ConnectionCreateStrategy = "instagram"
 	ConnectionCreateStrategyLine                ConnectionCreateStrategy = "line"
 	ConnectionCreateStrategyLinkedin            ConnectionCreateStrategy = "linkedin"
 	ConnectionCreateStrategyOauth1              ConnectionCreateStrategy = "oauth1"
@@ -1886,16 +1895,24 @@ const (
 	ConnectionCreateStrategyOkta                ConnectionCreateStrategy = "okta"
 	ConnectionCreateStrategyPaypal              ConnectionCreateStrategy = "paypal"
 	ConnectionCreateStrategyPaypalSandbox       ConnectionCreateStrategy = "paypal-sandbox"
+	ConnectionCreateStrategyPlanningcenter      ConnectionCreateStrategy = "planningcenter"
 	ConnectionCreateStrategySalesforce          ConnectionCreateStrategy = "salesforce"
 	ConnectionCreateStrategySalesforceCommunity ConnectionCreateStrategy = "salesforce-community"
 	ConnectionCreateStrategySalesforceSandbox   ConnectionCreateStrategy = "salesforce-sandbox"
 	ConnectionCreateStrategySamlp               ConnectionCreateStrategy = "samlp"
 	ConnectionCreateStrategyShopify             ConnectionCreateStrategy = "shopify"
 	ConnectionCreateStrategySms                 ConnectionCreateStrategy = "sms"
+	ConnectionCreateStrategySoundcloud          ConnectionCreateStrategy = "soundcloud"
+	ConnectionCreateStrategyThirtysevensignals  ConnectionCreateStrategy = "thirtysevensignals"
 	ConnectionCreateStrategyTwitter             ConnectionCreateStrategy = "twitter"
+	ConnectionCreateStrategyUntappd             ConnectionCreateStrategy = "untappd"
+	ConnectionCreateStrategyVkontakte           ConnectionCreateStrategy = "vkontakte"
 	ConnectionCreateStrategyWaad                ConnectionCreateStrategy = "waad"
+	ConnectionCreateStrategyWeibo               ConnectionCreateStrategy = "weibo"
 	ConnectionCreateStrategyWindowslive         ConnectionCreateStrategy = "windowslive"
+	ConnectionCreateStrategyWordpress           ConnectionCreateStrategy = "wordpress"
 	ConnectionCreateStrategyYahoo               ConnectionCreateStrategy = "yahoo"
+	ConnectionCreateStrategyYandex              ConnectionCreateStrategy = "yandex"
 )
 
 // Valid indicates whether the value is a known member of the ConnectionCreateStrategy enum.
@@ -1911,21 +1928,39 @@ func (e ConnectionCreateStrategy) Valid() bool {
 		return true
 	case ConnectionCreateStrategyAuth0:
 		return true
+	case ConnectionCreateStrategyBaidu:
+		return true
 	case ConnectionCreateStrategyBitbucket:
+		return true
+	case ConnectionCreateStrategyBitly:
 		return true
 	case ConnectionCreateStrategyBox:
 		return true
+	case ConnectionCreateStrategyDaccount:
+		return true
 	case ConnectionCreateStrategyDropbox:
+		return true
+	case ConnectionCreateStrategyDwolla:
 		return true
 	case ConnectionCreateStrategyEmail:
 		return true
+	case ConnectionCreateStrategyEvernote:
+		return true
+	case ConnectionCreateStrategyEvernoteSandbox:
+		return true
+	case ConnectionCreateStrategyExact:
+		return true
 	case ConnectionCreateStrategyFacebook:
+		return true
+	case ConnectionCreateStrategyFitbit:
 		return true
 	case ConnectionCreateStrategyGithub:
 		return true
 	case ConnectionCreateStrategyGoogleApps:
 		return true
 	case ConnectionCreateStrategyGoogleOauth2:
+		return true
+	case ConnectionCreateStrategyInstagram:
 		return true
 	case ConnectionCreateStrategyLine:
 		return true
@@ -1943,6 +1978,8 @@ func (e ConnectionCreateStrategy) Valid() bool {
 		return true
 	case ConnectionCreateStrategyPaypalSandbox:
 		return true
+	case ConnectionCreateStrategyPlanningcenter:
+		return true
 	case ConnectionCreateStrategySalesforce:
 		return true
 	case ConnectionCreateStrategySalesforceCommunity:
@@ -1955,13 +1992,27 @@ func (e ConnectionCreateStrategy) Valid() bool {
 		return true
 	case ConnectionCreateStrategySms:
 		return true
+	case ConnectionCreateStrategySoundcloud:
+		return true
+	case ConnectionCreateStrategyThirtysevensignals:
+		return true
 	case ConnectionCreateStrategyTwitter:
+		return true
+	case ConnectionCreateStrategyUntappd:
+		return true
+	case ConnectionCreateStrategyVkontakte:
 		return true
 	case ConnectionCreateStrategyWaad:
 		return true
+	case ConnectionCreateStrategyWeibo:
+		return true
 	case ConnectionCreateStrategyWindowslive:
 		return true
+	case ConnectionCreateStrategyWordpress:
+		return true
 	case ConnectionCreateStrategyYahoo:
+		return true
+	case ConnectionCreateStrategyYandex:
 		return true
 	default:
 		return false
@@ -2136,6 +2187,81 @@ const (
 func (e ConnectionOptionsEmailEmailSyntax) Valid() bool {
 	switch e {
 	case ConnectionOptionsEmailEmailSyntaxLiquid:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ConnectionOptionsEvernoteSetUserRootAttributes.
+const (
+	ConnectionOptionsEvernoteSetUserRootAttributesNeverOnLogin ConnectionOptionsEvernoteSetUserRootAttributes = "never_on_login"
+	ConnectionOptionsEvernoteSetUserRootAttributesOnEachLogin  ConnectionOptionsEvernoteSetUserRootAttributes = "on_each_login"
+	ConnectionOptionsEvernoteSetUserRootAttributesOnFirstLogin ConnectionOptionsEvernoteSetUserRootAttributes = "on_first_login"
+)
+
+// Valid indicates whether the value is a known member of the ConnectionOptionsEvernoteSetUserRootAttributes enum.
+func (e ConnectionOptionsEvernoteSetUserRootAttributes) Valid() bool {
+	switch e {
+	case ConnectionOptionsEvernoteSetUserRootAttributesNeverOnLogin:
+		return true
+	case ConnectionOptionsEvernoteSetUserRootAttributesOnEachLogin:
+		return true
+	case ConnectionOptionsEvernoteSetUserRootAttributesOnFirstLogin:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ConnectionOptionsExactBaseUrl.
+const (
+	HttpsstartExactonlineBe   ConnectionOptionsExactBaseUrl = "https://start.exactonline.be"
+	HttpsstartExactonlineCoUk ConnectionOptionsExactBaseUrl = "https://start.exactonline.co.uk"
+	HttpsstartExactonlineCom  ConnectionOptionsExactBaseUrl = "https://start.exactonline.com"
+	HttpsstartExactonlineDe   ConnectionOptionsExactBaseUrl = "https://start.exactonline.de"
+	HttpsstartExactonlineEs   ConnectionOptionsExactBaseUrl = "https://start.exactonline.es"
+	HttpsstartExactonlineFr   ConnectionOptionsExactBaseUrl = "https://start.exactonline.fr"
+	HttpsstartExactonlineNl   ConnectionOptionsExactBaseUrl = "https://start.exactonline.nl"
+)
+
+// Valid indicates whether the value is a known member of the ConnectionOptionsExactBaseUrl enum.
+func (e ConnectionOptionsExactBaseUrl) Valid() bool {
+	switch e {
+	case HttpsstartExactonlineBe:
+		return true
+	case HttpsstartExactonlineCoUk:
+		return true
+	case HttpsstartExactonlineCom:
+		return true
+	case HttpsstartExactonlineDe:
+		return true
+	case HttpsstartExactonlineEs:
+		return true
+	case HttpsstartExactonlineFr:
+		return true
+	case HttpsstartExactonlineNl:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ConnectionOptionsExactSetUserRootAttributes.
+const (
+	ConnectionOptionsExactSetUserRootAttributesNeverOnLogin ConnectionOptionsExactSetUserRootAttributes = "never_on_login"
+	ConnectionOptionsExactSetUserRootAttributesOnEachLogin  ConnectionOptionsExactSetUserRootAttributes = "on_each_login"
+	ConnectionOptionsExactSetUserRootAttributesOnFirstLogin ConnectionOptionsExactSetUserRootAttributes = "on_first_login"
+)
+
+// Valid indicates whether the value is a known member of the ConnectionOptionsExactSetUserRootAttributes enum.
+func (e ConnectionOptionsExactSetUserRootAttributes) Valid() bool {
+	switch e {
+	case ConnectionOptionsExactSetUserRootAttributesNeverOnLogin:
+		return true
+	case ConnectionOptionsExactSetUserRootAttributesOnEachLogin:
+		return true
+	case ConnectionOptionsExactSetUserRootAttributesOnFirstLogin:
 		return true
 	default:
 		return false
@@ -10746,11 +10872,11 @@ type ConnectionCreate struct {
 	Realms       *[]string               `json:"realms,omitempty"`
 	ShowAsButton *bool                   `json:"show_as_button,omitempty"`
 
-	// Strategy `samlp` follows ConnectionOptionsSAML (Plan 37a). `adfs` follows ConnectionOptionsADFS (Plan 37b). `google-apps` follows ConnectionOptionsGoogleApps (Plan 37c). `ad` follows ConnectionOptionsAD (Plan 38a): users sign in through Auth0's AD/LDAP Connector, provisioned with the connection's `provisioning_ticket_url`. `email` and `sms` are passwordless connections whose name must equal the strategy; options follow ConnectionOptionsEmail and ConnectionOptionsSMS (Plan 34). `apple` follows ConnectionOptionsApple; web/native login is active (D-0170). `github` follows ConnectionOptionsGitHub (Plan 39c). The Plan 39b social strategies follow ConnectionOptionsSocial and their strategy schema (D-0180); `oauth1` follows ConnectionOptionsOAuth1.
+	// Strategy `samlp` follows ConnectionOptionsSAML (Plan 37a). `adfs` follows ConnectionOptionsADFS (Plan 37b). `google-apps` follows ConnectionOptionsGoogleApps (Plan 37c). `ad` follows ConnectionOptionsAD (Plan 38a): users sign in through Auth0's AD/LDAP Connector, provisioned with the connection's `provisioning_ticket_url`. `email` and `sms` are passwordless connections whose name must equal the strategy; options follow ConnectionOptionsEmail and ConnectionOptionsSMS (Plan 34). `apple` follows ConnectionOptionsApple; web/native login is active (D-0170). `github` follows ConnectionOptionsGitHub (Plan 39c). The Plan 39b social strategies follow ConnectionOptionsSocial and their strategy schema (D-0180); `oauth1` follows ConnectionOptionsOAuth1. The Plan 39d Tier 2 strategies follow ConnectionOptionsSocialFreeScope, `exact` ConnectionOptionsExact and `evernote`/`evernote-sandbox` ConnectionOptionsEvernote (D-0182); `fitbit` and `instagram` are stored but refused at sign-in because their providers retired those sign-in APIs.
 	Strategy ConnectionCreateStrategy `json:"strategy"`
 }
 
-// ConnectionCreateStrategy `samlp` follows ConnectionOptionsSAML (Plan 37a). `adfs` follows ConnectionOptionsADFS (Plan 37b). `google-apps` follows ConnectionOptionsGoogleApps (Plan 37c). `ad` follows ConnectionOptionsAD (Plan 38a): users sign in through Auth0's AD/LDAP Connector, provisioned with the connection's `provisioning_ticket_url`. `email` and `sms` are passwordless connections whose name must equal the strategy; options follow ConnectionOptionsEmail and ConnectionOptionsSMS (Plan 34). `apple` follows ConnectionOptionsApple; web/native login is active (D-0170). `github` follows ConnectionOptionsGitHub (Plan 39c). The Plan 39b social strategies follow ConnectionOptionsSocial and their strategy schema (D-0180); `oauth1` follows ConnectionOptionsOAuth1.
+// ConnectionCreateStrategy `samlp` follows ConnectionOptionsSAML (Plan 37a). `adfs` follows ConnectionOptionsADFS (Plan 37b). `google-apps` follows ConnectionOptionsGoogleApps (Plan 37c). `ad` follows ConnectionOptionsAD (Plan 38a): users sign in through Auth0's AD/LDAP Connector, provisioned with the connection's `provisioning_ticket_url`. `email` and `sms` are passwordless connections whose name must equal the strategy; options follow ConnectionOptionsEmail and ConnectionOptionsSMS (Plan 34). `apple` follows ConnectionOptionsApple; web/native login is active (D-0170). `github` follows ConnectionOptionsGitHub (Plan 39c). The Plan 39b social strategies follow ConnectionOptionsSocial and their strategy schema (D-0180); `oauth1` follows ConnectionOptionsOAuth1. The Plan 39d Tier 2 strategies follow ConnectionOptionsSocialFreeScope, `exact` ConnectionOptionsExact and `evernote`/`evernote-sandbox` ConnectionOptionsEvernote (D-0182); `fitbit` and `instagram` are stored but refused at sign-in because their providers retired those sign-in APIs.
 type ConnectionCreateStrategy string
 
 // ConnectionDeleted defines model for ConnectionDeleted.
@@ -11049,6 +11175,64 @@ type ConnectionOptionsEmail struct {
 
 // ConnectionOptionsEmailEmailSyntax defines model for ConnectionOptionsEmail.Email.Syntax.
 type ConnectionOptionsEmailEmailSyntax string
+
+// ConnectionOptionsEvernote `evernote` and `evernote-sandbox`: OAuth 1.0a with HMAC-SHA1 against Evernote's fixed endpoints; the user ID is the access-token response's `edam_userId` (D-0182). No email.
+type ConnectionOptionsEvernote struct {
+	// ClientId Consumer key.
+	ClientId *string `json:"client_id,omitempty"`
+
+	// ClientSecret Consumer secret; sealed.
+	ClientSecret          *string                                         `json:"client_secret,omitempty"`
+	SetUserRootAttributes *ConnectionOptionsEvernoteSetUserRootAttributes `json:"set_user_root_attributes,omitempty"`
+}
+
+// ConnectionOptionsEvernoteSetUserRootAttributes defines model for ConnectionOptionsEvernote.SetUserRootAttributes.
+type ConnectionOptionsEvernoteSetUserRootAttributes string
+
+// ConnectionOptionsExact `exact` (Exact Online). `baseUrl` is the regional host (D-0182 LR39d-2): https://start.exactonline.nl, .be, .co.uk, .com, .de, .fr or .es; endpoints are built under it. `profile` is stored only. No scope is sent.
+type ConnectionOptionsExact struct {
+	BaseUrl ConnectionOptionsExactBaseUrl `json:"baseUrl"`
+
+	// ClientId Provider client ID; immutable after creation.
+	ClientId *string `json:"client_id,omitempty"`
+
+	// ClientSecret Sealed at write and never returned, logged or exported.
+	ClientSecret *string `json:"client_secret,omitempty"`
+
+	// FreeformScopes Extra provider scopes, appended to the effective scope. Only absent or empty is accepted for box, dropbox, shopify and yahoo.
+	FreeformScopes *[]string `json:"freeform_scopes,omitempty"`
+
+	// NonPersistentAttrs Stored only.
+	NonPersistentAttrs *[]string `json:"non_persistent_attrs,omitempty"`
+
+	// Profile Stored only.
+	Profile *bool `json:"profile,omitempty"`
+
+	// Scope Effective scope computed from the flags. Input must equal it as a set (a comma- or space-separated string is accepted).
+	Scope                 *ConnectionOptionsExact_Scope                `json:"scope,omitempty"`
+	SetUserRootAttributes *ConnectionOptionsExactSetUserRootAttributes `json:"set_user_root_attributes,omitempty"`
+
+	// UpstreamParams Stored only; never sent upstream.
+	UpstreamParams       *map[string]interface{} `json:"upstream_params,omitempty"`
+	AdditionalProperties map[string]interface{}  `json:"-"`
+}
+
+// ConnectionOptionsExactBaseUrl defines model for ConnectionOptionsExact.BaseUrl.
+type ConnectionOptionsExactBaseUrl string
+
+// ConnectionOptionsExactScope0 defines model for ConnectionOptionsExact.Scope.0.
+type ConnectionOptionsExactScope0 = []string
+
+// ConnectionOptionsExactScope1 defines model for ConnectionOptionsExact.Scope.1.
+type ConnectionOptionsExactScope1 = string
+
+// ConnectionOptionsExact_Scope Effective scope computed from the flags. Input must equal it as a set (a comma- or space-separated string is accepted).
+type ConnectionOptionsExact_Scope struct {
+	union json.RawMessage
+}
+
+// ConnectionOptionsExactSetUserRootAttributes defines model for ConnectionOptionsExact.SetUserRootAttributes.
+type ConnectionOptionsExactSetUserRootAttributes string
 
 // ConnectionOptionsFacebook `facebook` (Graph API v24.0, SP-6). Every permission flag requests the
 // Facebook permission of the same name; `public_profile` defaults to true,
@@ -11801,6 +11985,17 @@ type ConnectionOptionsSocial_Scope struct {
 
 // ConnectionOptionsSocialSetUserRootAttributes defines model for ConnectionOptionsSocial.SetUserRootAttributes.
 type ConnectionOptionsSocialSetUserRootAttributes string
+
+// ConnectionOptionsSocialFreeScope Plan 39d Tier 2 strategies whose only Auth0 option is `scope`
+// (D-0182 LR39d-1): baidu, bitly, daccount, dwolla, fitbit, instagram,
+// planningcenter, soundcloud, thirtysevensignals, untappd, vkontakte,
+// weibo, wordpress and yandex. The operator's `scope` (array or space- or
+// comma-separated string; at most 20 tokens of 1–128 printable
+// characters without spaces or commas) is what is requested; absent, the
+// strategy's base scopes. It is returned on read as stored. `fitbit` and
+// `instagram` are accepted, stored and returned, but sign-in is refused:
+// their providers retired those sign-in APIs.
+type ConnectionOptionsSocialFreeScope = ConnectionOptionsSocial
 
 // ConnectionOptionsTwitter `twitter` (X). `protocol` `oauth2` (the default) uses OAuth 2.0 with
 // S256 PKCE and the flags `tweet_read` (tweet.read), `users_read`
@@ -21245,6 +21440,192 @@ func (a ConnectionOptionsEmail) MarshalJSON() ([]byte, error) {
 	return json.Marshal(object)
 }
 
+// Getter for additional properties for ConnectionOptionsExact. Returns the specified
+// element and whether it was found
+func (a ConnectionOptionsExact) Get(fieldName string) (value interface{}, found bool) {
+	if a.AdditionalProperties != nil {
+		value, found = a.AdditionalProperties[fieldName]
+	}
+	return
+}
+
+// Setter for additional properties for ConnectionOptionsExact
+func (a *ConnectionOptionsExact) Set(fieldName string, value interface{}) {
+	if a.AdditionalProperties == nil {
+		a.AdditionalProperties = make(map[string]interface{})
+	}
+	a.AdditionalProperties[fieldName] = value
+}
+
+// Override default JSON handling for ConnectionOptionsExact to handle AdditionalProperties
+func (a *ConnectionOptionsExact) UnmarshalJSON(b []byte) error {
+	object := make(map[string]json.RawMessage)
+	err := json.Unmarshal(b, &object)
+	if err != nil {
+		return err
+	}
+
+	if raw, found := object["baseUrl"]; found {
+		err = json.Unmarshal(raw, &a.BaseUrl)
+		if err != nil {
+			return fmt.Errorf("error reading 'baseUrl': %w", err)
+		}
+		delete(object, "baseUrl")
+	}
+
+	if raw, found := object["client_id"]; found {
+		err = json.Unmarshal(raw, &a.ClientId)
+		if err != nil {
+			return fmt.Errorf("error reading 'client_id': %w", err)
+		}
+		delete(object, "client_id")
+	}
+
+	if raw, found := object["client_secret"]; found {
+		err = json.Unmarshal(raw, &a.ClientSecret)
+		if err != nil {
+			return fmt.Errorf("error reading 'client_secret': %w", err)
+		}
+		delete(object, "client_secret")
+	}
+
+	if raw, found := object["freeform_scopes"]; found {
+		err = json.Unmarshal(raw, &a.FreeformScopes)
+		if err != nil {
+			return fmt.Errorf("error reading 'freeform_scopes': %w", err)
+		}
+		delete(object, "freeform_scopes")
+	}
+
+	if raw, found := object["non_persistent_attrs"]; found {
+		err = json.Unmarshal(raw, &a.NonPersistentAttrs)
+		if err != nil {
+			return fmt.Errorf("error reading 'non_persistent_attrs': %w", err)
+		}
+		delete(object, "non_persistent_attrs")
+	}
+
+	if raw, found := object["profile"]; found {
+		err = json.Unmarshal(raw, &a.Profile)
+		if err != nil {
+			return fmt.Errorf("error reading 'profile': %w", err)
+		}
+		delete(object, "profile")
+	}
+
+	if raw, found := object["scope"]; found {
+		err = json.Unmarshal(raw, &a.Scope)
+		if err != nil {
+			return fmt.Errorf("error reading 'scope': %w", err)
+		}
+		delete(object, "scope")
+	}
+
+	if raw, found := object["set_user_root_attributes"]; found {
+		err = json.Unmarshal(raw, &a.SetUserRootAttributes)
+		if err != nil {
+			return fmt.Errorf("error reading 'set_user_root_attributes': %w", err)
+		}
+		delete(object, "set_user_root_attributes")
+	}
+
+	if raw, found := object["upstream_params"]; found {
+		err = json.Unmarshal(raw, &a.UpstreamParams)
+		if err != nil {
+			return fmt.Errorf("error reading 'upstream_params': %w", err)
+		}
+		delete(object, "upstream_params")
+	}
+
+	if len(object) != 0 {
+		a.AdditionalProperties = make(map[string]interface{})
+		for fieldName, fieldBuf := range object {
+			var fieldVal interface{}
+			err := json.Unmarshal(fieldBuf, &fieldVal)
+			if err != nil {
+				return fmt.Errorf("error unmarshaling field %s: %w", fieldName, err)
+			}
+			a.AdditionalProperties[fieldName] = fieldVal
+		}
+	}
+	return nil
+}
+
+// Override default JSON handling for ConnectionOptionsExact to handle AdditionalProperties
+func (a ConnectionOptionsExact) MarshalJSON() ([]byte, error) {
+	var err error
+	object := make(map[string]json.RawMessage)
+
+	object["baseUrl"], err = json.Marshal(a.BaseUrl)
+	if err != nil {
+		return nil, fmt.Errorf("error marshaling 'baseUrl': %w", err)
+	}
+
+	if a.ClientId != nil {
+		object["client_id"], err = json.Marshal(a.ClientId)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'client_id': %w", err)
+		}
+	}
+
+	if a.ClientSecret != nil {
+		object["client_secret"], err = json.Marshal(a.ClientSecret)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'client_secret': %w", err)
+		}
+	}
+
+	if a.FreeformScopes != nil {
+		object["freeform_scopes"], err = json.Marshal(a.FreeformScopes)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'freeform_scopes': %w", err)
+		}
+	}
+
+	if a.NonPersistentAttrs != nil {
+		object["non_persistent_attrs"], err = json.Marshal(a.NonPersistentAttrs)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'non_persistent_attrs': %w", err)
+		}
+	}
+
+	if a.Profile != nil {
+		object["profile"], err = json.Marshal(a.Profile)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'profile': %w", err)
+		}
+	}
+
+	if a.Scope != nil {
+		object["scope"], err = json.Marshal(a.Scope)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'scope': %w", err)
+		}
+	}
+
+	if a.SetUserRootAttributes != nil {
+		object["set_user_root_attributes"], err = json.Marshal(a.SetUserRootAttributes)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'set_user_root_attributes': %w", err)
+		}
+	}
+
+	if a.UpstreamParams != nil {
+		object["upstream_params"], err = json.Marshal(a.UpstreamParams)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'upstream_params': %w", err)
+		}
+	}
+
+	for fieldName, field := range a.AdditionalProperties {
+		object[fieldName], err = json.Marshal(field)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling '%s': %w", fieldName, err)
+		}
+	}
+	return json.Marshal(object)
+}
+
 // Getter for additional properties for ConnectionOptionsFacebook. Returns the specified
 // element and whether it was found
 func (a ConnectionOptionsFacebook) Get(fieldName string) (value bool, found bool) {
@@ -27008,6 +27389,68 @@ func (t ConnectionOptionsBitbucket_Scope) MarshalJSON() ([]byte, error) {
 }
 
 func (t *ConnectionOptionsBitbucket_Scope) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
+// AsConnectionOptionsExactScope0 returns the union data inside the ConnectionOptionsExact_Scope as a ConnectionOptionsExactScope0
+func (t ConnectionOptionsExact_Scope) AsConnectionOptionsExactScope0() (ConnectionOptionsExactScope0, error) {
+	var body ConnectionOptionsExactScope0
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromConnectionOptionsExactScope0 overwrites any union data inside the ConnectionOptionsExact_Scope as the provided ConnectionOptionsExactScope0
+func (t *ConnectionOptionsExact_Scope) FromConnectionOptionsExactScope0(v ConnectionOptionsExactScope0) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeConnectionOptionsExactScope0 performs a merge with any union data inside the ConnectionOptionsExact_Scope, using the provided ConnectionOptionsExactScope0
+func (t *ConnectionOptionsExact_Scope) MergeConnectionOptionsExactScope0(v ConnectionOptionsExactScope0) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsConnectionOptionsExactScope1 returns the union data inside the ConnectionOptionsExact_Scope as a ConnectionOptionsExactScope1
+func (t ConnectionOptionsExact_Scope) AsConnectionOptionsExactScope1() (ConnectionOptionsExactScope1, error) {
+	var body ConnectionOptionsExactScope1
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromConnectionOptionsExactScope1 overwrites any union data inside the ConnectionOptionsExact_Scope as the provided ConnectionOptionsExactScope1
+func (t *ConnectionOptionsExact_Scope) FromConnectionOptionsExactScope1(v ConnectionOptionsExactScope1) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeConnectionOptionsExactScope1 performs a merge with any union data inside the ConnectionOptionsExact_Scope, using the provided ConnectionOptionsExactScope1
+func (t *ConnectionOptionsExact_Scope) MergeConnectionOptionsExactScope1(v ConnectionOptionsExactScope1) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t ConnectionOptionsExact_Scope) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *ConnectionOptionsExact_Scope) UnmarshalJSON(b []byte) error {
 	err := t.union.UnmarshalJSON(b)
 	return err
 }

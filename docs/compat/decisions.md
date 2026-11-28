@@ -3630,11 +3630,39 @@ records the scope and evidence, including the DPoP extension authorized on
 | R7 | The local organization quota refusal description is `Organization quota exceeded`. |
 | R8 | Quota warning descriptions use local wording. |
 
+## D-0182 — Plan 39d Tier 2 social providers (2026-11-28)
+
+**Status:** contract frozen 2026-11-28; implementation in progress on
+`plan-39d-social-tier2`.
+
+**Authority:** [Plan 39d design](../superpowers/specs/2026-11-28-zeroauthy-social-tier2-design.md),
+Auth0's Management OpenAPI (`ConnectionOptions*` for the Tier 2 strategies),
+Auth0's social connection pages and each provider's public documentation,
+cited per strategy in `internal/federation/inventory.json`
+(`social_descriptors.strategies`, rows with `tier: 2`). No live provider or
+Auth0 call was made.
+
+**Maintainer rulings (2026-11-27/28):** fixture providers only; a strategy
+whose provider retired its sign-in API is stored and refused at sign-in, as
+LinkedIn versions 1 and 2 are; GitHub stays on its Plan 39c adapter; build
+with general descriptor features plus one OAuth 1.0a descriptor mode.
+
+| Ruling | Contract |
+|---|---|
+| LR39d-1 Free scope | Strategies whose only Auth0 option is `scope` request the operator's `scope` (at most 20 tokens of 1–128 printable characters without spaces or commas); absent, the base scopes. Returned on read as stored. |
+| LR39d-2 Exact | `baseUrl` must be one of Exact's regional hosts (`start.exactonline.nl`, `.be`, `.co.uk`, `.com`, `.de`, `.fr`, `.es`). |
+| LR39d-3 Retired | `fitbit` (legacy Web API off 2026-11-02) and `instagram` (Basic Display off 2024-12-04): created, stored, returned and exported normally; `/authorize` refuses with no upstream call. |
+| LR39d-4 Evernote | OAuth 1.0a with HMAC-SHA1; the user ID is the access-token response's `edam_userId`; the empty `oauth_token_secret` Evernote returns is accepted for these descriptors only; no email. |
+| LR39d-5 Token-response values | Profile maps may read the token response (`token:` paths); a profile URL may substitute a token-response value only when it matches `^[A-Za-z0-9._-]{1,128}$`, URL-escaped, into a fixed template. |
+| LR39d-6 Email | Unchanged from LR39b-4; Tier 2 verifies emails only for Bitly (`is_verified`) and WordPress (`email_verified`). |
+
+Observation points SD-1…7 are listed in `docs/superpowers/plan-1-followups.md`.
+
 ## D-0180 — Plan 39b remaining social providers (2026-11-27)
 
 **Status:** merged 2026-11-27 (PR #105). After review the maintainer kept
 the local Google URN (SP-3) and connection-`client_id`-only Google audiences,
-and moved the GitHub descriptor port to the next social batch (Tier 2). Record: [implementation record](../superpowers/2026-11-16-plan-39b-implementation-record.md).
+and on 2026-11-28 kept GitHub on its Plan 39c adapter (no descriptor port); Tier 2 is Plan 39d (D-0182). Record: [implementation record](../superpowers/2026-11-16-plan-39b-implementation-record.md).
 
 **Authority:** [Plan 39b design](../superpowers/specs/2026-11-16-zeroauthy-social-providers-design.md),
 Auth0's Management OpenAPI (`ConnectionOptions*` schemas), Auth0's social
