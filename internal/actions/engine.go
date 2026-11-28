@@ -464,7 +464,7 @@ func (e *Engine) run(ctx context.Context, f *flow, user *store.User) (*Result, e
 		}
 		r := store.ExecutionResult{JobID: f.jobID, JobAttempt: f.jobAttempt, ActionID: u.actionID, ActionName: u.name, StartedAt: started, EndedAt: e.now()}
 		if step != nil {
-			r.Logs = capConsole(step.logs)
+			r.Logs = capPersistedConsole(step.logs)
 			if err == nil {
 				r.DenialReason = step.denialReason
 			}
@@ -1031,4 +1031,18 @@ func executionFailureEvent(f *flow) logs.Event {
 		event.UserID = field("user", "user_id")
 	}
 	return event
+}
+
+// capPersistedConsole applies the public per-Action character limit only
+// after masking. Test output remains transient and keeps its byte bound.
+func capPersistedConsole(lines []string) []string {
+	safe := capConsole(lines)
+	joined := strings.Join(safe, "\n")
+	limit := actionsrules.Inventory().Limits["console_log_chars_per_action"]
+	if utf8.RuneCountInString(joined) <= limit {
+		return safe
+	}
+	const marker = "… truncated"
+	prefix := string([]rune(joined)[:limit-utf8.RuneCountInString(marker)-1])
+	return append(strings.Split(prefix, "\n"), marker)
 }

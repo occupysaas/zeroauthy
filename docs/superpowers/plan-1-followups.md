@@ -1023,3 +1023,15 @@ Actions III (D-0190).
 - **X8** `user.multifactor` values.
 - **X9** Which Action claims `/userinfo` echoes.
 - **X10** Hosted-page display of `api.validation.error` on custom fields.
+
+### Plan 27/28 carryover closure in Plan 40
+
+The persistent console cap and sandbox addon/sibling assertions are closed by
+Plan 40 Task 9. The cap is applied after masking; the transient Test response
+retains its 64 KiB bound. The bypass tests now attach the engine to the counting
+store. Result-URL options cover arrays, null and nested values; null options
+are treated as omitted. Ticket challenge coverage now checks exact expiry and
+timestamp aliasing. The ErrPrecondition codec sentinel assertion was already
+present. Hosted internal fields and validation rendering are covered by Task 8.
+Broader historical store/build/Deploy review polish remains in the originating
+implementation records; it is not reported as completed here.

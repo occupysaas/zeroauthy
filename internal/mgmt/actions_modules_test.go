@@ -229,6 +229,16 @@ func TestActionsManagementTriggersDryRun(t *testing.T) {
 				t.Fatal(rec.Code, rec.Body)
 			}
 			p := out.(map[string]any)["payload"].(map[string]any)
+			expected := map[string][]string{
+				"post-login": {"user.setAppMetadata", "redirect.sendUserTo", "access.deny"}, "credentials-exchange": {"access.deny"}, "pre-user-registration": {"user.setUserMetadata", "access.deny"}, "custom-token-exchange": {"authentication.setUserById", "access.rejectInvalidSubjectToken"}, "password-reset-post-challenge": {"transaction.setResultUrl"}, "event-stream": {"cache.set", "cache.delete"}, "custom-email-provider": {"notification.retry", "notification.drop"}, "custom-phone-provider": {"notification.retry", "notification.drop"},
+			}
+			got := []string{}
+			for _, command := range p["commands"].([]any) {
+				got = append(got, command.(map[string]any)["op"].(string))
+			}
+			if strings.Join(got, ",") != strings.Join(expected[tr.ID], ",") {
+				t.Fatalf("commands=%v want=%v", got, expected[tr.ID])
+			}
 			if p["error"] != nil || len(p["logs"].([]any)) != 1 {
 				t.Fatal(p)
 			}

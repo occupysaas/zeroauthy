@@ -239,6 +239,9 @@ func TestActionsRunnerIsolation(t *testing.T) {
 	if err := json.Unmarshal(claim(t, denied, "probe"), &esc); err != nil {
 		t.Fatal(err)
 	}
+	if esc["addon"] != "denied:ERR_ACCESS_DENIED" && esc["addon"] != "denied:ERR_DLOPEN_DISABLED" {
+		t.Fatalf("addon denial did not prove sandbox enforcement: %q", esc["addon"])
+	}
 	t.Logf("escape probe: %v", esc)
 	for _, k := range []string{"require", "child", "worker", "addon", "wasi", "kill"} {
 		if !strings.HasPrefix(esc[k], "denied") {
@@ -295,8 +298,8 @@ func TestActionsRunnerIsolation(t *testing.T) {
 	if elapsed < noderunner.DefaultBudget-time.Second || elapsed > noderunner.DefaultBudget+5*time.Second {
 		t.Fatalf("busy call ended after %v, want about %v", elapsed, noderunner.DefaultBudget)
 	}
-	if inflightErr == nil {
-		t.Fatal("t1's other in-flight call survived the kill")
+	if !errors.Is(inflightErr, noderunner.ErrUnavailable) {
+		t.Fatalf("t1 sibling error = %v, want ErrUnavailable", inflightErr)
 	}
 	after, err := cdbLogin()
 	if err != nil {

@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 	"time"
+	"unicode/utf8"
 
 	"github.com/zeroauthy/zeroauthy/internal/actions"
 	"github.com/zeroauthy/zeroauthy/internal/gen/mgmtapi"
@@ -123,7 +124,20 @@ func TestActionConsoleCredentialBoundaries(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			lines := h.execution("t1", out.ExecutionID).Results[0].Logs
+			persisted := h.execution("t1", out.ExecutionID).Results[0].Logs
+			if utf8.RuneCountInString(strings.Join(persisted, "\n")) > 256 {
+				t.Fatal("persisted console cap")
+			}
+			// The transient Test response retains the full scrubbed boundary cases.
+			raw, err := h.eng.Test(logscrub.WithCredentials(context.Background(), password), "t1", a.ID, json.RawMessage(`{}`))
+			if err != nil {
+				t.Fatal(err)
+			}
+			var test struct{ Logs []string }
+			if err = json.Unmarshal(raw, &test); err != nil {
+				t.Fatal(err)
+			}
+			lines := test.Logs
 			if lines[0] != logscrub.Marker || strings.Contains(lines[1], "unknown credential") || strings.Contains(lines[1], password) {
 				t.Fatalf("unsafe credential console: %q", lines)
 			}
@@ -234,20 +248,33 @@ func TestActionConsolePrivacyBeforeFormatting(t *testing.T) {
 			ex := h.execution("t1", out.ExecutionID)
 			check := func(where string, lines []string) {
 				t.Helper()
-				if len(lines) != 1 {
-					t.Fatalf("%s logs=%q", where, lines)
+				if len(lines) == 0 {
+					t.Fatalf("%s missing logs", where)
 				}
-				line := lines[0]
+				line := strings.Join(lines, "\n")
+				truncated := strings.HasSuffix(line, "… truncated")
+				if where != "transient" && utf8.RuneCountInString(line) > 256 {
+					t.Fatalf("%s exceeds cap", where)
+				}
 				for _, secret := range []string{"unregistered-private-value", "line", `line\n`, "break", password} {
 					if strings.Contains(line, secret) {
 						t.Errorf("%s leaked %q in %q", where, secret, line)
 					}
 				}
-				if !strings.Contains(line, logscrub.Marker) && !strings.Contains(line, "■■■■■■■■") {
+				if !truncated && !strings.Contains(line, logscrub.Marker) && !strings.Contains(line, "■■■■■■■■") {
 					t.Errorf("%s missing redaction: %q", where, line)
 				}
 			}
 			check("persisted", ex.Results[0].Logs)
+			raw, err := h.eng.Test(logscrub.WithCredentials(context.Background(), password), "t1", a.ID, json.RawMessage(`{}`))
+			if err != nil {
+				t.Fatal(err)
+			}
+			var transient struct{ Logs []string }
+			if err = json.Unmarshal(raw, &transient); err != nil {
+				t.Fatal(err)
+			}
+			check("transient", transient.Logs)
 			handlers := &mgmt.Handlers{Store: h.st}
 			for _, list := range []bool{false, true} {
 				rec := httptest.NewRecorder()
@@ -377,7 +404,7 @@ func TestActionConsoleCachedCredential(t *testing.T) {
 				t.Fatal(err)
 			}
 			lines := h.execution("t1", out.ExecutionID).Results[0].Logs
-			if len(lines) != 3 {
+			if len(lines) != 4 || lines[3] != "… truncated" {
 				t.Fatalf("logs=%q", lines)
 			}
 			for _, line := range lines {
@@ -411,5 +438,19 @@ func TestActionConsolePermanentMuteCapture(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func TestActionConsoleAggregateCap(t *testing.T) {
+	h := newHarness(t)
+	a := h.action("t1", trigLogin, "aggregate", `exports.onExecutePostLogin=()=>{for(let i=0;i<10;i++)console.log('猫'.repeat(40));};`, nil, false)
+	h.bind("t1", trigLogin, a)
+	out, err := h.eng.PostLogin(context.Background(), h.loginInput("t1"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	joined := strings.Join(h.execution("t1", out.ExecutionID).Results[0].Logs, "\n")
+	if !utf8.ValidString(joined) || utf8.RuneCountInString(joined) > 256 || !strings.HasSuffix(joined, "… truncated") {
+		t.Fatalf("chars=%d console=%q", utf8.RuneCountInString(joined), joined)
 	}
 }

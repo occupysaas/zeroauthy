@@ -84,10 +84,19 @@ func TestTriggerAPIs(t *testing.T) {
 		for _, tc := range []struct{ code, want string }{
 			{`api.transaction.setResultUrl('https://app.test/done?keep=yes&status=old#end',{query:{status:'ok',count:2,valid:true}});`, "https://app.test/done?count=2&keep=yes&status=ok&valid=true#end"},
 			{`api.transaction.setResultUrl('http://localhost:3000/done');`, "http://localhost:3000/done"},
+			{`api.transaction.setResultUrl('https://app.test/done',null);`, "https://app.test/done"},
 		} {
 			a, _, err := triggerTestRun(t, e, buildID, "password-reset-post-challenge", "onExecutePostChallenge", tc.code)
 			if err != nil || a.resultURL != tc.want {
 				t.Errorf("url=%s err=%v want %s", a.resultURL, err, tc.want)
+			}
+		}
+	})
+	t.Run("invalid_result_query_options", func(t *testing.T) {
+		for _, options := range []string{`[]`, `{query:[]}`, `{query:null}`, `{query:{nested:{value:1}}}`, `{query:{values:[1]}}`} {
+			_, _, err := triggerTestRun(t, e, buildID, "password-reset-post-challenge", "onExecutePostChallenge", `api.transaction.setResultUrl('https://app.test/done',`+options+`);`)
+			if errorID(err) != "invalid_api_call" {
+				t.Errorf("options %s: %v", options, err)
 			}
 		}
 	})

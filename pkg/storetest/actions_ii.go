@@ -401,6 +401,16 @@ func testActionsII(t *testing.T, factory Factory) {
 		if ticket.ChallengePassedAt == nil || !ticket.ChallengePassedAt.Equal(now) || ticket.ChallengeResultURL != "https://example.test" || ticket.UsedAt != nil {
 			t.Fatal(ticket)
 		}
+		*ticket.ChallengePassedAt = now.Add(time.Hour)
+		ticket, e = s.PasswordResetTickets().GetByTokenHash(ctx, "ii", "hash")
+		must(t, e)
+		if !ticket.ChallengePassedAt.Equal(now) {
+			t.Fatal("challenge timestamp alias")
+		}
+		must(t, s.PasswordResetTickets().Create(ctx, &store.PasswordResetTicket{TenantID: "ii", ID: "edge", TokenHash: "edge-hash", ExpiresAt: now}))
+		if e = s.PasswordResetTickets().MarkChallengePassed(ctx, "ii", "edge-hash", now, ""); !errors.Is(e, store.ErrNotFound) {
+			t.Fatal("accepted exactly expired ticket", e)
+		}
 		if e = s.PasswordResetTickets().MarkChallengePassed(ctx, "other", "hash", now, ""); !errors.Is(e, store.ErrNotFound) {
 			t.Fatal(e)
 		}

@@ -24,6 +24,7 @@ func TestSignupPostRegistrationImportBypass(t *testing.T) {
 	j, lease := e.claim("worker")
 	counts := &actionstest.Counts{}
 	st := actionstest.CountingStore{Store: e.st, Counts: counts}
+	ae.Engine.Store = st
 	got, errs := e.finish(e.importer(), st, j, lease)
 	if got.Status != store.JobCompleted || len(errs) != 0 {
 		t.Fatalf("import %+v %v", got, errs)
