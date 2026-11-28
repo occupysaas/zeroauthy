@@ -110,5 +110,15 @@ Two clean console builds passed (102 files, 780 tests) and match byte for byte.
 The initial browser launch failure and subsequent successful run are preserved
 in e2e-actions.log and e2e-actions-browser.log in the plan workspace.
 The base's existing Go pin is 1.26.11; the final fast tier uses that toolchain.
-Full Go aggregate, vulnerability scan, review and CI remain pending. No merge
+`govulncheck` v1.10.0 with Go 1.26.11 exited 0: no vulnerabilities found.
+The first full Go aggregate at `07d4096b` exited 1. Failures were the OpenAPI
+flow-style description's unquoted comma, a no-bindings session-query regression,
+the formerly unsupported setUserId fixture, a full gRPC fixture missing the new
+claims map, and two migration assertions still expecting 53. Focused tests now
+pass after quoting/regenerating the schema description, avoiding empty session
+claim writes, updating the unsupported-method fixture and extending the codec
+and migration expectations. A new stale-claims regression also passed after
+ensuring the no-runtime path clears previous client claims.
+Original full log: `.superpowers/sdd/2026-11-16-zeroauthy-plan-40-actions-iii/fast-go-07d4096b.log`.
+Final aggregate rerun, whole-branch review and CI remain pending. No merge
 readiness is claimed.

@@ -16976,7 +16976,7 @@ type SystemActionExecution struct {
 		JobId      *string  `json:"job_id,omitempty"`
 		Logs       []string `json:"logs"`
 
-		// RequestedEffects Validated Action effect operation names only; requested during this execution
+		// RequestedEffects Validated Action effect operation names only; requested during this execution, applied by the enclosing flow on success.
 		RequestedEffects *[]string `json:"requested_effects,omitempty"`
 		StartedAt        time.Time `json:"started_at"`
 	} `json:"results"`

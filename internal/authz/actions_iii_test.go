@@ -261,3 +261,29 @@ func TestRecordMethod(t *testing.T) {
 }
 
 func strconvQuote(s string) string { return `"` + strings.ReplaceAll(s, `"`, `\"`) + `"` }
+
+func TestUserinfoClaimsClearedWithoutActions(t *testing.T) {
+	for name, runtime := range map[string]bool{"no-runtime": false, "no-bindings": true} {
+		t.Run(name, func(t *testing.T) {
+			e := newActionsEnv(t)
+			e.actions.PostLogin(t, e.tenant.ID, "userinfo", `exports.onExecutePostLogin=(event,api)=>api.idToken.setCustomClaim('urn:flow','before');`)
+			ck := e.login(t, fixedNow())
+			sess := e.session(t, ck)
+			location(t, e.get(t, goodQuery(), ck))
+			saved, err := e.st.Sessions().Get(t.Context(), e.tenant.ID, sess.ID)
+			if err != nil || !strings.Contains(saved.UserinfoClaims["spa"], "before") {
+				t.Fatalf("claims=%+v %v", saved, err)
+			}
+			if runtime {
+				e.actions.Bind(t, e.tenant.ID, actions.TriggerPostLogin)
+			} else {
+				e.h.Actions = nil
+			}
+			location(t, e.get(t, goodQuery(), ck))
+			saved, err = e.st.Sessions().Get(t.Context(), e.tenant.ID, sess.ID)
+			if err != nil || strings.Contains(saved.UserinfoClaims["spa"], "before") {
+				t.Fatalf("stale claims=%+v %v", saved, err)
+			}
+		})
+	}
+}

@@ -8083,7 +8083,7 @@ export interface components {
                 started_at: string;
                 /** Format: date-time */
                 ended_at: string;
-                /** @description Validated Action effect operation names only; requested during this execution */
+                /** @description Validated Action effect operation names only; requested during this execution, applied by the enclosing flow on success. */
                 requested_effects?: string[];
                 /** @description Local operator display metadata for an explicit access.deny command, scrubbed before bounding; absent for success or runtime errors. */
                 denial_reason?: string;

@@ -323,7 +323,7 @@ func (h *Handlers) commitLogin(w http.ResponseWriter, r *http.Request, res tenan
 			}
 		}
 	}
-	if eff != nil || h.Actions != nil {
+	if eff != nil || h.Actions != nil || sess.UserinfoClaims[fr.ClientID] != "" {
 		var custom map[string]any
 		if eff != nil {
 			custom = eff.IDClaims
@@ -336,8 +336,12 @@ func (h *Handlers) commitLogin(w http.ResponseWriter, r *http.Request, res tenan
 		if e != nil {
 			return e
 		}
-		if _, e = store.SetSessionClaims(ctx, h.Store, res.Tenant.ID, sess.ID, fr.ClientID, string(raw)); e != nil {
-			return e
+		// A flow without claims needs no write unless it must clear this
+		// client's earlier claims. Keep the no-bindings path at one extra read.
+		if len(filtered) > 0 || sess.UserinfoClaims[fr.ClientID] != "" {
+			if _, e = store.SetSessionClaims(ctx, h.Store, res.Tenant.ID, sess.ID, fr.ClientID, string(raw)); e != nil {
+				return e
+			}
 		}
 	}
 	if txn != nil && txn.Params[orglogin.InvitationIDParam] != "" {
