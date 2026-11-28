@@ -60,7 +60,7 @@ func (h *Handlers) Continue(w http.ResponseWriter, r *http.Request) {
 		}
 		state = body.Get("state")
 	}
-	info := actions.RequestInfo{IP: httpx.ClientIP(r, h.TrustProxyHeaders), Hostname: res.Host, Origin: res.Origin(), Method: r.Method, UserAgent: r.UserAgent(), Language: firstLanguage(r.Header.Get("Accept-Language")), Query: map[string]any{}, Body: map[string]any{}}
+	info := actions.RequestInfo{SecurityContext: actions.SecurityContextFrom(r.Context()), CorrelationID: actions.CorrelationID(r), IP: httpx.ClientIP(r, h.TrustProxyHeaders), Hostname: res.Host, Origin: res.Origin(), Method: r.Method, UserAgent: r.UserAgent(), Language: firstLanguage(r.Header.Get("Accept-Language")), Query: map[string]any{}, Body: map[string]any{}}
 	for k, v := range query {
 		info.Query[k] = v[0]
 	}

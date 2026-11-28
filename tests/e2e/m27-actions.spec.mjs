@@ -36,3 +36,34 @@ test('console creates edits builds deploys binds and tests an Action',async({pag
  for(const width of [390,1280]){await page.setViewportSize({width,height:900});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);}
  const m=await management(),bindings=(await m.actions.triggers.bindings.list('post-login')).data;expect(bindings.some(b=>b.action.name==='Console Action')).toBe(true);
 });
+
+test('Actions III revokes a browser session before issuing tokens',async({page})=>{
+ const m=await management();const action=await deploy(m,'Session revoke 40',`exports.onExecutePostLogin=(event,api)=>api.session.revoke('Plan40 session refused');`);await bind(m,[action]);
+ await login(page);await expect(page.locator('body')).toContainText('Plan40 session refused');
+ expect((await page.context().cookies()).filter(c=>c.name==='za_session')).toHaveLength(0);
+ await bind(m,[]);
+});
+test('Actions III shortens the session and its persistent cookie',async({page})=>{
+ const m=await management();const action=await deploy(m,'Session expiry 40',`exports.onExecutePostLogin=(event,api)=>{api.session.setExpiresAt(Date.now()+300000);api.idToken.setCustomClaim('https://actions.test/session',event.session.id);};`);await bind(m,[action]);
+ const start=Date.now()/1000;const result=await complete(page,await login(page));
+ expect(result.claims['https://actions.test/session']).toBeTruthy();
+ const cookie=(await page.context().cookies()).find(c=>c.name==='za_session');expect(cookie).toBeTruthy();expect(cookie.expires).toBeGreaterThan(start);expect(cookie.expires).toBeLessThanOrEqual(start+305);
+ await bind(m,[]);
+});
+test('Actions III custom ID-token claims reach userinfo for the SPA session',async({page})=>{
+ const m=await management(),f=await fixture();await bind(m,[f.claims]);
+ await page.goto('https://callback.e2e.test/spa');await page.waitForFunction(()=>window.ready);await page.click('#login');await page.fill('#username',email);await page.fill('#password',password);await page.click('button[type=submit]');
+ await page.waitForFunction(()=>window.claims||window.failure);expect(await page.evaluate(()=>window.failure)).toBeUndefined();
+ expect(await page.evaluate(()=>window.claims['https://actions.test/id'])).toBe('browser');
+ const user=await page.evaluate(async()=>{const response=await fetch('https://sdk.e2e.test/userinfo',{headers:{authorization:'Bearer '+window.access}});return {status:response.status,body:await response.json()};});
+ expect(user.status).toBe(200);expect(user.body['https://actions.test/id']).toBe('browser');expect(user.body.sub).toBe(await page.evaluate(()=>window.claims.sub));
+});
+test('Actions III links a federated login into a database primary',async({page})=>{
+ const m=await management(),f=await fixture();
+ const connection=await m.connections.create({name:'plan40-social',strategy:'oidc',enabled_clients:['m24-spa'],options:{type:'back_channel',client_id:'m24-upstream-client',client_secret:'m24-upstream-secret-not-for-production',discovery_url:'https://idp.e2e.test/oidc/.well-known/openid-configuration',scopes:'openid email'}});
+ const action=await deploy(m,'Primary user 40',`exports.onExecutePostLogin=(event,api)=>{if(event.connection.name==='plan40-social')api.authentication.setPrimaryUser(${JSON.stringify(f.user.user_id)});};`);await bind(m,[action]);
+ const flow=authorization({connection:connection.name,audience});await page.goto(flow.url);await page.fill('#subject','plan40-secondary');await page.getByRole('button',{name:'Allow',exact:true}).click();
+ const result=await complete(page,flow);expect(result.claims.sub).toBe(f.user.user_id);
+ const primary=await m.users.get(f.user.user_id);expect(primary.identities.some(i=>i.connection===connection.name)).toBe(true);
+ await bind(m,[]);
+});

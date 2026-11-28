@@ -1122,8 +1122,7 @@ a single classic scope on the reads, such a client gets 403 here.
 
 ## D-0190 — Plan 40 Actions III (2026-11-28)
 
-**Status:** contract frozen 2026-11-28; implementation in progress on
-`plan-40-actions-iii`.
+**Status:** implementation complete on `plan-40-actions-iii`; final verification and CI are tracked in the [record](../superpowers/2026-11-16-plan-40-implementation-record.md).
 
 **Authority:** [Plan 40 design](../superpowers/specs/2026-11-16-zeroauthy-actions-iii-design.md),
 Auth0's post-login event and API object references, the custom user ID page
@@ -1147,7 +1146,7 @@ built (LR40-8).
 | LR40-4 | Plan 48 is merged: metadata and refresh-token members are built (no fallback). |
 | LR40-5 | Risk assessment uses local signals only: `NewDevice` (known-device record), `UntrustedIP` (attack-protection state); `ImpossibleTravel` and `AgentDetection` are `neutral`. Overall `confidence` is the lowest non-neutral, else `neutral`. |
 | LR40-6 | `/userinfo` returns the latest flow's Action ID-token claims, stored per (session, client). |
-| LR40-7 | Custom database script `context` only if `enableScriptContext` is documented at build time. |
+| LR40-7 | Current docs confirm `enable_script_context`: frozen organization data before callback, empty for delete; old signatures remain valid. No request IP/client/language fields. |
 | LR40-8 | `api.user.setUserId(id)` (Early Access): database connections only; the ID is used as the new user's `user_id` after the connection prefix (`auth0|<id>`), must be unique within the connection and is refused for passwordless and federated signups. |
 
 Observation points X1–X10 are listed in `docs/superpowers/plan-1-followups.md`.
@@ -1193,7 +1192,7 @@ Local choices where public material is silent or open:
   and `transaction.metadata` (documented) and `user.app_metadata`/`user_metadata`
   after a commit-free in-memory overlay (local).
 - `/userinfo` does not return Action ID-token custom claims in Plan 27; this
-  supersedes the original local default and remains deferred (Ruling 10).
+  was deferred in Plan 27 and is implemented by Plan 40 (D-0190).
   Non-namespaced access-token claims are dropped for the tenant's Management
   API audience. `request.geoip`, `asn`, organization, MFA, prompt, agent and
   Enterprise members are omitted; `groups.*` return empty; `rules.wasExecuted`

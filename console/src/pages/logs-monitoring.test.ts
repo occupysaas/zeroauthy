@@ -282,3 +282,10 @@ it('renders logout outcome codes and classifies failures from the catalog', asyn
  expect(rows.map(r=>r.text()).join(' ')).not.toContain('succeeded')
  expect(w.text()).toContain('OIDC')
 })
+it('execution view shows session and linking effect names without values', async () => {
+ const value = execution()
+ const enriched = { ...value, results: [{ ...value.results[0], requested_effects: ['session.revoke', 'authentication.setPrimaryUser'] }] }
+ const { wrapper: w } = await setup('execution-view', '/t/acme/actions/executions/ex1', () => ok(enriched))
+ expect(w.text()).toContain('session.revoke')
+ expect(w.text()).toContain('authentication.setPrimaryUser')
+})

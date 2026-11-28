@@ -93,3 +93,16 @@ func TestSignupUserIDRefusedForPasswordless(t *testing.T) {
 		t.Fatalf("err=%v user=%+v", err, u)
 	}
 }
+
+func TestSignupUserIDRefusedForLegacyDatabase(t *testing.T) {
+	db, conn := newDB(t)
+	conn.EnabledDatabaseCustomization = true
+	conn.ImportMode = false
+	u := &store.User{TenantID: conn.TenantID}
+	err := db.runSignupActions(context.Background(), conn, SignupActions{Run: func(context.Context, *store.User) (*actionresult.Result, error) {
+		return &actionresult.Result{Effects: actionresult.Effects{SignupUserID: "custom"}}, nil
+	}}, u)
+	if err == nil {
+		t.Fatal("legacy custom ID would lose the external identity on next login")
+	}
+}

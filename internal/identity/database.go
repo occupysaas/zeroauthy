@@ -660,7 +660,7 @@ func (d *Database) runSignupActions(ctx context.Context, conn *store.Connection,
 		return &ErrSignupActionFailed{ExecutionID: result.ExecutionID}
 	}
 	if id := result.Effects.SignupUserID; id != "" {
-		if conn.Strategy != store.StrategyDatabase || len(u.Identities) > 1 || (len(u.Identities) == 1 && u.Identities[0].Provider != store.StrategyDatabase) {
+		if IsLegacy(conn) || conn.Strategy != store.StrategyDatabase || len(u.Identities) > 1 || (len(u.Identities) == 1 && u.Identities[0].Provider != store.StrategyDatabase) {
 			return &ErrSignupActionFailed{ExecutionID: result.ExecutionID}
 		}
 		if len(u.Identities) == 0 {

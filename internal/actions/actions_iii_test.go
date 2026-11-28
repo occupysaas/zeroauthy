@@ -141,3 +141,15 @@ func TestPreludeSetUserId(t *testing.T) {
 		}
 	}
 }
+
+func TestActionEffectNamesRecorded(t *testing.T) {
+	h := newHarness(t)
+	r, err := h.runLogin(t, `api.session.setCookieMode('non-persistent');api.authentication.setPrimaryUser('auth0|primary');`, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ex := h.execution("t1", r.ExecutionID)
+	if strings.Join(ex.Results[0].RequestedEffects, ",") != "session.setCookieMode,authentication.setPrimaryUser" {
+		t.Fatalf("effects=%v", ex.Results[0].RequestedEffects)
+	}
+}

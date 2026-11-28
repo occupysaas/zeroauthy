@@ -1,10 +1,10 @@
 # Actions
 
-zeroauthy runs tenant JavaScript at ten supported triggers: `post-login`,
+zeroauthy runs tenant JavaScript at eleven supported triggers: `post-login`,
 `credentials-exchange`, `pre-user-registration`, `post-user-registration`,
 `post-change-password`, `password-reset-post-challenge`,
 `custom-email-provider`, `custom-phone-provider`, `send-phone-message` and
-`event-stream`. Post-login Actions can require MFA through `api.multifactor`
+`event-stream` and `custom-token-exchange`. Post-login Actions can require MFA through `api.multifactor`
 and `api.authentication` (see [MFA](mfa.md#actions)); the phone triggers are
 described in [phone providers](phone-providers.md).
 Use the console's Actions library to save a draft, wait for its build, deploy
@@ -42,9 +42,10 @@ completed; sessions created before that record no first factor.
 `webauthn-platform` enrollments; passkeys are not MFA factors and are not
 listed. A passkey login alone leaves the ID token `amr` unchanged (see
 [passkeys](passkeys.md)).
-`event.session` appears for browser logins; `event.refresh_token` is not
-provided. `request.geoip`, `asn`, prompt, agent and Enterprise data are
-omitted. Earlier
+`event.session` appears wherever a live login session exists, including
+refreshes with a live session; `event.refresh_token` describes the presented
+refresh token. `request.geoip`, `asn`, prompt, agent and session-transfer data
+are omitted. Earlier
 Actions' target scopes, transaction metadata and user/app metadata overlays
 are visible to later Actions. Absent features are not synthesized.
 
@@ -83,9 +84,9 @@ and `org_name` are reserved claims; Actions cannot overwrite them. See
 | `multifactor.enable` | Require MFA for this login ([MFA](mfa.md#actions)) |
 | `authentication.challengeWith`, `challengeWithAny`, `enrollWith`, `enrollWithAny` | Choose the MFA factor to challenge or enroll, including `webauthn-roaming` and `webauthn-platform` ([MFA](mfa.md#actions)) |
 
-The `session.*`, `refreshToken.*`, `prompt.*` and `samlResponse.*` APIs
-throw "not supported by zeroauthy" and
-fail the flow closed, including when the Action catches that exception.
+`session.*`, `refreshToken.*` and the linking/method APIs are described below.
+`prompt.*` remains unsupported. SAML response setters apply on SAML logins.
+Unsupported calls fail the flow closed even if the Action catches the exception.
 Unknown methods and invalid arguments also fail closed.
 
 Credentials-exchange supports only `access.deny(code, reason)`,
@@ -202,7 +203,7 @@ whichever comes first. After that, execution records and the console's
 let the tenant go idle before testing again.
 
 The console's **Logs → event detail → execution** journey and **Actions logs**
-show persisted console lines (64 KiB per result) and a separate **Denial reason**
+show persisted console lines (256 Unicode characters per Action, including separators and the truncation marker) and a separate **Denial reason**
 for explicit `api.access.deny` outcomes. Denials remain normal outcomes;
 throws/timeouts retain error IDs/messages. Denial display text is scrubbed
 before bounding to 512 characters. The local operator execution endpoints
@@ -530,3 +531,105 @@ use the durable queue and appear in Actions execution logs. Each attempt uses a
 bounded isolated Node process; globals do not persist, while `api.cache` does.
 See [Event streams](event-streams.md) for the ten-second delivery budget and
 failure recovery.
+
+## Session and refresh-token effects (Actions III)
+
+Post-login exposes `api.session.revoke(reason, {preserveRefreshTokens})`,
+`setExpiresAt(milliseconds)`, `setIdleExpiresAt(milliseconds)`,
+`setCookieMode('persistent'|'non-persistent')`, `setMetadata(key,value)`,
+`deleteMetadata(key)` and `evictMetadata()`.
+Revocation stops the flow with `access_denied`, ends the session and queues
+back-channel logout; refresh families end too unless explicitly preserved.
+Later Actions do not run after revocation. Expiry setters only shorten the
+current absolute/idle limits and never exceed tenant policy. An ephemeral
+cookie has no Expires attribute. Metadata calls apply in call order, with at
+most 25 keys and string keys/values of at most 255 characters per Plan 48.
+Metadata values and token contents are never recorded as effect diagnostics.
+
+On refresh exchanges `api.refreshToken` exposes the same expiry and metadata
+methods, plus `revoke(reason)`. Revocation ends the family with `invalid_grant`;
+online tokens also end their session. Outside refresh exchanges the object
+is undefined. The event contains public IDs, client/user/session IDs, device
+information, resource-server scopes, rotation/access mode, timestamps and
+metadata, never the refresh-token value or hash. Offline refreshes also expose
+a live original session when one still exists.
+
+`api.authentication.setPrimaryUser(id)` requests linking into an existing,
+unblocked primary in the same tenant. The browser session keeps its ID/cookie
+and moves to the primary; codes and tokens carry the primary subject. The
+secondary must have one identity; absent/self/blocked primaries, an already
+linked secondary and duplicate identities are refused. Other Actions in the
+flow still see the original user. Token grants refuse linking with
+`access_denied`. A concurrent losing login is refused; see D-0190 for its error
+mapping. Actions choose whether the evidence for linking is sufficient.
+
+`api.authentication.recordMethod(providerURL)` is available only inside
+`onContinuePostLogin`; it accepts an absolute HTTPS URL up to 2048 bytes.
+It records the method on the session, includes it in later authentication
+method events and adds `mfa` to the ID token's `amr`.
+
+## Event signals and custom claims
+
+`event.authentication.riskAssessment` uses local signals: known devices give
+NewDevice `match`/`high`, unknown devices `unknown_device`/`low`; currently
+blocked suspicious IPs give UntrustedIP `found_on_deny_list`/`low`, otherwise
+`not_found_on_deny_list`/`high`. Tenant allowlists take precedence. Overall
+confidence is the lowest non-neutral assessment. ImpossibleTravel and
+AgentDetection remain neutral; zeroauthy supplies no GeoIP or bot intelligence.
+
+`event.custom_domain` contains domain and public domain metadata only on a
+custom-domain request. `event.security_context.ja3` and `.ja4` default to null.
+Operators may set top-level configuration `trusted_ja3_header` and
+`trusted_ja4_header` (`ZEROAUTHY_TRUSTED_JA3_HEADER` and
+`ZEROAUTHY_TRUSTED_JA4_HEADER`) to headers their terminating proxy overwrites.
+Values are bounded to 1024 printable ASCII bytes. Merely sending `X-JA3` does
+not enable this feature.
+
+`transaction.linking_id` is random and stable across the flow's Actions and
+continuations. A printable `X-Correlation-ID` of at most 64 bytes becomes
+`transaction.correlation_id`. Database users expose `last_password_reset`
+when known; `user.multifactor` lists enrolled factors using legacy names
+(`google-authenticator` for TOTP, `guardian` for phone/push). Session events
+include public ID/user/client, cookie mode, device, expiry and activity data.
+Delegated actors/session transfers and unavailable ASN fields are omitted.
+
+ID-token custom claims also appear at `/userinfo`, with reserved and existing
+standard claims taking precedence. Claims are bounded to 100,000 JSON bytes
+per session/client, stored on the session and replaced by the latest login or
+refresh flow. A different client sees its own claims only; tokens without a
+session have none. This intentionally means older tokens for the same
+session/client see the newest flow's claims. Both namespaced and private
+claims follow the existing ID-token filter (LR40-6, X9).
+
+## Signup and database script context
+
+Pre-registration sees admitted transient `ulp-` fields in `event.request.body`,
+including fields from earlier signup steps. They are not copied into the user,
+logs or tokens. Passwords, internal CSRF/state fields and passkey proofs are
+excluded. `api.validation.error(code,message)` redisplays the signup page with
+the supplied message and retains custom fields.
+
+`api.user.setUserId(id)` overrides the generated database identity during
+pre-registration; the normalized subject is `auth0|id`. The ID is a nonempty
+string of at most 255 Unicode characters without whitespace. Passwordless and
+social identities refuse it; duplicate normalized subjects fail signup.
+Legacy external-only databases also refuse an override: the external profile
+remains authoritative; local database and import-mode signup paths support it.
+The existing tenant-wide subject uniqueness constraint also refuses collisions
+across database connections. Bulk imports and Management creates retain their
+existing registration-hook bypass.
+
+Custom database connections may enable `options.enable_script_context` (one
+way: it cannot be turned off). Scripts declaring the extra parameter receive
+a recursively frozen context immediately before callback. It contains only
+the validated organization's id, name, display_name and metadata; without an
+organization, and for delete scripts, it is empty. Existing callback signatures
+continue to work. Request IP, client ID and language are not part of the
+currently documented database-script context (LR40-7).
+
+The execution viewer shows requested effect operation names only. A successful
+Action execution records a request; use the enclosing login outcome to confirm
+that transactional session changes or linking committed. Persisted console
+output is capped after masking; transient Test output keeps its 64 KiB bound.
+See [D-0190](compat/decisions.md#d-0190--plan-40-actions-iii-2026-11-28) and
+[the implementation record](superpowers/2026-11-16-plan-40-implementation-record.md).

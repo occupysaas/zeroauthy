@@ -60,6 +60,7 @@ func cloneExecution(e *store.Execution) *store.Execution {
 	c.Results = slices.Clone(e.Results)
 	for i := range c.Results {
 		c.Results[i].Logs = slices.Clone(e.Results[i].Logs)
+		c.Results[i].RequestedEffects = slices.Clone(e.Results[i].RequestedEffects)
 	}
 	return &c
 }

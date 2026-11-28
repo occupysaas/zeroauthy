@@ -16904,19 +16904,20 @@ func (x *ActionBoundMsg) GetVersion() *ActionVersionMsg {
 }
 
 type ActionExecutionResultMsg struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Logs          []string               `protobuf:"bytes,8,rep,name=logs,proto3" json:"logs,omitempty"`
-	ActionId      string                 `protobuf:"bytes,9,opt,name=action_id,json=actionId,proto3" json:"action_id,omitempty"`
-	DenialReason  string                 `protobuf:"bytes,10,opt,name=denial_reason,json=denialReason,proto3" json:"denial_reason,omitempty"`
-	JobId         string                 `protobuf:"bytes,6,opt,name=job_id,json=jobId,proto3" json:"job_id,omitempty"`
-	JobAttempt    int32                  `protobuf:"varint,7,opt,name=job_attempt,json=jobAttempt,proto3" json:"job_attempt,omitempty"`
-	ActionName    string                 `protobuf:"bytes,1,opt,name=action_name,json=actionName,proto3" json:"action_name,omitempty"`
-	ErrorId       string                 `protobuf:"bytes,2,opt,name=error_id,json=errorId,proto3" json:"error_id,omitempty"`
-	ErrorMsg      string                 `protobuf:"bytes,3,opt,name=error_msg,json=errorMsg,proto3" json:"error_msg,omitempty"`
-	StartedAt     *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=started_at,json=startedAt,proto3" json:"started_at,omitempty"`
-	EndedAt       *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=ended_at,json=endedAt,proto3" json:"ended_at,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state            protoimpl.MessageState `protogen:"open.v1"`
+	RequestedEffects []string               `protobuf:"bytes,11,rep,name=requested_effects,json=requestedEffects,proto3" json:"requested_effects,omitempty"`
+	Logs             []string               `protobuf:"bytes,8,rep,name=logs,proto3" json:"logs,omitempty"`
+	ActionId         string                 `protobuf:"bytes,9,opt,name=action_id,json=actionId,proto3" json:"action_id,omitempty"`
+	DenialReason     string                 `protobuf:"bytes,10,opt,name=denial_reason,json=denialReason,proto3" json:"denial_reason,omitempty"`
+	JobId            string                 `protobuf:"bytes,6,opt,name=job_id,json=jobId,proto3" json:"job_id,omitempty"`
+	JobAttempt       int32                  `protobuf:"varint,7,opt,name=job_attempt,json=jobAttempt,proto3" json:"job_attempt,omitempty"`
+	ActionName       string                 `protobuf:"bytes,1,opt,name=action_name,json=actionName,proto3" json:"action_name,omitempty"`
+	ErrorId          string                 `protobuf:"bytes,2,opt,name=error_id,json=errorId,proto3" json:"error_id,omitempty"`
+	ErrorMsg         string                 `protobuf:"bytes,3,opt,name=error_msg,json=errorMsg,proto3" json:"error_msg,omitempty"`
+	StartedAt        *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=started_at,json=startedAt,proto3" json:"started_at,omitempty"`
+	EndedAt          *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=ended_at,json=endedAt,proto3" json:"ended_at,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *ActionExecutionResultMsg) Reset() {
@@ -16947,6 +16948,13 @@ func (x *ActionExecutionResultMsg) ProtoReflect() protoreflect.Message {
 // Deprecated: Use ActionExecutionResultMsg.ProtoReflect.Descriptor instead.
 func (*ActionExecutionResultMsg) Descriptor() ([]byte, []int) {
 	return file_store_proto_rawDescGZIP(), []int{212}
+}
+
+func (x *ActionExecutionResultMsg) GetRequestedEffects() []string {
+	if x != nil {
+		return x.RequestedEffects
+	}
+	return nil
 }
 
 func (x *ActionExecutionResultMsg) GetLogs() []string {
@@ -32862,8 +32870,9 @@ const file_store_proto_rawDesc = "" +
 	"\x0eActionBoundMsg\x12>\n" +
 	"\abinding\x18\x01 \x01(\v2$.zeroauthy.store.v1.ActionBindingMsgR\abinding\x125\n" +
 	"\x06action\x18\x02 \x01(\v2\x1d.zeroauthy.store.v1.ActionMsgR\x06action\x12>\n" +
-	"\aversion\x18\x03 \x01(\v2$.zeroauthy.store.v1.ActionVersionMsgR\aversion\"\xf3\x02\n" +
-	"\x18ActionExecutionResultMsg\x12\x12\n" +
+	"\aversion\x18\x03 \x01(\v2$.zeroauthy.store.v1.ActionVersionMsgR\aversion\"\xa0\x03\n" +
+	"\x18ActionExecutionResultMsg\x12+\n" +
+	"\x11requested_effects\x18\v \x03(\tR\x10requestedEffects\x12\x12\n" +
 	"\x04logs\x18\b \x03(\tR\x04logs\x12\x1b\n" +
 	"\taction_id\x18\t \x01(\tR\bactionId\x12#\n" +
 	"\rdenial_reason\x18\n" +

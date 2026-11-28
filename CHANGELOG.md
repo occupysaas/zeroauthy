@@ -8,6 +8,12 @@ All notable changes to zeroauthy are recorded here. The format follows
 
 ### Added
 
+- Actions III (Plan 40): session and refresh-token effects, browser account
+  linking, external authentication methods, local risk and event signals,
+  per-client `/userinfo` custom claims, signup fields/custom database IDs and
+  organization context for custom database scripts. Persisted Action console
+  output now follows the 256-character aggregate limit. See [Actions](docs/actions.md).
+
 - Tier 2 social providers (Plan 39d): Baidu, Bitly, d Account, Dwolla,
   Evernote (and sandbox, OAuth 1.0a), Exact Online, Planning Center,
   SoundCloud, 37signals, Untappd, VK, Weibo, WordPress.com and Yandex.

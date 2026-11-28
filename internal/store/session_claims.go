@@ -30,6 +30,20 @@ func SetSessionClaims(ctx context.Context, st Store, tid, id, client, raw string
 	}
 	repo, ok := st.Sessions().(SessionClaimsSetter)
 	if !ok {
+		// Empty effects must not require a new RPC from an old plugin. An old
+		// driver cannot have written custom claims; still check the session and
+		// fail closed if it does expose existing claims that need clearing.
+		var claims map[string]any
+		_ = json.Unmarshal([]byte(raw), &claims)
+		if len(claims) == 0 {
+			current, err := st.Sessions().Get(ctx, tid, id)
+			if err != nil {
+				return nil, err
+			}
+			if current.UserinfoClaims[client] == "" {
+				return current, nil
+			}
+		}
 		return nil, ErrSessionLimitsUnavailable
 	}
 	return repo.SetClaims(ctx, tid, id, client, raw)

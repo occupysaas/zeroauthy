@@ -466,6 +466,15 @@ func (e *Engine) run(ctx context.Context, f *flow, user *store.User) (*Result, e
 		if step != nil {
 			r.Logs = capPersistedConsole(step.logs)
 			if err == nil {
+				for _, c := range step.commands {
+					if strings.HasPrefix(c.Op, "session.") || strings.HasPrefix(c.Op, "refreshToken.") || c.Op == "authentication.setPrimaryUser" || c.Op == "authentication.recordMethod" {
+						if !slices.Contains(r.RequestedEffects, c.Op) {
+							r.RequestedEffects = append(r.RequestedEffects, c.Op)
+						}
+					}
+				}
+			}
+			if err == nil {
 				r.DenialReason = step.denialReason
 			}
 		}

@@ -21545,6 +21545,7 @@ components:
               action_name: {type: string}
               started_at: {type: string, format: date-time}
               ended_at: {type: string, format: date-time}
+              requested_effects: {type: array, items: {type: string}, description: Validated Action effect operation names only; requested during this execution, applied by the enclosing flow on success.}
               denial_reason:
                 type: string
                 maxLength: 512
